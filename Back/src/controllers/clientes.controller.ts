@@ -1,35 +1,29 @@
 import { Request, Response } from "express";
 import { ClienteService } from "../services/clientes.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
+import { Prisma } from "@prisma/client";
 
 export const clienteController = {
-  
+
   async listar(req: Request, res: Response) {
     try {
-      const oficinaId = getRequiredOfficeId(req);
-
-      const search = req.query.search
-        ? String(req.query.search)
-        : "";
-
-      const clientes = await ClienteService.listar(oficinaId, search);
-      res.json(clientes);
+      const search = req.query.search ? String(req.query.search) : "";
+      const clientes = await ClienteService.listar(getRequiredOfficeId(req), search);
+      return res.json(clientes);
     } catch (err: any) {
       console.error("Erro ao listar clientes:", err);
-      res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: err.message });
     }
   },
 
   async getDetalhes(req: Request, res: Response) {
     try {
       const id = Number(req.params.id);
-      const oficinaId = getRequiredOfficeId(req);
-
-      const cliente = await ClienteService.getDetalhes(id, oficinaId);
-      res.json(cliente);
+      const cliente = await ClienteService.getDetalhes(id, getRequiredOfficeId(req));
+      return res.json(cliente);
     } catch (err: any) {
       console.error("Erro ao obter detalhes do cliente:", err);
-      res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: err.message });
     }
   },
 
@@ -39,10 +33,13 @@ export const clienteController = {
         ...req.body,
         oficina_id: getRequiredOfficeId(req),
       });
-      res.status(201).json(cliente);
+      return res.status(201).json(cliente);
     } catch (err: any) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+        return res.status(409).json({ message: "Ja existe um cliente com este CPF ou e-mail nesta oficina." });
+      }
       console.error("Erro ao criar cliente:", err);
-      res.status(500).json({ error: err.message });
+      return res.status(400).json({ message: err.message });
     }
   },
 
@@ -50,23 +47,21 @@ export const clienteController = {
     try {
       const id = Number(req.params.id);
       const cliente = await ClienteService.atualizar(id, req.body, getRequiredOfficeId(req));
-      res.json(cliente);
+      return res.json(cliente);
     } catch (err: any) {
       console.error("Erro ao atualizar cliente:", err);
-      res.status(500).json({ error: err.message });
+      return res.status(400).json({ message: err.message });
     }
   },
 
   async deletar(req: Request, res: Response) {
     try {
       const id = Number(req.params.id);
-      const oficinaId = getRequiredOfficeId(req);
-
-      await ClienteService.deletar(id, oficinaId);
-      res.status(204).send();
+      await ClienteService.deletar(id, getRequiredOfficeId(req));
+      return res.status(204).send();
     } catch (err: any) {
       console.error("Erro ao deletar cliente:", err);
-      res.status(500).json({ error: err.message });
+      return res.status(400).json({ message: err.message });
     }
   },
 
@@ -75,9 +70,9 @@ export const clienteController = {
       const clienteId = Number(req.params.clienteId);
       const veiculos = await ClienteService.listarVeiculosDoCliente(clienteId, getRequiredOfficeId(req));
       return res.json(veiculos);
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: "Erro ao buscar veículos do cliente" });
+    } catch (err: any) {
+      console.error("Erro ao buscar veiculos do cliente:", err);
+      return res.status(500).json({ error: "Erro ao buscar veiculos do cliente" });
     }
-  }
+  },
 };

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { PerfisAcessoService } from "../services/perfisAcesso.service.js";
+import { Prisma } from "@prisma/client";
 
 function getOfficeId(req: Request) {
   return Number(req.user?.oficinaId ?? req.user?.oficina_id);
@@ -23,6 +24,9 @@ export const PerfisAcessoController = {
       const perfil = await PerfisAcessoService.create(getOfficeId(req), req.body);
       return res.status(201).json(perfil);
     } catch (error: any) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        return res.status(409).json({ message: "Ja existe um perfil com este nome nesta oficina." });
+      }
       return res.status(400).json({ message: error.message });
     }
   },

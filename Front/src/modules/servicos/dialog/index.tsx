@@ -29,7 +29,7 @@ import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ToggleOffRoundedIcon from "@mui/icons-material/ToggleOffRounded";
 import ToggleOnRoundedIcon from "@mui/icons-material/ToggleOnRounded";
-import { HeaderIcon, SectionLabel, PrecoDisplay } from "../../../components/styled/DialogStyles";
+import { HeaderIcon, PrecoDisplay } from "../../../components/styled/DialogStyles";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -64,7 +64,7 @@ type Props = {
 
 // ─── Constantes ────────────────────────────────────────────────────────────
 
-const CATEGORIAS = [
+export const CATEGORIAS = [
   { value: "revisao", label: "Revisão" },
   { value: "freios", label: "Freios" },
   { value: "suspensao", label: "Suspensão" },
@@ -246,10 +246,6 @@ export default function ServicoDialog({
       >
         <Grid container spacing={3}>
           <Grid size={12}>
-            <SectionLabel>
-              <BuildRoundedIcon sx={{ fontSize: 12, mr: 0.5, verticalAlign: "middle" }} />
-              Identificação do serviço
-            </SectionLabel>
             <Grid container spacing={2}>
               <Grid size={12}>
                 <TextField
@@ -340,12 +336,12 @@ export default function ServicoDialog({
           </Grid>
 
           <Grid size={12}>
-            <Divider sx={{ mb: 2 }} />
-            <SectionLabel>
-              <AccessTimeRoundedIcon sx={{ fontSize: 12, mr: 0.5, verticalAlign: "middle" }} />
-              Detalhes operacionais
-            </SectionLabel>
-            <Grid container spacing={2} alignItems="flex-start">
+            <Divider>
+              <Typography variant="caption" color="text.disabled" fontWeight={600} letterSpacing={0.5} sx={{ textTransform: "uppercase" }}>
+                Detalhes operacionais
+              </Typography>
+            </Divider>
+            <Grid container spacing={2} alignItems="flex-start" sx={{ mt: 1 }}>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   label="Tempo estimado"

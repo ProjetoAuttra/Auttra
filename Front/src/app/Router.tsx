@@ -20,8 +20,10 @@ import FinanceiroRelatorio from '../modules/relatorios/pages/financeiro/financei
 import AgendaRelatorio from '../modules/relatorios/pages/agenda/agendarelatorio';
 import GeralRelatorio from '../modules/relatorios/pages/geral/geralrelatorio';
 import Configuracoes from '../modules/configuracoes/pages/configuracoes';
-import Veiculos from '../modules/veiculos/pages/veiculos'
+import Veiculos from '../modules/veiculos/pages/veiculos';
+import VeiculoDetalhes from '../modules/veiculos/pages/detalhesveiculos/detalhesveiculos';
 import Estoque from '../modules/estoque/pages/estoque';
+import ImportarXml from '../modules/estoque/pages/ImportarXml';
 import Fornecedores from '../modules/fornecedores/pages/fornecedores';
 import Servicos from '../modules/servicos/pages/servicos';
 import OrdemServicoDetalhes from '../modules/tarefas/pages/detalhesos/ordemservicodetalhes';
@@ -77,7 +79,9 @@ export default function Router() {
         <Route path={paths.geralRelatorio} element={<ModuleRoute module="relatorios"><GeralRelatorio /></ModuleRoute>} />
         <Route path={paths.configuracoes} element={<ModuleRoute module="configuracoes"><Configuracoes /></ModuleRoute>} />
         <Route path={paths.veiculos} element={<ModuleRoute module="veiculos"><Veiculos /></ModuleRoute>} />
+        <Route path={paths.veiculoDetalhes} element={<ModuleRoute module="veiculos"><VeiculoDetalhes /></ModuleRoute>} />
         <Route path={paths.estoque} element={<ModuleRoute module="estoque"><Estoque /></ModuleRoute>} />
+        <Route path={paths.estoqueImportarXml} element={<ModuleRoute module="estoque"><ImportarXml /></ModuleRoute>} />
         <Route path={paths.fornecedores} element={<ModuleRoute module="fornecedores"><Fornecedores /></ModuleRoute>} />
         <Route path={paths.servicos} element={<ModuleRoute module="servicos"><Servicos /></ModuleRoute>} />
         <Route path={paths.ordemServicoDetalhes} element={<ModuleRoute module="ordens"><OrdemServicoDetalhes /></ModuleRoute>} />

@@ -19,7 +19,14 @@ export const VeiculosService = {
   getById: (id: number, oficinaId: number) =>
     prisma.veiculo.findFirst({
       where: { id, deleted_at: null, oficina_id: oficinaId },
-      include: { cliente: true, oficina: true },
+      include: {
+        cliente: true,
+        ordens: {
+          where: { deleted_at: null },
+          orderBy: { data_abertura: "desc" },
+          include: { funcionario: true },
+        },
+      },
     }),
 
   create: async (data: any) => {
@@ -36,6 +43,27 @@ export const VeiculosService = {
     });
     if (!cliente) throw new Error("Cliente nao encontrado nesta oficina.");
 
+    const existing = await prisma.veiculo.findFirst({
+      where: { placa, oficina_id: oficinaId },
+    });
+
+    if (existing) {
+      return prisma.veiculo.update({
+        where: { id: existing.id },
+        data: {
+          cliente_id: clienteId,
+          marca: data.marca,
+          modelo: data.modelo,
+          ano: data.ano ? Number(data.ano) : null,
+          cor: data.cor ?? null,
+          combustivel: data.combustivel ?? null,
+          quilometragem: data.quilometragem ? Number(data.quilometragem) : null,
+          observacao: data.observacao ?? null,
+          deleted_at: null,
+        },
+      });
+    }
+
     return prisma.veiculo.create({
       data: {
         cliente_id: clienteId,
@@ -45,6 +73,9 @@ export const VeiculosService = {
         modelo: data.modelo,
         ano: data.ano ? Number(data.ano) : null,
         cor: data.cor ?? null,
+        combustivel: data.combustivel ?? null,
+        quilometragem: data.quilometragem ? Number(data.quilometragem) : null,
+        observacao: data.observacao ?? null,
       },
     });
   },
@@ -55,21 +86,20 @@ export const VeiculosService = {
     delete patch.oficinaId;
 
     if (data.placa != null) patch.placa = normalizePlaca(String(data.placa));
-    if (data.cliente_id != null || data.clienteId != null) {
-      patch.cliente_id = Number(data.cliente_id ?? data.clienteId);
-    }
+    if (data.cliente_id) patch.cliente_id = Number(data.cliente_id);
     delete patch.oficina_id;
     if (data.ano != null) patch.ano = Number(data.ano);
+    if (data.quilometragem != null) patch.quilometragem = Number(data.quilometragem);
 
     const existing = await prisma.veiculo.findFirst({ where: { id, oficina_id: oficinaId, deleted_at: null } });
     if (!existing) throw new Error("Veiculo nao encontrado nesta oficina.");
     patch.oficina_id = oficinaId;
 
     if (patch.cliente_id) {
-      const cliente = await prisma.cliente.findFirst({
+      const cli = await prisma.cliente.findFirst({
         where: { id: patch.cliente_id, oficina_id: oficinaId, deleted_at: null },
       });
-      if (!cliente) throw new Error("Cliente nao encontrado nesta oficina.");
+      if (!cli) throw new Error("Cliente nao encontrado nesta oficina.");
     }
 
     return prisma.veiculo.update({ where: { id }, data: patch });

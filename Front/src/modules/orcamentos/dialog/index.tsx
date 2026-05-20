@@ -25,6 +25,8 @@ import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import DirectionsCarRoundedIcon from "@mui/icons-material/DirectionsCarRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import CalendarTodayRoundedIcon from "@mui/icons-material/CalendarTodayRounded";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import api from "../../../api/api";
 import { useAuth } from "../../../context/AuthContext";
@@ -37,6 +39,18 @@ export type OrcamentoForm = {
     descricao: string;
     valor: number;
     data: string;
+    itens: OrcamentoItem[];
+};
+
+export type OrcamentoItem = {
+    id: string | number;
+    tipo_item: "servico" | "peca";
+    nome: string;
+    servico_id?: number | null;
+    peca_id?: number | null;
+    quantidade: number;
+    preco_unitario: number;
+    subtotal: number;
 };
 
 export type Orcamento = {
@@ -47,6 +61,7 @@ export type Orcamento = {
     status: "analise" | "aprovado" | "recusado";
     cliente: { id: number; nome: string };
     veiculo: { id: number; modelo: string; placa: string };
+    itens?: OrcamentoItem[];
 };
 
 type Props = {
@@ -112,6 +127,8 @@ export default function DialogOrcamento({
     // Dados
     const [clientes, setClientes] = React.useState<{ id: number; nome: string }[]>([]);
     const [veiculos, setVeiculos] = React.useState<{ id: number; modelo: string; placa: string }[]>([]);
+    const [servicos, setServicos] = React.useState<any[]>([]);
+    const [pecas, setPecas] = React.useState<any[]>([]);
     const [loadingVeiculos, setLoadingVeiculos] = React.useState(false);
 
     // Campos
@@ -120,6 +137,9 @@ export default function DialogOrcamento({
     const [descricao, setDescricao] = React.useState("");
     const [precoFormatado, setPrecoFormatado] = React.useState("");
     const [data, setData] = React.useState(new Date().toISOString().split("T")[0]);
+    const [itens, setItens] = React.useState<OrcamentoItem[]>([]);
+    const [selecaoAberta, setSelecaoAberta] = React.useState<null | "servico" | "peca">(null);
+    const [selecionadoId, setSelecionadoId] = React.useState<number>(0);
 
     // UI
     const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -132,6 +152,22 @@ export default function DialogOrcamento({
         api.get(`/clientes?oficina_id=${user.oficina_id}`)
             .then((res) => setClientes(res.data.map((c: any) => ({ id: c.id, nome: c.nome }))))
             .catch(() => setClientes([]));
+    }, [open, user?.oficina_id]);
+
+    React.useEffect(() => {
+        if (!open || !user?.oficina_id) return;
+        Promise.all([
+            api.get(`/servicos?oficina_id=${user.oficina_id}`),
+            api.get(`/pecas?oficina_id=${user.oficina_id}`),
+        ])
+            .then(([serv, pec]) => {
+                setServicos(serv.data ?? []);
+                setPecas(pec.data ?? []);
+            })
+            .catch(() => {
+                setServicos([]);
+                setPecas([]);
+            });
     }, [open, user?.oficina_id]);
 
     // ── Carrega veículos quando cliente muda ──
@@ -147,8 +183,8 @@ export default function DialogOrcamento({
     // ── Reset ao abrir ──
     React.useEffect(() => {
         if (!open) return;
-        setClienteId(0);
-        setVeiculoId(0);
+        setClienteId(initial?.cliente?.id ?? (initial as any)?.cliente_id ?? 0);
+        setVeiculoId(initial?.veiculo?.id ?? (initial as any)?.veiculo_id ?? 0);
         setDescricao(initial?.descricao ?? "");
         setPrecoFormatado(
             initial?.valor
@@ -156,23 +192,79 @@ export default function DialogOrcamento({
                 : ""
         );
         setData(initial?.data ? initial.data.split("T")[0] : new Date().toISOString().split("T")[0]);
+        setItens((initial?.itens ?? []).map((i: any) => ({
+            id: i.id,
+            tipo_item: i.tipo_item,
+            nome: i.nome ?? i.servico?.nome ?? i.peca?.nome ?? "Item",
+            servico_id: i.servico_id ?? i.servico?.id ?? null,
+            peca_id: i.peca_id ?? i.peca?.id ?? null,
+            quantidade: Number(i.quantidade ?? 1),
+            preco_unitario: Number(i.preco_unitario ?? 0),
+            subtotal: Number(i.subtotal ?? 0),
+        })));
         setErrors({});
         setSubmitAttempted(false);
         setConfirmDelete(false);
+        setSelecaoAberta(null);
+        setSelecionadoId(0);
     }, [open, initial]);
 
     // ── Revalida ──
     React.useEffect(() => {
         if (submitAttempted) validate();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [clienteId, veiculoId, descricao, precoFormatado]);
+    }, [clienteId, veiculoId, descricao, precoFormatado, itens]);
+
+    const totalItens = itens.reduce((sum, item) => sum + Number(item.subtotal ?? 0), 0);
+
+    const handleAddItem = () => {
+        const lista = selecaoAberta === "servico" ? servicos : pecas;
+        const selecionado = lista.find((item) => item.id === selecionadoId);
+        if (!selecaoAberta || !selecionado) return;
+
+        const exists = itens.some((item) =>
+            item.tipo_item === selecaoAberta &&
+            (selecaoAberta === "servico" ? item.servico_id : item.peca_id) === selecionado.id
+        );
+        if (exists) return;
+
+        const preco = Number(selecionado.preco_venda ?? selecionado.preco ?? 0);
+        const idCampo = selecaoAberta === "servico" ? "servico_id" : "peca_id";
+        setItens((prev) => [
+            ...prev,
+            {
+                id: `${selecaoAberta}-${selecionado.id}-${Date.now()}`,
+                tipo_item: selecaoAberta,
+                nome: selecionado.nome,
+                [idCampo]: selecionado.id,
+                quantidade: 1,
+                preco_unitario: preco,
+                subtotal: preco,
+            },
+        ]);
+        setSelecaoAberta(null);
+        setSelecionadoId(0);
+    };
+
+    const handleQtdChange = (id: string | number, quantidade: number) => {
+        const qtd = Math.max(1, Number(quantidade) || 1);
+        setItens((prev) => prev.map((item) => (
+            item.id === id
+                ? { ...item, quantidade: qtd, subtotal: qtd * Number(item.preco_unitario) }
+                : item
+        )));
+    };
+
+    const handleDeleteItem = (id: string | number) => {
+        setItens((prev) => prev.filter((item) => item.id !== id));
+    };
 
     const validate = (): boolean => {
         const errs: Record<string, string> = {};
         if (!clienteId) errs.clienteId = "Selecione o cliente";
         if (!veiculoId) errs.veiculoId = "Selecione o veículo";
         if (!descricao.trim()) errs.descricao = "Descreva os serviços do orçamento";
-        const preco = parsePreco(precoFormatado);
+        const preco = totalItens > 0 ? totalItens : parsePreco(precoFormatado);
         if (!preco || preco <= 0) errs.valor = "Informe um valor válido";
         setErrors(errs);
         return Object.keys(errs).length === 0;
@@ -185,13 +277,14 @@ export default function DialogOrcamento({
             clienteId,
             veiculoId,
             descricao: descricao.trim(),
-            valor: parsePreco(precoFormatado),
+            valor: totalItens > 0 ? totalItens : parsePreco(precoFormatado),
             data,
+            itens,
         });
         onClose();
     };
 
-    const precoNum = parsePreco(precoFormatado);
+    const precoNum = totalItens > 0 ? totalItens : parsePreco(precoFormatado);
 
     return (
         <Dialog
@@ -256,7 +349,7 @@ export default function DialogOrcamento({
                         >
                             <Typography variant="caption" color="success.main" fontWeight={700}>R$</Typography>
                             <Typography variant="subtitle1" color="success.main" fontWeight={800}>
-                                {precoFormatado}
+                                {precoNum.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                             </Typography>
                         </Box>
                     )}
@@ -360,6 +453,110 @@ export default function DialogOrcamento({
                                     )}
                                 </TextField>
                             </Grid>
+
+                            <Grid item xs={12}>
+                                <Divider sx={{ my: 1 }} />
+                                <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }}>
+                                    <SectionLabel sx={{ mb: 0 }}>Itens do orçamento</SectionLabel>
+                                    <Stack direction="row" spacing={1}>
+                                        <Button
+                                            size="small"
+                                            startIcon={<AddRoundedIcon />}
+                                            variant={selecaoAberta === "servico" ? "contained" : "outlined"}
+                                            onClick={() => setSelecaoAberta(selecaoAberta === "servico" ? null : "servico")}
+                                        >
+                                            Mão de obra
+                                        </Button>
+                                        <Button
+                                            size="small"
+                                            startIcon={<AddRoundedIcon />}
+                                            variant={selecaoAberta === "peca" ? "contained" : "outlined"}
+                                            color="secondary"
+                                            onClick={() => setSelecaoAberta(selecaoAberta === "peca" ? null : "peca")}
+                                        >
+                                            Peças
+                                        </Button>
+                                    </Stack>
+                                </Stack>
+
+                                {selecaoAberta && (
+                                    <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mt: 1.5 }}>
+                                        <TextField
+                                            select
+                                            label={selecaoAberta === "servico" ? "Selecionar serviço" : "Selecionar peça"}
+                                            value={selecionadoId}
+                                            onChange={(e) => setSelecionadoId(Number(e.target.value))}
+                                            size="small"
+                                            fullWidth
+                                        >
+                                            <MenuItem value={0} disabled>
+                                                {selecaoAberta === "servico" ? "Escolha um serviço" : "Escolha uma peça"}
+                                            </MenuItem>
+                                            {(selecaoAberta === "servico" ? servicos : pecas).map((item) => (
+                                                <MenuItem key={item.id} value={item.id}>
+                                                    {item.nome} — R$ {Number(item.preco_venda ?? item.preco ?? 0).toFixed(2)}
+                                                </MenuItem>
+                                            ))}
+                                        </TextField>
+                                        <Button variant="contained" disableElevation onClick={handleAddItem} sx={{ px: 3 }}>
+                                            Adicionar
+                                        </Button>
+                                    </Stack>
+                                )}
+
+                                <Paper
+                                    elevation={0}
+                                    sx={{
+                                        mt: 1.5,
+                                        border: (t) => `1px solid ${t.palette.divider}`,
+                                        borderRadius: 2,
+                                        overflow: "hidden",
+                                        bgcolor: "background.paper",
+                                    }}
+                                >
+                                    {itens.length ? (
+                                        <Stack divider={<Divider />}>
+                                            {itens.map((item) => (
+                                                <Stack
+                                                    key={item.id}
+                                                    direction={{ xs: "column", sm: "row" }}
+                                                    spacing={1.5}
+                                                    alignItems={{ xs: "stretch", sm: "center" }}
+                                                    sx={{ p: 1.5 }}
+                                                >
+                                                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                        <Typography variant="body2" fontWeight={700} noWrap>
+                                                            {item.nome}
+                                                        </Typography>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            {item.tipo_item === "servico" ? "Mão de obra" : "Peça"} • R$ {Number(item.preco_unitario).toFixed(2)}
+                                                        </Typography>
+                                                    </Box>
+                                                    <TextField
+                                                        type="number"
+                                                        label="Qtd"
+                                                        size="small"
+                                                        value={item.quantidade}
+                                                        onChange={(e) => handleQtdChange(item.id, Number(e.target.value))}
+                                                        inputProps={{ min: 1 }}
+                                                        sx={{ width: { xs: "100%", sm: 92 } }}
+                                                    />
+                                                    <Typography variant="body2" fontWeight={800} color="success.main" sx={{ minWidth: 110, textAlign: { xs: "left", sm: "right" } }}>
+                                                        R$ {Number(item.subtotal).toFixed(2)}
+                                                    </Typography>
+                                                    <IconButton color="error" size="small" onClick={() => handleDeleteItem(item.id)}>
+                                                        <DeleteRoundedIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Stack>
+                                            ))}
+                                        </Stack>
+                                    ) : (
+                                        <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+                                            Adicione serviços e peças para a O.S. já nascer praticamente pronta.
+                                        </Typography>
+                                    )}
+                                </Paper>
+                            </Grid>
                         </Grid>
                     </Grid>
 
@@ -399,8 +596,9 @@ export default function DialogOrcamento({
                             <Grid item xs={12} sm={6}>
                                 <TextField
                                     label="Valor total *"
-                                    value={precoFormatado}
+                                    value={totalItens > 0 ? totalItens.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : precoFormatado}
                                     onChange={(e) => setPrecoFormatado(formatPreco(e.target.value))}
+                                    disabled={totalItens > 0}
                                     placeholder="0,00"
                                     size="small"
                                     fullWidth

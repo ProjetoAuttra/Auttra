@@ -5,6 +5,7 @@ const router = Router();
 const controller = new OrcamentoController();
 
 router.get("/", controller.listar);
+router.get("/:id/pdf", controller.gerarPdf);
 router.get("/:id", controller.buscar);
 router.post("/", controller.criar);
 router.put("/:id", controller.atualizar);

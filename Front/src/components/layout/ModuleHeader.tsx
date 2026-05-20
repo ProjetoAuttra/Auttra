@@ -6,6 +6,7 @@ import {
 } from "@mui/material";
 import type React from "react";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import FileUploadRoundedIcon from "@mui/icons-material/FileUploadRounded";
 
 type Metric = {
   label: string;
@@ -23,6 +24,9 @@ type Props = {
   onSearchChange?: (value: string) => void;
   actionLabel?: string;
   onAction?: () => void;
+  secondaryActionLabel?: string;
+  onSecondaryAction?: () => void;
+  secondaryActionIcon?: React.ReactNode;
 };
 
 export default function ModuleHeader({
@@ -31,6 +35,9 @@ export default function ModuleHeader({
   icon,
   actionLabel,
   onAction,
+  secondaryActionLabel,
+  onSecondaryAction,
+  secondaryActionIcon,
 }: Props) {
   return (
     <Box
@@ -59,11 +66,23 @@ export default function ModuleHeader({
 
         </Stack>
 
-        {onAction && (
+        {(onAction || onSecondaryAction) && (
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems="stretch">
-            <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={onAction} sx={{ borderRadius: 999, px: 2.5 }}>
-              {actionLabel}
-            </Button>
+            {onSecondaryAction && (
+              <Button
+                variant="outlined"
+                startIcon={secondaryActionIcon ?? <FileUploadRoundedIcon />}
+                onClick={onSecondaryAction}
+                sx={{ borderRadius: 999, px: 2.5, whiteSpace: "nowrap" }}
+              >
+                {secondaryActionLabel}
+              </Button>
+            )}
+            {onAction && (
+              <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={onAction} sx={{ borderRadius: 999, px: 2.5 }}>
+                {actionLabel}
+              </Button>
+            )}
           </Stack>
         )}
       </Stack>

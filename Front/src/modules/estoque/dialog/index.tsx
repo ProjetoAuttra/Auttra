@@ -11,16 +11,16 @@ import PaidRoundedIcon from "@mui/icons-material/PaidRounded";
 import NumbersRoundedIcon from "@mui/icons-material/NumbersRounded";
 
 export type EstoqueItem = {
-  id: string;
+  id: number;
   nome: string;
   descricao?: string;
   preco_custo: number;
   preco_venda: number;
   estoque: number;
-  createdAt: string;
+  created_at: string;
 };
 
-export type EstoqueForm = Omit<EstoqueItem, "id" | "createdAt">;
+export type EstoqueForm = Omit<EstoqueItem, "id" | "created_at">;
 
 type Props = {
   open: boolean;
@@ -82,7 +82,7 @@ export default function EstoqueDialog({
           <HeaderIcon><Inventory2RoundedIcon /></HeaderIcon>
           <Stack spacing={0}>
             <Typography variant="subtitle1" fontWeight={800}>
-              {mode === "create" ? "Novo item de estoque" : "Editar item"}
+              {mode === "create" ? "Nova peça" : "Editar peça"}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Preencha as informações do produto/peça
@@ -176,14 +176,10 @@ function HeaderIcon({ children }: { children: React.ReactNode }) {
   return (
     <Stack
       sx={{
-        width: 36,
-        height: 36,
-        borderRadius: "50%",
-        display: "grid",
-        placeItems: "center",
+        width: 36, height: 36, borderRadius: "50%",
+        display: "grid", placeItems: "center",
         bgcolor: (t) => alpha(t.palette.primary.main, 0.15),
-        color: "primary.main",
-        flexShrink: 0,
+        color: "primary.main", flexShrink: 0,
       }}
     >
       {children}
