@@ -39,6 +39,8 @@ coverage/
 Thumbs.db
 .idea/
 .vscode/
+CLAUDE.md
+**/CLAUDE.md
 
 # Railway/local deploy metadata
 .railway/
