@@ -40,4 +40,17 @@ export const PecasService = {
       data: { deleted_at: new Date() },
     });
   },
+
+  ajuste: async (id: number, tipo: "entrada" | "saida", quantidade: number, oficinaId: number) => {
+    const peca = await prisma.peca.findFirst({ where: { id, oficina_id: oficinaId, deleted_at: null } });
+    if (!peca) throw new Error("Peça não encontrada.");
+    if (quantidade <= 0) throw new Error("A quantidade deve ser maior que zero.");
+    if (tipo === "saida" && peca.estoque < quantidade) {
+      throw new Error(`Estoque insuficiente. Disponível: ${peca.estoque}`);
+    }
+    return prisma.peca.update({
+      where: { id },
+      data: { estoque: tipo === "entrada" ? { increment: quantidade } : { decrement: quantidade } },
+    });
+  },
 };

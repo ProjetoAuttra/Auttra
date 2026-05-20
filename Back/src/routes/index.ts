@@ -16,6 +16,7 @@ import orcamentosRouter from "./orcamentos.routes.js";
 import agendamentosRouter from "./agendamento.routes.js";
 import perfisAcessoRouter from "./perfisAcesso.routes.js";
 import recursosAdicionaisRouter from "./recursosAdicionais.routes.js";
+import importacaoXmlRouter from "./importacaoXml.routes.js";
 import { authMiddleware, officeScopeMiddleware, requirePermission } from "../middlewares/ensureAuth.js";
 import type { AccessModule, AccessAction } from "../permissions/accessProfiles.js";
 
@@ -53,5 +54,6 @@ router.use("/pecas", modulePermission("estoque"), pecasRouter);
 router.use("/pagamentos", modulePermission("financeiro"), pagamentosRouter);
 router.use("/orcamentos", modulePermission("orcamentos"), orcamentosRouter);
 router.use("/agendamentos", modulePermission("agenda"), agendamentosRouter);
+router.use("/importarxml", modulePermission("estoque"), importacaoXmlRouter);
 
 export default router;

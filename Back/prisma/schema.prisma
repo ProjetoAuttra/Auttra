@@ -79,17 +79,18 @@ model oficina {
   acessos  usuario_oficina[]
   perfis_acesso perfil_acesso[]
 
-  clientes       cliente[]
-  funcionarios   funcionario[]
-  ordens_servico ordem_servico[]
-  fornecedores   fornecedor[]
-  pecas          peca[]
-  servicos       servico[]
-  estoque_itens  estoque[]
-  compras        compra_peca[]
-  pagamentos     pagamento[]
-  agendamentos   agendamento[]
-  veiculos       veiculo[]
+  clientes               cliente[]
+  funcionarios           funcionario[]
+  ordens_servico         ordem_servico[]
+  fornecedores           fornecedor[]
+  pecas                  peca[]
+  servicos               servico[]
+  estoque_itens          estoque[]
+  compras                compra_peca[]
+  pagamentos             pagamento[]
+  agendamentos           agendamento[]
+  veiculos               veiculo[]
+  notas_fiscais_importadas nota_fiscal_importada[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -219,6 +220,7 @@ model fornecedor {
   oficina    oficina       @relation(fields: [oficina_id], references: [id])
   compras    compra_peca[]
   pagamentos pagamento[]
+  notas_fiscais_importadas nota_fiscal_importada[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -486,6 +488,26 @@ enum status_agendamento {
   confirmado
   realizado
   cancelado
+}
+
+model nota_fiscal_importada {
+  id            Int       @id @default(autoincrement())
+  oficina_id    Int
+  chave_acesso  String
+  numero_nota   String?
+  serie         String?
+  fornecedor_id Int?
+  valor_total   Decimal?
+  data_emissao  DateTime?
+  nome_arquivo  String?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  oficina    oficina     @relation(fields: [oficina_id], references: [id])
+  fornecedor fornecedor? @relation(fields: [fornecedor_id], references: [id])
+
+  @@unique([oficina_id, chave_acesso])
+  @@index([oficina_id])
 }
 
 model agendamento {

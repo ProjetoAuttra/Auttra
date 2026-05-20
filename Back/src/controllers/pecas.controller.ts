@@ -44,4 +44,17 @@ export const PecasController = {
       res.status(500).json({ error: "Erro interno ao excluir peça" });
     }
   },
+
+  async ajuste(req: Request, res: Response) {
+    try {
+      const id = Number(req.params.id);
+      const { tipo, quantidade } = req.body;
+      const peca = await PecasService.ajuste(id, tipo, Number(quantidade), getRequiredOfficeId(req));
+      return res.json(peca);
+    } catch (error) {
+      console.error("Erro ao ajustar estoque:", error);
+      const msg = error instanceof Error ? error.message : "Erro ao ajustar estoque.";
+      res.status(400).json({ error: msg });
+    }
+  },
 };
