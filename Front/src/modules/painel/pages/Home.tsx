@@ -73,6 +73,13 @@ const mesAtualStr = () => new Date().toISOString().slice(0, 7); // "YYYY-MM"
 
 
 
+const STATUS_OS: Record<string, { label: string; color: string }> = {
+  aberta:       { label: 'Aberta',       color: '#B45309' },
+  em_andamento: { label: 'Em andamento', color: '#1D4ED8' },
+  concluida:    { label: 'Concluida',    color: '#047857' },
+  cancelada:    { label: 'Cancelada',    color: '#ef4444' },
+};
+
 // â”€â”€â”€ Paleta azul unificada para os cards de status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const CARD_COLORS = {

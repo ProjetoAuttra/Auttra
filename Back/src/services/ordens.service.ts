@@ -36,12 +36,7 @@ export const OrdensService = {
         cliente: true,
         veiculo: true,
         funcionario: true,
-        itens: {
-          include: {
-            servico: true,
-            peca: true,
-          },
-        },
+        itens: { include: { servico: true, peca: true } },
       },
     });
   },
@@ -53,29 +48,15 @@ export const OrdensService = {
         cliente: true,
         veiculo: true,
         funcionario: true,
-        itens: {
-          include: {
-            servico: true,
-            peca: true,
-          },
-        },
+        itens: { include: { servico: true, peca: true } },
       },
     });
-
     if (!os) throw new Error("Ordem de serviço não encontrada.");
     return os;
   },
 
   create: async (data: any) => {
-    const {
-      oficina_id,
-      cliente_id,
-      veiculo_id,
-      funcionario_id,
-      observacoes,
-      valor_total,
-      itens,
-    } = data;
+    const { oficina_id, cliente_id, veiculo_id, funcionario_id, observacoes, valor_total, itens } = data;
 
     if (!oficina_id || !cliente_id || !veiculo_id || !funcionario_id) {
       throw new Error("Campos obrigatórios não informados.");
@@ -94,15 +75,11 @@ export const OrdensService = {
         itens: {
           create: (itens ?? []).map((i: any) => ({
             tipo_item: i.tipo_item ?? i.tipo ?? "servico",
-            servico_id:
-              (i.tipo_item ?? i.tipo) === "servico"
-                ? i.servico_id ?? null
-                : null,
-            peca_id:
-              (i.tipo_item ?? i.tipo) === "peca" ? i.peca_id ?? null : null,
-            quantidade: i.quantidade ?? 1,
+            servico_id: (i.tipo_item ?? i.tipo) === "servico" ? i.servico_id ?? null : null,
+            peca_id:    (i.tipo_item ?? i.tipo) === "peca"    ? i.peca_id    ?? null : null,
+            quantidade:     i.quantidade     ?? 1,
             preco_unitario: i.preco_unitario ?? i.preco ?? 0,
-            subtotal: i.subtotal ?? 0,
+            subtotal:       i.subtotal       ?? 0,
           })),
         },
       },
@@ -110,9 +87,7 @@ export const OrdensService = {
         cliente: true,
         veiculo: true,
         funcionario: true,
-        itens: {
-          include: { servico: true, peca: true },
-        },
+        itens: { include: { servico: true, peca: true } },
       },
     });
   },
@@ -127,57 +102,69 @@ export const OrdensService = {
     delete rest.oficinaId;
     await validateOrdemRelations(
       {
-        cliente_id: rest.cliente_id ?? existing.cliente_id,
-        veiculo_id: rest.veiculo_id ?? existing.veiculo_id,
+        cliente_id:    rest.cliente_id    ?? existing.cliente_id,
+        veiculo_id:    rest.veiculo_id    ?? existing.veiculo_id,
         funcionario_id: rest.funcionario_id ?? existing.funcionario_id,
         itens,
       },
       oficinaId
     );
 
-    const osAtualizada = await prisma.ordem_servico.update({
-      where: { id },
-      data: {
-        ...rest,
-        oficina_id: oficinaId,
-        updated_at: new Date(),
-      },
-      include: {
-        cliente: true,
-        veiculo: true,
-        funcionario: true,
-        itens: { include: { servico: true, peca: true } },
-      },
-    });
-
-    if (itens && Array.isArray(itens)) {
-      await prisma.item_ordem_servico.deleteMany({
-        where: { ordem_servico_id: id },
+    return prisma.$transaction(async (tx) => {
+      const osAtualizada = await tx.ordem_servico.update({
+        where: { id },
+        data: { ...rest, oficina_id: oficinaId, updated_at: new Date() },
+        include: {
+          cliente: true,
+          veiculo: true,
+          funcionario: true,
+          itens: { include: { servico: true, peca: true } },
+        },
       });
 
-      await prisma.item_ordem_servico.createMany({
-        data: itens.map((i: any) => ({
-          ordem_servico_id: id,
-          tipo_item: i.tipo_item ?? i.tipo ?? "servico",
-          servico_id:
-            (i.tipo_item ?? i.tipo) === "servico" ? i.servico_id ?? null : null,
-          peca_id:
-            (i.tipo_item ?? i.tipo) === "peca" ? i.peca_id ?? null : null,
-          quantidade: i.quantidade ?? 1,
-          preco_unitario: i.preco_unitario ?? i.preco ?? 0,
-          subtotal: i.subtotal ?? 0,
-        })),
-      });
-    }
+      if (itens && Array.isArray(itens)) {
+        await tx.item_ordem_servico.deleteMany({ where: { ordem_servico_id: id } });
+        await tx.item_ordem_servico.createMany({
+          data: itens.map((i: any) => ({
+            ordem_servico_id: id,
+            tipo_item:        i.tipo_item ?? i.tipo ?? "servico",
+            servico_id:       (i.tipo_item ?? i.tipo) === "servico" ? i.servico_id ?? null : null,
+            peca_id:          (i.tipo_item ?? i.tipo) === "peca"    ? i.peca_id    ?? null : null,
+            quantidade:       i.quantidade     ?? 1,
+            preco_unitario:   i.preco_unitario ?? i.preco ?? 0,
+            subtotal:         i.subtotal       ?? 0,
+          })),
+        });
+      }
 
-    return prisma.ordem_servico.findUnique({
-      where: { id },
-      include: {
-        cliente: true,
-        veiculo: true,
-        funcionario: true,
-        itens: { include: { servico: true, peca: true } },
-      },
+      if (rest.status === "concluida" && existing.status !== "concluida") {
+        const hoje = new Date();
+        await tx.pagamento.create({
+          data: {
+            tipo:                     "receber",
+            oficina_id:               oficinaId,
+            cliente_id:               osAtualizada.cliente_id ?? null,
+            ordem_servico_id:         osAtualizada.id,
+            valor:                    Number(osAtualizada.valor_total),
+            valor_original:           Number(osAtualizada.valor_total),
+            desconto:                 0,
+            valor_pago:               0,
+            status:                   "pendente",
+            data_vencimento:          hoje,
+            data_vencimento_original: hoje,
+          },
+        });
+      }
+
+      return tx.ordem_servico.findUnique({
+        where: { id },
+        include: {
+          cliente: true,
+          veiculo: true,
+          funcionario: true,
+          itens: { include: { servico: true, peca: true } },
+        },
+      });
     });
   },
 
@@ -189,7 +176,6 @@ export const OrdensService = {
         where: { ordem_servico_id: id, deleted_at: null },
         data: { deleted_at: new Date() },
       });
-
       return await prisma.ordem_servico.update({
         where: { id },
         data: { deleted_at: new Date(), status: "cancelada" },
@@ -197,9 +183,7 @@ export const OrdensService = {
     } catch (err: any) {
       console.error("Erro ao excluir OS:", err);
       if (err.code === "P2003") {
-        throw new Error(
-          "Não é possível excluir esta OS porque há registros vinculados."
-        );
+        throw new Error("Não é possível excluir esta OS porque há registros vinculados.");
       }
       throw err;
     }

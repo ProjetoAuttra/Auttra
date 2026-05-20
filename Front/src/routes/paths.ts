@@ -21,6 +21,7 @@ export const paths = {
     geralRelatorio: '/relatorios/geral',
     configuracoes: '/configuracoes',
     veiculos: '/veiculos',
+    veiculoDetalhes: '/veiculos/:id',
     estoque: '/estoque',
     estoqueImportarXml: '/estoque/importar-xml',
     fornecedores: '/fornecedores',

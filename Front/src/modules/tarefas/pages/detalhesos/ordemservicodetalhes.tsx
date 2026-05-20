@@ -14,12 +14,17 @@ import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../../../api/api";
 import { alpha } from "@mui/material/styles";
+import OrdemServicoDialog from "../../dialog";
+import { atualizarOrdem } from "../../api/api";
+import { useToast } from "../../../../context/ToastContext";
 
 export default function OrdemServicoDetalhes() {
   const { id } = useParams();
   const nav = useNavigate();
+  const { success, error } = useToast();
   const [ordem, setOrdem] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
+  const [openEdit, setOpenEdit] = React.useState(false);
 
   const toNumber = (v: any): number => {
     if (v == null) return 0;
@@ -226,7 +231,7 @@ export default function OrdemServicoDetalhes() {
         <Button
           variant="contained"
           color="primary"
-          onClick={() => alert("Função de edição em breve")}
+          onClick={() => setOpenEdit(true)}
         >
           Editar OS
         </Button>
@@ -237,6 +242,23 @@ export default function OrdemServicoDetalhes() {
             Imprimir OS
         </Button>
       </Stack>
+
+      <OrdemServicoDialog
+        open={openEdit}
+        mode="edit"
+        initial={ordem}
+        onClose={() => setOpenEdit(false)}
+        onSubmit={async (payload) => {
+          try {
+            const atualizada = await atualizarOrdem(Number(id), payload);
+            setOrdem(atualizada);
+            setOpenEdit(false);
+            success("OS atualizada com sucesso!");
+          } catch {
+            error("Não foi possível atualizar a OS.");
+          }
+        }}
+      />
     </Box>
   );
 }

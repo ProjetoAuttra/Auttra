@@ -34,6 +34,8 @@ type Item = {
   id: string;
   tipo_item: "servico" | "peca";
   nome: string;
+  servico_id?: number | null;
+  peca_id?: number | null;
   preco_unitario: number;
   quantidade: number;
   subtotal: number;
@@ -89,12 +91,21 @@ export default function OrdemServicoDialog({
         setServicos(serv.data);
         setPecas(pec.data);
 
-        if (isEdit && initial) {
-          setClienteId(initial.cliente_id);
-          setVeiculoId(initial.veiculo_id);
-          setFuncionarioId(initial.funcionario_id);
+        if (initial) {
+          setClienteId(Number(initial.cliente_id ?? initial.cliente?.id ?? 0));
+          setVeiculoId(Number(initial.veiculo_id ?? initial.veiculo?.id ?? 0));
+          setFuncionarioId(Number(initial.funcionario_id ?? initial.funcionario?.id ?? 0));
           setObservacoes(initial.observacoes || "");
-          setItens(initial.itens || []);
+          setItens((initial.itens ?? []).map((i: any) => ({
+            id: String(i.id),
+            tipo_item: i.tipo_item,
+            nome: i.nome ?? i.servico?.nome ?? i.peca?.nome ?? "—",
+            servico_id: i.servico_id ?? i.servico?.id ?? null,
+            peca_id: i.peca_id ?? i.peca?.id ?? null,
+            preco_unitario: Number(i.preco_unitario),
+            quantidade: Number(i.quantidade),
+            subtotal: Number(i.subtotal),
+          })));
         } else {
           setClienteId(0);
           setVeiculoId(0);
@@ -118,12 +129,14 @@ export default function OrdemServicoDialog({
     }
 
     const preco = Number(selecionado.preco_venda ?? selecionado.preco ?? 0);
+    const id_campo = selecaoAberta === "servico" ? "servico_id" : "peca_id";
     setItens((p) => [
       ...p,
       {
         id: String(Date.now()),
         tipo_item: selecaoAberta!,
         nome: selecionado.nome,
+        [id_campo]: selecionado.id,
         preco_unitario: preco,
         quantidade: 1,
         subtotal: preco,
@@ -151,7 +164,14 @@ export default function OrdemServicoDialog({
       funcionario_id: funcionarioId,
       observacoes,
       valor_total: total,
-      itens,
+      itens: itens.map((i) => ({
+        tipo_item: i.tipo_item,
+        servico_id: i.servico_id ?? null,
+        peca_id: i.peca_id ?? null,
+        quantidade: i.quantidade,
+        preco_unitario: i.preco_unitario,
+        subtotal: i.subtotal,
+      })),
     };
     
     onSubmit(payload);

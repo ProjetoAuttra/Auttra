@@ -1,7 +1,7 @@
 import * as React from "react";
 import {
   Box, Stack, Typography, IconButton,
-  Avatar, Chip, Menu, MenuItem, Divider, Fade, Table, TableBody,
+  Avatar, Menu, MenuItem, Divider, Fade, Table, TableBody,
   TableCell, TableHead, TableRow, TablePagination, CircularProgress,
 } from "@mui/material";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
@@ -21,12 +21,10 @@ async function listarClientes(): Promise<Client[]> {
   const { data } = await api.get("/clientes");
   return data.map((c: any) => ({
     id: String(c.id),
-    name: c.nome,
+    nome: c.nome,
     email: c.email,
-    phone: c.telefone,
-    notes: c.observacao,
-    plan: c.status === "ativo" ? "Permanent" : c.status === "teste" ? "Trial" : "Inactive",
-    createdAt: c.criado_em,
+    telefone: c.telefone,
+    observacao: c.observacao,
   }));
 }
 
@@ -37,25 +35,22 @@ async function criarCliente(data: ClientForm, oficinaId: number): Promise<Client
     cpf: data.cpf || null,
     telefone: data.telefone || null,
     data_nascimento: data.data_nascimento ? new Date(data.data_nascimento).toISOString() : null,
-    status: data.status === "ativo" ? "ativo" : data.status === "inativo" ? "inativo" : "bloqueado",
     observacao: data.observacao || null,
     oficina_id: oficinaId,
   };
   const { data: c } = await api.post("/clientes", payload);
-  return { id: String(c.id), name: c.nome, email: c.email, phone: c.telefone, notes: c.observacao, plan: "Permanent", createdAt: c.criado_em };
+  return { id: String(c.id), nome: c.nome, email: c.email, telefone: c.telefone, observacao: c.observacao };
 }
 
 async function atualizarCliente(id: string, data: ClientForm): Promise<Client> {
-  const payload = {
+  const { data: c } = await api.put(`/clientes/${id}`, {
     nome: data.nome,
     email: data.email || null,
     cpf: data.cpf || null,
     telefone: data.telefone || null,
     observacao: data.observacao || null,
-    status: data.status,
-  };
-  const { data: c } = await api.put(`/clientes/${id}`, payload);
-  return { id: String(c.id), name: c.nome, email: c.email, phone: c.telefone, notes: c.observacao, plan: c.status === "ativo" ? "Permanent" : "Inactive", createdAt: c.criado_em };
+  });
+  return { id: String(c.id), nome: c.nome, email: c.email, telefone: c.telefone, observacao: c.observacao };
 }
 
 async function excluirCliente(id: string): Promise<void> {
@@ -91,16 +86,14 @@ export default function ClientsPage() {
   }, []);
 
   const openCreate = () => { setMode("create"); setCurrent(null); setOpenDialog(true); };
-  const openEdit = (c: Client) => { setMode("edit"); setCurrent(c); setOpenDialog(true); };
   const handleMenuOpen = (e: React.MouseEvent<HTMLButtonElement>, id: string) => { setAnchorEl(e.currentTarget); setMenuClientId(id); };
   const handleMenuClose = () => { setAnchorEl(null); setMenuClientId(null); };
-  const handleEdit = () => { const c = rows.find((r) => r.id === menuClientId); if (c) openEdit(c); handleMenuClose(); };
 
   const handleDelete = async () => {
     const cliente = rows.find((r) => r.id === menuClientId);
     if (!cliente) return;
     const ok = await confirm({
-      title: `Excluir ${cliente.name}?`,
+      title: `Excluir ${cliente.nome}?`,
       message: "O histórico de ordens e pagamentos será mantido.",
       confirmLabel: "Sim, excluir",
       variant: "danger",
@@ -150,8 +143,8 @@ export default function ClientsPage() {
   const filtered = rows.filter((r) => {
     const q = query.trim().toLowerCase();
     if (!q) return true;
-    return r.name.toLowerCase().includes(q) || (r.email ?? "").toLowerCase().includes(q) ||
-      (r.phone ?? "").includes(q.replace(/[^\d]/g, ""));
+    return r.nome.toLowerCase().includes(q) || (r.email ?? "").toLowerCase().includes(q) ||
+      (r.telefone ?? "").includes(q.replace(/[^\d]/g, ""));
   });
 
   const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
@@ -166,7 +159,6 @@ export default function ClientsPage() {
         icon={<GroupsRoundedIcon />}
         metrics={[
           { label: "Cadastrados", value: rows.length, tone: "primary" },
-          { label: "Ativos", value: rows.filter((r) => r.plan === "Permanent").length, tone: "success" },
           { label: "Filtrados", value: filtered.length, tone: "neutral" },
         ]}
         searchValue={query}
@@ -184,34 +176,35 @@ export default function ClientsPage() {
                 <TableCell>Nome</TableCell>
                 <TableCell>Email</TableCell>
                 <TableCell>Telefone</TableCell>
-                <TableCell>Status</TableCell>
                 <TableCell align="right">Ações</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {paginated.length > 0 ? paginated.map((c) => (
-                <TableRow key={c.id} hover sx={{ height: 56 }}>
+                <TableRow
+                  key={c.id}
+                  hover
+                  sx={{ height: 56, cursor: "pointer" }}
+                  onDoubleClick={() => navigate(`/clientes/${c.id}`)}
+                >
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={1.5}>
                       <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main", fontSize: 14, fontWeight: 700 }}>
-                        {c.name[0].toUpperCase()}
+                        {c.nome[0].toUpperCase()}
                       </Avatar>
-                      <Typography fontWeight={600}>{c.name}</Typography>
+                      <Typography fontWeight={600}>{c.nome}</Typography>
                     </Stack>
                   </TableCell>
                   <TableCell>{c.email || "—"}</TableCell>
-                  <TableCell>{c.phone || "—"}</TableCell>
-                  <TableCell>
-                    <Chip label={c.plan === "Permanent" ? "Ativo" : c.plan === "Trial" ? "Teste" : "Inativo"} size="small"
-                      color={c.plan === "Permanent" ? "success" : c.plan === "Trial" ? "warning" : "default"}
-                      sx={{ fontWeight: 600 }} />
-                  </TableCell>
+                  <TableCell>{c.telefone || "—"}</TableCell>
                   <TableCell align="right">
-                    <IconButton onClick={(e) => handleMenuOpen(e, c.id)}><MoreVertRoundedIcon /></IconButton>
+                    <IconButton onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, c.id); }}>
+                      <MoreVertRoundedIcon />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               )) : (
-                <TableRow><TableCell colSpan={5} align="center" sx={{ py: 8, color: "text.secondary" }}>Nenhum cliente encontrado</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} align="center" sx={{ py: 8, color: "text.secondary" }}>Nenhum cliente encontrado</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -229,7 +222,6 @@ export default function ClientsPage() {
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }} transformOrigin={{ vertical: "top", horizontal: "right" }}>
         <MenuItem onClick={() => { if (menuClientId) navigate(`/clientes/${menuClientId}`); handleMenuClose(); }}>Ver detalhes</MenuItem>
-        <MenuItem onClick={handleEdit}>Editar</MenuItem>
         <Divider />
         <MenuItem onClick={handleDelete} sx={{ color: "error.main" }}>Excluir</MenuItem>
       </Menu>

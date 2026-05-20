@@ -1,15 +1,16 @@
 import { Request, Response } from "express";
 import { PecasService } from "../services/pecas.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
+import { Prisma } from "@prisma/client";
 
 export const PecasController = {
   async list(req: Request, res: Response) {
     try {
       const pecas = await PecasService.list(getRequiredOfficeId(req));
       return res.json(pecas);
-    } catch (error) {
-      console.error("Erro ao listar peças:", error);
-      res.status(500).json({ error: "Erro interno ao listar peças" });
+    } catch (err: any) {
+      console.error("Erro ao listar pecas:", err);
+      return res.status(500).json({ error: "Erro interno ao listar pecas" });
     }
   },
 
@@ -17,9 +18,12 @@ export const PecasController = {
     try {
       const novaPeca = await PecasService.create({ ...req.body, oficina_id: getRequiredOfficeId(req) });
       return res.status(201).json(novaPeca);
-    } catch (error) {
-      console.error("Erro ao criar peça:", error);
-      res.status(500).json({ error: "Erro interno ao criar peça" });
+    } catch (err: any) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+        return res.status(409).json({ message: "Ja existe uma peca com este nome nesta oficina." });
+      }
+      console.error("Erro ao criar peca:", err);
+      return res.status(500).json({ error: "Erro interno ao criar peca" });
     }
   },
 
@@ -28,9 +32,9 @@ export const PecasController = {
       const id = Number(req.params.id);
       const pecaAtualizada = await PecasService.update(id, req.body, getRequiredOfficeId(req));
       return res.json(pecaAtualizada);
-    } catch (error) {
-      console.error("Erro ao atualizar peça:", error);
-      res.status(500).json({ error: "Erro interno ao atualizar peça" });
+    } catch (err: any) {
+      console.error("Erro ao atualizar peca:", err);
+      return res.status(500).json({ error: "Erro interno ao atualizar peca" });
     }
   },
 
@@ -39,9 +43,9 @@ export const PecasController = {
       const id = Number(req.params.id);
       await PecasService.delete(id, getRequiredOfficeId(req));
       return res.status(204).send();
-    } catch (error) {
-      console.error("Erro ao excluir peça:", error);
-      res.status(500).json({ error: "Erro interno ao excluir peça" });
+    } catch (err: any) {
+      console.error("Erro ao excluir peca:", err);
+      return res.status(500).json({ error: "Erro interno ao excluir peca" });
     }
   },
 
@@ -51,10 +55,10 @@ export const PecasController = {
       const { tipo, quantidade } = req.body;
       const peca = await PecasService.ajuste(id, tipo, Number(quantidade), getRequiredOfficeId(req));
       return res.json(peca);
-    } catch (error) {
-      console.error("Erro ao ajustar estoque:", error);
-      const msg = error instanceof Error ? error.message : "Erro ao ajustar estoque.";
-      res.status(400).json({ error: msg });
+    } catch (err: any) {
+      console.error("Erro ao ajustar estoque:", err);
+      const msg = err instanceof Error ? err.message : "Erro ao ajustar estoque.";
+      return res.status(400).json({ error: msg });
     }
   },
 };

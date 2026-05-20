@@ -11,13 +11,12 @@ import {
   Paper,
   Grid,
   InputAdornment,
-  MenuItem,
   Divider,
   Collapse,
   Alert,
   Box,
   Avatar,
-  Chip,
+  CircularProgress,
   alpha,
 } from "@mui/material";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -27,24 +26,32 @@ import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
 import CalendarTodayRoundedIcon from "@mui/icons-material/CalendarTodayRounded";
 import NotesRoundedIcon from "@mui/icons-material/NotesRounded";
+import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded";
+import NumbersRoundedIcon from "@mui/icons-material/NumbersRounded";
+import LocationCityRoundedIcon from "@mui/icons-material/LocationCityRounded";
+import FmdGoodRoundedIcon from "@mui/icons-material/FmdGoodRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
-import PauseCircleRoundedIcon from "@mui/icons-material/PauseCircleRounded";
-import { HeaderIcon, SectionLabel } from "../../../components/styled/DialogStyles";
+import { HeaderIcon } from "../../../components/styled/DialogStyles";
+import { useCep } from "../../../hooks/useCep";
+import api from "../../../api/api";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
 export type Client = {
   id: string;
-  name: string;
+  nome: string;
   email?: string;
   cpf?: string;
-  phone?: string;
-  birthDate?: string;
-  status: "Permanent" | "Trial" | "Inactive";
-  notes?: string;
+  telefone?: string;
+  data_nascimento?: string;
+  observacao?: string;
+  cep?: string;
+  logradouro?: string;
+  numero?: string;
+  complemento?: string;
+  cidade_id?: number | null;
+  cidade?: { nome: string; uf: string } | null;
 };
 
 export type ClientForm = {
@@ -53,8 +60,12 @@ export type ClientForm = {
   cpf?: string;
   telefone?: string;
   data_nascimento?: string;
-  status: "ativo" | "inativo" | "bloqueado";
   observacao?: string;
+  cep?: string;
+  logradouro?: string;
+  numero?: string;
+  complemento?: string;
+  cidade_id?: number | null;
 };
 
 type Props = {
@@ -65,29 +76,6 @@ type Props = {
   onSubmit: (data: ClientForm) => void;
   onDelete?: (client: Client) => void;
 };
-
-// ─── Opções de status ──────────────────────────────────────────────────────
-
-const STATUS_OPTIONS = [
-  {
-    value: "ativo",
-    label: "Ativo",
-    color: "success" as const,
-    icon: <CheckCircleRoundedIcon sx={{ fontSize: 16 }} />,
-  },
-  {
-    value: "inativo",
-    label: "Inativo",
-    color: "default" as const,
-    icon: <PauseCircleRoundedIcon sx={{ fontSize: 16 }} />,
-  },
-  {
-    value: "bloqueado",
-    label: "Bloqueado",
-    color: "error" as const,
-    icon: <BlockRoundedIcon sx={{ fontSize: 16 }} />,
-  },
-];
 
 // ─── Máscaras ──────────────────────────────────────────────────────────────
 
@@ -126,6 +114,10 @@ function isEmailValido(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function formatCep(v: string): string {
+  return v.length <= 5 ? v : v.slice(0, 5) + "-" + v.slice(5, 8);
+}
+
 // ─── Componente principal ──────────────────────────────────────────────────
 
 export default function ClientDialog({
@@ -137,14 +129,21 @@ export default function ClientDialog({
   onDelete,
 }: Props) {
   const isEdit = mode === "edit";
+  const { buscar, loading: cepLoading, erro: cepErro, setErro: setCepErro } = useCep();
 
   const [nome, setNome] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [cpf, setCpf] = React.useState("");
   const [telefone, setTelefone] = React.useState("");
   const [dataNascimento, setDataNascimento] = React.useState("");
-  const [status, setStatus] = React.useState<ClientForm["status"]>("ativo");
   const [observacao, setObservacao] = React.useState("");
+  const [cep, setCep] = React.useState("");
+  const [logradouro, setLogradouro] = React.useState("");
+  const [numero, setNumero] = React.useState("");
+  const [complemento, setComplemento] = React.useState("");
+  const [cidadeId, setCidadeId] = React.useState<number | null>(null);
+  const [cidadeNome, setCidadeNome] = React.useState("");
+  const [uf, setUf] = React.useState("");
 
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [submitAttempted, setSubmitAttempted] = React.useState(false);
@@ -153,22 +152,23 @@ export default function ClientDialog({
   // ── Inicial ──
   React.useEffect(() => {
     if (!open) return;
-    setNome(initial?.name ?? "");
+    setNome(initial?.nome ?? "");
     setEmail(initial?.email ?? "");
     setCpf(initial?.cpf ? formatCPF(initial.cpf) : "");
-    setTelefone(initial?.phone ? formatPhone(initial.phone) : "");
-    setDataNascimento(initial?.birthDate ?? "");
-    setStatus(
-      initial?.status === "Permanent"
-        ? "ativo"
-        : initial?.status === "Inactive"
-          ? "inativo"
-          : "ativo"
-    );
-    setObservacao(initial?.notes ?? "");
+    setTelefone(initial?.telefone ? formatPhone(initial.telefone) : "");
+    setDataNascimento(initial?.data_nascimento ?? "");
+    setObservacao(initial?.observacao ?? "");
+    setCep(initial?.cep ?? "");
+    setLogradouro(initial?.logradouro ?? "");
+    setNumero(initial?.numero ?? "");
+    setComplemento(initial?.complemento ?? "");
+    setCidadeId(initial?.cidade_id ?? null);
+    setCidadeNome(initial?.cidade?.nome ?? "");
+    setUf(initial?.cidade?.uf ?? "");
     setErrors({});
     setSubmitAttempted(false);
     setConfirmDelete(false);
+    setCepErro(null);
   }, [open, initial]);
 
   // ── Revalida em tempo real ──
@@ -186,6 +186,22 @@ export default function ClientDialog({
     return Object.keys(errs).length === 0;
   };
 
+  const handleCepChange = async (raw: string) => {
+    setCep(raw);
+    if (raw.length !== 8) return;
+    const dados = await buscar(raw);
+    if (!dados) return;
+    setLogradouro(dados.logradouro);
+    setCidadeNome(dados.cidade);
+    setUf(dados.uf);
+    try {
+      const res = await api.post("/cidade", { nome: dados.cidade, uf: dados.uf });
+      setCidadeId(res.data.id);
+    } catch {
+      setCidadeId(null);
+    }
+  };
+
   const handleSubmit = () => {
     setSubmitAttempted(true);
     if (!validate()) return;
@@ -195,13 +211,16 @@ export default function ClientDialog({
       cpf: cpf.replace(/\D/g, "") || undefined,
       telefone: telefone.replace(/\D/g, "") || undefined,
       data_nascimento: dataNascimento || undefined,
-      status,
       observacao: observacao.trim() || undefined,
+      cep: cep || undefined,
+      logradouro: logradouro || undefined,
+      numero: numero || undefined,
+      complemento: complemento || undefined,
+      cidade_id: cidadeId,
     });
     onClose();
   };
 
-  // Inicial do avatar
   const avatarLetter = nome.trim() ? nome.trim()[0].toUpperCase() : "?";
 
   return (
@@ -287,179 +306,246 @@ export default function ClientDialog({
           bgcolor: (t) => alpha(t.palette.background.default, 0.4),
         }}
       >
-        <Grid container spacing={3}>
+        <Grid container spacing={2}>
 
-          {/* ────── Seção 1: Dados pessoais ────── */}
+          {/* ── Informações principais ── */}
           <Grid size={12}>
-            <SectionLabel>
-              <PersonRoundedIcon sx={{ fontSize: 12, mr: 0.5, verticalAlign: "middle" }} />
-              Dados pessoais
-            </SectionLabel>
-            <Grid container spacing={2}>
-
-              {/* Nome */}
-              <Grid size={{ xs: 12, md: 8 }}>
-                <TextField
-                  label="Nome completo *"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  placeholder="Ex.: João da Silva"
-                  size="small"
-                  fullWidth
-                  error={!!errors.nome}
-                  helperText={errors.nome || " "}
-                  autoFocus
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PersonRoundedIcon fontSize="small" color={errors.nome ? "error" : "action"} />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-
-              {/* Status */}
-              <Grid size={{ xs: 12, md: 4 }}>
-                <TextField
-                  select
-                  label="Status"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as ClientForm["status"])}
-                  size="small"
-                  fullWidth
-                  helperText=" "
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <MenuItem key={s.value} value={s.value}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        {s.icon}
-                        <span>{s.label}</span>
-                      </Stack>
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-
-              {/* CPF */}
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <TextField
-                  label="CPF"
-                  value={cpf}
-                  onChange={(e) => setCpf(formatCPF(e.target.value))}
-                  placeholder="000.000.000-00"
-                  size="small"
-                  fullWidth
-                  error={!!errors.cpf}
-                  helperText={errors.cpf || " "}
-                  inputProps={{ maxLength: 14 }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <BadgeRoundedIcon fontSize="small" color={errors.cpf ? "error" : "action"} />
-                      </InputAdornment>
-                    ),
-                    endAdornment:
-                      cpf && isCPFValido(cpf) ? (
-                        <InputAdornment position="end">
-                          <CheckCircleOutlineRoundedIcon fontSize="small" color="success" />
-                        </InputAdornment>
-                      ) : undefined,
-                  }}
-                />
-              </Grid>
-
-              {/* Data de nascimento */}
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <TextField
-                  label="Data de nascimento"
-                  type="date"
-                  value={dataNascimento}
-                  onChange={(e) => setDataNascimento(e.target.value)}
-                  size="small"
-                  fullWidth
-                  helperText=" "
-                  InputLabelProps={{ shrink: true }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <CalendarTodayRoundedIcon fontSize="small" color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-            </Grid>
-          </Grid>
-
-          {/* ────── Seção 2: Contato ────── */}
-          <Grid size={12}>
-            <Divider sx={{ mb: 2 }} />
-            <SectionLabel>
-              <PhoneRoundedIcon sx={{ fontSize: 12, mr: 0.5, verticalAlign: "middle" }} />
-              Contato
-            </SectionLabel>
-            <Grid container spacing={2}>
-
-              {/* Telefone */}
-              <Grid size={{ xs: 12, sm: 6, md: 5 }}>
-                <TextField
-                  label="Telefone / WhatsApp"
-                  value={telefone}
-                  onChange={(e) => setTelefone(formatPhone(e.target.value))}
-                  placeholder="(48) 99999-9999"
-                  size="small"
-                  fullWidth
-                  helperText=" "
-                  inputProps={{ maxLength: 15 }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PhoneRoundedIcon fontSize="small" color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-
-              {/* E-mail */}
-              <Grid size={{ xs: 12, sm: 6, md: 7 }}>
-                <TextField
-                  label="E-mail"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="exemplo@email.com"
-                  size="small"
-                  fullWidth
-                  error={!!errors.email}
-                  helperText={errors.email || " "}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <EmailRoundedIcon fontSize="small" color={errors.email ? "error" : "action"} />
-                      </InputAdornment>
-                    ),
-                    endAdornment:
-                      email && isEmailValido(email) ? (
-                        <InputAdornment position="end">
-                          <CheckCircleOutlineRoundedIcon fontSize="small" color="success" />
-                        </InputAdornment>
-                      ) : undefined,
-                  }}
-                />
-              </Grid>
-            </Grid>
-          </Grid>
-
-          {/* ────── Seção 3: Observações ────── */}
-          <Grid size={12}>
-            <Divider sx={{ mb: 2 }} />
-            <SectionLabel>
-              <NotesRoundedIcon sx={{ fontSize: 12, mr: 0.5, verticalAlign: "middle" }} />
-              Observações
-            </SectionLabel>
             <TextField
-              label="Anotações sobre o cliente"
+              label="Nome completo *"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Ex.: João da Silva"
+              size="small"
+              fullWidth
+              error={!!errors.nome}
+              helperText={errors.nome || " "}
+              autoFocus
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PersonRoundedIcon fontSize="small" color={errors.nome ? "error" : "action"} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 5 }}>
+            <TextField
+              label="Telefone / WhatsApp"
+              value={telefone}
+              onChange={(e) => setTelefone(formatPhone(e.target.value))}
+              placeholder="(48) 99999-9999"
+              size="small"
+              fullWidth
+              helperText=" "
+              inputProps={{ maxLength: 15 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PhoneRoundedIcon fontSize="small" color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 7 }}>
+            <TextField
+              label="E-mail"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="exemplo@email.com"
+              size="small"
+              fullWidth
+              error={!!errors.email}
+              helperText={errors.email || " "}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <EmailRoundedIcon fontSize="small" color={errors.email ? "error" : "action"} />
+                  </InputAdornment>
+                ),
+                endAdornment:
+                  email && isEmailValido(email) ? (
+                    <InputAdornment position="end">
+                      <CheckCircleOutlineRoundedIcon fontSize="small" color="success" />
+                    </InputAdornment>
+                  ) : undefined,
+              }}
+            />
+          </Grid>
+
+          {/* ── Dados adicionais ── */}
+          <Grid size={12}>
+            <Divider>
+              <Typography variant="caption" fontWeight={700} color="text.disabled" sx={{ textTransform: "uppercase", letterSpacing: 0.8, px: 0.5 }}>
+                Dados adicionais
+              </Typography>
+            </Divider>
+          </Grid>
+
+          {/* CPF + Data de nascimento — dados pessoais */}
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField
+              label="CPF"
+              value={cpf}
+              onChange={(e) => setCpf(formatCPF(e.target.value))}
+              placeholder="000.000.000-00"
+              size="small"
+              fullWidth
+              error={!!errors.cpf}
+              helperText={errors.cpf || " "}
+              inputProps={{ maxLength: 14 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <BadgeRoundedIcon fontSize="small" color={errors.cpf ? "error" : "action"} />
+                  </InputAdornment>
+                ),
+                endAdornment:
+                  cpf && isCPFValido(cpf) ? (
+                    <InputAdornment position="end">
+                      <CheckCircleOutlineRoundedIcon fontSize="small" color="success" />
+                    </InputAdornment>
+                  ) : undefined,
+              }}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField
+              label="Data de nascimento"
+              type="date"
+              value={dataNascimento}
+              onChange={(e) => setDataNascimento(e.target.value)}
+              size="small"
+              fullWidth
+              helperText=" "
+              InputLabelProps={{ shrink: true }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <CalendarTodayRoundedIcon fontSize="small" color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          {/* Separador visual — Endereço */}
+          <Grid size={12}>
+            <Typography variant="caption" fontWeight={600} color="text.disabled"
+              sx={{ textTransform: "uppercase", letterSpacing: 0.7, display: "block", mb: -0.5 }}>
+              Endereço
+            </Typography>
+          </Grid>
+
+          {/* CEP + Número + Complemento na mesma linha */}
+          <Grid size={{ xs: 12, sm: 4, md: 3 }}>
+            <TextField
+              label="CEP"
+              value={formatCep(cep)}
+              size="small"
+              fullWidth
+              error={!!cepErro}
+              helperText={cepErro ?? " "}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, "").slice(0, 8);
+                handleCepChange(raw);
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    {cepLoading
+                      ? <CircularProgress size={14} />
+                      : <FmdGoodRoundedIcon fontSize="small" color="action" />}
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 5, sm: 3, md: 2 }}>
+            <TextField
+              label="Número"
+              value={numero}
+              size="small"
+              fullWidth
+              helperText=" "
+              onChange={(e) => setNumero(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <NumbersRoundedIcon fontSize="small" color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 7, sm: 5, md: 7 }}>
+            <TextField
+              label="Complemento"
+              value={complemento}
+              size="small"
+              fullWidth
+              helperText=" "
+              onChange={(e) => setComplemento(e.target.value)}
+            />
+          </Grid>
+
+          <Grid size={12}>
+            <TextField
+              label="Logradouro"
+              value={logradouro}
+              size="small"
+              fullWidth
+              helperText=" "
+              onChange={(e) => setLogradouro(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PlaceRoundedIcon fontSize="small" color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 9 }}>
+            <TextField
+              label="Cidade"
+              value={cidadeNome}
+              size="small"
+              fullWidth
+              disabled
+              helperText={cep.length === 8 && !cidadeNome ? "CEP não encontrou a cidade" : " "}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LocationCityRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 3 }}>
+            <TextField
+              label="UF"
+              value={uf}
+              size="small"
+              fullWidth
+              disabled
+              helperText=" "
+              inputProps={{ maxLength: 2 }}
+            />
+          </Grid>
+
+          <Grid size={12}>
+            <TextField
+              label="Observações"
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
               placeholder="Preferências, histórico, informações relevantes..."
@@ -497,7 +583,6 @@ export default function ClientDialog({
           bgcolor: "background.paper",
         }}
       >
-        {/* Excluir */}
         <Box>
           {isEdit && onDelete && initial && (
             <>
@@ -538,7 +623,6 @@ export default function ClientDialog({
           )}
         </Box>
 
-        {/* Ações principais */}
         <Stack direction="row" spacing={1.5}>
           <Button
             onClick={onClose}

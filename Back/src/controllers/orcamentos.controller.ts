@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { OrcamentoService } from "../services/orcamentos.service.js";
+import { PdfHtmlService } from "../services/pdfservice.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 
 const service = new OrcamentoService();
@@ -43,5 +44,17 @@ export class OrcamentoController {
     const id = Number(req.params.id);
     await service.excluir(id, getRequiredOfficeId(req));
     return res.status(204).send();
+  }
+
+  async gerarPdf(req: Request, res: Response) {
+    try {
+      await PdfHtmlService.gerarOrcamentoPDF(
+        Number(req.params.id),
+        res,
+        getRequiredOfficeId(req)
+      );
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   }
 }

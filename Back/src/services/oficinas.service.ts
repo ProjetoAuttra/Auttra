@@ -10,20 +10,29 @@ export const OficinaService = {
     cidade_id: number;
     telefone?: string;
     email?: string;
+    cnpj?: string;
   }) {
-    const { nome, logradouro, numero, cep, cidade_id, complemento, telefone, email } = data;
+    const { nome, logradouro, numero, cep, cidade_id, complemento, telefone, email, cnpj } = data;
 
     if (!nome || !logradouro || !numero || !cep || !cidade_id)
-      throw new Error("Campos obrigatórios ausentes para criação da oficina.");
+      throw new Error("Campos obrigatorios ausentes para criacao da oficina.");
 
-    const existing = await prisma.oficina.findUnique({ where: { nome } });
-    if (existing) throw new Error("Já existe uma oficina com este nome.");
+    const byNome = await prisma.oficina.findFirst({ where: { nome, deleted_at: null } });
+    if (byNome) throw new Error("Ja existe uma oficina com este nome.");
 
-    const oficina = await prisma.oficina.create({
-      data: { nome, logradouro, numero, complemento, cep, cidade_id, telefone, email },
+    if (cnpj) {
+      const byCnpj = await prisma.oficina.findFirst({ where: { cnpj, deleted_at: null } });
+      if (byCnpj) throw new Error("Ja existe uma oficina com este CNPJ.");
+    }
+
+    if (email) {
+      const byEmail = await prisma.oficina.findFirst({ where: { email, deleted_at: null } });
+      if (byEmail) throw new Error("Ja existe uma oficina com este e-mail.");
+    }
+
+    return prisma.oficina.create({
+      data: { nome, logradouro, numero, complemento, cep, cidade_id, telefone, email, cnpj },
     });
-
-    return oficina;
   },
 
   async list(oficinaId: number) {

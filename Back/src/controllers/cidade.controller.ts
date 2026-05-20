@@ -5,7 +5,7 @@ export const CidadeController = {
   async create(req: Request, res: Response) {
     try {
       const cidade = await CidadeService.create(req.body);
-      res.status(201).json(cidade);
+      res.json(cidade);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }

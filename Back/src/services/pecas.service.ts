@@ -15,9 +15,25 @@ export const PecasService = {
   },
 
   create: async (data: any) => {
-    return prisma.peca.create({
-      data,
+    const existing = await prisma.peca.findFirst({
+      where: { nome: data.nome, oficina_id: data.oficina_id },
     });
+
+    if (existing) {
+      return prisma.peca.update({
+        where: { id: existing.id },
+        data: {
+          nome: data.nome,
+          descricao: data.descricao ?? null,
+          preco_custo: data.preco_custo,
+          preco_venda: data.preco_venda,
+          estoque: data.estoque ?? existing.estoque,
+          deleted_at: null,
+        },
+      });
+    }
+
+    return prisma.peca.create({ data });
   },
 
   update: async (id: number, data: any, oficinaId: number) => {
@@ -43,10 +59,10 @@ export const PecasService = {
 
   ajuste: async (id: number, tipo: "entrada" | "saida", quantidade: number, oficinaId: number) => {
     const peca = await prisma.peca.findFirst({ where: { id, oficina_id: oficinaId, deleted_at: null } });
-    if (!peca) throw new Error("Peça não encontrada.");
+    if (!peca) throw new Error("Peca nao encontrada.");
     if (quantidade <= 0) throw new Error("A quantidade deve ser maior que zero.");
     if (tipo === "saida" && peca.estoque < quantidade) {
-      throw new Error(`Estoque insuficiente. Disponível: ${peca.estoque}`);
+      throw new Error(`Estoque insuficiente. Disponivel: ${peca.estoque}`);
     }
     return prisma.peca.update({
       where: { id },

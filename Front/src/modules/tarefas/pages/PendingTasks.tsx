@@ -322,7 +322,13 @@ export default function OrdensPage() {
         <MenuItem onClick={handleDelete} sx={{ color: "error.main" }}>Excluir</MenuItem>
       </Menu>
 
-      <OrdemDialog open={openDialog} onClose={() => setOpenDialog(false)} onSubmit={handleSubmit} />
+      <OrdemDialog
+        open={openDialog}
+        mode={mode}
+        initial={current}
+        onClose={() => setOpenDialog(false)}
+        onSubmit={handleSubmit}
+      />
     </Box>
   );
 }

@@ -1,6 +1,6 @@
 import * as React from "react";
 import {
-  Box, Stack, Typography, IconButton,
+  Box, Stack, Typography, IconButton, Button,
   Chip, Avatar, Menu, MenuItem, Divider, Table, TableBody, TableCell,
   TableHead, TableRow, TablePagination, Fade, CircularProgress,
 } from "@mui/material";
@@ -12,21 +12,28 @@ import CreditCardRoundedIcon from "@mui/icons-material/CreditCardRounded";
 import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
-import VehicleDialog, { type Vehicle, type VehicleForm } from "../dialog";
+import { useNavigate } from "react-router-dom";
+import VeiculoDialog, { type Veiculo, type VeiculoForm } from "../dialog";
 import { listarVeiculos, criarVeiculo, atualizarVeiculo, excluirVeiculo } from "../api/api";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import ListTableContainer from "../../../components/common/ListTableContainer";
 
-export default function VehiclesPage() {
+const COMBUSTIVEL_LABEL: Record<string, string> = {
+  gasolina: "Gasolina", etanol: "Etanol", flex: "Flex",
+  diesel: "Diesel", gnv: "GNV", eletrico: "Elétrico", hibrido: "Híbrido",
+};
+
+export default function VeiculosPage() {
   const { user } = useAuth();
   const { success, error } = useToast();
   const confirm = useConfirm();
+  const nav = useNavigate();
 
   const [query, setQuery] = React.useState("");
   const [openDialog, setOpenDialog] = React.useState(false);
   const [mode, setMode] = React.useState<"create" | "edit">("create");
-  const [current, setCurrent] = React.useState<Vehicle | null>(null);
-  const [rows, setRows] = React.useState<Vehicle[]>([]);
+  const [current, setCurrent] = React.useState<Veiculo | null>(null);
+  const [rows, setRows] = React.useState<Veiculo[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [menuId, setMenuId] = React.useState<string | null>(null);
@@ -41,7 +48,7 @@ export default function VehiclesPage() {
   }, [user?.oficina_id]);
 
   const openCreate = () => { setMode("create"); setCurrent(null); setOpenDialog(true); };
-  const openEdit = (v: Vehicle) => { setMode("edit"); setCurrent(v); setOpenDialog(true); };
+  const openEdit = (v: Veiculo) => { setMode("edit"); setCurrent(v); setOpenDialog(true); };
   const handleMenuOpen = (e: React.MouseEvent<HTMLButtonElement>, id: string) => { setAnchorEl(e.currentTarget); setMenuId(id); };
   const handleMenuClose = () => { setAnchorEl(null); setMenuId(null); };
   const handleEdit = () => { const v = rows.find((r) => r.id === menuId); if (v) openEdit(v); handleMenuClose(); };
@@ -66,7 +73,7 @@ export default function VehiclesPage() {
     }
   };
 
-  const onSubmit = async (data: VehicleForm) => {
+  const onSubmit = async (data: VeiculoForm) => {
     try {
       if (mode === "create") {
         if (!user?.oficina_id) { error("Usuario sem oficina vinculada."); return; }
@@ -85,16 +92,6 @@ export default function VehiclesPage() {
     }
   };
 
-  const onDelete = async (id: string) => {
-    try {
-      await excluirVeiculo(id);
-      setRows((prev) => prev.filter((x) => x.id !== id));
-      success("Veículo excluído com sucesso.");
-    } catch {
-      error("Não foi possível excluir o veículo.");
-    }
-  };
-
   const filtered = rows.filter((r) => {
     const q = query.trim().toLowerCase();
     if (!q) return true;
@@ -103,7 +100,7 @@ export default function VehiclesPage() {
       r.marca.toLowerCase().includes(q) ||
       r.placa.toLowerCase().includes(q) ||
       (r.cor ?? "").toLowerCase().includes(q) ||
-      (r.cliente ?? "").toLowerCase().includes(q)
+      (r.cliente_nome ?? "").toLowerCase().includes(q)
     );
   });
 
@@ -119,7 +116,7 @@ export default function VehiclesPage() {
         icon={<DirectionsCarRoundedIcon />}
         metrics={[
           { label: "Cadastrados", value: rows.length, tone: "primary" },
-          { label: "Com cliente", value: rows.filter((r) => !!r.cliente).length, tone: "success" },
+          { label: "Com cliente", value: rows.filter((r) => !!r.cliente_nome).length, tone: "success" },
           { label: "Filtrados", value: filtered.length, tone: "neutral" },
         ]}
         searchValue={query}
@@ -134,47 +131,82 @@ export default function VehiclesPage() {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell>Modelo</TableCell>
-                <TableCell>Marca</TableCell>
+                <TableCell>Veículo</TableCell>
                 <TableCell>Placa</TableCell>
                 <TableCell>Cor</TableCell>
-                <TableCell>Cliente</TableCell>
-                <TableCell>Ano</TableCell>
+                <TableCell>Combustível</TableCell>
+                <TableCell>Quilometragem</TableCell>
+                <TableCell>Proprietário</TableCell>
                 <TableCell align="right">Ações</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {paginated.length > 0 ? paginated.map((v) => (
-                <TableRow key={v.id} hover sx={{ height: 56 }}>
+                <TableRow
+                  key={v.id} hover sx={{ height: 56, cursor: "pointer" }}
+                  onDoubleClick={() => nav(`/veiculos/${v.id}`)}
+                >
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={1.5}>
-                      <Avatar sx={{ width: 32, height: 32 }}><DirectionsCarRoundedIcon fontSize="small" /></Avatar>
-                      <Typography fontWeight={400}>{v.modelo}</Typography>
+                      <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main" }}>
+                        <DirectionsCarRoundedIcon fontSize="small" />
+                      </Avatar>
+                      <Stack spacing={0}>
+                        <Typography variant="body2" fontWeight={600}>{v.marca} {v.modelo}</Typography>
+                        {v.ano && (
+                          <Typography variant="caption" color="text.secondary">{v.ano}</Typography>
+                        )}
+                      </Stack>
                     </Stack>
                   </TableCell>
-                  <TableCell>{v.marca || "—"}</TableCell>
                   <TableCell>
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <CreditCardRoundedIcon sx={{ fontSize: 16, opacity: 0.7 }} />
-                      <Typography variant="body2" fontFamily="monospace" fontWeight={700}>{v.placa || "—"}</Typography>
+                    <Typography variant="body2" fontFamily="monospace" fontWeight={700}>
+                      {v.placa || "—"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Stack direction="row" alignItems="center" spacing={0.75}>
+                      {v.cor && <ColorLensRoundedIcon sx={{ fontSize: 15, opacity: 0.6 }} />}
+                      <Typography variant="body2">{v.cor || "—"}</Typography>
                     </Stack>
                   </TableCell>
                   <TableCell>
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <ColorLensRoundedIcon sx={{ fontSize: 16, opacity: 0.7 }} />
-                      {v.cor || "—"}
-                    </Stack>
+                    <Typography variant="body2">
+                      {v.combustivel ? COMBUSTIVEL_LABEL[v.combustivel] ?? v.combustivel : "—"}
+                    </Typography>
                   </TableCell>
-                  <TableCell>{v.cliente || "—"}</TableCell>
                   <TableCell>
-                    <Chip label={v.ano ?? "—"} size="small" sx={{ fontWeight: 600, bgcolor: (t) => alpha(t.palette.text.primary, 0.06), color: "text.primary" }} />
+                    <Typography variant="body2">
+                      {v.quilometragem
+                        ? `${Number(v.quilometragem).toLocaleString("pt-BR")} km`
+                        : "—"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    {v.cliente_nome ? (
+                      <Button
+                        size="small" variant="text"
+                        onClick={(e) => { e.stopPropagation(); nav(`/clientes/${v.cliente_id}`); }}
+                        sx={{ textTransform: "none", fontWeight: 600, p: 0, minWidth: 0 }}
+                      >
+                        {v.cliente_nome}
+                      </Button>
+                    ) : "—"}
                   </TableCell>
                   <TableCell align="right">
-                    <IconButton onClick={(e) => handleMenuOpen(e, v.id)}><MoreVertRoundedIcon /></IconButton>
+                    <IconButton
+                      onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, v.id); }}
+                    >
+                      <MoreVertRoundedIcon />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               )) : (
-                <TableRow><TableCell colSpan={7} align="center" sx={{ py: 8, color: "text.secondary" }}>Nenhum veículo encontrado</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 8, color: "text.secondary" }}>
+                    Nenhum veículo encontrado
+                  </TableCell>
+                </TableRow>
               )}
             </TableBody>
           </Table>
@@ -196,8 +228,8 @@ export default function VehiclesPage() {
         <MenuItem onClick={handleDelete} sx={{ color: "error.main" }}>Excluir</MenuItem>
       </Menu>
 
-      <VehicleDialog open={openDialog} mode={mode} initial={current} onClose={() => setOpenDialog(false)}
-        onSubmit={onSubmit} onDelete={mode === "edit" ? (v) => onDelete(v.id) : undefined} />
+      <VeiculoDialog open={openDialog} mode={mode} initial={current} onClose={() => setOpenDialog(false)}
+        onSubmit={onSubmit} />
     </Box>
   );
 }

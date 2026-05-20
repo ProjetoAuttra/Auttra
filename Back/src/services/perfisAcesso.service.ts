@@ -104,6 +104,27 @@ export const PerfisAcessoService = {
     const nome = String(data?.nome ?? "").trim();
     if (!nome) throw new Error("Nome do perfil e obrigatorio.");
 
+    const existing = await prisma.perfil_acesso.findFirst({
+      where: { oficina_id: oficinaId, nome },
+    });
+
+    if (existing) {
+      const reativado = await prisma.perfil_acesso.update({
+        where: { id: existing.id },
+        data: {
+          nome,
+          descricao: data?.descricao ? String(data.descricao).trim() : null,
+          sistema: false,
+          padrao: Boolean(data?.padrao),
+          permissoes: normalizePermissions(data?.permissoes) as Prisma.InputJsonValue,
+          deleted_at: null,
+        },
+        include: { _count: { select: { acessos: true } } },
+      });
+      if (reativado.padrao) await this.setDefault(reativado.id, oficinaId);
+      return this.getById(reativado.id, oficinaId);
+    }
+
     const perfil = await prisma.perfil_acesso.create({
       data: {
         oficina_id: oficinaId,

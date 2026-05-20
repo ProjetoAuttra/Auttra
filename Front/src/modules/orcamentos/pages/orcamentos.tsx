@@ -16,10 +16,10 @@ import RequestQuoteRoundedIcon from "@mui/icons-material/RequestQuoteRounded";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import BuildRoundedIcon from "@mui/icons-material/BuildRounded";
 
-import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
 import DialogOrcamento from "../dialog";
+import OrdemServicoDialog from "../../tarefas/dialog";
 import api from "../../../api/api";
 import ListTableContainer from "../../../components/common/ListTableContainer";
 
@@ -33,6 +33,18 @@ type Orcamento = {
   status: "analise" | "aprovado" | "recusado";
   cliente: { id: number; nome: string; telefone?: string };
   veiculo: { id: number; modelo: string; placa: string };
+  itens?: Array<{
+    id: number | string;
+    tipo_item: "servico" | "peca";
+    nome?: string | null;
+    servico_id?: number | null;
+    peca_id?: number | null;
+    servico?: { id: number; nome: string } | null;
+    peca?: { id: number; nome: string } | null;
+    quantidade: number;
+    preco_unitario: number;
+    subtotal: number;
+  }>;
 };
 
 // ─── Config de status ─────────────────────────────────────────────────────
@@ -46,7 +58,6 @@ const STATUS_CONFIG = {
 // ─── Componente ────────────────────────────────────────────────────────────
 
 export default function OrcamentosPage() {
-  const { user } = useAuth();
   const { success, error, warning } = useToast();
   const confirm = useConfirm();
 
@@ -55,6 +66,9 @@ export default function OrcamentosPage() {
   const [query, setQuery] = React.useState("");
   const [filtroStatus, setFiltroStatus] = React.useState<string>("todos");
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [osDialogOpen, setOsDialogOpen] = React.useState(false);
+  const [osInitial, setOsInitial] = React.useState<any>(null);
+  const [convertingOrcamento, setConvertingOrcamento] = React.useState<Orcamento | null>(null);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [selectedId, setSelectedId] = React.useState<number | null>(null);
   const [page, setPage] = React.useState(0);
@@ -88,7 +102,7 @@ export default function OrcamentosPage() {
     if (!selectedId) return;
     handleMenuClose();
     try {
-      await api.patch(`/orcamentos/${selectedId}/aprovado`);
+      await api.patch(`/orcamentos/${selectedId}/status`, { status: "aprovado" });
       setOrcamentos((p) => p.map((o) => o.id === selectedId ? { ...o, status: "aprovado" } : o));
       success("Orçamento aprovado!");
     } catch { error("Não foi possível aprovar o orçamento."); }
@@ -106,7 +120,7 @@ export default function OrcamentosPage() {
     });
     if (!ok) return;
     try {
-      await api.patch(`/orcamentos/${selectedId}/recusado`);
+      await api.patch(`/orcamentos/${selectedId}/status`, { status: "recusado" });
       setOrcamentos((p) => p.map((o) => o.id === selectedId ? { ...o, status: "recusado" } : o));
       success("Orçamento recusado.");
     } catch { error("Não foi possível recusar o orçamento."); }
@@ -131,64 +145,108 @@ export default function OrcamentosPage() {
   };
 
   // ── Converter em O.S. ──
-  const handleConverterOS = async () => {
-    if (!selectedOrcamento) return;
+  const handleConverterOS = (orc?: Orcamento) => {
+    const orcamento = orc ?? selectedOrcamento;
+    if (!orcamento) return;
     handleMenuClose();
 
-    const ok = await confirm({
-      title: "Converter em Ordem de Serviço?",
-      message: `O orçamento de R$ ${Number(selectedOrcamento.valor).toFixed(2)} será convertido em uma nova O.S. para ${selectedOrcamento.cliente?.nome}.`,
-      confirmLabel: "Sim, converter",
-      variant: "info",
+    const itensOrcamento = orcamento.itens?.length
+      ? orcamento.itens.map((item) => ({
+          id: `orcamento-item-${item.id}`,
+          tipo_item: item.tipo_item,
+          nome: item.nome ?? item.servico?.nome ?? item.peca?.nome ?? "Item do orçamento",
+          servico_id: item.tipo_item === "servico" ? item.servico_id ?? item.servico?.id ?? null : null,
+          peca_id: item.tipo_item === "peca" ? item.peca_id ?? item.peca?.id ?? null : null,
+          quantidade: Number(item.quantidade ?? 1),
+          preco_unitario: Number(item.preco_unitario ?? 0),
+          subtotal: Number(item.subtotal ?? 0),
+        }))
+      : [
+          {
+            id: `orcamento-${orcamento.id}`,
+            tipo_item: "servico" as const,
+            nome: `Orçamento #${orcamento.id}`,
+            servico_id: null,
+            peca_id: null,
+            quantidade: 1,
+            preco_unitario: Number(orcamento.valor),
+            subtotal: Number(orcamento.valor),
+          },
+        ];
+
+    setConvertingOrcamento(orcamento);
+    setOsInitial({
+      cliente_id: orcamento.cliente.id,
+      veiculo_id: orcamento.veiculo.id,
+      funcionario_id: 0,
+      observacoes: `Convertido do orçamento #${orcamento.id}: ${orcamento.descricao}`,
+      itens: itensOrcamento,
     });
-    if (!ok) return;
+    setOsDialogOpen(true);
+  };
 
+  const criarOSConvertida = async (payload: any) => {
+    if (!convertingOrcamento) return;
     try {
-      // Busca um funcionário para atribuir (pega o primeiro disponível)
-      const { data: funcionarios } = await api.get("/funcionarios");
-      const funcionarioId = funcionarios?.[0]?.id ?? null;
-
-      if (!funcionarioId) {
-        warning("Nenhum funcionário cadastrado para atribuir à O.S.");
-        return;
-      }
-
-      const payload = {
-        oficina_id: user?.oficina_id ?? user?.oficinaId ?? 1,
-        cliente_id: selectedOrcamento.cliente.id,
-        veiculo_id: selectedOrcamento.veiculo.id,
-        funcionario_id: funcionarioId,
-        observacoes: `Convertido do orçamento #${selectedOrcamento.id}: ${selectedOrcamento.descricao}`,
-        valor_total: Number(selectedOrcamento.valor),
-        itens: [],
-      };
-
       await api.post("/ordens", payload);
+      await api.patch(`/orcamentos/${convertingOrcamento.id}/status`, { status: "aprovado" });
+      setOrcamentos((p) => p.map((o) => o.id === convertingOrcamento.id ? { ...o, status: "aprovado" } : o));
+      setOsDialogOpen(false);
+      setOsInitial(null);
+      setConvertingOrcamento(null);
 
-      // Marca orçamento como aprovado automaticamente
-      await api.patch(`/orcamentos/${selectedOrcamento.id}/aprovado`);
-      setOrcamentos((p) => p.map((o) => o.id === selectedOrcamento.id ? { ...o, status: "aprovado" } : o));
-
-      success(`O.S. criada com sucesso para ${selectedOrcamento.cliente?.nome}!`, "Convertido!");
+      success(`O.S. criada com sucesso para ${convertingOrcamento.cliente?.nome}!`);
     } catch (err) {
       console.error("Erro ao converter em OS:", err);
       error("Não foi possível converter o orçamento em O.S.");
     }
   };
 
-  // ── Enviar WhatsApp ──
-  const handleWhatsApp = () => {
+  const handleCloseOSDialog = () => {
+    setOsDialogOpen(false);
+    setOsInitial(null);
+    setConvertingOrcamento(null);
+  };
+
+  // ── Enviar WhatsApp com PDF ──
+  const handleWhatsApp = async () => {
     if (!selectedOrcamento?.cliente?.telefone) {
       warning("Este cliente não possui telefone cadastrado.");
       handleMenuClose();
       return;
     }
-    const tel = selectedOrcamento.cliente.telefone.replace(/\D/g, "");
-    const msg = encodeURIComponent(
-      `Olá ${selectedOrcamento.cliente.nome}! Seu orçamento está disponível no valor de R$ ${Number(selectedOrcamento.valor).toFixed(2)}. Entre em contato para mais informações.`
-    );
-    window.open(`https://wa.me/55${tel}?text=${msg}`, "_blank");
     handleMenuClose();
+
+    const orc = selectedOrcamento;
+    const tel = orc.cliente.telefone.replace(/\D/g, "");
+    const msg = `Olá ${orc.cliente.nome}! Segue o orçamento #${orc.id} no valor de ${Number(orc.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}. Qualquer dúvida estamos à disposição!`;
+    const waUrl = `https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`;
+
+    try {
+      const res = await api.get(`/orcamentos/${orc.id}/pdf`, { responseType: "blob" });
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const file = new File([blob], `orcamento_${orc.id}.pdf`, { type: "application/pdf" });
+
+      if (navigator.canShare?.({ files: [file] })) {
+        // Móvel: share sheet nativo — usuário escolhe WhatsApp
+        await navigator.share({ files: [file], text: msg, title: `Orçamento #${orc.id}` });
+      } else {
+        // Desktop: baixa o PDF e abre WhatsApp com o texto
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `orcamento_${orc.id}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        window.open(waUrl, "_blank");
+      }
+    } catch (err: any) {
+      if (err?.name === "AbortError") return; // usuário cancelou o share sheet
+      console.error("Erro ao gerar PDF do orçamento:", err);
+      // Fallback: abre WhatsApp sem PDF
+      window.open(waUrl, "_blank");
+      warning("Não foi possível gerar o PDF. WhatsApp aberto sem o arquivo.");
+    }
   };
 
   // ── Criar orçamento ──
@@ -334,11 +392,7 @@ export default function OrcamentosPage() {
                         <Tooltip title="Converter em O.S.">
                           <IconButton
                             size="small"
-                            onClick={async () => {
-                              setSelectedId(o.id);
-                              // pequeno delay para garantir que selectedOrcamento está atualizado
-                              setTimeout(() => handleConverterOS(), 50);
-                            }}
+                            onClick={() => handleConverterOS(o)}
                             sx={{ mr: 0.5, color: "primary.main", "&:hover": { bgcolor: (t) => alpha(t.palette.primary.main, 0.08) } }}
                           >
                             <BuildRoundedIcon fontSize="small" />
@@ -407,7 +461,7 @@ export default function OrcamentosPage() {
           </MenuItem>
         )}
         {selectedOrcamento?.status !== "recusado" && (
-          <MenuItem onClick={handleConverterOS} sx={{ gap: 1.5, fontWeight: 600, color: "primary.main" }}>
+          <MenuItem onClick={() => handleConverterOS()} sx={{ gap: 1.5, fontWeight: 600, color: "primary.main" }}>
             <BuildRoundedIcon fontSize="small" />
             Converter em O.S.
           </MenuItem>
@@ -429,6 +483,14 @@ export default function OrcamentosPage() {
         mode="create"
         onClose={() => setDialogOpen(false)}
         onSubmit={criarOrcamento}
+      />
+
+      <OrdemServicoDialog
+        open={osDialogOpen}
+        mode="create"
+        initial={osInitial}
+        onClose={handleCloseOSDialog}
+        onSubmit={criarOSConvertida}
       />
     </Box>
   );

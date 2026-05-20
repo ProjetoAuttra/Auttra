@@ -9,7 +9,7 @@ export const CidadeService = {
     const existing = await prisma.cidade.findFirst({
       where: { nome: { equals: nome, mode: "insensitive" }, uf: uf.toUpperCase() },
     });
-    if (existing) throw new Error("Cidade já cadastrada.");
+    if (existing) return existing;
 
     const cidade = await prisma.cidade.create({
       data: {
