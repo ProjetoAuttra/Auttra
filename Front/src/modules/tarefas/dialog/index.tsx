@@ -15,6 +15,8 @@ import {
   InputAdornment,
   alpha,
   Tooltip,
+  Autocomplete,
+  CircularProgress,
 } from "@mui/material";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
@@ -49,6 +51,8 @@ type Props = {
   onSubmit: (data: any) => void;
 };
 
+type Opcao = { id: number; nome: string };
+
 export default function OrdemServicoDialog({
   open,
   mode = "create",
@@ -59,91 +63,182 @@ export default function OrdemServicoDialog({
   const { user } = useAuth();
   const isEdit = mode === "edit";
 
-  const [clientes, setClientes] = React.useState<any[]>([]);
-  const [veiculos, setVeiculos] = React.useState<any[]>([]);
-  const [funcionarios, setFuncionarios] = React.useState<any[]>([]);
-  const [servicos, setServicos] = React.useState<any[]>([]);
-  const [pecas, setPecas] = React.useState<any[]>([]);
-
+  // --- Cliente (busca assíncrona) ---
   const [clienteId, setClienteId] = React.useState(0);
+  const [clienteValue, setClienteValue] = React.useState<Opcao | null>(null);
+  const [clienteInput, setClienteInput] = React.useState("");
+  const [clienteOptions, setClienteOptions] = React.useState<Opcao[]>([]);
+  const [clienteLoading, setClienteLoading] = React.useState(false);
+
+  // --- Veículo (carregado por clienteId) ---
   const [veiculoId, setVeiculoId] = React.useState(0);
+  const [veiculos, setVeiculos] = React.useState<any[]>([]);
+  const [veiculoLoading, setVeiculoLoading] = React.useState(false);
+
+  // --- Funcionário (preloaded, filtro client-side) ---
   const [funcionarioId, setFuncionarioId] = React.useState(0);
+  const [funcionarioValue, setFuncionarioValue] = React.useState<Opcao | null>(null);
+  const [funcionarios, setFuncionarios] = React.useState<Opcao[]>([]);
+
+  // --- Itens da OS ---
   const [observacoes, setObservacoes] = React.useState("");
   const [itens, setItens] = React.useState<Item[]>([]);
   const [selecaoAberta, setSelecaoAberta] = React.useState<null | "servico" | "peca">(null);
-  const [selecionadoId, setSelecionadoId] = React.useState<number>(0);
 
+  // --- Item picker ---
+  const [servicos, setServicos] = React.useState<any[]>([]);
+  const [selecionadoItem, setSelecionadoItem] = React.useState<any | null>(null);
+  const [itemInput, setItemInput] = React.useState("");
+  const [itemOptions, setItemOptions] = React.useState<any[]>([]);
+  const [itemLoading, setItemLoading] = React.useState(false);
+
+  // Carrega funcionarios + servicos ao abrir (listas pequenas)
   React.useEffect(() => {
     if (!open) return;
-    (async () => {
-      try {
-        const params = { oficina_id: user?.oficina_id };
-        const [cli, vei, func, serv, pec] = await Promise.all([
-          api.get("/clientes", { params }),
-          api.get("/veiculos", { params }),
-          api.get("/funcionarios", { params }),
-          api.get("/servicos", { params }),
-          api.get("/pecas", { params }),
-        ]);
-        setClientes(cli.data);
-        setVeiculos(vei.data);
-        setFuncionarios(func.data);
+    const params = { oficina_id: user?.oficina_id };
+    Promise.all([
+      api.get("/funcionarios", { params }),
+      api.get("/servicos", { params }),
+    ])
+      .then(([func, serv]) => {
+        setFuncionarios(func.data.map((f: any) => ({ id: Number(f.id), nome: f.nome })));
         setServicos(serv.data);
-        setPecas(pec.data);
+      })
+      .catch((err) => console.error("Erro ao carregar listas:", err));
+  }, [open, user?.oficina_id]);
 
-        if (initial) {
-          setClienteId(Number(initial.cliente_id ?? initial.cliente?.id ?? 0));
-          setVeiculoId(Number(initial.veiculo_id ?? initial.veiculo?.id ?? 0));
-          setFuncionarioId(Number(initial.funcionario_id ?? initial.funcionario?.id ?? 0));
-          setObservacoes(initial.observacoes || "");
-          setItens((initial.itens ?? []).map((i: any) => ({
-            id: String(i.id),
-            tipo_item: i.tipo_item,
-            nome: i.nome ?? i.servico?.nome ?? i.peca?.nome ?? "—",
-            servico_id: i.servico_id ?? i.servico?.id ?? null,
-            peca_id: i.peca_id ?? i.peca?.id ?? null,
-            preco_unitario: Number(i.preco_unitario),
-            quantidade: Number(i.quantidade),
-            subtotal: Number(i.subtotal),
-          })));
-        } else {
-          setClienteId(0);
-          setVeiculoId(0);
-          setFuncionarioId(0);
-          setObservacoes("");
-          setItens([]);
-        }
-      } catch (err) {
-        console.error("Erro ao carregar dados:", err);
-      }
-    })();
-  }, [open, initial, isEdit, user?.oficina_id]);
-
-  const handleAddItem = () => {
-    const lista = selecaoAberta === "servico" ? servicos : pecas;
-    const selecionado = lista.find((x) => x.id === selecionadoId);
-    if (!selecionado) return;
-    
-    if (itens.some((i) => i.tipo_item === selecaoAberta && i.nome === selecionado.nome)) {
+  // Carrega veículos quando clienteId muda
+  React.useEffect(() => {
+    if (!clienteId) {
+      setVeiculos([]);
+      setVeiculoId(0);
       return;
     }
+    setVeiculoLoading(true);
+    api.get("/veiculos", { params: { cliente_id: clienteId } })
+      .then((res) => setVeiculos(res.data))
+      .catch(() => setVeiculos([]))
+      .finally(() => setVeiculoLoading(false));
+  }, [clienteId]);
 
-    const preco = Number(selecionado.preco_venda ?? selecionado.preco ?? 0);
+  // Busca debounced de clientes
+  React.useEffect(() => {
+    if (clienteInput.trim().length < 2) {
+      setClienteOptions([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setClienteLoading(true);
+      try {
+        const { data } = await api.get("/clientes", { params: { search: clienteInput } });
+        setClienteOptions(data.map((c: any) => ({ id: Number(c.id), nome: c.nome })));
+      } catch (err) {
+        console.error("Erro ao buscar clientes:", err);
+      } finally {
+        setClienteLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [clienteInput]);
+
+  // Busca debounced de peças no item picker
+  React.useEffect(() => {
+    if (selecaoAberta !== "peca" || itemInput.trim().length < 2) {
+      setItemOptions([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setItemLoading(true);
+      try {
+        const { data } = await api.get("/pecas", {
+          params: { search: itemInput, oficina_id: user?.oficina_id },
+        });
+        setItemOptions(data);
+      } catch (err) {
+        console.error("Erro ao buscar peças:", err);
+      } finally {
+        setItemLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [itemInput, selecaoAberta, user?.oficina_id]);
+
+  // Sincroniza funcionarioValue após lista carregar (modo edição)
+  React.useEffect(() => {
+    if (funcionarioId && funcionarios.length > 0 && !funcionarioValue) {
+      const f = funcionarios.find((x) => x.id === funcionarioId);
+      if (f) setFuncionarioValue(f);
+    }
+  }, [funcionarios, funcionarioId]);
+
+  // Reset ao abrir
+  React.useEffect(() => {
+    if (!open) return;
+
+    const cId = Number(initial?.cliente_id ?? initial?.cliente?.id ?? 0);
+    const vId = Number(initial?.veiculo_id ?? initial?.veiculo?.id ?? 0);
+    const fId = Number(initial?.funcionario_id ?? initial?.funcionario?.id ?? 0);
+
+    setClienteId(cId);
+    setClienteValue(cId ? { id: cId, nome: initial?.cliente?.nome ?? String(cId) } : null);
+    setClienteInput("");
+    setClienteOptions([]);
+
+    setVeiculoId(vId);
+
+    setFuncionarioId(fId);
+    setFuncionarioValue(null);
+
+    setObservacoes(initial?.observacoes || "");
+    setSelecaoAberta(null);
+    setSelecionadoItem(null);
+    setItemInput("");
+    setItemOptions([]);
+
+    setItens(
+      (initial?.itens ?? []).map((i: any) => ({
+        id: String(i.id),
+        tipo_item: i.tipo_item,
+        nome: i.nome ?? i.servico?.nome ?? i.peca?.nome ?? "—",
+        servico_id: i.servico_id ?? i.servico?.id ?? null,
+        peca_id: i.peca_id ?? i.peca?.id ?? null,
+        preco_unitario: Number(i.preco_unitario),
+        quantidade: Number(i.quantidade),
+        subtotal: Number(i.subtotal),
+      }))
+    );
+  }, [open, initial]);
+
+  const abrirSelecao = (tipo: "servico" | "peca") => {
+    const next = selecaoAberta === tipo ? null : tipo;
+    setSelecaoAberta(next);
+    setSelecionadoItem(null);
+    setItemInput("");
+    setItemOptions([]);
+  };
+
+  const handleAddItem = () => {
+    if (!selecionadoItem || !selecaoAberta) return;
+    if (itens.some((i) => i.tipo_item === selecaoAberta && i.nome === selecionadoItem.nome)) return;
+
+    const preco = Number(selecionadoItem.preco_venda ?? selecionadoItem.preco ?? 0);
     const id_campo = selecaoAberta === "servico" ? "servico_id" : "peca_id";
-    setItens((p) => [
-      ...p,
+    setItens((prev) => [
+      ...prev,
       {
         id: String(Date.now()),
-        tipo_item: selecaoAberta!,
-        nome: selecionado.nome,
-        [id_campo]: selecionado.id,
+        tipo_item: selecaoAberta,
+        nome: selecionadoItem.nome,
+        [id_campo]: selecionadoItem.id,
         preco_unitario: preco,
         quantidade: 1,
         subtotal: preco,
       },
     ]);
+    setSelecionadoItem(null);
+    setItemInput("");
+    setItemOptions([]);
     setSelecaoAberta(null);
-    setSelecionadoId(0);
   };
 
   const handleQtdChange = (id: string, qtd: number) =>
@@ -156,8 +251,7 @@ export default function OrdemServicoDialog({
 
   const handleSubmit = async () => {
     if (!clienteId || !veiculoId || !funcionarioId) return;
-    
-    const payload = {
+    onSubmit({
       oficina_id: user?.oficina_id,
       cliente_id: clienteId,
       veiculo_id: veiculoId,
@@ -172,21 +266,26 @@ export default function OrdemServicoDialog({
         preco_unitario: i.preco_unitario,
         subtotal: i.subtotal,
       })),
-    };
-    
-    onSubmit(payload);
+    });
   };
 
   const columns: GridColDef[] = [
-    { 
-      field: "tipo_item", 
-      headerName: "Tipo", 
+    {
+      field: "tipo_item",
+      headerName: "Tipo",
       width: 100,
       renderCell: (params) => (
-        <Typography variant="caption" sx={{ textTransform: "uppercase", fontWeight: 700, color: params.value === "servico" ? "primary.main" : "secondary.main" }}>
+        <Typography
+          variant="caption"
+          sx={{
+            textTransform: "uppercase",
+            fontWeight: 700,
+            color: params.value === "servico" ? "primary.main" : "secondary.main",
+          }}
+        >
           {params.value}
         </Typography>
-      )
+      ),
     },
     { field: "nome", headerName: "Item / Descrição", flex: 1 },
     {
@@ -204,20 +303,22 @@ export default function OrdemServicoDialog({
         />
       ),
     },
-    { 
-      field: "preco_unitario", 
-      headerName: "Unitário", 
+    {
+      field: "preco_unitario",
+      headerName: "Unitário",
       width: 120,
-      valueFormatter: (value: number) => `R$ ${value.toFixed(2)}`
+      valueFormatter: (value: number) => `R$ ${value.toFixed(2)}`,
     },
-    { 
-      field: "subtotal", 
-      headerName: "Subtotal", 
+    {
+      field: "subtotal",
+      headerName: "Subtotal",
       width: 120,
       valueFormatter: (value: number) => `R$ ${value.toFixed(2)}`,
       renderCell: (params) => (
-        <Typography variant="body2" fontWeight={700}>R$ {params.value.toFixed(2)}</Typography>
-      )
+        <Typography variant="body2" fontWeight={700}>
+          R$ {params.value.toFixed(2)}
+        </Typography>
+      ),
     },
     {
       field: "actions",
@@ -235,14 +336,12 @@ export default function OrdemServicoDialog({
   ];
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      fullWidth 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
       maxWidth="lg"
-      PaperProps={{
-        sx: { borderRadius: 3, overflow: "hidden" }
-      }}
+      PaperProps={{ sx: { borderRadius: 3, overflow: "hidden" } }}
     >
       <Paper
         elevation={0}
@@ -253,7 +352,8 @@ export default function OrdemServicoDialog({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          background: (t) => `linear-gradient(135deg, ${alpha(t.palette.primary.main, 0.1)} 0%, ${alpha(t.palette.primary.light, 0.04)} 100%)`,
+          background: (t) =>
+            `linear-gradient(135deg, ${alpha(t.palette.primary.main, 0.1)} 0%, ${alpha(t.palette.primary.light, 0.04)} 100%)`,
           borderBottom: (t) => `1px solid ${alpha(t.palette.primary.main, 0.1)}`,
         }}
       >
@@ -275,94 +375,177 @@ export default function OrdemServicoDialog({
         </IconButton>
       </Paper>
 
-      <DialogContent sx={{ px: { xs: 3, md: 4 }, pt: 4, pb: 2, bgcolor: (t) => alpha(t.palette.background.default, 0.5) }}>
+      <DialogContent
+        sx={{
+          px: { xs: 3, md: 4 },
+          pt: 4,
+          pb: 2,
+          bgcolor: (t) => alpha(t.palette.background.default, 0.5),
+        }}
+      >
         <Grid container spacing={4}>
           {/* INFORMAÇÕES BÁSICAS */}
           <Grid size={{ xs: 12, md: 4 }}>
             <Stack spacing={3}>
+              {/* Cliente */}
               <Box>
-                <SectionLabel><PersonRoundedIcon sx={{ fontSize: 12, mr: 0.5 }} /> Cliente / Proprietário</SectionLabel>
-                <TextField 
-                  select 
-                  label="Selecionar Cliente" 
-                  value={clienteId} 
-                  onChange={(e) => setClienteId(Number(e.target.value))} 
-                  fullWidth 
+                <SectionLabel>
+                  <PersonRoundedIcon sx={{ fontSize: 12, mr: 0.5 }} /> Cliente / Proprietário
+                </SectionLabel>
+                <Autocomplete
+                  fullWidth
                   size="small"
-                  InputProps={{
-                    startAdornment: <InputAdornment position="start"><PersonRoundedIcon fontSize="small" /></InputAdornment>
+                  options={clienteOptions}
+                  getOptionLabel={(o) => o.nome}
+                  isOptionEqualToValue={(o, v) => o.id === v.id}
+                  value={clienteValue}
+                  onChange={(_, v) => {
+                    setClienteValue(v);
+                    setClienteId(v?.id ?? 0);
+                    if (!v) {
+                      setVeiculoId(0);
+                      setVeiculos([]);
+                    }
                   }}
-                >
-                  <MenuItem value={0} disabled>Selecione o cliente</MenuItem>
-                  {clientes.map((c) => (
-                    <MenuItem key={c.id} value={c.id}>{c.nome}</MenuItem>
-                  ))}
-                </TextField>
+                  inputValue={clienteInput}
+                  onInputChange={(_, v) => setClienteInput(v)}
+                  filterOptions={(x) => x}
+                  loading={clienteLoading}
+                  noOptionsText={
+                    clienteInput.trim().length < 2
+                      ? "Digite 2+ letras para buscar"
+                      : "Nenhum cliente encontrado"
+                  }
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Selecionar Cliente"
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <PersonRoundedIcon fontSize="small" />
+                          </InputAdornment>
+                        ),
+                        endAdornment: (
+                          <>
+                            {clienteLoading && <CircularProgress size={16} />}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
+                />
               </Box>
 
+              {/* Veículo */}
               <Box>
-                <SectionLabel><DirectionsCarRoundedIcon sx={{ fontSize: 12, mr: 0.5 }} /> Veículo</SectionLabel>
-                <TextField 
-                  select 
-                  label="Selecionar Veículo" 
-                  value={veiculoId} 
-                  onChange={(e) => setVeiculoId(Number(e.target.value))} 
-                  fullWidth 
+                <SectionLabel>
+                  <DirectionsCarRoundedIcon sx={{ fontSize: 12, mr: 0.5 }} /> Veículo
+                </SectionLabel>
+                <TextField
+                  select
+                  label="Selecionar Veículo"
+                  value={veiculoId}
+                  onChange={(e) => setVeiculoId(Number(e.target.value))}
+                  fullWidth
                   size="small"
                   disabled={!clienteId}
                   InputProps={{
-                    startAdornment: <InputAdornment position="start"><DirectionsCarRoundedIcon fontSize="small" /></InputAdornment>
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        {veiculoLoading ? (
+                          <CircularProgress size={14} />
+                        ) : (
+                          <DirectionsCarRoundedIcon fontSize="small" />
+                        )}
+                      </InputAdornment>
+                    ),
                   }}
                 >
-                  <MenuItem value={0} disabled>Selecione o veículo</MenuItem>
-                  {veiculos.filter((v) => !clienteId || v.cliente_id === clienteId).map((v) => (
-                    <MenuItem key={v.id} value={v.id}>{v.modelo} — {v.placa}</MenuItem>
+                  <MenuItem value={0} disabled>
+                    {clienteId ? "Selecione o veículo" : "Selecione o cliente primeiro"}
+                  </MenuItem>
+                  {veiculos.map((v) => (
+                    <MenuItem key={v.id} value={v.id}>
+                      {v.modelo} — {v.placa}
+                    </MenuItem>
                   ))}
                 </TextField>
               </Box>
 
+              {/* Funcionário */}
               <Box>
-                <SectionLabel><EngineeringRoundedIcon sx={{ fontSize: 12, mr: 0.5 }} /> Responsável / Mecânico</SectionLabel>
-                <TextField 
-                  select 
-                  label="Selecionar Mecânico" 
-                  value={funcionarioId} 
-                  onChange={(e) => setFuncionarioId(Number(e.target.value))} 
-                  fullWidth 
+                <SectionLabel>
+                  <EngineeringRoundedIcon sx={{ fontSize: 12, mr: 0.5 }} /> Responsável / Mecânico
+                </SectionLabel>
+                <Autocomplete
+                  fullWidth
                   size="small"
-                  InputProps={{
-                    startAdornment: <InputAdornment position="start"><EngineeringRoundedIcon fontSize="small" /></InputAdornment>
+                  options={funcionarios}
+                  getOptionLabel={(o) => o.nome}
+                  isOptionEqualToValue={(o, v) => o.id === v.id}
+                  value={funcionarioValue}
+                  onChange={(_, v) => {
+                    setFuncionarioValue(v);
+                    setFuncionarioId(v?.id ?? 0);
                   }}
-                >
-                  <MenuItem value={0} disabled>Selecione o funcionário</MenuItem>
-                  {funcionarios.map((f) => (
-                    <MenuItem key={f.id} value={f.id}>{f.nome}</MenuItem>
-                  ))}
-                </TextField>
+                  noOptionsText="Nenhum funcionário encontrado"
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Selecionar Mecânico"
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <EngineeringRoundedIcon fontSize="small" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  )}
+                />
               </Box>
             </Stack>
           </Grid>
 
           {/* ITENS E SERVIÇOS */}
           <Grid size={{ xs: 12, md: 8 }}>
-            <Box sx={{ bgcolor: "background.paper", borderRadius: 2, border: "1px solid #E0E4EC", overflow: "hidden" }}>
-              <Box sx={{ p: 2, borderBottom: "1px solid #F0F0F0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Box
+              sx={{
+                bgcolor: "background.paper",
+                borderRadius: 2,
+                border: "1px solid #E0E4EC",
+                overflow: "hidden",
+              }}
+            >
+              <Box
+                sx={{
+                  p: 2,
+                  borderBottom: "1px solid #F0F0F0",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
                 <SectionLabel sx={{ mb: 0 }}>Itens da Ordem de Serviço</SectionLabel>
                 <Stack direction="row" spacing={1}>
-                  <Button 
-                    size="small" 
-                    startIcon={<AddRoundedIcon />} 
+                  <Button
+                    size="small"
+                    startIcon={<AddRoundedIcon />}
                     variant={selecaoAberta === "servico" ? "contained" : "outlined"}
-                    onClick={() => setSelecaoAberta(selecaoAberta === "servico" ? null : "servico")}
+                    onClick={() => abrirSelecao("servico")}
                   >
                     Mão de Obra
                   </Button>
-                  <Button 
-                    size="small" 
-                    startIcon={<AddRoundedIcon />} 
+                  <Button
+                    size="small"
+                    startIcon={<AddRoundedIcon />}
                     variant={selecaoAberta === "peca" ? "contained" : "outlined"}
                     color="secondary"
-                    onClick={() => setSelecaoAberta(selecaoAberta === "peca" ? null : "peca")}
+                    onClick={() => abrirSelecao("peca")}
                   >
                     Peças
                   </Button>
@@ -370,48 +553,106 @@ export default function OrdemServicoDialog({
               </Box>
 
               {selecaoAberta && (
-                <Box sx={{ p: 2, bgcolor: alpha("#f0f0f0", 0.5), borderBottom: "1px solid #F0F0F0" }}>
+                <Box
+                  sx={{
+                    p: 2,
+                    bgcolor: alpha("#f0f0f0", 0.5),
+                    borderBottom: "1px solid #F0F0F0",
+                  }}
+                >
                   <Stack direction="row" spacing={1.5} alignItems="center">
-                    <TextField 
-                      select 
-                      label={selecaoAberta === "servico" ? "Pesquisar Serviço" : "Pesquisar Peça"} 
-                      value={selecionadoId} 
-                      onChange={(e) => setSelecionadoId(Number(e.target.value))} 
-                      size="small" 
+                    <Autocomplete
                       fullWidth
+                      size="small"
+                      options={selecaoAberta === "servico" ? servicos : itemOptions}
+                      getOptionLabel={(o) =>
+                        `${o.nome} — R$ ${Number(o.preco_venda ?? o.preco ?? 0).toFixed(2)}`
+                      }
+                      isOptionEqualToValue={(o, v) => o.id === v.id}
+                      value={selecionadoItem}
+                      onChange={(_, v) => setSelecionadoItem(v)}
+                      inputValue={itemInput}
+                      onInputChange={(_, v) => setItemInput(v)}
+                      filterOptions={selecaoAberta === "peca" ? (x) => x : undefined}
+                      loading={itemLoading}
+                      noOptionsText={
+                        selecaoAberta === "peca" && itemInput.trim().length < 2
+                          ? "Digite 2+ letras para buscar"
+                          : `Nenhum${selecaoAberta === "servico" ? " serviço" : "a peça"} encontrado(a)`
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label={
+                            selecaoAberta === "servico" ? "Pesquisar Serviço" : "Pesquisar Peça"
+                          }
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {itemLoading && <CircularProgress size={16} />}
+                                {params.InputProps.endAdornment}
+                              </>
+                            ),
+                          }}
+                        />
+                      )}
+                    />
+                    <Button
+                      variant="contained"
+                      disableElevation
+                      onClick={handleAddItem}
+                      sx={{ px: 3, whiteSpace: "nowrap" }}
                     >
-                      <MenuItem value={0} disabled>{selecaoAberta === "servico" ? "Escolha um serviço" : "Escolha uma peça"}</MenuItem>
-                      {(selecaoAberta === "servico" ? servicos : pecas).map((i) => (
-                        <MenuItem key={i.id} value={i.id}>{i.nome} — R$ {Number(i.preco_venda ?? i.preco ?? 0).toFixed(2)}</MenuItem>
-                      ))}
-                    </TextField>
-                    <Button variant="contained" disableElevation onClick={handleAddItem} sx={{ px: 3 }}>Adicionar</Button>
+                      Adicionar
+                    </Button>
                   </Stack>
                 </Box>
               )}
 
               <Box sx={{ height: 320 }}>
-                <DataGrid 
-                  rows={itens} 
-                  columns={columns} 
-                  hideFooter 
-                  disableRowSelectionOnClick 
-                  getRowId={(row) => row.id} 
-                  sx={{ 
+                <DataGrid
+                  rows={itens}
+                  columns={columns}
+                  hideFooter
+                  disableRowSelectionOnClick
+                  getRowId={(row) => row.id}
+                  sx={{
                     border: "none",
                     "& .MuiDataGrid-columnHeaders": { bgcolor: alpha("#000", 0.02) },
-                    "& .MuiDataGrid-cell:focus": { outline: "none" }
+                    "& .MuiDataGrid-cell:focus": { outline: "none" },
                   }}
                 />
               </Box>
 
-              <Box sx={{ p: 2, borderTop: "1px solid #F0F0F0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="body2" color="text.secondary">Total de {itens.length} itens inclusos</Typography>
+              <Box
+                sx={{
+                  p: 2,
+                  borderTop: "1px solid #F0F0F0",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  Total de {itens.length} itens inclusos
+                </Typography>
                 <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography variant="subtitle2" fontWeight={700}>TOTAL:</Typography>
+                  <Typography variant="subtitle2" fontWeight={700}>
+                    TOTAL:
+                  </Typography>
                   <PrecoDisplay>
-                    <Typography variant="caption" fontWeight={800} color="success.main" sx={{ mt: 0.5 }}>R$</Typography>
-                    <Typography variant="h6" fontWeight={900} color="success.main">{total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</Typography>
+                    <Typography
+                      variant="caption"
+                      fontWeight={800}
+                      color="success.main"
+                      sx={{ mt: 0.5 }}
+                    >
+                      R$
+                    </Typography>
+                    <Typography variant="h6" fontWeight={900} color="success.main">
+                      {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </Typography>
                   </PrecoDisplay>
                 </Stack>
               </Box>
@@ -419,13 +660,16 @@ export default function OrdemServicoDialog({
           </Grid>
 
           <Grid size={{ xs: 12 }}>
-            <SectionLabel><NotesRoundedIcon sx={{ fontSize: 12, mr: 0.5 }} /> Observações / Check-list de Entrada</SectionLabel>
-            <TextField 
-              placeholder="Detalhe o estado do veículo, solicitações específicas do cliente ou qualquer observação relevante..." 
-              value={observacoes} 
-              onChange={(e) => setObservacoes(e.target.value)} 
-              fullWidth 
-              multiline 
+            <SectionLabel>
+              <NotesRoundedIcon sx={{ fontSize: 12, mr: 0.5 }} /> Observações / Check-list de
+              Entrada
+            </SectionLabel>
+            <TextField
+              placeholder="Detalhe o estado do veículo, solicitações específicas do cliente ou qualquer observação relevante..."
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+              fullWidth
+              multiline
               rows={3}
               sx={{ bgcolor: "background.paper", borderRadius: 1 }}
             />
@@ -433,18 +677,38 @@ export default function OrdemServicoDialog({
         </Grid>
       </DialogContent>
 
-      <DialogActions sx={{ px: 4, py: 3, borderTop: "1px solid #F0F0F0", justifyContent: "flex-end", spacing: 2 }}>
-        <Button onClick={onClose} sx={{ borderRadius: 999, textTransform: "none", fontWeight: 600, color: "text.secondary" }}>Cancelar</Button>
-        <Button 
-          onClick={handleSubmit} 
-          variant="contained" 
+      <DialogActions
+        sx={{
+          px: 4,
+          py: 3,
+          borderTop: "1px solid #F0F0F0",
+          justifyContent: "flex-end",
+          spacing: 2,
+        }}
+      >
+        <Button
+          onClick={onClose}
+          sx={{
+            borderRadius: 999,
+            textTransform: "none",
+            fontWeight: 600,
+            color: "text.secondary",
+          }}
+        >
+          Cancelar
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
           disableElevation
-          sx={{ 
-            borderRadius: 999, 
-            px: 5, 
-            textTransform: "none", 
+          disabled={!clienteId || !veiculoId || !funcionarioId}
+          sx={{
+            borderRadius: 999,
+            px: 5,
+            textTransform: "none",
             fontWeight: 800,
-            background: (t) => `linear-gradient(135deg, ${t.palette.primary.main}, ${t.palette.primary.dark})`
+            background: (t) =>
+              `linear-gradient(135deg, ${t.palette.primary.main}, ${t.palette.primary.dark})`,
           }}
         >
           {isEdit ? "Salvar Alterações" : "Gerar Ordem de Serviço"}

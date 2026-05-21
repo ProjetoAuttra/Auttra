@@ -11,7 +11,7 @@ async function validateOrdemRelations(data: any, oficinaId: number) {
   if (!veiculo) throw new Error("Veiculo nao encontrado nesta oficina.");
   if (!funcionario) throw new Error("Funcionario nao encontrado nesta oficina.");
 
-  for (const item of data.itens ?? []) {
+  await Promise.all((data.itens ?? []).map(async (item: any) => {
     if ((item.tipo_item ?? item.tipo) === "servico" && item.servico_id) {
       const servico = await prisma.servico.findFirst({
         where: { id: Number(item.servico_id), oficina_id: oficinaId, deleted_at: null },
@@ -24,7 +24,7 @@ async function validateOrdemRelations(data: any, oficinaId: number) {
       });
       if (!peca) throw new Error("Peca nao encontrada nesta oficina.");
     }
-  }
+  }));
 }
 
 export const OrdensService = {
@@ -32,6 +32,7 @@ export const OrdensService = {
     return prisma.ordem_servico.findMany({
       where: { deleted_at: null, oficina_id: oficinaId },
       orderBy: { created_at: "desc" },
+      take: 200,
       include: {
         cliente: true,
         veiculo: true,

@@ -31,7 +31,7 @@ export async function criarServico(data: ServicoForm, oficinaId: number) {
     ativo: data.ativo,
     oficina_id: oficinaId,
   });
-  return mapServico(res.data);
+  return { data: mapServico(res.data), reativado: res.status === 200 };
 }
 
 export async function atualizarServico(id: number, data: ServicoForm) {

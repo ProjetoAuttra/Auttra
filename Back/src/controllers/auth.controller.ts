@@ -61,6 +61,7 @@ function signFinalToken(usuario: AuthUsuario, oficina: AuthOficina, perfil: Auth
     tipo: perfil.legacyTipo,
     oficinaId: oficina.id,
     oficina_id: oficina.id,
+    oficina_nome: oficina.nome ?? null,
     perfilAcessoId: perfil.id ?? null,
     perfilAcessoNome: perfil.nome ?? null,
     permissoes: perfil.permissoes ?? {},
@@ -71,6 +72,37 @@ function signFinalToken(usuario: AuthUsuario, oficina: AuthOficina, perfil: Auth
   });
 
   return { token, usuario: usuarioPayload };
+}
+
+export async function changePassword(req: Request, res: Response) {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ message: "Nao autorizado." });
+
+    const senhaAtual = String(req.body?.senha_atual ?? "");
+    const novaSenha = String(req.body?.nova_senha ?? "");
+
+    if (!senhaAtual || !novaSenha) {
+      return res.status(400).json({ message: "Senha atual e nova senha sao obrigatorias." });
+    }
+    if (novaSenha.length < 6) {
+      return res.status(400).json({ message: "A nova senha deve ter pelo menos 6 caracteres." });
+    }
+
+    const usuario = await prisma.usuario.findUnique({ where: { id: userId } });
+    if (!usuario) return res.status(404).json({ message: "Usuario nao encontrado." });
+
+    const match = await bcrypt.compare(senhaAtual, usuario.senha);
+    if (!match) return res.status(400).json({ message: "Senha atual incorreta." });
+
+    const novoHash = await bcrypt.hash(novaSenha, 10);
+    await prisma.usuario.update({ where: { id: userId }, data: { senha: novoHash } });
+
+    return res.json({ message: "Senha alterada com sucesso." });
+  } catch (err) {
+    console.error("Erro ao alterar senha:", err);
+    return res.status(500).json({ message: "Erro interno ao alterar senha." });
+  }
 }
 
 export async function login(req: Request, res: Response) {

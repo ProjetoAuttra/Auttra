@@ -228,7 +228,7 @@ export default function OrdensPage() {
 
       {/* ── Tabela ── */}
       {loading ? (
-        <TableSkeleton rows={6} cols={6} />
+        <TableSkeleton rows={6} columns={6} />
       ) : (
         <Fade in timeout={400}>
           <ListTableContainer sx={{ borderRadius: 3 }}>

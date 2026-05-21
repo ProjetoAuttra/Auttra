@@ -10,6 +10,7 @@ type User = {
   tipo: string;
   oficina_id: number;
   oficinaId: number;
+  oficina_nome?: string | null;
   perfilAcessoId?: number | null;
   perfilAcessoNome?: string | null;
   permissoes?: PermissionsMap;
@@ -33,6 +34,7 @@ type AuthContextType = {
   isAuthenticated: boolean;
   signIn: (email: string, password: string, remember: boolean) => Promise<SignInResult>;
   selectOffice: (selectionToken: string, oficinaId: number, remember: boolean) => Promise<void>;
+  updateCurrentUser: (patch: Partial<User>) => void;
   can: (module: AccessModule, action?: AccessAction) => boolean;
   signOut: () => void;
 };
@@ -59,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       tipo: u.tipo,
       oficina_id: oficinaId,
       oficinaId,
+      oficina_nome: u.oficina_nome ?? null,
       perfilAcessoId: u.perfilAcessoId ?? null,
       perfilAcessoNome: u.perfilAcessoNome ?? null,
       permissoes: u.permissoes ?? {},
@@ -76,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // ✅ Login e persistência
-  const signIn = async (email: string, password: string, remember: boolean): Promise<SignInResult> => {
+  const signIn = useCallback(async (email: string, password: string, remember: boolean): Promise<SignInResult> => {
     const { data } = await api.post("/auth/login", { email, senha: password });
     if (data.requiresOfficeSelection) {
       return {
@@ -87,17 +90,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     persist(data.token, normalizeUser(data.usuario), remember);
     return { requiresOfficeSelection: false as const };
-  };
+  }, []);
 
-  const selectOffice = async (selectionToken: string, oficinaId: number, remember: boolean) => {
+  const selectOffice = useCallback(async (selectionToken: string, oficinaId: number, remember: boolean) => {
     const { data } = await api.post("/auth/select-oficina", {
       selectionToken,
       oficina_id: oficinaId,
     });
     persist(data.token, normalizeUser(data.usuario), remember);
-  };
+  }, []);
 
   // ✅ Logout
+  const updateCurrentUser = useCallback((patch: Partial<User>) => {
+    setUser((current) => {
+      if (!current) return current;
+
+      const next = { ...current, ...patch };
+      const storage = localStorage.getItem("driveon:user") ? localStorage : sessionStorage;
+      storage.setItem("driveon:user", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const signOut = () => {
     localStorage.removeItem("driveon:token");
     localStorage.removeItem("driveon:user");
@@ -125,10 +139,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated: !!token,
       signIn,
       selectOffice,
+      updateCurrentUser,
       can,
       signOut,
     }),
-    [user, token, can]
+    [user, token, signIn, selectOffice, updateCurrentUser, can]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

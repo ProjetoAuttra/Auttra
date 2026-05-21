@@ -49,7 +49,7 @@ type Props = {
   mode: "create" | "edit";
   initial?: Supplier | null;
   onClose: () => void;
-  onSubmit: (data: SupplierForm) => void;
+  onSubmit: (data: SupplierForm) => Promise<void>;
   onDelete?: (supplier: Supplier) => void;
 };
 
@@ -108,10 +108,16 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
     }
   };
 
-  const handleSubmit = () => {
+  const [saving, setSaving] = React.useState(false);
+
+  const handleSubmit = async () => {
     if (!form.nome.trim()) return;
-    onSubmit(form);
-    onClose();
+    setSaving(true);
+    try {
+      await onSubmit(form);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -140,28 +146,28 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
         <Grid container spacing={2}>
 
           {/* Dados básicos */}
-          <Grid item xs={12}>
+          <Grid size={12}>
             <TextField label="Nome do fornecedor" value={form.nome} required size="small" fullWidth
               onChange={(e) => handleChange("nome", e.target.value)}
               InputProps={{ startAdornment: <InputAdornment position="start"><BusinessRoundedIcon fontSize="small" /></InputAdornment> }}
             />
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <TextField label="Contato" value={form.contato} size="small" fullWidth
               onChange={(e) => handleChange("contato", e.target.value)}
               InputProps={{ startAdornment: <InputAdornment position="start"><PersonRoundedIcon fontSize="small" /></InputAdornment> }}
             />
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <TextField label="Telefone" value={form.telefone} size="small" fullWidth
               onChange={(e) => handleChange("telefone", e.target.value)}
               InputProps={{ startAdornment: <InputAdornment position="start"><PhoneRoundedIcon fontSize="small" /></InputAdornment> }}
             />
           </Grid>
 
-          <Grid item xs={12}>
+          <Grid size={12}>
             <TextField label="E-mail" value={form.email} size="small" fullWidth type="email"
               onChange={(e) => handleChange("email", e.target.value)}
               InputProps={{ startAdornment: <InputAdornment position="start"><EmailRoundedIcon fontSize="small" /></InputAdornment> }}
@@ -169,7 +175,7 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
           </Grid>
 
           {/* Endereço */}
-          <Grid item xs={5} md={4}>
+          <Grid size={{ xs: 5, md: 4 }}>
             <TextField
               label="CEP"
               value={formatCep(form.cep ?? "")}
@@ -193,27 +199,27 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
             />
           </Grid>
 
-          <Grid item xs={3} md={2}>
+          <Grid size={{ xs: 3, md: 2 }}>
             <TextField label="Número" value={form.numero} size="small" fullWidth
               onChange={(e) => handleChange("numero", e.target.value)}
               InputProps={{ startAdornment: <InputAdornment position="start"><NumbersRoundedIcon fontSize="small" /></InputAdornment> }}
             />
           </Grid>
 
-          <Grid item xs={4} md={6}>
+          <Grid size={{ xs: 4, md: 6 }}>
             <TextField label="Complemento" value={form.complemento} size="small" fullWidth
               onChange={(e) => handleChange("complemento", e.target.value)}
             />
           </Grid>
 
-          <Grid item xs={12}>
+          <Grid size={12}>
             <TextField label="Logradouro" value={form.logradouro} size="small" fullWidth
               onChange={(e) => handleChange("logradouro", e.target.value)}
               InputProps={{ startAdornment: <InputAdornment position="start"><PlaceRoundedIcon fontSize="small" /></InputAdornment> }}
             />
           </Grid>
 
-          <Grid item xs={9}>
+          <Grid size={9}>
             <TextField
               label="Cidade"
               value={cidadeNome}
@@ -225,7 +231,7 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
             />
           </Grid>
 
-          <Grid item xs={3}>
+          <Grid size={3}>
             <TextField label="UF" value={uf} size="small" fullWidth disabled
               inputProps={{ maxLength: 2 }}
             />
@@ -242,7 +248,9 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
         )}
         <Stack direction="row" spacing={1} sx={{ ml: "auto" }}>
           <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
-          <Button onClick={handleSubmit} variant="contained" sx={{ borderRadius: 999 }}>Salvar</Button>
+          <Button onClick={handleSubmit} variant="contained" disabled={saving} sx={{ borderRadius: 999 }}>
+            {saving ? <CircularProgress size={18} /> : "Salvar"}
+          </Button>
         </Stack>
       </DialogActions>
     </Dialog>

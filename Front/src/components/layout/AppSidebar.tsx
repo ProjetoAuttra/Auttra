@@ -24,6 +24,7 @@ import InventoryIcon from '@mui/icons-material/Inventory';
 import StoreIcon from '@mui/icons-material/Store';
 import MiscellaneousServicesIcon from '@mui/icons-material/MiscellaneousServices';
 import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
+import SecurityRoundedIcon from '@mui/icons-material/SecurityRounded';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useState, type ReactNode } from 'react';
 import { paths } from '../../routes/paths';
@@ -39,55 +40,71 @@ type Props = {
   onCloseMobile?: () => void;
 };
 
+type SubItem = { label: string; icon: ReactNode; to: string; module: AccessModule };
+
 type NavItem = {
   label: string;
   icon: ReactNode;
   to: string;
-  module: AccessModule;
-  subItems?: Array<{ label: string; icon: ReactNode; to: string; module: AccessModule }>;
+  module?: AccessModule;
+  subItems?: SubItem[];
 };
 
 const navItems: NavItem[] = [
-  { label: 'Inicio', icon: <HomeOutlineIcon />, to: paths.root, module: 'painel' },
+  { label: 'Início', icon: <HomeOutlineIcon />, to: paths.root, module: 'painel' },
   { label: 'Agenda', icon: <EventOutlineIcon />, to: paths.agenda, module: 'agenda' },
   { label: 'Clientes', icon: <PeopleOutlineIcon />, to: paths.clients, module: 'clientes' },
-  { label: 'Veiculos', icon: <DirectionsCarIcon />, to: paths.veiculos, module: 'veiculos' },
-  { label: 'Estoque', icon: <InventoryIcon />, to: paths.estoque, module: 'estoque' },
-  { label: 'Servicos', icon: <MiscellaneousServicesIcon />, to: paths.servicos, module: 'servicos' },
-  { label: 'Ordens de servico', icon: <ChecklistOutlineIcon />, to: paths.tasks, module: 'ordens' },
+  { label: 'Veículos', icon: <DirectionsCarIcon />, to: paths.veiculos, module: 'veiculos' },
+  { label: 'Ordens de serviço', icon: <ChecklistOutlineIcon />, to: paths.tasks, module: 'ordens' },
   {
     label: 'Financeiro',
     icon: <PaymentsOutlineIcon />,
-    to: paths.payments,
-    module: 'financeiro',
+    to: '#financeiro',
     subItems: [
       { label: 'Extrato', icon: <AccountBalanceWalletOutlinedIcon />, to: paths.payments, module: 'financeiro' },
       { label: 'Recebimentos', icon: <ArrowDownwardRoundedIcon />, to: paths.contasReceber, module: 'financeiro' },
       { label: 'Pagamentos', icon: <ArrowUpwardRoundedIcon />, to: paths.contasPagar, module: 'financeiro' },
-    ]
+    ],
   },
-  { label: 'Fornecedores', icon: <StoreIcon />, to: paths.fornecedores, module: 'fornecedores' },
-  { label: 'Orcamentos', icon: <RequestQuoteOutlineIcon />, to: paths.quotes, module: 'orcamentos' },
-  { label: 'Funcionarios', icon: <PersonOutlineIcon />, to: paths.users, module: 'funcionarios' },
-  { label: 'Relatorios', icon: <BarChartOutlineIcon />, to: paths.reports, module: 'relatorios' },
-  { label: 'Configuracoes', icon: <SettingsOutlineIcon />, to: paths.settings, module: 'configuracoes' },
-  { label: 'Recursos adicionais', icon: <WidgetsOutlinedIcon />, to: paths.recursosAdicionais, module: 'recursos_adicionais' },
+  {
+    label: 'Estoque',
+    icon: <InventoryIcon />,
+    to: '#estoque',
+    subItems: [
+      { label: 'Peças / Estoque', icon: <InventoryIcon />, to: paths.estoque, module: 'estoque' },
+      { label: 'Fornecedores', icon: <StoreIcon />, to: paths.fornecedores, module: 'fornecedores' },
+    ],
+  },
+  { label: 'Orçamentos', icon: <RequestQuoteOutlineIcon />, to: paths.quotes, module: 'orcamentos' },
+  { label: 'Relatórios', icon: <BarChartOutlineIcon />, to: paths.reports, module: 'relatorios' },
+  {
+    label: 'Configurações',
+    icon: <SettingsOutlineIcon />,
+    to: '#configuracoes',
+    subItems: [
+      { label: 'Configurações gerais', icon: <SettingsOutlineIcon />, to: paths.settings, module: 'configuracoes' },
+      { label: 'Funcionários', icon: <PersonOutlineIcon />, to: paths.users, module: 'funcionarios' },
+      { label: 'Perfis de acesso', icon: <SecurityRoundedIcon />, to: `${paths.settings}?section=perfis`, module: 'configuracoes' },
+      { label: 'Serviços', icon: <MiscellaneousServicesIcon />, to: paths.servicos, module: 'servicos' },
+      { label: 'Recursos adicionais', icon: <WidgetsOutlinedIcon />, to: paths.recursosAdicionais, module: 'recursos_adicionais' },
+    ],
+  },
 ];
 
 const navLabels: Record<string, string> = {
-  [paths.root]: 'Inicio',
+  [paths.root]: 'Início',
   [paths.agenda]: 'Agenda',
   [paths.clients]: 'Clientes',
-  [paths.veiculos]: 'Veiculos',
-  [paths.estoque]: 'Estoque',
-  [paths.servicos]: 'Servicos',
-  [paths.tasks]: 'Ordens de servico',
+  [paths.veiculos]: 'Veículos',
+  [paths.estoque]: 'Peças / Estoque',
+  [paths.servicos]: 'Serviços',
+  [paths.tasks]: 'Ordens de serviço',
   [paths.payments]: 'Extrato',
   [paths.fornecedores]: 'Fornecedores',
-  [paths.quotes]: 'Orcamentos',
-  [paths.users]: 'Funcionarios',
-  [paths.reports]: 'Relatorios',
-  [paths.settings]: 'Configuracoes',
+  [paths.quotes]: 'Orçamentos',
+  [paths.users]: 'Funcionários',
+  [paths.reports]: 'Relatórios',
+  [paths.settings]: 'Configurações gerais',
   [paths.recursosAdicionais]: 'Recursos adicionais',
   [paths.contasReceber]: 'Recebimentos',
   [paths.contasPagar]: 'Pagamentos',
@@ -100,12 +117,36 @@ const moduleResourceMap: Partial<Record<AccessModule, 'agenda' | 'estoque' | 'fo
 };
 
 function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collapsed?: boolean }) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const nav = useNavigate();
   const theme = useTheme();
   const { can } = useAuth();
   const { isEnabled } = useAdditionalResources();
-  const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({});
+
+  const isSubSelected = (subTo: string) => {
+    const [basePath, queryString] = subTo.split('?');
+    if (pathname !== basePath) return false;
+    if (!queryString) return !search; // sem query no subitem → só ativo quando URL também não tem query
+    return search === `?${queryString}`;
+  };
+
+  const isItemVisible = (module: AccessModule) => {
+    const resource = moduleResourceMap[module];
+    return can(module) && (!resource || isEnabled(resource));
+  };
+
+  const getAllowedSubItems = (subItems?: SubItem[]) =>
+    subItems?.filter((s) => isItemVisible(s.module)) ?? [];
+
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    for (const item of navItems) {
+      if (item.subItems?.some((s) => isSubSelected(s.to))) {
+        initial[item.label] = true;
+      }
+    }
+    return initial;
+  });
 
   const toggleMenu = (label: string) => {
     setOpenMenus((prev) => ({ ...prev, [label]: !prev[label] }));
@@ -114,18 +155,15 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
   return (
     <List sx={{ px: collapsed ? 1 : 1.5, py: 0.5, flex: 1, overflow: 'auto' }}>
       {navItems.filter((item) => {
-        const resource = moduleResourceMap[item.module];
-        return can(item.module) && (!resource || isEnabled(resource));
+        if (item.subItems) return getAllowedSubItems(item.subItems).length > 0;
+        return item.module ? isItemVisible(item.module) : false;
       }).map(({ label, icon, to, subItems }) => {
-        const allowedSubItems = subItems?.filter((item) => {
-          const resource = moduleResourceMap[item.module];
-          return can(item.module) && (!resource || isEnabled(resource));
-        });
+        const allowedSubItems = getAllowedSubItems(subItems);
         const displayLabel = subItems?.length ? label : navLabels[to] ?? label;
         const selected =
           (to === paths.root && pathname === '/') ||
-          pathname === to ||
-          allowedSubItems?.some((s) => pathname === s.to);
+          (to === pathname && !to.startsWith('#')) ||
+          allowedSubItems.some((s) => pathname === s.to.split('?')[0]);
         const isOpen = !!openMenus[label];
 
         const button = (
@@ -133,7 +171,7 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
             key={to}
             selected={selected}
             onClick={() => {
-              if (allowedSubItems?.length) toggleMenu(label);
+              if (allowedSubItems.length > 0) toggleMenu(label);
               else {
                 nav(to);
                 onItemClick?.();
@@ -168,7 +206,7 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
                 primaryTypographyProps={{ fontSize: 14, fontWeight: selected ? 750 : 650 }}
               />
             )}
-            {!collapsed && allowedSubItems?.length && (isOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />)}
+            {!collapsed && allowedSubItems.length > 0 && (isOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />)}
           </ListItemButton>
         );
 
@@ -182,13 +220,13 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
               button
             )}
 
-            {!collapsed && allowedSubItems?.length && (
+            {!collapsed && allowedSubItems.length > 0 && (
               <Collapse in={isOpen} timeout="auto" unmountOnExit>
                 <List component="div" disablePadding>
                   {allowedSubItems.map((sub) => (
                     <ListItemButton
-                      key={sub.to}
-                      selected={pathname === sub.to}
+                      key={sub.label}
+                      selected={isSubSelected(sub.to)}
                       onClick={() => {
                         nav(sub.to);
                         onItemClick?.();

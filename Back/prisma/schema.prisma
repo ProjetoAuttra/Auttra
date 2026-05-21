@@ -80,6 +80,7 @@ model oficina {
   telefone          String?
   email             String? @unique
   recursos_adicionais Json @default("{\"agenda\":true,\"estoque\":true,\"fornecedores\":true}")
+  notificacoes_config Json @default("{\"agenda\":{\"ativo\":true,\"diasAntecedencia\":1},\"financeiro\":{\"ativo\":true,\"diasVencimento\":3},\"estoque\":{\"ativo\":true,\"limiteBaixo\":3},\"ordens\":{\"ativo\":true,\"diasParada\":3,\"diasCritico\":7},\"orcamentos\":{\"ativo\":true,\"diasPendente\":2}}")
 
   cidade   cidade    @relation(fields: [cidade_id], references: [id])
   gestor   usuario?  @relation("GestorOficina", fields: [gestor_usuario_id], references: [id])

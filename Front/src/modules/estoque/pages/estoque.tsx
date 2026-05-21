@@ -154,9 +154,9 @@ export default function EstoquePage() {
       const oficinaId = user?.oficinaId ?? user?.oficina_id ?? 0;
       if (!oficinaId) { warning("Usuário sem oficina vinculada. Refaça o login."); return; }
       if (mode === "create") {
-        const novo = await criarEstoque(data, oficinaId);
+        const { data: novo, reativado } = await criarEstoque(data, oficinaId);
         setRows((p) => [novo, ...p]);
-        success("Peça adicionada ao estoque!");
+        success(reativado ? "Peça já existia e foi reativada." : "Peça adicionada ao estoque!");
       } else if (current) {
         const atualizado = await atualizarEstoque(current.id, data);
         setRows((p) => p.map((r) => (r.id === current.id ? atualizado : r)));

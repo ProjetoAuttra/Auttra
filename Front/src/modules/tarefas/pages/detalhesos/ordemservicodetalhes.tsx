@@ -121,7 +121,7 @@ export default function OrdemServicoDetalhes() {
         }}
       >
         <Grid container spacing={2.5}>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Typography variant="subtitle2" color="text.secondary">
               Cliente
             </Typography>
@@ -135,7 +135,7 @@ export default function OrdemServicoDetalhes() {
             )}
           </Grid>
 
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Typography variant="subtitle2" color="text.secondary">
               Veículo
             </Typography>
@@ -149,7 +149,7 @@ export default function OrdemServicoDetalhes() {
             </Typography>
           </Grid>
 
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Typography variant="subtitle2" color="text.secondary">
               Funcionário responsável
             </Typography>

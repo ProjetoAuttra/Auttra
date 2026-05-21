@@ -47,6 +47,7 @@ export const ClienteService = {
     return await prisma.cliente.findMany({
       where,
       orderBy: { nome: "asc" },
+      take: 200,
     });
   },
 

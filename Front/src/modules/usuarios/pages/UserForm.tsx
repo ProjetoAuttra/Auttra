@@ -18,7 +18,15 @@ import FuncionarioDialog, { type FuncionarioForm } from "../dialog";
 import { listarFuncionarios, criarFuncionario, atualizarFuncionario, deletarFuncionario } from "../api/api";
 import ListTableContainer from "../../../components/common/ListTableContainer";
 
-type Funcionario = { id: number; nome: string; email?: string; cargo?: string; telefone?: string; };
+type Funcionario = {
+  id: number;
+  nome: string;
+  email?: string;
+  cargo?: string;
+  telefone?: string;
+  data_contratacao?: string;
+  perfil_acesso_id?: number;
+};
 
 export default function FuncionariosPage() {
   const { user, can } = useAuth();
@@ -62,8 +70,9 @@ export default function FuncionariosPage() {
       await deletarFuncionario(menuId);
       setRows((prev) => prev.filter((r) => r.id !== menuId));
       success("Funcionário excluído com sucesso.");
-    } catch {
-      error("Não foi possível excluir o funcionário.");
+    } catch (err: any) {
+      const msg = err?.response?.data?.error ?? err?.response?.data?.message ?? "Não foi possível excluir o funcionário.";
+      error(msg);
     } finally {
       handleMenuClose();
     }
@@ -81,9 +90,10 @@ export default function FuncionariosPage() {
         success("Funcionário atualizado com sucesso!");
       }
       setOpenDialog(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao salvar funcionário:", err);
-      error("Não foi possível salvar o funcionário.");
+      const msg = err?.response?.data?.error ?? err?.response?.data?.message ?? "Não foi possível salvar o funcionário.";
+      error(msg);
     }
   };
 

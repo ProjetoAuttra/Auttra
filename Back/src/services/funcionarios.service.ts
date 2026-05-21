@@ -72,12 +72,18 @@ async function ensureGestorComoFuncionario(oficinaId: number) {
 }
 
 export const FuncionariosService = {
-  list: async (oficinaId: number) => {
+  list: async (oficinaId: number, search: string = "") => {
     await ensureGestorComoFuncionario(oficinaId);
 
+    const where: any = { deleted_at: null, oficina_id: oficinaId };
+    if (search.trim().length > 0) {
+      where.nome = { contains: search.trim(), mode: "insensitive" };
+    }
+
     return prisma.funcionario.findMany({
-      where: { deleted_at: null, oficina_id: oficinaId },
+      where,
       orderBy: { id: "desc" },
+      take: search.trim().length > 0 ? 20 : 100,
       include: {
         usuario: { select: { id: true, email: true, nome: true, status: true } },
         oficina: true,
@@ -96,7 +102,7 @@ export const FuncionariosService = {
 
   create: async (data: any) => {
     const nome = (data?.nome ?? "").trim();
-    const email = (data?.email ?? "").trim();
+    const email = (data?.email ?? "").trim().toLowerCase();
     const telefone = normTelefone(data?.telefone);
     const cargo = toCargoEnum(data?.cargo);
     const senhaPura = String(data?.senha ?? "123456");
@@ -161,6 +167,24 @@ export const FuncionariosService = {
         },
       });
 
+      const existente = await tx.funcionario.findFirst({
+        where: { usuario_id: usuario.id, oficina_id: oficinaId },
+      });
+
+      if (existente) {
+        if (!existente.deleted_at) {
+          throw new Error("Já existe um funcionário com este e-mail nesta oficina.");
+        }
+        return tx.funcionario.update({
+          where: { id: existente.id },
+          data: { nome, email, telefone, cargo, data_contratacao: dataContratacao, deleted_at: null },
+          include: {
+            usuario: { select: { id: true, email: true, nome: true, status: true } },
+            oficina: true,
+          },
+        });
+      }
+
       return tx.funcionario.create({
         data: {
           nome,
@@ -188,44 +212,59 @@ export const FuncionariosService = {
     });
     if (!existing) throw new Error("Funcionario nao encontrado nesta oficina.");
 
+    // Patch do funcionario
     const patch: any = {};
-
     if (data?.nome != null) patch.nome = String(data.nome).trim();
-    if (data?.email != null) patch.email = String(data.email).trim();
+    if (data?.email != null) patch.email = String(data.email).trim().toLowerCase();
     if (data?.telefone != null) patch.telefone = normTelefone(data.telefone);
     if (data?.cargo != null) patch.cargo = toCargoEnum(data.cargo);
-    if (data?.data_contratacao)
-      patch.data_contratacao = new Date(data.data_contratacao);
+    if (data?.data_contratacao) patch.data_contratacao = new Date(data.data_contratacao);
 
-    if (data?.senha) {
-      patch.usuario = {
-        update: {
-          senha: await bcrypt.hash(data.senha, 10),
-        },
-      };
+    // Sincroniza usuario (nome, email, senha)
+    if (existing.usuario_id) {
+      const usuarioPatch: any = {};
+      if (data?.nome != null) usuarioPatch.nome = String(data.nome).trim();
+      if (data?.email != null) usuarioPatch.email = String(data.email).trim();
+      if (data?.senha) usuarioPatch.senha = await bcrypt.hash(data.senha, 10);
+
+      if (Object.keys(usuarioPatch).length > 0) {
+        patch.usuario = { update: usuarioPatch };
+      }
     }
 
-    if (data?.perfil_acesso_id) {
-      if (!existing.usuario_id) throw new Error("Funcionario sem usuario vinculado.");
+    // Sincroniza usuario_oficina (perfil de cargo + perfil_acesso_id)
+    if (existing.usuario_id) {
+      const usuarioOficinasPatch: any = {};
 
-      const perfilAcessoId = Number(data.perfil_acesso_id);
-      const perfilAcesso = await prisma.perfil_acesso.findFirst({
-        where: { id: perfilAcessoId, oficina_id: existing.oficina_id, deleted_at: null },
-      });
-      if (!perfilAcesso) throw new Error("Perfil de acesso nao encontrado.");
+      if (data?.cargo != null) {
+        const cargo = toCargoEnum(data.cargo);
+        usuarioOficinasPatch.perfil =
+          cargo === "administrador" || cargo === "gerente" ? "gestoroficina" : "funcionario";
+      }
 
-      await prisma.usuario_oficina.update({
-        where: {
-          usuario_id_oficina_id: {
-            usuario_id: existing.usuario_id,
-            oficina_id: existing.oficina_id,
+      if (data?.perfil_acesso_id) {
+        const perfilAcessoId = Number(data.perfil_acesso_id);
+        const perfilAcesso = await prisma.perfil_acesso.findFirst({
+          where: { id: perfilAcessoId, oficina_id: existing.oficina_id, deleted_at: null },
+        });
+        if (!perfilAcesso) throw new Error("Perfil de acesso nao encontrado.");
+        usuarioOficinasPatch.perfil_acesso_id = perfilAcessoId;
+      }
+
+      if (Object.keys(usuarioOficinasPatch).length > 0) {
+        await prisma.usuario_oficina.update({
+          where: {
+            usuario_id_oficina_id: {
+              usuario_id: existing.usuario_id,
+              oficina_id: existing.oficina_id,
+            },
           },
-        },
-        data: { perfil_acesso_id: perfilAcessoId },
-      });
+          data: usuarioOficinasPatch,
+        });
+      }
     }
 
-    const funcionario = await prisma.funcionario.update({
+    return prisma.funcionario.update({
       where: { id },
       data: patch,
       include: {
@@ -233,8 +272,6 @@ export const FuncionariosService = {
         oficina: true,
       },
     });
-
-    return funcionario;
   },
 
   delete: async (id: number, oficinaId: number) => {
@@ -257,38 +294,35 @@ export const FuncionariosService = {
       });
 
       if (ordensVinculadas > 0) {
-        return await prisma.funcionario.findUnique({
-          where: { id },
-          include: {
-            usuario: { select: { id: true, email: true, nome: true, status: true } },
-            oficina: true,
-          },
-        });
+        throw new Error(
+          `Este funcionário possui ${ordensVinculadas} ordem(ns) de serviço vinculada(s) e não pode ser excluído. Reatribua as ordens antes de excluir.`
+        );
       }
 
-      return await prisma.funcionario.update({
-        where: { id },
-        data: {
-          deleted_at: new Date(),
-          usuario: {
-            update: {
-              deleted_at: new Date(),
-              status: "inativo",
-              acessos: {
-                updateMany: {
-                  where: { deleted_at: null },
-                  data: { deleted_at: new Date(), status: "inativo" },
-                },
-              },
-            },
-          },
-        },
+      await prisma.$transaction(async (tx) => {
+        await tx.funcionario.update({ where: { id }, data: { deleted_at: new Date() } });
+
+        if (funcionario.usuario_id) {
+          await tx.usuario_oficina.update({
+            where: { usuario_id_oficina_id: { usuario_id: funcionario.usuario_id, oficina_id: oficinaId } },
+            data: { deleted_at: new Date(), status: "inativo" },
+          });
+
+          const remaining = await tx.usuario_oficina.count({
+            where: { usuario_id: funcionario.usuario_id, deleted_at: null, status: "ativo" },
+          });
+
+          if (remaining === 0) {
+            await tx.usuario.update({
+              where: { id: funcionario.usuario_id },
+              data: { deleted_at: new Date(), status: "inativo" },
+            });
+          }
+        }
       });
     } catch (err: any) {
-      console.error("Erro ao desativar/excluir funcionário:", err);
-      throw new Error(
-        "Não foi possível excluir o funcionário. Pode haver vínculos de ordens de serviço."
-      );
+      console.error("Erro ao excluir funcionário:", err);
+      throw err;
     }
   },
 };

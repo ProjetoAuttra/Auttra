@@ -9,6 +9,8 @@ import {
   normalizePermissions,
 } from "../permissions/accessProfiles.js";
 
+const initializedOffices = new Set<number>();
+
 function serialize(perfil: any) {
   return {
     id: perfil.id,
@@ -32,28 +34,48 @@ export const PerfisAcessoService = {
   },
 
   async ensureDefaults(oficinaId: number) {
+    if (initializedOffices.has(oficinaId)) return;
+
     for (const perfil of DEFAULT_ACCESS_PROFILES) {
-      await prisma.perfil_acesso.upsert({
-        where: { oficina_id_nome: { oficina_id: oficinaId, nome: perfil.nome } },
-        update: {
-          descricao: perfil.descricao,
-          chave: perfil.chave,
-          padrao: perfil.padrao,
-          sistema: true,
-          permissoes: perfil.permissoes as Prisma.InputJsonValue,
-          deleted_at: null,
-        },
-        create: {
-          oficina_id: oficinaId,
-          nome: perfil.nome,
-          descricao: perfil.descricao,
-          chave: perfil.chave,
-          padrao: perfil.padrao,
-          sistema: true,
-          permissoes: perfil.permissoes as Prisma.InputJsonValue,
-        },
+      const todos = await prisma.perfil_acesso.findMany({
+        where: { oficina_id: oficinaId, chave: perfil.chave },
+        orderBy: { id: "asc" },
       });
+
+      if (todos.length === 0) {
+        await prisma.perfil_acesso.create({
+          data: {
+            oficina_id: oficinaId,
+            nome: perfil.nome,
+            descricao: perfil.descricao,
+            chave: perfil.chave,
+            padrao: perfil.padrao,
+            sistema: true,
+            permissoes: perfil.permissoes as Prisma.InputJsonValue,
+          },
+        });
+        continue;
+      }
+
+      if (todos.length > 1) {
+        const [manter, ...duplicatas] = todos;
+        const algumEhPadrao = todos.some((d) => d.padrao);
+
+        await prisma.perfil_acesso.updateMany({
+          where: { id: { in: duplicatas.map((d) => d.id) } },
+          data: { deleted_at: new Date(), padrao: false },
+        });
+
+        if (algumEhPadrao) {
+          await prisma.perfil_acesso.update({
+            where: { id: manter.id },
+            data: { padrao: true },
+          });
+        }
+      }
     }
+
+    initializedOffices.add(oficinaId);
   },
 
   async findDefault(oficinaId: number, chave = "recepcao") {
@@ -84,7 +106,7 @@ export const PerfisAcessoService = {
 
     const perfis = await prisma.perfil_acesso.findMany({
       where: { oficina_id: oficinaId, deleted_at: null },
-      include: { _count: { select: { acessos: true } } },
+      include: { _count: { select: { acessos: { where: { deleted_at: null, status: "ativo" } } } } },
       orderBy: [{ padrao: "desc" }, { nome: "asc" }],
     });
 
@@ -94,7 +116,7 @@ export const PerfisAcessoService = {
   async getById(id: number, oficinaId: number) {
     const perfil = await prisma.perfil_acesso.findFirst({
       where: { id, oficina_id: oficinaId, deleted_at: null },
-      include: { _count: { select: { acessos: true } } },
+      include: { _count: { select: { acessos: { where: { deleted_at: null, status: "ativo" } } } } },
     });
     if (!perfil) throw new Error("Perfil de acesso nao encontrado.");
     return serialize(perfil);
@@ -119,7 +141,7 @@ export const PerfisAcessoService = {
           permissoes: normalizePermissions(data?.permissoes) as Prisma.InputJsonValue,
           deleted_at: null,
         },
-        include: { _count: { select: { acessos: true } } },
+        include: { _count: { select: { acessos: { where: { deleted_at: null, status: "ativo" } } } } },
       });
       if (reativado.padrao) await this.setDefault(reativado.id, oficinaId);
       return this.getById(reativado.id, oficinaId);
@@ -135,7 +157,7 @@ export const PerfisAcessoService = {
         padrao: Boolean(data?.padrao),
         permissoes: normalizePermissions(data?.permissoes) as Prisma.InputJsonValue,
       },
-      include: { _count: { select: { acessos: true } } },
+      include: { _count: { select: { acessos: { where: { deleted_at: null, status: "ativo" } } } } },
     });
 
     if (perfil.padrao) await this.setDefault(perfil.id, oficinaId);
@@ -158,7 +180,7 @@ export const PerfisAcessoService = {
     const perfil = await prisma.perfil_acesso.update({
       where: { id },
       data: patch,
-      include: { _count: { select: { acessos: true } } },
+      include: { _count: { select: { acessos: { where: { deleted_at: null, status: "ativo" } } } } },
     });
 
     if (perfil.padrao) await this.setDefault(id, oficinaId);
@@ -181,7 +203,7 @@ export const PerfisAcessoService = {
   async delete(id: number, oficinaId: number) {
     const perfil = await prisma.perfil_acesso.findFirst({
       where: { id, oficina_id: oficinaId, deleted_at: null },
-      include: { _count: { select: { acessos: true } } },
+      include: { _count: { select: { acessos: { where: { deleted_at: null, status: "ativo" } } } } },
     });
     if (!perfil) throw new Error("Perfil de acesso nao encontrado.");
     if (perfil.padrao) throw new Error("Nao e possivel excluir o perfil padrao.");

@@ -54,6 +54,7 @@ export const PagamentosService = {
     return await prisma.pagamento.findMany({
       where,
       orderBy: { data_vencimento: "desc" },
+      take: 200,
       include: {
         cliente: { select: { id: true, nome: true, email: true } },
         fornecedor: { select: { id: true, nome: true } },
