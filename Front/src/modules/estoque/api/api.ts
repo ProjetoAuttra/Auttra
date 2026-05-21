@@ -14,7 +14,7 @@ export async function criarEstoque(data: any, oficinaId: number) {
     estoque: Number(data.estoque),
     oficinaId,
   });
-  return res.data;
+  return { data: res.data, reativado: res.status === 200 };
 }
 
 export async function atualizarEstoque(id: number, data: any) {

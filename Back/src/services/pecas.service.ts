@@ -1,10 +1,15 @@
 import { prisma } from "../prisma/client.js";
 
 export const PecasService = {
-  list: async (oficinaId: number) => {
+  list: async (oficinaId: number, search: string = "") => {
+    const where: any = { deleted_at: null, oficina_id: oficinaId };
+    if (search.trim().length > 0) {
+      where.nome = { contains: search.trim(), mode: "insensitive" };
+    }
     return prisma.peca.findMany({
-      where: { deleted_at: null, oficina_id: oficinaId },
+      where,
       orderBy: { id: "desc" },
+      ...(search.trim().length > 0 ? { take: 20 } : {}),
     });
   },
 
@@ -20,7 +25,7 @@ export const PecasService = {
     });
 
     if (existing) {
-      return prisma.peca.update({
+      const reativado = await prisma.peca.update({
         where: { id: existing.id },
         data: {
           nome: data.nome,
@@ -31,9 +36,11 @@ export const PecasService = {
           deleted_at: null,
         },
       });
+      return { ...reativado, _reativado: true };
     }
 
-    return prisma.peca.create({ data });
+    const nova = await prisma.peca.create({ data });
+    return { ...nova, _reativado: false };
   },
 
   update: async (id: number, data: any, oficinaId: number) => {

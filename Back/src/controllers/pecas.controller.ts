@@ -6,7 +6,8 @@ import { Prisma } from "@prisma/client";
 export const PecasController = {
   async list(req: Request, res: Response) {
     try {
-      const pecas = await PecasService.list(getRequiredOfficeId(req));
+      const search = req.query.search ? String(req.query.search) : "";
+      const pecas = await PecasService.list(getRequiredOfficeId(req), search);
       return res.json(pecas);
     } catch (err: any) {
       console.error("Erro ao listar pecas:", err);
@@ -16,8 +17,9 @@ export const PecasController = {
 
   async create(req: Request, res: Response) {
     try {
-      const novaPeca = await PecasService.create({ ...req.body, oficina_id: getRequiredOfficeId(req) });
-      return res.status(201).json(novaPeca);
+      const peca = await PecasService.create({ ...req.body, oficina_id: getRequiredOfficeId(req) });
+      const { _reativado, ...body } = peca as any;
+      return res.status(_reativado ? 200 : 201).json(body);
     } catch (err: any) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
         return res.status(409).json({ message: "Ja existe uma peca com este nome nesta oficina." });

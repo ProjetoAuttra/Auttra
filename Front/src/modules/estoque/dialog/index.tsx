@@ -1,7 +1,7 @@
 import * as React from "react";
 import {
   Dialog, DialogContent, DialogActions, Stack, TextField,
-  Button, IconButton, Typography, Paper, Grid, InputAdornment
+  Button, IconButton, Typography, Paper, Grid, InputAdornment, CircularProgress,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -27,7 +27,7 @@ type Props = {
   mode: "create" | "edit";
   initial?: EstoqueItem | null;
   onClose: () => void;
-  onSubmit: (data: EstoqueForm) => void;
+  onSubmit: (data: EstoqueForm) => Promise<void>;
   onDelete?: (item: EstoqueItem) => void;
 };
 
@@ -61,10 +61,16 @@ export default function EstoqueDialog({
   const handleChange = (field: keyof EstoqueForm, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const handleSubmit = () => {
+  const [saving, setSaving] = React.useState(false);
+
+  const handleSubmit = async () => {
     if (!form.nome.trim()) return;
-    onSubmit(form);
-    onClose();
+    setSaving(true);
+    try {
+      await onSubmit(form);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -96,7 +102,7 @@ export default function EstoqueDialog({
 
       <DialogContent sx={{ px: 4, pt: 2, pb: 1 }}>
         <Grid container spacing={2}>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <TextField
               label="Nome"
               value={form.nome}
@@ -106,7 +112,7 @@ export default function EstoqueDialog({
               InputProps={{ startAdornment: <InputAdornment position="start"><Inventory2RoundedIcon fontSize="small" /></InputAdornment> }}
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <TextField
               label="Descrição"
               value={form.descricao}
@@ -117,7 +123,7 @@ export default function EstoqueDialog({
               InputProps={{ startAdornment: <InputAdornment position="start"><DescriptionRoundedIcon fontSize="small" /></InputAdornment> }}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               label="Preço de custo (R$)"
               type="number"
@@ -128,7 +134,7 @@ export default function EstoqueDialog({
               InputProps={{ startAdornment: <InputAdornment position="start"><PaidRoundedIcon fontSize="small" /></InputAdornment> }}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               label="Preço de venda (R$)"
               type="number"
@@ -139,7 +145,7 @@ export default function EstoqueDialog({
               InputProps={{ startAdornment: <InputAdornment position="start"><PaidRoundedIcon fontSize="small" /></InputAdornment> }}
             />
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <TextField
               label="Estoque"
               type="number"
@@ -163,8 +169,8 @@ export default function EstoqueDialog({
           <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} variant="contained" sx={{ borderRadius: 999 }}>
-            Salvar
+          <Button onClick={handleSubmit} variant="contained" disabled={saving} sx={{ borderRadius: 999 }}>
+            {saving ? <CircularProgress size={18} /> : "Salvar"}
           </Button>
         </Stack>
       </DialogActions>

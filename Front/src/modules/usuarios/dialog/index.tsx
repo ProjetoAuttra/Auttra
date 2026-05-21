@@ -1,7 +1,7 @@
 import * as React from "react";
 import {
   Dialog, DialogContent, DialogActions, Grid, TextField, Button,
-  MenuItem, InputAdornment, Typography, Stack, Paper, IconButton,
+  MenuItem, InputAdornment, Typography, Stack, Paper, IconButton, CircularProgress,
 } from "@mui/material";
 import { alpha, styled } from "@mui/material/styles";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -15,6 +15,15 @@ import { useToast } from "../../../context/ToastContext";
 import { listarPerfisAcesso, type PerfilAcesso } from "../../configuracoes/api/perfisAcesso";
 
 const cargos = ["Mecanico", "Atendente", "Gerente", "Administrador"];
+
+function maskTelefone(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 11);
+  if (d.length === 0) return "";
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 3)} ${d.slice(3, 7)}-${d.slice(7)}`;
+}
 
 export type FuncionarioForm = {
   nome: string;
@@ -32,7 +41,7 @@ type Props = {
   mode?: "create" | "edit";
   initial?: any;
   onClose: () => void;
-  onSubmit: (data: FuncionarioForm) => void;
+  onSubmit: (data: FuncionarioForm) => Promise<void>;
   oficina_id: number;
 };
 
@@ -46,8 +55,9 @@ const HeaderIcon = styled(Stack)(({ theme }) => ({
   color: theme.palette.primary.main,
 }));
 
-export default function FuncionarioDialog({ open, onClose, onSubmit, oficina_id }: Props) {
+export default function FuncionarioDialog({ open, mode = "create", initial, onClose, onSubmit, oficina_id }: Props) {
   const { warning } = useToast();
+  const isEdit = mode === "edit";
 
   const [form, setForm] = React.useState<FuncionarioForm>({
     nome: "", email: "", telefone: "", cargo: "Mecanico",
@@ -57,27 +67,56 @@ export default function FuncionarioDialog({ open, onClose, onSubmit, oficina_id 
 
   React.useEffect(() => {
     if (!open) return;
-    setForm({ nome: "", email: "", telefone: "", cargo: "Mecanico", senha: "", data_contratacao: new Date().toISOString(), oficina_id });
+
     listarPerfisAcesso().then((data) => {
       setPerfis(data);
-      const recepcao = data.find((perfil) => perfil.chave === "recepcao") ?? data.find((perfil) => perfil.padrao) ?? data[0];
-      if (recepcao) setForm((prev) => ({ ...prev, perfil_acesso_id: recepcao.id }));
-    }).catch(() => setPerfis([]));
-  }, [open, oficina_id]);
 
-  const handleSubmit = () => {
+      if (isEdit && initial) {
+        setForm({
+          nome: initial.nome ?? "",
+          email: initial.email ?? "",
+          telefone: maskTelefone(initial.telefone ?? ""),
+          cargo: initial.cargo ?? "Mecanico",
+          senha: "",
+          data_contratacao: initial.data_contratacao ?? new Date().toISOString(),
+          oficina_id,
+          perfil_acesso_id: initial.perfil_acesso_id,
+        });
+      } else {
+        const recepcao = data.find((p) => p.chave === "recepcao") ?? data.find((p) => p.padrao) ?? data[0];
+        setForm({
+          nome: "", email: "", telefone: "", cargo: "Mecanico",
+          senha: "", data_contratacao: new Date().toISOString(),
+          oficina_id, perfil_acesso_id: recepcao?.id,
+        });
+      }
+    }).catch(() => setPerfis([]));
+  }, [open, oficina_id, isEdit, initial]);
+
+  const [saving, setSaving] = React.useState(false);
+
+  const handleSubmit = async () => {
     if (!form.nome || !form.email || !form.telefone) {
       warning("Preencha todos os campos obrigatórios.");
       return;
     }
-    if (!form.senha || form.senha.length < 6) {
+    if (!isEdit && (!form.senha || form.senha.length < 6)) {
       warning("A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+    if (isEdit && form.senha && form.senha.length < 6) {
+      warning("A nova senha deve ter pelo menos 6 caracteres.");
       return;
     }
 
     const payload: FuncionarioForm = { ...form, data_contratacao: new Date().toISOString(), oficina_id };
-    onSubmit(payload);
-    onClose();
+    if (isEdit && !form.senha) delete (payload as any).senha;
+    setSaving(true);
+    try {
+      await onSubmit(payload);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -88,8 +127,10 @@ export default function FuncionarioDialog({ open, onClose, onSubmit, oficina_id 
         <Stack direction="row" spacing={1.25} alignItems="center">
           <HeaderIcon><PersonRoundedIcon /></HeaderIcon>
           <Stack spacing={0}>
-            <Typography variant="subtitle1" fontWeight={800}>Novo Funcionário</Typography>
-            <Typography variant="body2" color="text.secondary">Preencha as informações do funcionário e do acesso ao sistema</Typography>
+            <Typography variant="subtitle1" fontWeight={800}>{isEdit ? "Editar Funcionário" : "Novo Funcionário"}</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {isEdit ? "Altere os dados do funcionário. Deixe a senha em branco para mantê-la." : "Preencha as informações do funcionário e do acesso ao sistema"}
+            </Typography>
           </Stack>
         </Stack>
         <IconButton onClick={onClose} size="small"><CloseRoundedIcon /></IconButton>
@@ -97,41 +138,46 @@ export default function FuncionarioDialog({ open, onClose, onSubmit, oficina_id 
 
       <DialogContent sx={{ px: 4, pt: 3, pb: 2 }}>
         <Grid container spacing={2}>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <TextField label="Nome completo" fullWidth value={form.nome}
               onChange={(e) => setForm({ ...form, nome: e.target.value })}
               InputProps={{ startAdornment: <InputAdornment position="start"><PersonRoundedIcon fontSize="small" /></InputAdornment> }} />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <TextField label="E-mail" fullWidth type="email" value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               InputProps={{ startAdornment: <InputAdornment position="start"><EmailRoundedIcon fontSize="small" /></InputAdornment> }} />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <TextField label="Telefone" fullWidth value={form.telefone}
-              onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+              onChange={(e) => setForm({ ...form, telefone: maskTelefone(e.target.value) })}
+              placeholder="(XX) X XXXX-XXXX"
+              inputProps={{ maxLength: 16 }}
               InputProps={{ startAdornment: <InputAdornment position="start"><PhoneIphoneRoundedIcon fontSize="small" /></InputAdornment> }} />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <TextField select label="Cargo" fullWidth value={form.cargo}
               onChange={(e) => setForm({ ...form, cargo: e.target.value })}
               InputProps={{ startAdornment: <InputAdornment position="start"><WorkRoundedIcon fontSize="small" /></InputAdornment> }}>
               {cargos.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
             </TextField>
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <TextField select label="Perfil de acesso" fullWidth value={form.perfil_acesso_id ?? ""}
               onChange={(e) => setForm({ ...form, perfil_acesso_id: Number(e.target.value) })}
               InputProps={{ startAdornment: <InputAdornment position="start"><WorkRoundedIcon fontSize="small" /></InputAdornment> }}>
               {perfis.map((perfil) => <MenuItem key={perfil.id} value={perfil.id}>{perfil.nome}</MenuItem>)}
             </TextField>
           </Grid>
-          <Grid item xs={12}>
-            <TextField label="Senha de acesso" fullWidth type="password" value={form.senha}
+          <Grid size={12}>
+            <TextField
+              label={isEdit ? "Nova senha (opcional)" : "Senha de acesso"}
+              fullWidth type="password" value={form.senha}
               onChange={(e) => setForm({ ...form, senha: e.target.value })}
+              placeholder={isEdit ? "Deixe em branco para não alterar" : ""}
               InputProps={{ startAdornment: <InputAdornment position="start"><LockRoundedIcon fontSize="small" /></InputAdornment> }} />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <TextField label="Data de contratação" type="date" fullWidth InputLabelProps={{ shrink: true }}
               value={form.data_contratacao.split("T")[0]}
               onChange={(e) => setForm({ ...form, data_contratacao: new Date(e.target.value).toISOString() })}
@@ -142,7 +188,9 @@ export default function FuncionarioDialog({ open, onClose, onSubmit, oficina_id 
 
       <DialogActions sx={{ px: 4, py: 2.5 }}>
         <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
-        <Button onClick={handleSubmit} variant="contained" disableElevation sx={{ borderRadius: 999, fontWeight: 700 }}>Salvar</Button>
+        <Button onClick={handleSubmit} variant="contained" disableElevation disabled={saving} sx={{ borderRadius: 999, fontWeight: 700 }}>
+          {saving ? <CircularProgress size={18} /> : "Salvar"}
+        </Button>
       </DialogActions>
     </Dialog>
   );

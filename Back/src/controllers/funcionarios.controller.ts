@@ -5,7 +5,8 @@ import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 export const FuncionariosController = {
   async list(req: Request, res: Response) {
     try {
-      const funcionarios = await FuncionariosService.list(getRequiredOfficeId(req));
+      const search = req.query.search ? String(req.query.search) : "";
+      const funcionarios = await FuncionariosService.list(getRequiredOfficeId(req), search);
       res.json(funcionarios);
     } catch (error: any) {
       console.error("Erro ao listar funcionários:", error);
@@ -31,7 +32,6 @@ export const FuncionariosController = {
 
   async create(req: Request, res: Response) {
     try {
-      console.log("Body recebido:", req.body);
 
       const {
         nome,

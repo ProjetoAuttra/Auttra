@@ -25,7 +25,6 @@ import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
 import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
-import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import PaymentsRoundedIcon from '@mui/icons-material/PaymentsRounded';
 import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded';
@@ -54,6 +53,12 @@ import {
   type PerfilAcesso,
 } from '../api/perfisAcesso';
 import {
+  buscarConfigNotificacoes,
+  defaultNotificationsConfig,
+  salvarConfigNotificacoes,
+  type NotificationsConfig,
+} from '../../notificacoes/api';
+import {
   accessActions,
   accessModules,
   moduleLabels,
@@ -61,21 +66,21 @@ import {
   type AccessModule,
   type PermissionsMap,
 } from '../../../permissions/accessProfiles';
+import { useSearchParams } from 'react-router-dom';
 import { useToast } from '../../../context/ToastContext';
 import { useConfirm } from '../../../context/ConfirmContext';
 
-type Section = 'perfis' | 'empresa' | 'agenda' | 'financeiro' | 'notificacoes';
+type Section = 'perfis' | 'agenda' | 'financeiro' | 'notificacoes';
 
 export default function Configuracoes() {
-  const [openSection, setOpenSection] = React.useState<Section | null>('perfis');
+  const { success, error } = useToast();
+  const [searchParams] = useSearchParams();
+  const validSections: Section[] = ['perfis', 'agenda', 'financeiro', 'notificacoes'];
+  const paramSection = searchParams.get('section') as Section | null;
+  const [openSection, setOpenSection] = React.useState<Section | null>(
+    paramSection && validSections.includes(paramSection) ? paramSection : 'perfis'
+  );
   const [editing, setEditing] = React.useState<Section | null>(null);
-
-  const [empresa, setEmpresa] = React.useState({
-    nome: 'DriveOn Auto Center',
-    cnpj: '12.345.678/0001-90',
-    telefone: '(48) 99999-1234',
-    endereco: 'Av. Brasil, 1200 - Criciúma/SC',
-  });
 
   const [agenda, setAgenda] = React.useState({
     horarioInicio: '08:00',
@@ -90,11 +95,27 @@ export default function Configuracoes() {
     jurosAtraso: '2%',
   });
 
-  const [notificacoes, setNotificacoes] = React.useState({
-    confirmarAgendamento: true,
-    lembreteDias: 3,
-    avisoPagamento: true,
-  });
+  const [notificacoes, setNotificacoes] = React.useState<NotificationsConfig>(defaultNotificationsConfig);
+  const [loadingNotificacoes, setLoadingNotificacoes] = React.useState(false);
+  const [savingNotificacoes, setSavingNotificacoes] = React.useState(false);
+
+  React.useEffect(() => {
+    let active = true;
+    setLoadingNotificacoes(true);
+    buscarConfigNotificacoes()
+      .then((data) => {
+        if (active) setNotificacoes(data);
+      })
+      .catch(() => {
+        if (active) error('Nao foi possivel carregar as configuracoes de notificacoes.');
+      })
+      .finally(() => {
+        if (active) setLoadingNotificacoes(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [error]);
 
   const handleToggle = (section: Section) => {
     setOpenSection(openSection === section ? null : section);
@@ -106,7 +127,24 @@ export default function Configuracoes() {
   };
 
   const handleCancel = () => setEditing(null);
-  const handleSave = () => setEditing(null);
+  const handleSave = async (section?: Section) => {
+    if (section !== 'notificacoes') {
+      setEditing(null);
+      return;
+    }
+
+    setSavingNotificacoes(true);
+    try {
+      const data = await salvarConfigNotificacoes(notificacoes);
+      setNotificacoes(data);
+      success('Configuracoes de notificacoes salvas.');
+      setEditing(null);
+    } catch {
+      error('Nao foi possivel salvar as configuracoes de notificacoes.');
+    } finally {
+      setSavingNotificacoes(false);
+    }
+  };
 
   return (
     <Box
@@ -146,35 +184,6 @@ export default function Configuracoes() {
           editing={false}
         >
           <AccessProfilesManager />
-        </SectionCard>
-
-        <SectionCard
-          title="Empresa"
-          icon={<BusinessRoundedIcon color="primary" />}
-          open={openSection === 'empresa'}
-          onToggle={() => handleToggle('empresa')}
-          onEdit={() => handleEdit('empresa')}
-          editing={editing === 'empresa'}
-          onCancel={handleCancel}
-          onSave={handleSave}
-        >
-          {editing === 'empresa' ? (
-            <Stack spacing={2}>
-              <TextField label="Nome da empresa" value={empresa.nome} onChange={(e) => setEmpresa((p) => ({ ...p, nome: e.target.value }))} />
-              <TextField label="CNPJ" value={empresa.cnpj} onChange={(e) => setEmpresa((p) => ({ ...p, cnpj: e.target.value }))} />
-              <TextField label="Telefone" value={empresa.telefone} onChange={(e) => setEmpresa((p) => ({ ...p, telefone: e.target.value }))} />
-              <TextField label="Endereço" value={empresa.endereco} onChange={(e) => setEmpresa((p) => ({ ...p, endereco: e.target.value }))} />
-            </Stack>
-          ) : (
-            <DisplayList
-              items={[
-                ['Nome', empresa.nome],
-                ['CNPJ', empresa.cnpj],
-                ['Telefone', empresa.telefone],
-                ['Endereço', empresa.endereco],
-              ]}
-            />
-          )}
         </SectionCard>
 
         <SectionCard
@@ -254,39 +263,109 @@ export default function Configuracoes() {
           onEdit={() => handleEdit('notificacoes')}
           editing={editing === 'notificacoes'}
           onCancel={handleCancel}
-          onSave={handleSave}
+          onSave={() => handleSave('notificacoes')}
         >
-          {editing === 'notificacoes' ? (
+          {loadingNotificacoes ? (
+            <Box sx={{ display: 'grid', placeItems: 'center', py: 3 }}>
+              <CircularProgress size={28} />
+            </Box>
+          ) : editing === 'notificacoes' ? (
             <Stack spacing={2}>
               <Stack direction="row" alignItems="center" spacing={1}>
                 <Switch
-                  checked={notificacoes.confirmarAgendamento}
-                  onChange={(e) => setNotificacoes((p) => ({ ...p, confirmarAgendamento: e.target.checked }))}
+                  checked={notificacoes.agenda.ativo}
+                  onChange={(e) => setNotificacoes((p) => ({ ...p, agenda: { ...p.agenda, ativo: e.target.checked } }))}
                 />
-                <Typography variant="body2">Confirmar agendamentos automaticamente</Typography>
+                <Typography variant="body2">Avisar agendamentos proximos</Typography>
               </Stack>
 
               <TextField
-                label="Lembrete de manutenção (dias antes)"
+                label="Agendamentos: dias de antecedencia"
                 type="number"
-                value={notificacoes.lembreteDias}
-                onChange={(e) => setNotificacoes((p) => ({ ...p, lembreteDias: Number(e.target.value) }))}
+                value={notificacoes.agenda.diasAntecedencia}
+                onChange={(e) => setNotificacoes((p) => ({ ...p, agenda: { ...p.agenda, diasAntecedencia: Number(e.target.value) } }))}
               />
 
               <Stack direction="row" alignItems="center" spacing={1}>
                 <Switch
-                  checked={notificacoes.avisoPagamento}
-                  onChange={(e) => setNotificacoes((p) => ({ ...p, avisoPagamento: e.target.checked }))}
+                  checked={notificacoes.financeiro.ativo}
+                  onChange={(e) => setNotificacoes((p) => ({ ...p, financeiro: { ...p.financeiro, ativo: e.target.checked } }))}
                 />
-                <Typography variant="body2">Avisar pagamento pendente</Typography>
+                <Typography variant="body2">Avisar pagamentos vencendo ou vencidos</Typography>
               </Stack>
+
+              <TextField
+                label="Financeiro: dias antes do vencimento"
+                type="number"
+                value={notificacoes.financeiro.diasVencimento}
+                onChange={(e) => setNotificacoes((p) => ({ ...p, financeiro: { ...p.financeiro, diasVencimento: Number(e.target.value) } }))}
+              />
+
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Switch
+                  checked={notificacoes.estoque.ativo}
+                  onChange={(e) => setNotificacoes((p) => ({ ...p, estoque: { ...p.estoque, ativo: e.target.checked } }))}
+                />
+                <Typography variant="body2">Avisar estoque baixo</Typography>
+              </Stack>
+
+              <TextField
+                label="Estoque: quantidade minima"
+                type="number"
+                value={notificacoes.estoque.limiteBaixo}
+                onChange={(e) => setNotificacoes((p) => ({ ...p, estoque: { ...p.estoque, limiteBaixo: Number(e.target.value) } }))}
+              />
+
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Switch
+                  checked={notificacoes.ordens.ativo}
+                  onChange={(e) => setNotificacoes((p) => ({ ...p, ordens: { ...p.ordens, ativo: e.target.checked } }))}
+                />
+                <Typography variant="body2">Avisar O.S paradas</Typography>
+              </Stack>
+
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  label="O.S: dias parada"
+                  type="number"
+                  fullWidth
+                  value={notificacoes.ordens.diasParada}
+                  onChange={(e) => setNotificacoes((p) => ({ ...p, ordens: { ...p.ordens, diasParada: Number(e.target.value) } }))}
+                />
+                <TextField
+                  label="O.S: dias critica"
+                  type="number"
+                  fullWidth
+                  value={notificacoes.ordens.diasCritico}
+                  onChange={(e) => setNotificacoes((p) => ({ ...p, ordens: { ...p.ordens, diasCritico: Number(e.target.value) } }))}
+                />
+              </Stack>
+
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Switch
+                  checked={notificacoes.orcamentos.ativo}
+                  onChange={(e) => setNotificacoes((p) => ({ ...p, orcamentos: { ...p.orcamentos, ativo: e.target.checked } }))}
+                />
+                <Typography variant="body2">Avisar orcamentos pendentes</Typography>
+              </Stack>
+
+              <TextField
+                label="Orcamentos: dias em analise"
+                type="number"
+                value={notificacoes.orcamentos.diasPendente}
+                onChange={(e) => setNotificacoes((p) => ({ ...p, orcamentos: { ...p.orcamentos, diasPendente: Number(e.target.value) } }))}
+              />
+
+              {savingNotificacoes && <CircularProgress size={20} />}
             </Stack>
           ) : (
             <DisplayList
               items={[
-                ['Confirmação de agendamento', notificacoes.confirmarAgendamento ? 'Ativada' : 'Desativada'],
-                ['Lembrete de manutenção', `${notificacoes.lembreteDias} dias antes`],
-                ['Aviso de pagamento pendente', notificacoes.avisoPagamento ? 'Ativo' : 'Inativo'],
+                ['Agenda', notificacoes.agenda.ativo ? `Ativa - ${notificacoes.agenda.diasAntecedencia} dia(s) antes` : 'Inativa'],
+                ['Financeiro', notificacoes.financeiro.ativo ? `Ativo - ${notificacoes.financeiro.diasVencimento} dia(s) antes` : 'Inativo'],
+                ['Estoque', notificacoes.estoque.ativo ? `Ativo - limite ${notificacoes.estoque.limiteBaixo} un.` : 'Inativo'],
+                ['O.S paradas', notificacoes.ordens.ativo ? `Ativa - ${notificacoes.ordens.diasParada}d / critica ${notificacoes.ordens.diasCritico}d` : 'Inativa'],
+                ['Orcamentos', notificacoes.orcamentos.ativo ? `Ativo - ${notificacoes.orcamentos.diasPendente} dia(s) em analise` : 'Inativo'],
               ]}
             />
           )}
@@ -367,7 +446,7 @@ function AccessProfilesManager() {
 
   React.useEffect(() => {
     if (selected) setForm(selected);
-  }, [selectedId]);
+  }, [selectedId, selected]);
 
   const startNew = () => {
     setSelectedId(null);

@@ -1,8 +1,16 @@
 import { prisma } from "../prisma/client.js";
 
 export const ServicosService = {
-  list: (oficinaId: number) =>
-    prisma.servico.findMany({ where: { deleted_at: null, oficina_id: oficinaId } }),
+  list: (oficinaId: number, search: string = "") => {
+    const where: any = { deleted_at: null, oficina_id: oficinaId };
+    if (search.trim().length > 0) {
+      where.nome = { contains: search.trim(), mode: "insensitive" };
+    }
+    return prisma.servico.findMany({
+      where,
+      ...(search.trim().length > 0 ? { take: 20 } : {}),
+    });
+  },
 
   getById: (id: number, oficinaId: number) =>
     prisma.servico.findFirst({
@@ -15,7 +23,7 @@ export const ServicosService = {
     });
 
     if (existing) {
-      return prisma.servico.update({
+      const reativado = await prisma.servico.update({
         where: { id: existing.id },
         data: {
           nome: data.nome,
@@ -27,9 +35,10 @@ export const ServicosService = {
           deleted_at: null,
         },
       });
+      return { ...reativado, _reativado: true };
     }
 
-    return prisma.servico.create({
+    const novo = await prisma.servico.create({
       data: {
         oficina_id: data.oficina_id,
         nome: data.nome,
@@ -40,6 +49,7 @@ export const ServicosService = {
         ativo: data.ativo !== false,
       },
     });
+    return { ...novo, _reativado: false };
   },
 
   update: async (id: number, data: any, oficinaId: number) => {

@@ -197,7 +197,7 @@ export default function Relatorios() {
       <Grid container spacing={3}>
 
         {/* Clientes */}
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <RelatorioCard titulo="Clientes" descricao="Listagem e dados dos clientes" icone={<PeopleAltRoundedIcon />} cor="#1976D2" destino="/relatorios/clientes" loading={loading}>
             <PreviewRow label="Total cadastrados" value={p?.clientes.total ?? 0} />
             <PreviewRow label="Clientes ativos" value={p?.clientes.ativos ?? 0} color="success.main" />
@@ -206,7 +206,7 @@ export default function Relatorios() {
         </Grid>
 
         {/* Financeiro */}
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <RelatorioCard titulo="Financeiro" descricao="Receitas, despesas e fluxo de caixa" icone={<AttachMoneyRoundedIcon />} cor="#10b981" destino="/relatorios/financeiro" loading={loading}>
             <PreviewRow label="Entradas" value={brl(p?.financeiro.entradas ?? 0)} color="success.main" />
             <PreviewRow label="Saídas" value={brl(p?.financeiro.saidas ?? 0)} color="error.main" />
@@ -215,7 +215,7 @@ export default function Relatorios() {
         </Grid>
 
         {/* Agenda */}
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <RelatorioCard titulo="Agenda" descricao="Agendamentos e ocupação" icone={<CalendarMonthRoundedIcon />} cor="#f59e0b" destino="/relatorios/agenda" loading={loading}>
             <PreviewRow label="Total de agendamentos" value={p?.agenda.total ?? 0} />
             <PreviewRow label="Confirmados" value={p?.agenda.confirmados ?? 0} color="success.main" />
@@ -224,7 +224,7 @@ export default function Relatorios() {
         </Grid>
 
         {/* Geral */}
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <RelatorioCard titulo="Geral" descricao="Resumo consolidado de serviços" icone={<AssessmentRoundedIcon />} cor="#6366f1" destino="/relatorios/geral" loading={loading}>
             <PreviewRow label="Ordens de serviço" value={p?.geral.ordens ?? 0} />
             <PreviewRow label="Concluídas" value={p?.geral.concluidas ?? 0} color="success.main" />

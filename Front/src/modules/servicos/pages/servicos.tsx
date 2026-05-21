@@ -83,9 +83,9 @@ export default function ServicosPage() {
       const oficinaId = user?.oficina_id;
       if (!oficinaId) { error("Usuário sem oficina vinculada."); return; }
       if (mode === "create") {
-        const novo = await criarServico(data, oficinaId);
+        const { data: novo, reativado } = await criarServico(data, oficinaId);
         setRows((p) => [novo, ...p]);
-        success("Serviço cadastrado com sucesso!");
+        success(reativado ? "Serviço já existia e foi reativado." : "Serviço cadastrado com sucesso!");
       } else if (current) {
         const atualizado = await atualizarServico(current.id, data);
         setRows((p) => p.map((r) => (r.id === current.id ? atualizado : r)));
