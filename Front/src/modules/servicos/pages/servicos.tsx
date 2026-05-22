@@ -48,7 +48,10 @@ export default function ServicosPage() {
   React.useEffect(() => {
     listarServicos(user?.oficina_id)
       .then(setRows)
-      .catch((err) => console.error("Erro ao carregar serviços:", err))
+      .catch((err) => {
+        console.error("Erro ao carregar serviços:", err);
+        error("Não foi possível carregar os serviços.");
+      })
       .finally(() => setLoading(false));
   }, [user?.oficina_id]);
 

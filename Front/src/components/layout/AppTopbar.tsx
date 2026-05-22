@@ -143,9 +143,9 @@ export default function AppTopbar({
   };
 
   const nomeUsuario = user?.nome || "Usuário";
-  const avatarLetter = nomeUsuario[0].toUpperCase();
-
   const empresaLabel = user?.oficina_nome?.trim() || "Empresa nao informada";
+  const empresaLetter = empresaLabel[0]?.toUpperCase() || "D";
+  const empresaLogoUrl = user?.oficina_logo_url ?? null;
   const cargoLabel =
     user?.perfilAcessoNome ??
     CARGO_LABEL[(user?.tipo ?? "").toLowerCase()] ??
@@ -320,16 +320,16 @@ export default function AppTopbar({
                 },
               }}
             >
-              <Avatar sx={{ width: 30, height: 30, fontSize: 13, fontWeight: 800, bgcolor: "primary.main" }}>
-                {avatarLetter}
+              <Avatar src={empresaLogoUrl ?? undefined} sx={{ width: 30, height: 30, fontSize: 13, fontWeight: 800, bgcolor: "primary.main" }}>
+                {empresaLetter}
               </Avatar>
 
               <Box sx={{ lineHeight: 1, display: { xs: "none", sm: "block" } }}>
                 <Typography variant="body2" fontWeight={700} lineHeight={1.3} noWrap maxWidth={160}>
-                  {nomeUsuario}
+                  {empresaLabel}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" lineHeight={1.2} noWrap maxWidth={160} component="div">
-                  {empresaLabel}
+                  {nomeUsuario}
                 </Typography>
               </Box>
 
@@ -369,7 +369,7 @@ export default function AppTopbar({
               sx={{ py: 1.25 }}
             >
               <ListItemIcon><BusinessRoundedIcon fontSize="small" /></ListItemIcon>
-              <Typography variant="body2">Configurações da empresa</Typography>
+              <Typography variant="body2">Minha empresa</Typography>
             </MenuItem>
 
             <MenuItem

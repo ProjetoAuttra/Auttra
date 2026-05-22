@@ -22,6 +22,8 @@ import DialogOrcamento from "../dialog";
 import OrdemServicoDialog from "../../tarefas/dialog";
 import api from "../../../api/api";
 import ListTableContainer from "../../../components/common/ListTableContainer";
+import EmptyState from "../../../components/common/EmptyState";
+import { IllustrationOrcamentos } from "../../../components/common/Illustrations";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -407,20 +409,17 @@ export default function OrcamentosPage() {
                 );
               }) : (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
-                    <Stack alignItems="center" spacing={1.5}>
-                      <RequestQuoteRoundedIcon sx={{ fontSize: 40, color: "text.disabled" }} />
-                      <Typography variant="body2" color="text.disabled">
-                        {filtroStatus === "todos"
-                          ? "Nenhum orçamento encontrado"
-                          : `Nenhum orçamento com status "${STATUS_CONFIG[filtroStatus as keyof typeof STATUS_CONFIG]?.label ?? filtroStatus}"`}
-                      </Typography>
-                      {filtroStatus !== "todos" && (
-                        <Button size="small" onClick={() => setFiltroStatus("todos")} sx={{ textTransform: "none" }}>
-                          Ver todos
-                        </Button>
-                      )}
-                    </Stack>
+                  <TableCell colSpan={7} sx={{ border: 0 }}>
+                    <EmptyState
+                      illustration={<IllustrationOrcamentos />}
+                      icon={<RequestQuoteRoundedIcon />}
+                      title={filtroStatus === "todos" ? "Nenhum orçamento cadastrado" : `Nenhum orçamento ${STATUS_CONFIG[filtroStatus as keyof typeof STATUS_CONFIG]?.label?.toLowerCase() ?? filtroStatus}`}
+                      description="Crie o primeiro orçamento e acompanhe sua conversão em ordem de serviço."
+                      actionLabel="Novo Orçamento"
+                      onAction={() => setDialogOpen(true)}
+                      isFiltered={filtroStatus !== "todos"}
+                      onClearFilter={() => setFiltroStatus("todos")}
+                    />
                   </TableCell>
                 </TableRow>
               )}

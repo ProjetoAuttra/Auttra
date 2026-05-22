@@ -2,6 +2,11 @@ import { Request, Response } from "express";
 import { PagamentosService } from "../services/pagamentos.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 
+function isNotFound(err: any): boolean {
+  const msg = (err?.message ?? "").toLowerCase();
+  return msg.includes("nao encontrado") || msg.includes("não encontrado");
+}
+
 export const pagamentosController = {
   async listar(req: Request, res: Response) {
     try {
@@ -37,8 +42,9 @@ export const pagamentosController = {
       const pagamento = await PagamentosService.getById(id, getRequiredOfficeId(req));
       res.json(pagamento);
     } catch (err: any) {
+      if (isNotFound(err)) return res.status(404).json({ message: err.message });
       console.error("Erro ao buscar pagamento:", err);
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: "Erro interno" });
     }
   },
 
@@ -60,8 +66,9 @@ export const pagamentosController = {
       const atualizado = await PagamentosService.update(id, req.body, getRequiredOfficeId(req));
       res.json(atualizado);
     } catch (err: any) {
+      if (isNotFound(err)) return res.status(404).json({ message: err.message });
       console.error("Erro ao atualizar pagamento:", err);
-      res.status(500).json({ error: err.message });
+      res.status(400).json({ message: err.message });
     }
   },
 
@@ -73,8 +80,9 @@ export const pagamentosController = {
       const resultado = await PagamentosService.delete(id, getRequiredOfficeId(req));
       res.json(resultado);
     } catch (err: any) {
+      if (isNotFound(err)) return res.status(404).json({ message: err.message });
       console.error("Erro ao excluir pagamento:", err);
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: "Erro interno" });
     }
   },
 

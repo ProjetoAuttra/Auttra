@@ -4,6 +4,7 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import SearchOffRoundedIcon from "@mui/icons-material/SearchOffRounded";
 
 interface EmptyStateProps {
+    illustration?: React.ReactNode;
     icon?: React.ReactNode;
     title: string;
     description?: string;
@@ -14,6 +15,7 @@ interface EmptyStateProps {
 }
 
 export default function EmptyState({
+    illustration,
     icon,
     title,
     description,
@@ -25,6 +27,9 @@ export default function EmptyState({
     return (
         <Box sx={{ py: 8, textAlign: "center" }}>
             <Stack alignItems="center" spacing={2}>
+                {!isFiltered && illustration && (
+                    <Box sx={{ opacity: 0.9 }}>{illustration}</Box>
+                )}
                 <Box
                     sx={{
                         width: 72,

@@ -11,9 +11,11 @@ type User = {
   oficina_id: number;
   oficinaId: number;
   oficina_nome?: string | null;
+  oficina_logo_url?: string | null;
   perfilAcessoId?: number | null;
   perfilAcessoNome?: string | null;
   permissoes?: PermissionsMap;
+  foto_url?: string | null;
 };
 
 type OfficeOption = {
@@ -22,6 +24,7 @@ type OfficeOption = {
   perfil: string;
   perfilAcessoId?: number | null;
   perfilAcessoNome?: string | null;
+  logo_url?: string | null;
 };
 
 type SignInResult =
@@ -62,9 +65,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       oficina_id: oficinaId,
       oficinaId,
       oficina_nome: u.oficina_nome ?? null,
+      oficina_logo_url: u.oficina_logo_url ?? u.logo_url ?? null,
       perfilAcessoId: u.perfilAcessoId ?? null,
       perfilAcessoNome: u.perfilAcessoNome ?? null,
       permissoes: u.permissoes ?? {},
+      foto_url: u.foto_url ?? null,
     };
   };
 

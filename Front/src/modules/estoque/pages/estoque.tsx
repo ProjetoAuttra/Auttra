@@ -23,6 +23,8 @@ import {
 } from "../api/api";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import ListTableContainer from "../../../components/common/ListTableContainer";
+import EmptyState from "../../../components/common/EmptyState";
+import { IllustrationEstoque } from "../../../components/common/Illustrations";
 import { paths } from "../../../routes/paths";
 
 const LIMITE_BAIXO = 3;
@@ -60,7 +62,10 @@ export default function EstoquePage() {
   React.useEffect(() => {
     listarEstoque()
       .then(setRows)
-      .catch((err) => console.error("Erro ao carregar estoque:", err));
+      .catch((err) => {
+        console.error("Erro ao carregar estoque:", err);
+        error("Não foi possível carregar o estoque.");
+      });
   }, []);
 
   // ── Métricas ────────────────────────────────────────────────
@@ -301,8 +306,17 @@ export default function EstoquePage() {
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 8, color: "text.secondary" }}>
-                    {filtroBaixo ? "Nenhuma peça com estoque baixo." : "Nenhuma peça encontrada."}
+                  <TableCell colSpan={6} sx={{ border: 0 }}>
+                    <EmptyState
+                      illustration={<IllustrationEstoque />}
+                      icon={<Inventory2RoundedIcon />}
+                      title={filtroBaixo ? "Nenhuma peça com estoque baixo" : "Nenhuma peça cadastrada"}
+                      description={filtroBaixo ? "Todas as peças estão com estoque adequado." : "Cadastre a primeira peça para controlar o inventário da oficina."}
+                      actionLabel={filtroBaixo ? undefined : "Nova Peça"}
+                      onAction={filtroBaixo ? undefined : () => { setMode("create"); setCurrent(null); setOpenDialog(true); }}
+                      isFiltered={!!query}
+                      onClearFilter={() => { setQuery(""); setFiltroBaixo(false); }}
+                    />
                   </TableCell>
                 </TableRow>
               )}

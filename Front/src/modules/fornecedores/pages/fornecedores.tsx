@@ -37,7 +37,10 @@ export default function SuppliersPage() {
   React.useEffect(() => {
     api.get("/fornecedores")
       .then((r) => setRows(r.data))
-      .catch((err) => console.error("Erro ao carregar fornecedores:", err))
+      .catch((err) => {
+        console.error("Erro ao carregar fornecedores:", err);
+        error("Não foi possível carregar os fornecedores.");
+      })
       .finally(() => setLoading(false));
   }, []);
 

@@ -18,6 +18,7 @@ import { listarOrdens, excluirOrdem, criarOrdem, atualizarOrdem } from "../api/a
 import OrdemDialog from "../dialog";
 import TableSkeleton from "../../../components/common/TableSkeleton";
 import EmptyState from "../../../components/common/EmptyState";
+import { IllustrationOS } from "../../../components/common/Illustrations";
 import ListTableContainer from "../../../components/common/ListTableContainer";
 
 // ─── Status config ─────────────────────────────────────────────────────────
@@ -284,6 +285,7 @@ export default function OrdensPage() {
                   <TableRow>
                     <TableCell colSpan={7} sx={{ border: 0 }}>
                       <EmptyState
+                        illustration={<IllustrationOS />}
                         icon={<AssignmentRoundedIcon />}
                         title="Nenhuma ordem de serviço"
                         description="Crie a primeira ordem para começar a gerenciar os serviços da oficina."

@@ -9,12 +9,13 @@ datasource db {
 }
 
 model usuario {
-  id     Int            @id @default(autoincrement())
-  nome   String
-  email  String         @unique
-  senha  String
-  tipo   tipo_usuario   @default(funcionario)
-  status status_usuario @default(ativo)
+  id       Int            @id @default(autoincrement())
+  nome     String
+  email    String         @unique
+  senha    String
+  tipo     tipo_usuario   @default(funcionario)
+  status   status_usuario @default(ativo)
+  foto_url String?
 
   funcionarios   funcionario[] @relation("FuncionarioUsuario")
   cliente        cliente? @relation("UsuarioCliente")
@@ -79,6 +80,7 @@ model oficina {
   cidade_id         Int
   telefone          String?
   email             String? @unique
+  logo_url          String?
   recursos_adicionais Json @default("{\"agenda\":true,\"estoque\":true,\"fornecedores\":true}")
   notificacoes_config Json @default("{\"agenda\":{\"ativo\":true,\"diasAntecedencia\":1},\"financeiro\":{\"ativo\":true,\"diasVencimento\":3},\"estoque\":{\"ativo\":true,\"limiteBaixo\":3},\"ordens\":{\"ativo\":true,\"diasParada\":3,\"diasCritico\":7},\"orcamentos\":{\"ativo\":true,\"diasPendente\":2}}")
 

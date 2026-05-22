@@ -3,6 +3,11 @@ import { ClienteService } from "../services/clientes.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 import { Prisma } from "@prisma/client";
 
+function isNotFound(err: any): boolean {
+  const msg = (err?.message ?? "").toLowerCase();
+  return msg.includes("nao encontrado") || msg.includes("não encontrado");
+}
+
 export const clienteController = {
 
   async listar(req: Request, res: Response) {
@@ -22,8 +27,9 @@ export const clienteController = {
       const cliente = await ClienteService.getDetalhes(id, getRequiredOfficeId(req));
       return res.json(cliente);
     } catch (err: any) {
+      if (isNotFound(err)) return res.status(404).json({ message: err.message });
       console.error("Erro ao obter detalhes do cliente:", err);
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: "Erro interno" });
     }
   },
 
@@ -49,6 +55,7 @@ export const clienteController = {
       const cliente = await ClienteService.atualizar(id, req.body, getRequiredOfficeId(req));
       return res.json(cliente);
     } catch (err: any) {
+      if (isNotFound(err)) return res.status(404).json({ message: err.message });
       console.error("Erro ao atualizar cliente:", err);
       return res.status(400).json({ message: err.message });
     }

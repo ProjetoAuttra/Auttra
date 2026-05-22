@@ -19,6 +19,10 @@ import ClientesRelatorio from '../modules/relatorios/pages/clientes/clientesrela
 import FinanceiroRelatorio from '../modules/relatorios/pages/financeiro/financeirorelatorio';
 import AgendaRelatorio from '../modules/relatorios/pages/agenda/agendarelatorio';
 import GeralRelatorio from '../modules/relatorios/pages/geral/geralrelatorio';
+import OrdensParadasRelatorio from '../modules/relatorios/pages/ordens-paradas/ordensparadasrelatorio';
+import EstoqueCriticoRelatorio from '../modules/relatorios/pages/estoque-critico/estoquecriticorelatorio';
+import OrcamentosPerdidosRelatorio from '../modules/relatorios/pages/orcamentos-perdidos/orcamentosperdidosrelatorio';
+import RentabilidadeRelatorio from '../modules/relatorios/pages/rentabilidade/rentabilidaderelatorio';
 import Configuracoes from '../modules/configuracoes/pages/configuracoes';
 import Veiculos from '../modules/veiculos/pages/veiculos';
 import VeiculoDetalhes from '../modules/veiculos/pages/detalhesveiculos/detalhesveiculos';
@@ -77,6 +81,10 @@ export default function Router() {
         <Route path={paths.financeiroRelatorio} element={<ModuleRoute module="relatorios"><FinanceiroRelatorio /></ModuleRoute>} />
         <Route path={paths.agendaRelatorio} element={<ModuleRoute module="relatorios"><AgendaRelatorio /></ModuleRoute>} />
         <Route path={paths.geralRelatorio} element={<ModuleRoute module="relatorios"><GeralRelatorio /></ModuleRoute>} />
+        <Route path={paths.ordensParadasRelatorio} element={<ModuleRoute module="relatorios"><OrdensParadasRelatorio /></ModuleRoute>} />
+        <Route path={paths.estoqueCriticoRelatorio} element={<ModuleRoute module="relatorios"><EstoqueCriticoRelatorio /></ModuleRoute>} />
+        <Route path={paths.orcamentosPerdidosRelatorio} element={<ModuleRoute module="relatorios"><OrcamentosPerdidosRelatorio /></ModuleRoute>} />
+        <Route path={paths.rentabilidadeRelatorio} element={<ModuleRoute module="relatorios"><RentabilidadeRelatorio /></ModuleRoute>} />
         <Route path={paths.configuracoes} element={<ModuleRoute module="configuracoes"><Configuracoes /></ModuleRoute>} />
         <Route path={paths.veiculos} element={<ModuleRoute module="veiculos"><Veiculos /></ModuleRoute>} />
         <Route path={paths.veiculoDetalhes} element={<ModuleRoute module="veiculos"><VeiculoDetalhes /></ModuleRoute>} />

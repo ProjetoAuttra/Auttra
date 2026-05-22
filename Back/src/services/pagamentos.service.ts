@@ -177,6 +177,7 @@ export const PagamentosService = {
       where: { id, oficina_id: oficinaId, deleted_at: null },
     });
     if (!existing) throw new Error("Pagamento não encontrado.");
+    if (existing.status === "pago") throw new Error("Este pagamento já foi registrado como pago.");
     const valorLiquido = Number(existing.valor_original) - Number(existing.desconto);
     return prisma.pagamento.update({
       where: { id },

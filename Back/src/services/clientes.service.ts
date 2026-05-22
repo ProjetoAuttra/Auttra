@@ -85,7 +85,7 @@ export const ClienteService = {
     if (data.email) conditions.push({ email: data.email, oficina_id: data.oficina_id });
 
     const existing = conditions.length > 0
-      ? await prisma.cliente.findFirst({ where: { OR: conditions } })
+      ? await prisma.cliente.findFirst({ where: { deleted_at: { not: null }, OR: conditions } })
       : null;
 
     if (existing) {
