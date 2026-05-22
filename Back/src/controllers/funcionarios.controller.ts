@@ -2,6 +2,11 @@ import { Request, Response } from "express";
 import { FuncionariosService } from "../services/funcionarios.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 
+function isNotFound(err: any): boolean {
+  const msg = (err?.message ?? "").toLowerCase();
+  return msg.includes("nao encontrado") || msg.includes("não encontrado");
+}
+
 export const FuncionariosController = {
   async list(req: Request, res: Response) {
     try {
@@ -75,8 +80,9 @@ export const FuncionariosController = {
       const funcionario = await FuncionariosService.update(Number(id), data, getRequiredOfficeId(req));
       res.json(funcionario);
     } catch (error: any) {
+      if (isNotFound(error)) return res.status(404).json({ message: error.message });
       console.error("Erro ao atualizar funcionário:", error);
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ message: error.message });
     }
   },
 
@@ -84,10 +90,11 @@ export const FuncionariosController = {
     try {
       const { id } = req.params;
       await FuncionariosService.delete(Number(id), getRequiredOfficeId(req));
-      res.json({ message: "Funcionário removido com sucesso." });
+      res.status(204).send();
     } catch (error: any) {
+      if (isNotFound(error)) return res.status(404).json({ message: error.message });
       console.error("Erro ao excluir funcionário:", error);
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ message: error.message });
     }
   },
 };

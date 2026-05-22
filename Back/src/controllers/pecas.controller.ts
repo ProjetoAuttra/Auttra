@@ -3,6 +3,11 @@ import { PecasService } from "../services/pecas.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 import { Prisma } from "@prisma/client";
 
+function isNotFound(err: any): boolean {
+  const msg = (err?.message ?? "").toLowerCase();
+  return msg.includes("nao encontrado") || msg.includes("não encontrado");
+}
+
 export const PecasController = {
   async list(req: Request, res: Response) {
     try {
@@ -35,8 +40,9 @@ export const PecasController = {
       const pecaAtualizada = await PecasService.update(id, req.body, getRequiredOfficeId(req));
       return res.json(pecaAtualizada);
     } catch (err: any) {
+      if (isNotFound(err)) return res.status(404).json({ message: err.message });
       console.error("Erro ao atualizar peca:", err);
-      return res.status(500).json({ error: "Erro interno ao atualizar peca" });
+      return res.status(400).json({ message: err.message });
     }
   },
 
@@ -46,8 +52,9 @@ export const PecasController = {
       await PecasService.delete(id, getRequiredOfficeId(req));
       return res.status(204).send();
     } catch (err: any) {
+      if (isNotFound(err)) return res.status(404).json({ message: err.message });
       console.error("Erro ao excluir peca:", err);
-      return res.status(500).json({ error: "Erro interno ao excluir peca" });
+      return res.status(500).json({ error: "Erro interno" });
     }
   },
 

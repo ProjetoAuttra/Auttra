@@ -269,29 +269,57 @@ export const ImportacaoXmlService = {
           }
           itensAtualizados++;
         } else if (item.acao === "nova_peca") {
-          const novaPeca = await tx.peca.create({
-            data: {
-              oficina_id: oficinaId,
-              nome: item.descricao,
-              preco_custo: item.valor_unitario,
-              preco_venda: item.preco_venda,
-              estoque: item.quantidade,
-            },
+          const pecaExistente = await tx.peca.findFirst({
+            where: { nome: item.descricao, oficina_id: oficinaId },
           });
+
+          let pecaId: number;
+
+          if (pecaExistente && !pecaExistente.deleted_at) {
+            await tx.peca.update({
+              where: { id: pecaExistente.id },
+              data: { estoque: { increment: item.quantidade } },
+            });
+            pecaId = pecaExistente.id;
+            itensAtualizados++;
+          } else if (pecaExistente) {
+            await tx.peca.update({
+              where: { id: pecaExistente.id },
+              data: {
+                deleted_at: null,
+                preco_custo: item.valor_unitario,
+                preco_venda: item.preco_venda,
+                estoque: item.quantidade,
+              },
+            });
+            pecaId = pecaExistente.id;
+            itensCriados++;
+          } else {
+            const novaPeca = await tx.peca.create({
+              data: {
+                oficina_id: oficinaId,
+                nome: item.descricao,
+                preco_custo: item.valor_unitario,
+                preco_venda: item.preco_venda,
+                estoque: item.quantidade,
+              },
+            });
+            pecaId = novaPeca.id;
+            itensCriados++;
+          }
 
           if (dados.fornecedor_id) {
             await tx.compra_peca.create({
               data: {
                 oficina_id: oficinaId,
                 fornecedor_id: dados.fornecedor_id,
-                peca_id: novaPeca.id,
+                peca_id: pecaId,
                 quantidade: item.quantidade,
                 preco_compra_unitario: item.valor_unitario,
                 data_compra: dados.data_emissao ? new Date(dados.data_emissao) : new Date(),
               },
             });
           }
-          itensCriados++;
         }
       }
     });

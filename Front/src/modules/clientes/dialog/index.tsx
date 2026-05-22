@@ -35,6 +35,7 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import { HeaderIcon } from "../../../components/styled/DialogStyles";
 import { useCep } from "../../../hooks/useCep";
 import api from "../../../api/api";
+import { maskCpf, maskTelefone, maskCep } from "../../../utils/masks";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -77,15 +78,7 @@ type Props = {
   onDelete?: (client: Client) => void;
 };
 
-// ─── Máscaras ──────────────────────────────────────────────────────────────
-
-function formatCPF(raw: string): string {
-  const d = raw.replace(/\D/g, "").slice(0, 11);
-  if (d.length <= 3) return d;
-  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
-  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
-  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
-}
+// ─── Validações ────────────────────────────────────────────────────────────
 
 function isCPFValido(cpf: string): boolean {
   const d = cpf.replace(/\D/g, "");
@@ -102,20 +95,8 @@ function isCPFValido(cpf: string): boolean {
   return r === parseInt(d[10]);
 }
 
-function formatPhone(raw: string): string {
-  const d = raw.replace(/\D/g, "").slice(0, 11);
-  if (d.length <= 2) return d.length ? `(${d}` : "";
-  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
-}
-
 function isEmailValido(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-function formatCep(v: string): string {
-  return v.length <= 5 ? v : v.slice(0, 5) + "-" + v.slice(5, 8);
 }
 
 // ─── Componente principal ──────────────────────────────────────────────────
@@ -154,8 +135,8 @@ export default function ClientDialog({
     if (!open) return;
     setNome(initial?.nome ?? "");
     setEmail(initial?.email ?? "");
-    setCpf(initial?.cpf ? formatCPF(initial.cpf) : "");
-    setTelefone(initial?.telefone ? formatPhone(initial.telefone) : "");
+    setCpf(initial?.cpf ? maskCpf(initial.cpf) : "");
+    setTelefone(initial?.telefone ? maskTelefone(initial.telefone) : "");
     setDataNascimento(initial?.data_nascimento ?? "");
     setObservacao(initial?.observacao ?? "");
     setCep(initial?.cep ?? "");
@@ -334,7 +315,7 @@ export default function ClientDialog({
             <TextField
               label="Telefone / WhatsApp"
               value={telefone}
-              onChange={(e) => setTelefone(formatPhone(e.target.value))}
+              onChange={(e) => setTelefone(maskTelefone(e.target.value))}
               placeholder="(48) 99999-9999"
               size="small"
               fullWidth
@@ -390,7 +371,7 @@ export default function ClientDialog({
             <TextField
               label="CPF"
               value={cpf}
-              onChange={(e) => setCpf(formatCPF(e.target.value))}
+              onChange={(e) => setCpf(maskCpf(e.target.value))}
               placeholder="000.000.000-00"
               size="small"
               fullWidth
@@ -445,7 +426,7 @@ export default function ClientDialog({
           <Grid size={{ xs: 12, sm: 4, md: 3 }}>
             <TextField
               label="CEP"
-              value={formatCep(cep)}
+              value={maskCep(cep)}
               size="small"
               fullWidth
               error={!!cepErro}

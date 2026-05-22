@@ -15,6 +15,7 @@ type AuthUsuario = {
 type AuthOficina = {
   id: number;
   nome?: string | null;
+  logo_url?: string | null;
 };
 
 type AuthPerfil = {
@@ -49,7 +50,7 @@ async function resolvePerfil(oficinaId: number, perfilAcesso: any, legacyTipo: s
   };
 }
 
-function signFinalToken(usuario: AuthUsuario, oficina: AuthOficina, perfil: AuthPerfil) {
+function signFinalToken(usuario: AuthUsuario & { foto_url?: string | null }, oficina: AuthOficina, perfil: AuthPerfil) {
   if (!process.env.JWT_SECRET) {
     throw new Error("JWT_SECRET nao configurado.");
   }
@@ -62,16 +63,39 @@ function signFinalToken(usuario: AuthUsuario, oficina: AuthOficina, perfil: Auth
     oficinaId: oficina.id,
     oficina_id: oficina.id,
     oficina_nome: oficina.nome ?? null,
+    oficina_logo_url: oficina.logo_url ?? null,
     perfilAcessoId: perfil.id ?? null,
     perfilAcessoNome: perfil.nome ?? null,
     permissoes: perfil.permissoes ?? {},
+    foto_url: usuario.foto_url ?? null,
   };
 
   const token = jwt.sign(usuarioPayload, process.env.JWT_SECRET, {
-    expiresIn: "7d",
+    expiresIn: "8h",
   });
 
   return { token, usuario: usuarioPayload };
+}
+
+export async function updateFoto(req: Request, res: Response) {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ message: "Nao autorizado." });
+
+    const foto_url = req.body?.foto_url ?? null;
+    if (foto_url !== null && typeof foto_url !== "string") {
+      return res.status(400).json({ message: "foto_url invalida." });
+    }
+    if (foto_url && foto_url.length > 300_000) {
+      return res.status(400).json({ message: "Imagem muito grande. Limite: 300KB." });
+    }
+
+    await prisma.usuario.update({ where: { id: userId }, data: { foto_url } });
+    return res.json({ foto_url });
+  } catch (err) {
+    console.error("Erro ao atualizar foto:", err);
+    return res.status(500).json({ message: "Erro interno ao atualizar foto." });
+  }
 }
 
 export async function changePassword(req: Request, res: Response) {
@@ -151,6 +175,7 @@ export async function login(req: Request, res: Response) {
         userId: usuario.id,
         id: acesso.oficina_id,
         nome: acesso.oficina?.nome ?? `Oficina ${acesso.oficina_id}`,
+        logo_url: acesso.oficina?.logo_url ?? null,
         perfil: acesso.perfil,
         perfilAcessoId: acesso.perfil_acesso_id,
         perfilAcessoNome: acesso.perfil_acesso?.nome,
@@ -163,9 +188,10 @@ export async function login(req: Request, res: Response) {
     }
 
     const offices = Array.from(officesById.values());
-    const oficinas = offices.map(({ id, nome, perfil, perfilAcessoId, perfilAcessoNome }) => ({
+    const oficinas = offices.map(({ id, nome, logo_url, perfil, perfilAcessoId, perfilAcessoNome }) => ({
       id,
       nome,
+      logo_url,
       perfil,
       perfilAcessoId,
       perfilAcessoNome,
@@ -202,7 +228,7 @@ export async function login(req: Request, res: Response) {
     }
 
     const selected = offices[0];
-    const oficina = oficinas[0];
+    const oficina = { id: selected.id, nome: selected.nome, logo_url: selected.logo_url };
     const perfil = await resolvePerfil(selected.id, selected.usuario.acessos[0]?.perfil_acesso, selected.perfil);
     return res.json({
       ...signFinalToken(selected.usuario, oficina, perfil),

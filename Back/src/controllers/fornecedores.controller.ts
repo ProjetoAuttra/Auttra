@@ -3,6 +3,11 @@ import { FornecedoresService } from "../services/fornecedores.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 import { Prisma } from "@prisma/client";
 
+function isNotFound(err: any): boolean {
+  const msg = (err?.message ?? "").toLowerCase();
+  return msg.includes("nao encontrado") || msg.includes("não encontrado");
+}
+
 export const FornecedoresController = {
   async list(req: Request, res: Response) {
     try {
@@ -17,8 +22,9 @@ export const FornecedoresController = {
     try {
       return res.json(await FornecedoresService.getById(Number(req.params.id), getRequiredOfficeId(req)));
     } catch (err: any) {
+      if (isNotFound(err)) return res.status(404).json({ message: err.message });
       console.error("Erro ao buscar fornecedor:", err);
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: "Erro interno" });
     }
   },
 
@@ -39,6 +45,7 @@ export const FornecedoresController = {
     try {
       return res.json(await FornecedoresService.update(Number(req.params.id), req.body, getRequiredOfficeId(req)));
     } catch (err: any) {
+      if (isNotFound(err)) return res.status(404).json({ message: err.message });
       console.error("Erro ao atualizar fornecedor:", err);
       return res.status(400).json({ message: err.message });
     }
@@ -49,8 +56,9 @@ export const FornecedoresController = {
       await FornecedoresService.remove(Number(req.params.id), getRequiredOfficeId(req));
       return res.status(204).send();
     } catch (err: any) {
+      if (isNotFound(err)) return res.status(404).json({ message: err.message });
       console.error("Erro ao remover fornecedor:", err);
-      return res.status(400).json({ message: err.message });
+      return res.status(500).json({ error: "Erro interno" });
     }
   },
 };

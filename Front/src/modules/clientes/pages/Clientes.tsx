@@ -14,6 +14,8 @@ import ClientDialog, { type Client, type ClientForm } from "../dialog";
 import api from "../../../api/api";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import ListTableContainer from "../../../components/common/ListTableContainer";
+import EmptyState from "../../../components/common/EmptyState";
+import { IllustrationClientes } from "../../../components/common/Illustrations";
 
 // ── helpers de mapeamento ──────────────────────────────────────────────────
 
@@ -81,7 +83,10 @@ export default function ClientsPage() {
   React.useEffect(() => {
     listarClientes()
       .then(setRows)
-      .catch((err) => console.error("Erro ao carregar clientes:", err))
+      .catch((err) => {
+        console.error("Erro ao carregar clientes:", err);
+        error("Não foi possível carregar os clientes.");
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -204,7 +209,20 @@ export default function ClientsPage() {
                   </TableCell>
                 </TableRow>
               )) : (
-                <TableRow><TableCell colSpan={4} align="center" sx={{ py: 8, color: "text.secondary" }}>Nenhum cliente encontrado</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={4} sx={{ border: 0 }}>
+                    <EmptyState
+                      illustration={<IllustrationClientes />}
+                      icon={<GroupsRoundedIcon />}
+                      title="Nenhum cliente cadastrado"
+                      description="Cadastre o primeiro cliente para começar a gerenciar o relacionamento da oficina."
+                      actionLabel="Novo Cliente"
+                      onAction={openCreate}
+                      isFiltered={!!query}
+                      onClearFilter={() => setQuery("")}
+                    />
+                  </TableCell>
+                </TableRow>
               )}
             </TableBody>
           </Table>

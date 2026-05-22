@@ -17,6 +17,8 @@ import VeiculoDialog, { type Veiculo, type VeiculoForm } from "../dialog";
 import { listarVeiculos, criarVeiculo, atualizarVeiculo, excluirVeiculo } from "../api/api";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import ListTableContainer from "../../../components/common/ListTableContainer";
+import EmptyState from "../../../components/common/EmptyState";
+import { IllustrationVeiculos } from "../../../components/common/Illustrations";
 
 const COMBUSTIVEL_LABEL: Record<string, string> = {
   gasolina: "Gasolina", etanol: "Etanol", flex: "Flex",
@@ -43,7 +45,10 @@ export default function VeiculosPage() {
   React.useEffect(() => {
     listarVeiculos(user?.oficina_id)
       .then(setRows)
-      .catch((err) => console.error("Erro ao carregar veículos:", err))
+      .catch((err) => {
+        console.error("Erro ao carregar veículos:", err);
+        error("Não foi possível carregar os veículos.");
+      })
       .finally(() => setLoading(false));
   }, [user?.oficina_id]);
 
@@ -203,8 +208,17 @@ export default function VeiculosPage() {
                 </TableRow>
               )) : (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 8, color: "text.secondary" }}>
-                    Nenhum veículo encontrado
+                  <TableCell colSpan={7} sx={{ border: 0 }}>
+                    <EmptyState
+                      illustration={<IllustrationVeiculos />}
+                      icon={<DirectionsCarRoundedIcon />}
+                      title="Nenhum veículo cadastrado"
+                      description="Cadastre o primeiro veículo para vincular aos clientes e às ordens de serviço."
+                      actionLabel="Novo Veiculo"
+                      onAction={openCreate}
+                      isFiltered={!!query}
+                      onClearFilter={() => setQuery("")}
+                    />
                   </TableCell>
                 </TableRow>
               )}

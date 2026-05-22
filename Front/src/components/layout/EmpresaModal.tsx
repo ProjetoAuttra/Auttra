@@ -1,7 +1,9 @@
 import * as React from "react";
 import {
+  Avatar,
   Dialog, DialogContent, DialogActions, Box, Stack, Typography,
   TextField, Button, Grid, InputAdornment, CircularProgress, Divider, IconButton,
+  Tooltip,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import BusinessRoundedIcon from "@mui/icons-material/BusinessRounded";
@@ -9,6 +11,8 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
 import PhoneIphoneRoundedIcon from "@mui/icons-material/PhoneIphoneRounded";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
+import CameraAltRoundedIcon from "@mui/icons-material/CameraAltRounded";
+import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import LocationOnRoundedIcon from "@mui/icons-material/LocationOnRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
@@ -16,6 +20,7 @@ import { buscarEmpresa, atualizarEmpresa, type EmpresaData } from "../../modules
 import { useCep } from "../../hooks/useCep";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
+import { maskCnpj, maskTelefone, maskCep } from "../../utils/masks";
 
 type Props = { open: boolean; onClose: () => void };
 
@@ -24,6 +29,7 @@ type Form = {
   cnpj: string;
   email: string;
   telefone: string;
+  logo_url: string | null;
   cep: string;
   logradouro: string;
   numero: string;
@@ -32,29 +38,6 @@ type Form = {
   uf: string;
 };
 
-function maskCnpj(raw: string): string {
-  const d = raw.replace(/\D/g, "").slice(0, 14);
-  if (d.length <= 2) return d;
-  if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`;
-  if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
-  if (d.length <= 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`;
-  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
-}
-
-function maskTelefone(raw: string): string {
-  const d = raw.replace(/\D/g, "").slice(0, 11);
-  if (d.length === 0) return "";
-  if (d.length <= 2) return `(${d}`;
-  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-  return `(${d.slice(0, 2)}) ${d.slice(2, 3)} ${d.slice(3, 7)}-${d.slice(7)}`;
-}
-
-function maskCep(raw: string): string {
-  const d = raw.replace(/\D/g, "").slice(0, 8);
-  if (d.length <= 5) return d;
-  return `${d.slice(0, 5)}-${d.slice(5)}`;
-}
 
 function empresaToForm(e: EmpresaData): Form {
   return {
@@ -62,6 +45,7 @@ function empresaToForm(e: EmpresaData): Form {
     cnpj: maskCnpj(e.cnpj ?? ""),
     email: e.email ?? "",
     telefone: maskTelefone(e.telefone ?? ""),
+    logo_url: e.logo_url ?? null,
     cep: maskCep(e.cep ?? ""),
     logradouro: e.logradouro ?? "",
     numero: e.numero ?? "",
@@ -73,8 +57,38 @@ function empresaToForm(e: EmpresaData): Form {
 
 const EMPTY_FORM: Form = {
   nome: "", cnpj: "", email: "", telefone: "",
+  logo_url: null,
   cep: "", logradouro: "", numero: "", complemento: "", cidade: "", uf: "",
 };
+
+function resizeToBase64(file: File, size = 240): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        URL.revokeObjectURL(url);
+        reject(new Error("Nao foi possivel processar a imagem."));
+        return;
+      }
+      const min = Math.min(img.width, img.height);
+      const sx = (img.width - min) / 2;
+      const sy = (img.height - min) / 2;
+      ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", 0.84));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Nao foi possivel carregar a imagem."));
+    };
+    img.src = url;
+  });
+}
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -97,6 +111,8 @@ export default function EmpresaModal({ open, onClose }: Props) {
   const [form, setForm] = React.useState<Form>(EMPTY_FORM);
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [uploadingLogo, setUploadingLogo] = React.useState(false);
+  const fileRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     if (!open) return;
@@ -109,6 +125,28 @@ export default function EmpresaModal({ open, onClose }: Props) {
 
   const set = (field: keyof Form, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
+
+  const handleLogoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      error("Escolha uma imagem de ate 5MB.");
+      event.target.value = "";
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const logo = await resizeToBase64(file);
+      setForm((prev) => ({ ...prev, logo_url: logo }));
+    } catch {
+      error("Nao foi possivel carregar a logo.");
+    } finally {
+      setUploadingLogo(false);
+      event.target.value = "";
+    }
+  };
 
   const handleCepBlur = async () => {
     const digits = form.cep.replace(/\D/g, "");
@@ -133,6 +171,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
         cnpj: form.cnpj,
         email: form.email,
         telefone: form.telefone,
+        logo_url: form.logo_url,
         cep: form.cep,
         logradouro: form.logradouro,
         numero: form.numero,
@@ -140,7 +179,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
         cidade_nome: form.cidade,
         cidade_uf: form.uf,
       });
-      updateCurrentUser({ oficina_nome: empresa.nome });
+      updateCurrentUser({ oficina_nome: empresa.nome, oficina_logo_url: empresa.logo_url ?? null });
       success("Dados da empresa atualizados com sucesso.");
       onClose();
     } catch (err: any) {
@@ -209,6 +248,101 @@ export default function EmpresaModal({ open, onClose }: Props) {
             <Box>
               <SectionLabel>Informações gerais</SectionLabel>
               <Grid container spacing={2}>
+                <Grid size={12}>
+                  <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={2}
+                    alignItems={{ xs: "flex-start", sm: "center" }}
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      border: (t) => `1px solid ${t.palette.divider}`,
+                      bgcolor: (t) => alpha(t.palette.primary.main, 0.035),
+                    }}
+                  >
+                    <Box sx={{ position: "relative", flexShrink: 0 }}>
+                      <Tooltip title="Alterar logo">
+                        <Avatar
+                          variant="rounded"
+                          src={form.logo_url ?? undefined}
+                          onClick={() => fileRef.current?.click()}
+                          sx={{
+                            width: 76,
+                            height: 76,
+                            borderRadius: 2,
+                            fontSize: 28,
+                            fontWeight: 900,
+                            bgcolor: "primary.main",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {(form.nome || "D")[0].toUpperCase()}
+                        </Avatar>
+                      </Tooltip>
+
+                      <Box
+                        onClick={uploadingLogo ? undefined : () => fileRef.current?.click()}
+                        sx={{
+                          position: "absolute",
+                          inset: 0,
+                          borderRadius: 2,
+                          display: "grid",
+                          placeItems: "center",
+                          color: "#fff",
+                          bgcolor: "rgba(0,0,0,0.34)",
+                          opacity: uploadingLogo ? 1 : 0,
+                          transition: "opacity 0.15s",
+                          cursor: uploadingLogo ? "default" : "pointer",
+                          "&:hover": { opacity: 1 },
+                        }}
+                      >
+                        {uploadingLogo ? <CircularProgress size={22} sx={{ color: "#fff" }} /> : <CameraAltRoundedIcon />}
+                      </Box>
+
+                      {form.logo_url && (
+                        <Tooltip title="Remover logo">
+                          <IconButton
+                            size="small"
+                            onClick={() => setForm((prev) => ({ ...prev, logo_url: null }))}
+                            sx={{
+                              position: "absolute",
+                              right: -7,
+                              bottom: -7,
+                              width: 26,
+                              height: 26,
+                              bgcolor: "error.main",
+                              color: "#fff",
+                              "&:hover": { bgcolor: "error.dark" },
+                            }}
+                          >
+                            <DeleteRoundedIcon sx={{ fontSize: 15 }} />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+
+                      <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleLogoChange} />
+                    </Box>
+
+                    <Box minWidth={0}>
+                      <Typography variant="subtitle2" fontWeight={800}>
+                        Logo da oficina
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 520 }}>
+                        Esta marca aparece no topo do sistema e ajuda a identificar a empresa ativa.
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => fileRef.current?.click()}
+                        startIcon={<CameraAltRoundedIcon />}
+                        sx={{ mt: 1.25, borderRadius: 999, fontWeight: 700 }}
+                      >
+                        Escolher imagem
+                      </Button>
+                    </Box>
+                  </Stack>
+                </Grid>
+
                 <Grid size={12}>
                   <TextField
                     label="Nome da empresa"

@@ -17,7 +17,7 @@ export const FornecedoresService = {
     const conditions: any[] = [{ nome: data.nome, oficina_id: data.oficina_id }];
     if (data.email) conditions.push({ email: data.email, oficina_id: data.oficina_id });
 
-    const existing = await prisma.fornecedor.findFirst({ where: { OR: conditions } });
+    const existing = await prisma.fornecedor.findFirst({ where: { deleted_at: { not: null }, OR: conditions } });
 
     if (existing) {
       return prisma.fornecedor.update({

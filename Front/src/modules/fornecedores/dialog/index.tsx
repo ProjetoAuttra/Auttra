@@ -16,6 +16,7 @@ import LocationCityRoundedIcon from "@mui/icons-material/LocationCityRounded";
 import LocalPostOfficeRoundedIcon from "@mui/icons-material/LocalPostOfficeRounded";
 import { useCep } from "../../../hooks/useCep";
 import api from "../../../api/api";
+import { maskCep } from "../../../utils/masks";
 
 export type Supplier = {
   id: string;
@@ -53,8 +54,6 @@ type Props = {
   onDelete?: (supplier: Supplier) => void;
 };
 
-const formatCep = (v: string) =>
-  v.length <= 5 ? v : v.slice(0, 5) + "-" + v.slice(5, 8);
 
 export default function SupplierDialog({ open, mode, initial, onClose, onSubmit, onDelete }: Props) {
   const { buscar, loading: cepLoading, erro: cepErro, setErro: setCepErro } = useCep();
@@ -178,7 +177,7 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
           <Grid size={{ xs: 5, md: 4 }}>
             <TextField
               label="CEP"
-              value={formatCep(form.cep ?? "")}
+              value={maskCep(form.cep ?? "")}
               size="small"
               fullWidth
               error={!!cepErro}

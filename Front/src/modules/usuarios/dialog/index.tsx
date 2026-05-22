@@ -13,17 +13,10 @@ import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import { useToast } from "../../../context/ToastContext";
 import { listarPerfisAcesso, type PerfilAcesso } from "../../configuracoes/api/perfisAcesso";
+import { maskTelefone } from "../../../utils/masks";
 
 const cargos = ["Mecanico", "Atendente", "Gerente", "Administrador"];
 
-function maskTelefone(raw: string): string {
-  const d = raw.replace(/\D/g, "").slice(0, 11);
-  if (d.length === 0) return "";
-  if (d.length <= 2) return `(${d}`;
-  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-  return `(${d.slice(0, 2)}) ${d.slice(2, 3)} ${d.slice(3, 7)}-${d.slice(7)}`;
-}
 
 export type FuncionarioForm = {
   nome: string;

@@ -3,19 +3,45 @@ import {
   Avatar,
   Box,
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   Divider,
   IconButton,
   Stack,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import CameraAltRoundedIcon from "@mui/icons-material/CameraAltRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import { useAuth } from "../../context/AuthContext";
+import api from "../../api/api";
+
+function resizeToBase64(file: File, size = 200): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d")!;
+      const min = Math.min(img.width, img.height);
+      const sx = (img.width - min) / 2;
+      const sy = (img.height - min) / 2;
+      ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", 0.82));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
 
 const CARGO_LABEL: Record<string, string> = {
   administrador: "Administrador",
@@ -56,7 +82,7 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
 }
 
 export default function MeuPerfilModal({ open, onClose, onChangePassword }: Props) {
-  const { user } = useAuth();
+  const { user, updateCurrentUser } = useAuth();
 
   const nomeUsuario = user?.nome || "Usuario";
   const avatarLetter = nomeUsuario[0]?.toUpperCase() || "U";
@@ -66,6 +92,41 @@ export default function MeuPerfilModal({ open, onClose, onChangePassword }: Prop
     user?.tipo ??
     "Usuario";
   const empresaLabel = user?.oficina_nome?.trim() || "Empresa nao informada";
+
+  const [uploading, setUploading] = React.useState(false);
+  const [hovering, setHovering] = React.useState(false);
+  const fileRef = React.useRef<HTMLInputElement>(null);
+
+  const avatarUrl = user?.foto_url ?? null;
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) return;
+    setUploading(true);
+    try {
+      const b64 = await resizeToBase64(file);
+      await api.patch("/auth/me/foto", { foto_url: b64 });
+      updateCurrentUser({ foto_url: b64 });
+    } catch {
+      // ignore
+    } finally {
+      setUploading(false);
+    }
+    e.target.value = "";
+  };
+
+  const handleRemove = async () => {
+    setUploading(true);
+    try {
+      await api.patch("/auth/me/foto", { foto_url: null });
+      updateCurrentUser({ foto_url: null });
+    } catch {
+      // ignore
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleChangePassword = () => {
     onClose();
@@ -123,15 +184,92 @@ export default function MeuPerfilModal({ open, onClose, onChangePassword }: Prop
       <DialogContent sx={{ px: 3, py: 3 }}>
         <Stack spacing={2.5}>
           <Stack direction="row" spacing={2} alignItems="center">
-            <Avatar sx={{ width: 64, height: 64, fontSize: 26, fontWeight: 800, bgcolor: "primary.main" }}>
-              {avatarLetter}
-            </Avatar>
+            {/* Avatar clicável */}
+            <Box sx={{ position: "relative", flexShrink: 0 }}>
+              <Tooltip title="Alterar foto">
+                <Avatar
+                  src={avatarUrl ?? undefined}
+                  onClick={() => fileRef.current?.click()}
+                  onMouseEnter={() => setHovering(true)}
+                  onMouseLeave={() => setHovering(false)}
+                  sx={{
+                    width: 72,
+                    height: 72,
+                    fontSize: 28,
+                    fontWeight: 800,
+                    bgcolor: "primary.main",
+                    cursor: "pointer",
+                    transition: "filter 0.15s",
+                    filter: hovering ? "brightness(0.75)" : "none",
+                  }}
+                >
+                  {avatarLetter}
+                </Avatar>
+              </Tooltip>
+              <Box
+                onClick={uploading ? undefined : () => fileRef.current?.click()}
+                onMouseEnter={() => setHovering(true)}
+                onMouseLeave={() => setHovering(false)}
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: uploading || hovering ? 1 : 0,
+                  transition: "opacity 0.15s",
+                  cursor: uploading ? "default" : "pointer",
+                }}
+              >
+                {uploading
+                  ? <CircularProgress size={24} sx={{ color: "#fff" }} />
+                  : <CameraAltRoundedIcon sx={{ color: "#fff", fontSize: 22 }} />
+                }
+              </Box>
+              {avatarUrl && (
+                <Tooltip title="Remover foto">
+                  <IconButton
+                    size="small"
+                    onClick={handleRemove}
+                    sx={{
+                      position: "absolute",
+                      bottom: -4,
+                      right: -4,
+                      width: 22,
+                      height: 22,
+                      bgcolor: "error.main",
+                      color: "#fff",
+                      "&:hover": { bgcolor: "error.dark" },
+                    }}
+                  >
+                    <DeleteRoundedIcon sx={{ fontSize: 13 }} />
+                  </IconButton>
+                </Tooltip>
+              )}
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={handleFileChange}
+              />
+            </Box>
+
             <Box minWidth={0}>
               <Typography variant="h6" fontWeight={800} noWrap>
                 {nomeUsuario}
               </Typography>
               <Typography variant="body2" color="text.secondary" noWrap>
                 {perfilLabel}
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.disabled"
+                sx={{ mt: 0.5, display: "block", cursor: "pointer", "&:hover": { color: "primary.main" } }}
+                onClick={() => fileRef.current?.click()}
+              >
+                Clique na foto para alterar
               </Typography>
             </Box>
           </Stack>
