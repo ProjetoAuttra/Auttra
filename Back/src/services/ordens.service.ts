@@ -38,6 +38,10 @@ export const OrdensService = {
         veiculo: true,
         funcionario: true,
         itens: { include: { servico: true, peca: true } },
+        pagamentos: {
+          where: { deleted_at: null, tipo: "receber" },
+          select: { status: true },
+        },
       },
     });
   },
