@@ -1,5 +1,6 @@
 export const paths = {
     login: '/login',
+    resetPassword: '/redefinir-senha',
     root: '/',
     agenda: '/agenda',
     clients: '/clientes',

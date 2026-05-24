@@ -12,6 +12,9 @@ import {
   Alert,
   Collapse,
   MenuItem,
+  Dialog,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import Visibility from "@mui/icons-material/Visibility";
@@ -22,6 +25,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import { paths } from "../../../routes/paths";
 import logo from "../../../assets/logo.png";
+import api from "../../../api/api";
 
 // Cores da marca.
 const BLUE_MAIN = "#2563EB";
@@ -63,6 +67,11 @@ export default function Login() {
   const [selectionToken, setSelectionToken] = useState("");
   const [offices, setOffices] = useState<{ id: number; nome: string; perfil: string }[]>([]);
   const [officeId, setOfficeId] = useState("");
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotMessage, setForgotMessage] = useState<string | null>(null);
+  const [forgotError, setForgotError] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -105,6 +114,27 @@ export default function Login() {
       setError(err.message || "Nao foi possivel selecionar a unidade.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotSubmit = async () => {
+    const targetEmail = (forgotEmail || email).trim();
+    setForgotError(null);
+    setForgotMessage(null);
+
+    if (!targetEmail) {
+      setForgotError("Informe o e-mail cadastrado.");
+      return;
+    }
+
+    try {
+      setForgotLoading(true);
+      const { data } = await api.post("/auth/forgot-password", { email: targetEmail });
+      setForgotMessage(data?.message ?? "Se o e-mail estiver cadastrado, enviaremos um link para redefinir a senha.");
+    } catch (err: any) {
+      setForgotError(err?.response?.data?.message ?? "Não foi possível enviar o e-mail de recuperação.");
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -288,6 +318,12 @@ export default function Login() {
                     />
                     <Button
                       variant="text" size="small"
+                      onClick={() => {
+                        setForgotEmail(email);
+                        setForgotMessage(null);
+                        setForgotError(null);
+                        setForgotOpen(true);
+                      }}
                       sx={{
                         textTransform: "none", fontWeight: 500, fontSize: 13,
                         color: BLUE_MAIN, p: 0, minWidth: 0,
@@ -364,6 +400,45 @@ export default function Login() {
           © {new Date().getFullYear()} DriveOn · Sistema de Gestao de Oficina
         </Typography>
       </Box>
+
+      <Dialog open={forgotOpen} onClose={() => setForgotOpen(false)} maxWidth="xs" fullWidth>
+        <DialogContent sx={{ pt: 3.5, pb: 2 }}>
+          <Typography variant="subtitle1" fontWeight={800} mb={1}>
+            Recuperar senha
+          </Typography>
+          <Typography variant="subtitle1" fontWeight={800} mb={1} sx={{ display: "none" }}>
+            Redefinição de senha
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ display: "none" }}>
+            Para redefinir sua senha, entre em contato com o administrador do sistema. Ele poderá gerar uma nova senha para você pelo painel de configurações.
+          </Typography>
+          <Stack spacing={2} mt={2}>
+            <Typography variant="body2" color="text.secondary">
+              Informe o e-mail da sua conta para receber um link seguro de redefinição.
+            </Typography>
+            {forgotError && <Alert severity="error">{forgotError}</Alert>}
+            {forgotMessage && <Alert severity="success">{forgotMessage}</Alert>}
+            <TextField
+              label="E-mail"
+              type="email"
+              fullWidth
+              value={forgotEmail}
+              onChange={(event) => setForgotEmail(event.target.value)}
+              autoFocus
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => setForgotOpen(false)} variant="outlined" disableElevation size="small"
+            sx={{ textTransform: "none", fontWeight: 700, borderRadius: 2 }}>
+            Cancelar
+          </Button>
+          <Button onClick={handleForgotSubmit} variant="contained" disableElevation size="small" disabled={forgotLoading}
+            sx={{ textTransform: "none", fontWeight: 700, borderRadius: 2 }}>
+            {forgotLoading ? "Enviando..." : "Enviar link"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

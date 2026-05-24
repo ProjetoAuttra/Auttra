@@ -4,6 +4,9 @@ import jwt from "jsonwebtoken";
 import { prisma } from "../prisma/client.js";
 import { normalizePermissions, type PermissionsMap } from "../permissions/accessProfiles.js";
 import { PerfisAcessoService } from "../services/perfisAcesso.service.js";
+import { getJwtSecret } from "../config/env.js";
+import { EmailDeliveryError } from "../services/email.service.js";
+import { PasswordResetService } from "../services/passwordReset.service.js";
 
 type AuthUsuario = {
   id: number;
@@ -51,26 +54,29 @@ async function resolvePerfil(oficinaId: number, perfilAcesso: any, legacyTipo: s
 }
 
 function signFinalToken(usuario: AuthUsuario & { foto_url?: string | null }, oficina: AuthOficina, perfil: AuthPerfil) {
-  if (!process.env.JWT_SECRET) {
-    throw new Error("JWT_SECRET nao configurado.");
-  }
-
-  const usuarioPayload = {
+  // JWT deve ser pequeno (enviado em cada header de requisição).
+  // Dados apenas de autenticação/autorização, sem base64.
+  const jwtPayload = {
     id: usuario.id,
     email: usuario.email,
     nome: usuario.nome,
     tipo: perfil.legacyTipo,
     oficinaId: oficina.id,
     oficina_id: oficina.id,
+    perfilAcessoId: perfil.id ?? null,
+    permissoes: perfil.permissoes ?? {},
+  };
+
+  // Payload completo para o body da resposta (pode conter base64).
+  const usuarioPayload = {
+    ...jwtPayload,
     oficina_nome: oficina.nome ?? null,
     oficina_logo_url: oficina.logo_url ?? null,
-    perfilAcessoId: perfil.id ?? null,
     perfilAcessoNome: perfil.nome ?? null,
-    permissoes: perfil.permissoes ?? {},
     foto_url: usuario.foto_url ?? null,
   };
 
-  const token = jwt.sign(usuarioPayload, process.env.JWT_SECRET, {
+  const token = jwt.sign(jwtPayload, getJwtSecret(), {
     expiresIn: "8h",
   });
 
@@ -129,6 +135,48 @@ export async function changePassword(req: Request, res: Response) {
   }
 }
 
+export async function forgotPassword(req: Request, res: Response) {
+  try {
+    const email = String(req.body?.email ?? "");
+    const origin = req.get("origin") || undefined;
+
+    if (!email.trim()) {
+      return res.status(400).json({ message: "E-mail e obrigatorio." });
+    }
+
+    await PasswordResetService.requestReset(email, origin);
+
+    return res.json({
+      message: "Se o e-mail estiver cadastrado, enviaremos um link para redefinir a senha.",
+    });
+  } catch (err) {
+    console.error("Erro ao solicitar recuperacao de senha:", err);
+
+    if (err instanceof EmailDeliveryError) {
+      return res.status(502).json({
+        message:
+          "Nao foi possivel enviar o e-mail de recuperacao. Se estiver usando o dominio de teste do Resend, verifique se o destinatario e permitido ou configure um dominio verificado.",
+      });
+    }
+
+    return res.status(500).json({ message: "Erro interno ao solicitar recuperacao de senha." });
+  }
+}
+
+export async function resetPassword(req: Request, res: Response) {
+  try {
+    const token = String(req.body?.token ?? "");
+    const novaSenha = String(req.body?.nova_senha ?? "");
+
+    await PasswordResetService.resetPassword(token, novaSenha);
+
+    return res.json({ message: "Senha redefinida com sucesso." });
+  } catch (err: any) {
+    console.error("Erro ao redefinir senha:", err);
+    return res.status(400).json({ message: err?.message ?? "Nao foi possivel redefinir a senha." });
+  }
+}
+
 export async function login(req: Request, res: Response) {
   try {
     const email = String(req.body?.email ?? "").trim().toLowerCase();
@@ -136,13 +184,6 @@ export async function login(req: Request, res: Response) {
 
     if (!email || !senha) {
       return res.status(400).json({ message: "E-mail e senha sao obrigatorios." });
-    }
-
-    if (!process.env.JWT_SECRET) {
-      console.error("ERRO FATAL: JWT_SECRET nao configurado no ambiente.");
-      return res.status(500).json({
-        message: "Erro interno de configuracao. Contate o administrador.",
-      });
     }
 
     const usuarios = await prisma.usuario.findMany({
@@ -210,7 +251,7 @@ export async function login(req: Request, res: Response) {
             oficinaId: office.id,
           })),
         },
-        process.env.JWT_SECRET,
+        getJwtSecret(),
         { expiresIn: "15m" }
       );
 
@@ -248,11 +289,7 @@ export async function selectOficina(req: Request, res: Response) {
     if (!selectionToken || !oficinaId) {
       return res.status(400).json({ message: "Token de selecao e oficina_id sao obrigatorios." });
     }
-    if (!process.env.JWT_SECRET) {
-      return res.status(500).json({ message: "JWT_SECRET nao configurado." });
-    }
-
-    const decoded = jwt.verify(selectionToken, process.env.JWT_SECRET) as {
+    const decoded = jwt.verify(selectionToken, getJwtSecret()) as {
       userId?: number;
       purpose: string;
       allowed?: { userId: number; oficinaId: number }[];

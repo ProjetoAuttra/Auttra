@@ -21,6 +21,7 @@ model usuario {
   cliente        cliente? @relation("UsuarioCliente")
   gestor_oficina oficina? @relation("GestorOficina")
   acessos        usuario_oficina[]
+  password_reset_tokens password_reset_token[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -28,6 +29,21 @@ model usuario {
 
   @@index([status])
   @@index([deleted_at])
+}
+
+model password_reset_token {
+  id         Int       @id @default(autoincrement())
+  usuario_id Int
+  token_hash String    @unique
+  expires_at DateTime
+  used_at    DateTime?
+  created_at DateTime  @default(now())
+
+  usuario usuario @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+
+  @@index([usuario_id])
+  @@index([expires_at])
+  @@index([used_at])
 }
 
 model cliente {
@@ -184,8 +200,9 @@ model ordem_servico {
   oficina     oficina     @relation(fields: [oficina_id], references: [id])
   veiculo     veiculo     @relation(fields: [veiculo_id], references: [id])
 
-  itens      item_ordem_servico[]
-  pagamentos pagamento[]
+  itens        item_ordem_servico[]
+  pagamentos   pagamento[]
+  agendamentos agendamento[]
 
   @@index([oficina_id])
   @@index([cliente_id])
@@ -575,15 +592,17 @@ model agendamento {
   status          status_agendamento @default(pendente)
   observacao      String?
 
-  oficina_id      Int
-  cliente_id      Int
-  veiculo_id      Int
-  funcionario_id  Int?
+  oficina_id       Int
+  cliente_id       Int
+  veiculo_id       Int
+  funcionario_id   Int?
+  ordem_servico_id Int?
 
-  oficina         oficina     @relation(fields: [oficina_id], references: [id])
-  cliente         cliente     @relation(fields: [cliente_id], references: [id])
-  veiculo         veiculo     @relation(fields: [veiculo_id], references: [id])
-  funcionario     funcionario? @relation(fields: [funcionario_id], references: [id])
+  oficina         oficina       @relation(fields: [oficina_id], references: [id])
+  cliente         cliente       @relation(fields: [cliente_id], references: [id])
+  veiculo         veiculo       @relation(fields: [veiculo_id], references: [id])
+  funcionario     funcionario?  @relation(fields: [funcionario_id], references: [id])
+  ordem_servico   ordem_servico? @relation(fields: [ordem_servico_id], references: [id])
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -594,4 +613,5 @@ model agendamento {
   @@index([data_inicio])
   @@index([status])
   @@index([deleted_at])
+  @@index([ordem_servico_id])
 }
