@@ -8,6 +8,9 @@
     "start": "node dist/index.js",
     "dev": "tsx watch index.ts",
     "build": "tsc",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:cov": "vitest run --coverage",
     "prisma": "npx prisma",
     "seed:admin": "node scripts/create-admin.mjs"
   },
@@ -27,7 +30,8 @@
     "pdfkit": "^0.17.2",
     "prisma": "^6.17.1",
     "puppeteer": "^24.26.1",
-    "xml2js": "^0.6.2"
+    "xml2js": "^0.6.2",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
@@ -36,11 +40,16 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.1.0",
     "@types/node": "^24.10.1",
+    "@types/supertest": "^7.2.0",
     "@types/xml2js": "^0.4.14",
+    "esbuild": "^0.28.0",
     "nodemon": "^3.1.11",
+    "supertest": "^7.2.2",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.7",
+    "vitest-mock-extended": "^4.0.0"
   }
 }
