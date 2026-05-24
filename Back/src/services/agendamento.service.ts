@@ -14,6 +14,7 @@ function toAgendamentoData(data: any, partial = false) {
   const clienteId = data.cliente_id ?? data.clienteId;
   const veiculoId = data.veiculo_id ?? data.veiculoId;
   const funcionarioId = data.funcionario_id ?? data.funcionarioId;
+  const ordemServicoId = data.ordem_servico_id ?? data.ordemServicoId;
 
   if (titulo != null) payload.titulo = String(titulo);
   if (descricao != null) payload.descricao = descricao || null;
@@ -26,6 +27,7 @@ function toAgendamentoData(data: any, partial = false) {
   if (clienteId != null) payload.cliente_id = Number(clienteId);
   if (veiculoId != null) payload.veiculo_id = Number(veiculoId);
   if (funcionarioId != null && funcionarioId !== "") payload.funcionario_id = Number(funcionarioId);
+  if (ordemServicoId != null) payload.ordem_servico_id = ordemServicoId === "" ? null : Number(ordemServicoId);
 
   if (!partial) {
     for (const field of ["titulo", "data_inicio", "data_fim", "oficina_id", "cliente_id", "veiculo_id"]) {
@@ -49,6 +51,7 @@ const includeRelations = {
   cliente: true,
   veiculo: true,
   funcionario: true,
+  ordem_servico: { select: { id: true, status: true, valor_total: true } },
 };
 
 async function validateAgendamentoRelations(data: any, oficinaId: number) {

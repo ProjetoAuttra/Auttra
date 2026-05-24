@@ -3,10 +3,6 @@ import {
   Box,
   Button,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
   IconButton,
   MenuItem,
@@ -42,6 +38,7 @@ import ModuleHeader from '../../../components/layout/ModuleHeader';
 import { useAuth } from '../../../context/AuthContext';
 import { useConfirm } from '../../../context/ConfirmContext';
 import { useToast } from '../../../context/ToastContext';
+import { AppDialog, AppDialogActions, AppDialogContent } from '../../../components/common/AppDialog';
 
 type HighlightMap = Record<string, number>;
 type Appointment = {
@@ -53,6 +50,8 @@ type Appointment = {
   location?: string;
   clientName?: string;
   vehicleLabel?: string;
+  ordemServicoId?: number;
+  ordemServicoStatus?: string;
 };
 type FormValues = {
   title: string;
@@ -62,7 +61,9 @@ type FormValues = {
   location?: string;
   clientId: string;
   vehicleId: string;
+  ordemServicoId?: string;
 };
+type OrdemOption = { id: number; cliente_id: number; status: string; valor_total?: number | string };
 type CalendarView = 'month' | 'week' | 'day';
 type ClientOption = { id: number; nome: string };
 type VehicleOption = { id: number; placa?: string; modelo?: string; marca?: string; cliente_id?: number; clienteId?: number };
@@ -97,6 +98,8 @@ const normalizeAppointment = (raw: any): Appointment => ({
   location: raw.location ?? raw.localizacao ?? '',
   clientName: raw.cliente?.nome,
   vehicleLabel: [raw.veiculo?.marca, raw.veiculo?.modelo, raw.veiculo?.placa].filter(Boolean).join(' '),
+  ordemServicoId: raw.ordem_servico_id ?? raw.ordem_servico?.id,
+  ordemServicoStatus: raw.ordem_servico?.status,
 });
 
 const vehicleLabel = (vehicle: VehicleOption) =>
@@ -112,6 +115,7 @@ function NewAppointmentDialog({
   defaultStart,
   clients,
   vehicles,
+  ordens,
 }: {
   open: boolean;
   onClose: () => void;
@@ -119,6 +123,7 @@ function NewAppointmentDialog({
   defaultStart?: Dayjs | null;
   clients: ClientOption[];
   vehicles: VehicleOption[];
+  ordens: OrdemOption[];
 }) {
   const {
     control,
@@ -143,11 +148,15 @@ function NewAppointmentDialog({
     () => vehicles.filter((vehicle) => !clientId || String(getVehicleClientId(vehicle)) === clientId),
     [clientId, vehicles]
   );
+  const availableOrdens = useMemo(
+    () => ordens.filter((o) => !clientId || String(o.cliente_id) === clientId),
+    [clientId, ordens]
+  );
 
   useEffect(() => {
     if (!open) return;
     const base = (defaultStart ?? dayjs().hour(9).minute(0)).second(0);
-    reset({ title: '', description: '', start: base, end: base.add(1, 'hour'), location: '', clientId: '', vehicleId: '' });
+    reset({ title: '', description: '', start: base, end: base.add(1, 'hour'), location: '', clientId: '', vehicleId: '', ordemServicoId: '' });
   }, [defaultStart, open, reset]);
 
   const handleClose = () => {
@@ -165,9 +174,8 @@ function NewAppointmentDialog({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-      <DialogTitle sx={{ fontWeight: 800 }}>Novo agendamento</DialogTitle>
-      <DialogContent dividers>
+    <AppDialog open={open} onClose={handleClose} maxWidth="sm" title="Novo agendamento" icon={<CalendarMonthRoundedIcon />} variant="entity">
+      <AppDialogContent>
         <Stack spacing={2.25} mt={0.5}>
           <Controller
             name="title"
@@ -281,15 +289,29 @@ function NewAppointmentDialog({
               <TextField {...field} label="Observações" placeholder="Detalhes do atendimento" multiline rows={3} fullWidth />
             )}
           />
+          <Controller
+            name="ordemServicoId"
+            control={control}
+            render={({ field }) => (
+              <TextField {...field} select label="Ordem de Serviço (opcional)" fullWidth>
+                <MenuItem value="">Nenhuma</MenuItem>
+                {availableOrdens.map((o) => (
+                  <MenuItem key={o.id} value={String(o.id)}>
+                    OS #{o.id} — {o.status}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+          />
         </Stack>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={handleClose}>Cancelar</Button>
-        <Button onClick={handleSubmit(onSubmit)} variant="contained" disabled={!isValid || isSubmitting}>
+      </AppDialogContent>
+      <AppDialogActions>
+        <Button onClick={handleClose} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
+        <Button onClick={handleSubmit(onSubmit)} variant="contained" disabled={!isValid || isSubmitting} disableElevation sx={{ borderRadius: 999 }}>
           Salvar
         </Button>
-      </DialogActions>
-    </Dialog>
+      </AppDialogActions>
+    </AppDialog>
   );
 }
 
@@ -343,6 +365,11 @@ function AppointmentCard({
           {(appointment.clientName || appointment.vehicleLabel) && (
             <Typography variant="caption" color="text.secondary" display="block" mt={0.6} noWrap>
               {[appointment.clientName, appointment.vehicleLabel].filter(Boolean).join(' • ')}
+            </Typography>
+          )}
+          {appointment.ordemServicoId && (
+            <Typography variant="caption" color="primary.main" display="block" mt={0.4} fontWeight={700} noWrap>
+              OS #{appointment.ordemServicoId}
             </Typography>
           )}
           {appointment.description && (
@@ -435,11 +462,15 @@ function AppointmentDetailsDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle sx={{ fontWeight: 900 }}>
-        {editing ? 'Editar agendamento' : 'Resumo do agendamento'}
-      </DialogTitle>
-      <DialogContent dividers>
+    <AppDialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      title={editing ? 'Editar agendamento' : 'Resumo do agendamento'}
+      icon={<CalendarMonthRoundedIcon />}
+      variant="entity"
+    >
+      <AppDialogContent>
         {editing ? (
           <Stack spacing={2.25} mt={0.5}>
             <Controller
@@ -516,6 +547,15 @@ function AppointmentDetailsDialog({
                 <Typography variant="body2" color="text.secondary">{appointment.vehicleLabel || 'Veículo não informado'}</Typography>
               </Paper>
             )}
+            {appointment.ordemServicoId && (
+              <Paper elevation={0} sx={{ p: 1.5, borderRadius: 2, bgcolor: '#F8FAFC', border: (t) => `1px solid ${t.palette.divider}` }}>
+                <Typography variant="caption" color="text.secondary" fontWeight={900}>Ordem de Serviço vinculada</Typography>
+                <Typography fontWeight={800}>OS #{appointment.ordemServicoId}</Typography>
+                {appointment.ordemServicoStatus && (
+                  <Typography variant="body2" color="text.secondary">{appointment.ordemServicoStatus}</Typography>
+                )}
+              </Paper>
+            )}
             {appointment.description && (
               <Box>
                 <Typography variant="caption" color="text.secondary" fontWeight={900}>Observações</Typography>
@@ -524,21 +564,21 @@ function AppointmentDetailsDialog({
             )}
           </Stack>
         )}
-      </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2, justifyContent: 'space-between' }}>
+      </AppDialogContent>
+      <AppDialogActions sx={{ justifyContent: 'space-between' }}>
         <Button color="error" startIcon={<DeleteOutlineRoundedIcon />} onClick={() => onDelete(appointment.id)}>
           Excluir
         </Button>
         <Stack direction="row" spacing={1}>
-          <Button onClick={editing ? () => setEditing(false) : onClose}>{editing ? 'Cancelar' : 'Fechar'}</Button>
+          <Button onClick={editing ? () => setEditing(false) : onClose} variant="outlined" sx={{ borderRadius: 999 }}>{editing ? 'Cancelar' : 'Fechar'}</Button>
           {editing ? (
-            <Button variant="contained" onClick={handleSubmit(submit)} disabled={!isValid || isSubmitting}>Salvar</Button>
+            <Button variant="contained" onClick={handleSubmit(submit)} disabled={!isValid || isSubmitting} disableElevation sx={{ borderRadius: 999 }}>Salvar</Button>
           ) : (
-            <Button variant="contained" startIcon={<EditRoundedIcon />} onClick={() => setEditing(true)}>Editar</Button>
+            <Button variant="contained" startIcon={<EditRoundedIcon />} onClick={() => setEditing(true)} disableElevation sx={{ borderRadius: 999 }}>Editar</Button>
           )}
         </Stack>
-      </DialogActions>
-    </Dialog>
+      </AppDialogActions>
+    </AppDialog>
   );
 }
 
@@ -556,6 +596,7 @@ export default function Schedule() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
+  const [ordens, setOrdens] = useState<OrdemOption[]>([]);
   const [loading, setLoading] = useState(true);
   const oficinaId = user?.oficina_id ?? user?.oficinaId;
 
@@ -569,8 +610,9 @@ export default function Schedule() {
       api.get(`/agendamentos/oficina/${oficinaId}`),
       api.get('/clientes'),
       api.get('/veiculos'),
+      api.get('/ordens'),
     ])
-      .then(([appointmentsResult, clientsResult, vehiclesResult]) => {
+      .then(([appointmentsResult, clientsResult, vehiclesResult, ordensResult]) => {
         if (appointmentsResult.status === 'fulfilled') {
           const nextAppointments = Array.isArray(appointmentsResult.value.data)
             ? appointmentsResult.value.data.map(normalizeAppointment)
@@ -590,6 +632,13 @@ export default function Schedule() {
           setVehicles(Array.isArray(vehiclesResult.value.data) ? vehiclesResult.value.data : []);
         } else {
           console.error('Erro ao carregar veículos:', vehiclesResult.reason);
+        }
+
+        if (ordensResult.status === 'fulfilled') {
+          const raw = Array.isArray(ordensResult.value.data) ? ordensResult.value.data : [];
+          setOrdens(raw.map((o: any) => ({ id: o.id, cliente_id: o.cliente_id, status: o.status, valor_total: o.valor_total })));
+        } else {
+          console.error('Erro ao carregar ordens:', ordensResult.reason);
         }
       })
       .catch((err) => {
@@ -670,6 +719,7 @@ export default function Schedule() {
         cliente_id: Number(data.clientId),
         veiculo_id: Number(data.vehicleId),
         oficina_id: oficinaId,
+        ordem_servico_id: data.ordemServicoId ? Number(data.ordemServicoId) : null,
       };
       const { data: created } = await api.post('/agendamentos', payload);
       const normalized = normalizeAppointment(created);
@@ -978,6 +1028,7 @@ export default function Schedule() {
         defaultStart={draftStart ?? selectedDate.hour(9).minute(0).second(0)}
         clients={clients}
         vehicles={vehicles}
+        ordens={ordens}
       />
       <AppointmentDetailsDialog
         open={!!selectedAppointment}
