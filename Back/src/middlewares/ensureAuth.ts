@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import type { AccessAction, AccessModule, PermissionsMap } from "../permissions/accessProfiles.js";
 import { canAccess } from "../permissions/accessProfiles.js";
+import { getJwtSecret } from "../config/env.js";
 
 export type UserPayload = {
   id: number;
@@ -28,7 +29,7 @@ export const authMiddleware = (
   const [, token] = authHeader.split(" ");
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as UserPayload;
+    const decoded = jwt.verify(token, getJwtSecret()) as UserPayload;
     req.user = decoded;
     next();
   } catch {
