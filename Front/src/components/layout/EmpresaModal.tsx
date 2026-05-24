@@ -1,7 +1,7 @@
 import * as React from "react";
 import {
   Avatar,
-  Dialog, DialogContent, DialogActions, Box, Stack, Typography,
+  Box, Stack, Typography,
   TextField, Button, Grid, InputAdornment, CircularProgress, Divider, IconButton,
   Tooltip,
 } from "@mui/material";
@@ -21,6 +21,7 @@ import { useCep } from "../../hooks/useCep";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
 import { maskCnpj, maskTelefone, maskCep } from "../../utils/masks";
+import { AppDialog, AppDialogActions, AppDialogContent, SectionLabel } from "../common/AppDialog";
 
 type Props = { open: boolean; onClose: () => void };
 
@@ -88,19 +89,6 @@ function resizeToBase64(file: File, size = 240): Promise<string> {
     };
     img.src = url;
   });
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <Typography
-      variant="caption"
-      fontWeight={700}
-      color="text.secondary"
-      sx={{ textTransform: "uppercase", letterSpacing: 0.8, display: "block", mb: 1.5 }}
-    >
-      {children}
-    </Typography>
-  );
 }
 
 export default function EmpresaModal({ open, onClose }: Props) {
@@ -179,7 +167,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
         cidade_nome: form.cidade,
         cidade_uf: form.uf,
       });
-      updateCurrentUser({ oficina_nome: empresa.nome, oficina_logo_url: empresa.logo_url ?? null });
+      updateCurrentUser({ oficina_nome: empresa.nome, oficina_logo_url: empresa.logo_url ?? form.logo_url ?? null });
       success("Dados da empresa atualizados com sucesso.");
       onClose();
     } catch (err: any) {
@@ -190,32 +178,30 @@ export default function EmpresaModal({ open, onClose }: Props) {
   };
 
   return (
-    <Dialog
+    <AppDialog
       open={open}
       onClose={onClose}
-      fullWidth
       maxWidth="md"
-      PaperProps={{ sx: { borderRadius: 2.5, overflow: "hidden" } }}
+      title="Dados da Empresa"
     >
       {/* ── Header ─────────────────────────────────────────────── */}
       <Box
         sx={{
-          px: 3,
-          py: 2.5,
-          display: "flex",
+          px: { xs: 2.5, sm: 3 },
+          py: 2,
+          display: "none",
           alignItems: "center",
           justifyContent: "space-between",
-          bgcolor: (t) => alpha(t.palette.primary.main, 0.06),
           borderBottom: (t) => `1px solid ${t.palette.divider}`,
         }}
       >
-        <Stack direction="row" spacing={1.75} alignItems="center">
+        <Box>
           <Box
             sx={{
               width: 44,
               height: 44,
+              display: "none",
               borderRadius: "50%",
-              display: "grid",
               placeItems: "center",
               bgcolor: (t) => alpha(t.palette.primary.main, 0.15),
               color: "primary.main",
@@ -226,40 +212,25 @@ export default function EmpresaModal({ open, onClose }: Props) {
           <Box>
             <Typography variant="subtitle1" fontWeight={800} lineHeight={1.3}>
               Dados da Empresa
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
               Informações da sua oficina
             </Typography>
           </Box>
-        </Stack>
-        <IconButton onClick={onClose} size="small">
-          <CloseRoundedIcon />
-        </IconButton>
+        </Box>
       </Box>
 
-      <DialogContent sx={{ px: { xs: 2.5, sm: 3.5 }, py: 3 }}>
+      <AppDialogContent>
         {loading ? (
           <Box sx={{ display: "grid", placeItems: "center", py: 6 }}>
             <CircularProgress />
           </Box>
         ) : (
-          <Stack spacing={3.5}>
+          <Stack spacing={3}>
             {/* ── Informações gerais ─────────────────────────── */}
             <Box>
               <SectionLabel>Informações gerais</SectionLabel>
               <Grid container spacing={2}>
                 <Grid size={12}>
-                  <Stack
-                    direction={{ xs: "column", sm: "row" }}
-                    spacing={2}
-                    alignItems={{ xs: "flex-start", sm: "center" }}
-                    sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      border: (t) => `1px solid ${t.palette.divider}`,
-                      bgcolor: (t) => alpha(t.palette.primary.main, 0.035),
-                    }}
-                  >
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ xs: "stretch", sm: "center" }}>
                     <Box sx={{ position: "relative", flexShrink: 0 }}>
                       <Tooltip title="Alterar logo">
                         <Avatar
@@ -267,13 +238,14 @@ export default function EmpresaModal({ open, onClose }: Props) {
                           src={form.logo_url ?? undefined}
                           onClick={() => fileRef.current?.click()}
                           sx={{
-                            width: 76,
-                            height: 76,
+                            width: 64,
+                            height: 64,
                             borderRadius: 2,
-                            fontSize: 28,
+                            fontSize: 24,
                             fontWeight: 900,
                             bgcolor: "primary.main",
                             cursor: "pointer",
+                            boxShadow: (t) => `0 0 0 1px ${t.palette.divider}`,
                           }}
                         >
                           {(form.nome || "D")[0].toUpperCase()}
@@ -289,14 +261,14 @@ export default function EmpresaModal({ open, onClose }: Props) {
                           display: "grid",
                           placeItems: "center",
                           color: "#fff",
-                          bgcolor: "rgba(0,0,0,0.34)",
+                          bgcolor: "rgba(17,24,39,0.42)",
                           opacity: uploadingLogo ? 1 : 0,
                           transition: "opacity 0.15s",
                           cursor: uploadingLogo ? "default" : "pointer",
                           "&:hover": { opacity: 1 },
                         }}
                       >
-                        {uploadingLogo ? <CircularProgress size={22} sx={{ color: "#fff" }} /> : <CameraAltRoundedIcon />}
+                        {uploadingLogo ? <CircularProgress size={20} sx={{ color: "#fff" }} /> : <CameraAltRoundedIcon fontSize="small" />}
                       </Box>
 
                       {form.logo_url && (
@@ -306,44 +278,23 @@ export default function EmpresaModal({ open, onClose }: Props) {
                             onClick={() => setForm((prev) => ({ ...prev, logo_url: null }))}
                             sx={{
                               position: "absolute",
-                              right: -7,
-                              bottom: -7,
-                              width: 26,
-                              height: 26,
-                              bgcolor: "error.main",
-                              color: "#fff",
-                              "&:hover": { bgcolor: "error.dark" },
+                              right: -8,
+                              bottom: -8,
+                              width: 24,
+                              height: 24,
+                              bgcolor: "background.paper",
+                              color: "text.secondary",
+                              border: (t) => `1px solid ${t.palette.divider}`,
+                              "&:hover": { bgcolor: "error.main", color: "#fff", borderColor: "error.main" },
                             }}
                           >
-                            <DeleteRoundedIcon sx={{ fontSize: 15 }} />
+                            <DeleteRoundedIcon sx={{ fontSize: 14 }} />
                           </IconButton>
                         </Tooltip>
                       )}
 
                       <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleLogoChange} />
                     </Box>
-
-                    <Box minWidth={0}>
-                      <Typography variant="subtitle2" fontWeight={800}>
-                        Logo da oficina
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 520 }}>
-                        Esta marca aparece no topo do sistema e ajuda a identificar a empresa ativa.
-                      </Typography>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => fileRef.current?.click()}
-                        startIcon={<CameraAltRoundedIcon />}
-                        sx={{ mt: 1.25, borderRadius: 999, fontWeight: 700 }}
-                      >
-                        Escolher imagem
-                      </Button>
-                    </Box>
-                  </Stack>
-                </Grid>
-
-                <Grid size={12}>
                   <TextField
                     label="Nome da empresa"
                     fullWidth
@@ -358,6 +309,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
                       ),
                     }}
                   />
+                  </Stack>
                 </Grid>
 
                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -441,7 +393,6 @@ export default function EmpresaModal({ open, onClose }: Props) {
                         </InputAdornment>
                       ),
                     }}
-                    helperText="Preencha o CEP para buscar o endereço automaticamente"
                   />
                 </Grid>
 
@@ -509,16 +460,9 @@ export default function EmpresaModal({ open, onClose }: Props) {
             </Box>
           </Stack>
         )}
-      </DialogContent>
+      </AppDialogContent>
 
-      <DialogActions
-        sx={{
-          px: 3.5,
-          py: 2.5,
-          borderTop: (t) => `1px solid ${t.palette.divider}`,
-          bgcolor: (t) => alpha(t.palette.background.default, 0.6),
-        }}
-      >
+      <AppDialogActions>
         <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>
           Cancelar
         </Button>
@@ -531,7 +475,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
         >
           {saving ? <CircularProgress size={18} /> : "Salvar"}
         </Button>
-      </DialogActions>
-    </Dialog>
+      </AppDialogActions>
+    </AppDialog>
   );
 }
