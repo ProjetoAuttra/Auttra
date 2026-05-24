@@ -101,6 +101,9 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
     <AppDialog
       open={open}
       onClose={onClose}
+      onCloseClick={onClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
       maxWidth="sm"
       title={isEdit ? "Editar funcionário" : "Novo funcionário"}
       icon={<PersonRoundedIcon />}
@@ -154,7 +157,6 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
               size="small"
               value={form.telefone}
               onChange={(e) => setForm({ ...form, telefone: maskTelefone(e.target.value) })}
-              placeholder="(XX) X XXXX-XXXX"
               inputProps={{ maxLength: 16 }}
               InputProps={{
                 startAdornment: (

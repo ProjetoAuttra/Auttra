@@ -69,6 +69,9 @@ export default function EstoqueDialog({ open, mode, initial, onClose, onSubmit, 
     <AppDialog
       open={open}
       onClose={onClose}
+      onCloseClick={onClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
       maxWidth="sm"
       title={isEdit ? "Editar peça" : "Nova peça"}
       icon={<Inventory2RoundedIcon />}

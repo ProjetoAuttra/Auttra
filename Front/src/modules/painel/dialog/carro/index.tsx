@@ -68,6 +68,9 @@ export default function DialogCarro({
     <AppDialog
       open={open}
       onClose={handleClose}
+      onCloseClick={handleClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
       maxWidth="sm"
       title="Adicionar carro"
       icon={<DirectionsCarRoundedIcon />}
@@ -88,7 +91,6 @@ export default function DialogCarro({
                   <TextField
                     {...field}
                     label="Marca"
-                    placeholder="Ex.: Honda, Peugeot..."
                     error={!!errors.brand}
                     helperText={errors.brand?.message}
                     fullWidth
@@ -108,7 +110,6 @@ export default function DialogCarro({
                   <TextField
                     {...field}
                     label="Modelo"
-                    placeholder="Ex.: Civic, 208..."
                     error={!!errors.model}
                     helperText={errors.model?.message}
                     fullWidth
@@ -134,7 +135,6 @@ export default function DialogCarro({
                     {...field}
                     label="Ano"
                     type="number"
-                    placeholder="Ex.: 2014"
                     error={!!errors.year}
                     helperText={errors.year?.message}
                     fullWidth
@@ -154,7 +154,6 @@ export default function DialogCarro({
                   <TextField
                     {...field}
                     label="Placa (opcional)"
-                    placeholder="Ex.: ABC1D23"
                     error={!!errors.plate}
                     helperText={errors.plate?.message}
                     fullWidth

@@ -16,8 +16,8 @@ function buildResetUrl(token: string, fallbackOrigin?: string) {
     process.env.PASSWORD_RESET_URL_BASE?.trim() ||
     process.env.FRONTEND_URL?.trim() ||
     process.env.APP_URL?.trim() ||
-    corsOrigin ||
     fallbackOrigin ||
+    corsOrigin ||
     "http://localhost:5173";
 
   return `${baseUrl.replace(/\/+$/, "")}/redefinir-senha?token=${encodeURIComponent(token)}`;

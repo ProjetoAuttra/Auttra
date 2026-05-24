@@ -174,7 +174,17 @@ function NewAppointmentDialog({
   };
 
   return (
-    <AppDialog open={open} onClose={handleClose} maxWidth="sm" title="Novo agendamento" icon={<CalendarMonthRoundedIcon />} variant="entity">
+    <AppDialog
+      open={open}
+      onClose={handleClose}
+      onCloseClick={handleClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
+      maxWidth="sm"
+      title="Novo agendamento"
+      icon={<CalendarMonthRoundedIcon />}
+      variant="entity"
+    >
       <AppDialogContent>
         <Stack spacing={2.25} mt={0.5}>
           <Controller
@@ -185,7 +195,6 @@ function NewAppointmentDialog({
               <TextField
                 {...field}
                 label="Título"
-                placeholder="Ex.: Troca de óleo - Civic"
                 autoFocus
                 error={!!errors.title}
                 helperText={errors.title?.message}
@@ -275,7 +284,6 @@ function NewAppointmentDialog({
               <TextField
                 {...field}
                 label="Local"
-                placeholder="Box 2, recepção, pátio..."
                 error={!!errors.location}
                 helperText={errors.location?.message}
                 fullWidth
@@ -286,7 +294,7 @@ function NewAppointmentDialog({
             name="description"
             control={control}
             render={({ field }) => (
-              <TextField {...field} label="Observações" placeholder="Detalhes do atendimento" multiline rows={3} fullWidth />
+              <TextField {...field} label="Observações" multiline rows={3} fullWidth />
             )}
           />
           <Controller
@@ -465,6 +473,9 @@ function AppointmentDetailsDialog({
     <AppDialog
       open={open}
       onClose={onClose}
+      onCloseClick={onClose}
+      closeOnBackdrop={!editing}
+      closeOnEscape={!editing}
       maxWidth="sm"
       title={editing ? 'Editar agendamento' : 'Resumo do agendamento'}
       icon={<CalendarMonthRoundedIcon />}

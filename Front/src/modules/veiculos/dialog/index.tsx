@@ -51,6 +51,7 @@ type Props = {
   open: boolean;
   mode: "create" | "edit";
   initial?: Veiculo | null;
+  defaultCliente?: { id: number; nome: string } | null;
   onClose: () => void;
   onSubmit: (data: VeiculoForm) => void;
 };
@@ -90,7 +91,7 @@ function isPlacaValida(placa: string): boolean {
 
 // ─── Componente ────────────────────────────────────────────────────────────
 
-export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }: Props) {
+export default function VeiculoDialog({ open, mode, initial, defaultCliente, onClose, onSubmit }: Props) {
   const currentYear = new Date().getFullYear();
   const isEdit = mode === "edit";
 
@@ -110,15 +111,19 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
 
   React.useEffect(() => {
     if (!isEdit) {
-      listarClientes().then((data: any) =>
-        setClientes(data.map((c: any) => ({ id: Number(c.id), nome: c.nome })))
-      );
+      listarClientes().then((data: any) => {
+        const mapped = data.map((c: any) => ({ id: Number(c.id), nome: c.nome }));
+        if (defaultCliente && !mapped.some((c: { id: number }) => c.id === defaultCliente.id)) {
+          mapped.unshift(defaultCliente);
+        }
+        setClientes(mapped);
+      });
     }
-  }, [isEdit]);
+  }, [isEdit, defaultCliente]);
 
   React.useEffect(() => {
     if (!open) return;
-    setClienteId(0);
+    setClienteId(!isEdit ? defaultCliente?.id ?? 0 : 0);
     setMarca(initial?.marca ?? "");
     setModelo(initial?.modelo ?? "");
     setAno(initial?.ano ?? "");
@@ -129,7 +134,7 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
     setObservacao(initial?.observacao ?? "");
     setErrors({});
     setSubmitAttempted(false);
-  }, [open, initial]);
+  }, [open, initial, isEdit, defaultCliente]);
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -174,6 +179,9 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
     <AppDialog
       open={open}
       onClose={onClose}
+      onCloseClick={onClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
       maxWidth="sm"
       title={isEdit ? "Editar veículo" : "Novo veículo"}
       icon={<DirectionsCarRoundedIcon />}
@@ -194,6 +202,7 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
                 isOptionEqualToValue={(o, v) => o.id === v.id}
                 value={clientes.find((c) => c.id === clienteId) ?? null}
                 onChange={(_, v) => setClienteId(v?.id ?? 0)}
+                disabled={!!defaultCliente}
                 noOptionsText="Nenhum cliente encontrado"
                 renderInput={(params) => (
                   <TextField
@@ -211,18 +220,20 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
                       endAdornment: (
                         <>
                           {params.InputProps.endAdornment}
-                          <InputAdornment position="end">
-                            <Tooltip title="Criar novo cliente">
-                              <IconButton
-                                size="small"
-                                onMouseDown={(e) => e.stopPropagation()}
-                                onClick={(e) => { e.stopPropagation(); setOpenNovoCliente(true); }}
-                                sx={{ color: "primary.main", p: 0.25 }}
-                              >
-                                <AddRoundedIcon sx={{ fontSize: 18 }} />
-                              </IconButton>
-                            </Tooltip>
-                          </InputAdornment>
+                          {!defaultCliente && (
+                            <InputAdornment position="end">
+                              <Tooltip title="Criar novo cliente">
+                                <IconButton
+                                  size="small"
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  onClick={(e) => { e.stopPropagation(); setOpenNovoCliente(true); }}
+                                  sx={{ color: "primary.main", p: 0.25 }}
+                                >
+                                  <AddRoundedIcon sx={{ fontSize: 18 }} />
+                                </IconButton>
+                              </Tooltip>
+                            </InputAdornment>
+                          )}
                         </>
                       ),
                     }}
@@ -237,7 +248,6 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
             <TextField
               fullWidth size="small" label="Marca *"
               value={marca} onChange={(e) => setMarca(e.target.value)}
-              placeholder="Honda, Volkswagen..."
               error={!!errors.marca} helperText={errors.marca}
             />
           </Grid>
@@ -245,7 +255,6 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
             <TextField
               fullWidth size="small" label="Modelo *"
               value={modelo} onChange={(e) => setModelo(e.target.value)}
-              placeholder="Civic, Gol, Creta..."
               error={!!errors.modelo} helperText={errors.modelo}
             />
           </Grid>
@@ -256,7 +265,6 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
               fullWidth size="small" label="Placa *"
               value={placa}
               onChange={(e) => setPlaca(formatPlaca(e.target.value))}
-              placeholder="ABC-1234"
               error={!!errors.placa} helperText={errors.placa}
               inputProps={{
                 maxLength: 8,
@@ -283,7 +291,6 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
               fullWidth size="small" label="Ano" type="number"
               value={ano}
               onChange={(e) => setAno(e.target.value === "" ? "" : parseInt(e.target.value, 10))}
-              placeholder={String(currentYear)}
               inputProps={{ min: 1900, max: currentYear + 1 }}
               slotProps={{
                 input: {
@@ -306,7 +313,6 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
             <TextField
               fullWidth size="small" label="Cor"
               value={cor} onChange={(e) => setCor(e.target.value)}
-              placeholder="Branco, Prata..."
             />
             <Stack direction="row" flexWrap="wrap" gap={0.5} mt={0.5}>
               {CORES.map((c) => (

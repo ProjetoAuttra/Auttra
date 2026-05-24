@@ -71,9 +71,6 @@ export default function EstoquePage() {
 
   // ── Métricas ────────────────────────────────────────────────
   const totalBaixo = rows.filter((r) => Number(r.estoque ?? 0) <= LIMITE_BAIXO).length;
-  const valorEmEstoque = rows.reduce(
-    (acc, r) => acc + Number(r.preco_custo) * Number(r.estoque ?? 0), 0
-  );
 
   // ── Filtro + Busca ───────────────────────────────────────────
   const filtered = React.useMemo(() => {
@@ -199,10 +196,6 @@ export default function EstoquePage() {
       {/* ── Métricas ───────────────────────────────────────────── */}
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mb: 2 }}>
         <MetricCard label="Total de peças" valor={String(rows.length)} />
-        <MetricCard
-          label="Valor em estoque"
-          valor={valorEmEstoque.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-        />
         <MetricCard
           label="Baixo estoque"
           valor={String(totalBaixo)}
@@ -361,7 +354,7 @@ export default function EstoquePage() {
       </Menu>
 
       {/* ── Dialog de Ajuste (Entrada / Saída) ─────────────────── */}
-      <AppDialog open={openAjuste} onClose={() => setOpenAjuste(false)} maxWidth="xs" title={tipoAjuste === "entrada" ? "Entrada de peças" : "Saída de peças"} icon={tipoAjuste === "entrada" ? <AddRoundedIcon /> : <RemoveRoundedIcon />} variant="entity">
+      <AppDialog open={openAjuste} onClose={() => setOpenAjuste(false)} onCloseClick={() => setOpenAjuste(false)} closeOnBackdrop={false} closeOnEscape={false} maxWidth="xs" title={tipoAjuste === "entrada" ? "Entrada de peças" : "Saída de peças"} icon={tipoAjuste === "entrada" ? <AddRoundedIcon /> : <RemoveRoundedIcon />} variant="entity">
         <Box sx={{ display: "none" }}>
           <Stack direction="row" spacing={1.25} alignItems="center">
             <Stack sx={{

@@ -11,6 +11,7 @@ import {
   IconButton,
 } from "@mui/material";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import PrintRoundedIcon from "@mui/icons-material/PrintRounded";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../../../api/api";
 import { alpha } from "@mui/material/styles";
@@ -25,6 +26,7 @@ export default function OrdemServicoDetalhes() {
   const [ordem, setOrdem] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [openEdit, setOpenEdit] = React.useState(false);
+  const [printing, setPrinting] = React.useState(false);
 
   const toNumber = (v: any): number => {
     if (v == null) return 0;
@@ -49,6 +51,31 @@ export default function OrdemServicoDetalhes() {
       }
     })();
   }, [id]);
+
+  const handlePrint = async () => {
+    if (!id) return;
+    const pdfWindow = window.open("", "_blank");
+    if (!pdfWindow) {
+      error("O navegador bloqueou a abertura do PDF. Libere pop-ups para imprimir a OS.");
+      return;
+    }
+
+    setPrinting(true);
+    try {
+      pdfWindow.document.write("<p>Gerando PDF da OS...</p>");
+      const res = await api.get(`/ordens/${id}/pdf`, { responseType: "blob" });
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      pdfWindow.location.href = url;
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    } catch (err) {
+      console.error("Erro ao gerar PDF da OS:", err);
+      pdfWindow.close();
+      error("Não foi possível gerar o PDF da OS.");
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -236,10 +263,12 @@ export default function OrdemServicoDetalhes() {
           Editar OS
         </Button>
         <Button
-            variant="outlined"
-            onClick={() => window.open(`${api.defaults.baseURL}/ordens/${id}/pdf`, "_blank")}
-            >
-            Imprimir OS
+          variant="outlined"
+          startIcon={<PrintRoundedIcon />}
+          onClick={handlePrint}
+          disabled={printing}
+        >
+          Imprimir OS
         </Button>
       </Stack>
 

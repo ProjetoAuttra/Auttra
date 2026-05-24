@@ -55,6 +55,7 @@ const navItems: NavItem[] = [
   { label: 'Agenda', icon: <EventOutlineIcon />, to: paths.agenda, module: 'agenda' },
   { label: 'Clientes', icon: <PeopleOutlineIcon />, to: paths.clients, module: 'clientes' },
   { label: 'Veículos', icon: <DirectionsCarIcon />, to: paths.veiculos, module: 'veiculos' },
+  { label: 'Orçamentos', icon: <RequestQuoteOutlineIcon />, to: paths.quotes, module: 'orcamentos' },
   { label: 'Ordens de serviço', icon: <ChecklistOutlineIcon />, to: paths.tasks, module: 'ordens' },
   {
     label: 'Financeiro',
@@ -71,11 +72,10 @@ const navItems: NavItem[] = [
     icon: <InventoryIcon />,
     to: '#estoque',
     subItems: [
-      { label: 'Peças / Estoque', icon: <InventoryIcon />, to: paths.estoque, module: 'estoque' },
+      { label: 'Estoque', icon: <InventoryIcon />, to: paths.estoque, module: 'estoque' },
       { label: 'Fornecedores', icon: <StoreIcon />, to: paths.fornecedores, module: 'fornecedores' },
     ],
   },
-  { label: 'Orçamentos', icon: <RequestQuoteOutlineIcon />, to: paths.quotes, module: 'orcamentos' },
   { label: 'Relatórios', icon: <BarChartOutlineIcon />, to: paths.reports, module: 'relatorios' },
   {
     label: 'Configurações',
@@ -96,7 +96,7 @@ const navLabels: Record<string, string> = {
   [paths.agenda]: 'Agenda',
   [paths.clients]: 'Clientes',
   [paths.veiculos]: 'Veículos',
-  [paths.estoque]: 'Peças / Estoque',
+  [paths.estoque]: 'Estoque',
   [paths.servicos]: 'Serviços',
   [paths.tasks]: 'Ordens de serviço',
   [paths.payments]: 'Extrato',

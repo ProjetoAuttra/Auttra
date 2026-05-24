@@ -18,11 +18,25 @@ import CalendarTodayRoundedIcon from "@mui/icons-material/CalendarTodayRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import { obterClienteDetalhes } from "./apidetalhes/api";
 import ClientDialog, { type Client, type ClientForm } from "../../dialog";
+import VeiculoDialog, { type VeiculoForm } from "../../../veiculos/dialog";
+import { criarVeiculo } from "../../../veiculos/api/api";
+import OrdemServicoDialog from "../../../tarefas/dialog";
+import { criarOrdem } from "../../../tarefas/api/api";
 import api from "../../../../api/api";
+import { useAuth } from "../../../../context/AuthContext";
+import { useToast } from "../../../../context/ToastContext";
 import ClienteVeiculos from "./subcomponentes/clienteveiculos";
 import ClienteOrdens from "./subcomponentes/clienteordens";
 import ClientePagamentos from "./subcomponentes/clientepagamentos";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../components/common/AppDialog";
+import { maskCpf, maskCnpj } from "../../../../utils/masks";
+
+function formatDocumento(value?: string | null) {
+  const digits = value?.replace(/\D/g, "") ?? "";
+  if (digits.length === 14) return maskCnpj(digits);
+  if (digits.length === 11) return maskCpf(digits);
+  return value ?? "";
+}
 
 // ─── Skeleton do cabeçalho ────────────────────────────────────────────────
 
@@ -49,12 +63,16 @@ function HeaderSkeleton() {
 export default function ClienteDetalhesPage() {
   const { id } = useParams();
   const nav = useNavigate();
+  const { user } = useAuth();
+  const { success, error } = useToast();
 
   const [tab, setTab] = React.useState(0);
   const [cliente, setCliente] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [openWhats, setOpenWhats] = React.useState(false);
   const [openEdit, setOpenEdit] = React.useState(false);
+  const [openVeiculo, setOpenVeiculo] = React.useState(false);
+  const [openOrdem, setOpenOrdem] = React.useState(false);
   const [mensagem, setMensagem] = React.useState("");
   const [modelo, setModelo] = React.useState("");
 
@@ -94,6 +112,35 @@ export default function ClienteDetalhesPage() {
       setOpenEdit(false);
     } catch (err) {
       console.error("Erro ao atualizar cliente:", err);
+    }
+  };
+
+  const handleCreateVeiculo = async (data: VeiculoForm) => {
+    if (!cliente) return;
+    if (!user?.oficina_id) {
+      error("Usuario sem oficina vinculada.");
+      return;
+    }
+    try {
+      const novo = await criarVeiculo({ ...data, cliente_id: Number(cliente.id) }, user.oficina_id);
+      setOpenVeiculo(false);
+      success("Veiculo cadastrado com sucesso!");
+      nav(`/veiculos/${novo.id}`);
+    } catch (err) {
+      console.error("Erro ao cadastrar veiculo:", err);
+      error("Nao foi possivel cadastrar o veiculo.");
+    }
+  };
+
+  const handleCreateOrdem = async (data: any) => {
+    try {
+      const nova = await criarOrdem({ ...data, cliente_id: Number(cliente.id) });
+      setOpenOrdem(false);
+      success("Ordem de servico criada!");
+      nav(`/ordens/${nova.id}`);
+    } catch (err) {
+      console.error("Erro ao criar ordem:", err);
+      error("Nao foi possivel criar a ordem de servico.");
     }
   };
 
@@ -141,7 +188,16 @@ export default function ClienteDetalhesPage() {
                   {inicial}
                 </Avatar>
                 <Stack spacing={0.5}>
-                  <Typography variant="h6" fontWeight={800} lineHeight={1.2}>{cliente.nome}</Typography>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography variant="h6" fontWeight={800} lineHeight={1.2}>{cliente.nome}</Typography>
+                    <IconButton
+                      size="small"
+                      onClick={() => setOpenEdit(true)}
+                      sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 1.5 }}
+                    >
+                      <EditRoundedIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
                   <Stack direction="row" spacing={1.5} flexWrap="wrap" gap={0.5}>
                     {cliente.email && (
                       <Stack direction="row" spacing={0.5} alignItems="center">
@@ -158,7 +214,7 @@ export default function ClienteDetalhesPage() {
                     {cliente.cpf && (
                       <Stack direction="row" spacing={0.5} alignItems="center">
                         <BadgeRoundedIcon sx={{ fontSize: 14, color: "text.disabled" }} />
-                        <Typography variant="body2" color="text.secondary">{cliente.cpf}</Typography>
+                        <Typography variant="body2" color="text.secondary">{formatDocumento(cliente.cpf)}</Typography>
                       </Stack>
                     )}
                   </Stack>
@@ -186,12 +242,6 @@ export default function ClienteDetalhesPage() {
                     WhatsApp
                   </Button>
                 )}
-                <IconButton
-                  onClick={() => setOpenEdit(true)}
-                  sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 2 }}
-                >
-                  <EditRoundedIcon fontSize="small" />
-                </IconButton>
               </Stack>
             </Stack>
 
@@ -251,9 +301,9 @@ export default function ClienteDetalhesPage() {
               </Stack>
             ) : (
               <>
-                {tab === 0 && <ClienteVeiculos veiculos={cliente?.veiculos ?? []} />}
-                {tab === 1 && <ClienteOrdens ordens={cliente?.ordens ?? []} />}
-                {tab === 2 && <ClientePagamentos pagamentos={cliente?.pagamentos ?? []} />}
+                {tab === 0 && <ClienteVeiculos veiculos={cliente?.veiculos ?? []} onAdd={() => setOpenVeiculo(true)} />}
+                {tab === 1 && <ClienteOrdens ordens={cliente?.ordens ?? []} onAdd={() => setOpenOrdem(true)} />}
+                {tab === 2 && <ClientePagamentos pagamentos={cliente?.pagamentos ?? []} clienteId={Number(cliente?.id)} oficinaId={user?.oficina_id ?? 0} />}
               </>
             )}
           </Box>
@@ -264,6 +314,9 @@ export default function ClienteDetalhesPage() {
       <AppDialog
         open={openWhats}
         onClose={() => setOpenWhats(false)}
+        onCloseClick={() => setOpenWhats(false)}
+        closeOnBackdrop={false}
+        closeOnEscape={false}
         maxWidth="sm"
         title="Enviar mensagem no WhatsApp"
         icon={<WhatsAppIcon />}
@@ -316,6 +369,26 @@ export default function ClienteDetalhesPage() {
           } as Client}
           onClose={() => setOpenEdit(false)}
           onSubmit={handleEditSubmit}
+        />
+      )}
+
+      {cliente && (
+        <VeiculoDialog
+          open={openVeiculo}
+          mode="create"
+          defaultCliente={{ id: Number(cliente.id), nome: cliente.nome }}
+          onClose={() => setOpenVeiculo(false)}
+          onSubmit={handleCreateVeiculo}
+        />
+      )}
+
+      {cliente && (
+        <OrdemServicoDialog
+          open={openOrdem}
+          mode="create"
+          initial={{ cliente_id: Number(cliente.id), cliente: { id: Number(cliente.id), nome: cliente.nome } }}
+          onClose={() => setOpenOrdem(false)}
+          onSubmit={handleCreateOrdem}
         />
       )}
     </>

@@ -5,7 +5,7 @@ import { prisma } from "../prisma/client.js";
 async function renderPdf(html: string): Promise<Buffer> {
   const browser = await puppeteer.launch({
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
   });
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: "networkidle0" });
@@ -70,6 +70,11 @@ export const PdfHtmlService = {
               <p style="margin:4px 0 0;font-size:12px;color:#888;">
                 Data: ${new Date(orc.data).toLocaleDateString("pt-BR")}
               </p>
+              ${orc.validade ? `
+                <p style="margin:2px 0 0;font-size:12px;color:#888;">
+                  Válido até: ${new Date(orc.validade).toLocaleDateString("pt-BR")}
+                </p>
+              ` : ""}
             </div>
           </header>
 
@@ -79,7 +84,7 @@ export const PdfHtmlService = {
               <p class="main">${orc.cliente?.nome ?? "—"}</p>
               ${orc.cliente?.telefone ? `<p>${orc.cliente.telefone}</p>` : ""}
               ${orc.cliente?.email ? `<p>${orc.cliente.email}</p>` : ""}
-              ${orc.cliente?.cpf ? `<p>CPF: ${orc.cliente.cpf}</p>` : ""}
+              ${orc.cliente?.cpf ? `<p>CPF/CNPJ: ${orc.cliente.cpf}</p>` : ""}
             </div>
             <div class="card">
               <h3>Veículo</h3>

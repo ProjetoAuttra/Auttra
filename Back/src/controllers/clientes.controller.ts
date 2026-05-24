@@ -42,7 +42,7 @@ export const clienteController = {
       return res.status(201).json(cliente);
     } catch (err: any) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-        return res.status(409).json({ message: "Ja existe um cliente com este CPF ou e-mail nesta oficina." });
+        return res.status(409).json({ message: "Ja existe um cliente com este CPF/CNPJ ou e-mail nesta oficina." });
       }
       console.error("Erro ao criar cliente:", err);
       return res.status(400).json({ message: err.message });

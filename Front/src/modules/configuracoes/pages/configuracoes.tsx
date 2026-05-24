@@ -597,6 +597,9 @@ function AccessProfilesManager() {
       <AppDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
+        onCloseClick={() => setDialogOpen(false)}
+        closeOnBackdrop={false}
+        closeOnEscape={false}
         maxWidth="md"
         title={selectedId ? 'Editar perfil' : 'Novo perfil'}
         icon={<SecurityRoundedIcon />}

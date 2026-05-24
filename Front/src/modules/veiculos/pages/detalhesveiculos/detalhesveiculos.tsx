@@ -10,6 +10,7 @@ import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import DirectionsCarRoundedIcon from "@mui/icons-material/DirectionsCarRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import CalendarTodayRoundedIcon from "@mui/icons-material/CalendarTodayRounded";
 import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
@@ -17,7 +18,10 @@ import LocalGasStationRoundedIcon from "@mui/icons-material/LocalGasStationRound
 import SpeedRoundedIcon from "@mui/icons-material/SpeedRounded";
 import { obterVeiculoDetalhes } from "./apidetalhes/api";
 import VeiculoDialog, { type VeiculoForm } from "../../dialog";
+import OrdemServicoDialog from "../../../tarefas/dialog";
+import { criarOrdem } from "../../../tarefas/api/api";
 import api from "../../../../api/api";
+import { useToast } from "../../../../context/ToastContext";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -51,18 +55,37 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 
 // ─── Subcomponente: ordens de serviço ────────────────────────────────────────
 
-function VeiculoOrdens({ ordens }: { ordens: any[] }) {
+function VeiculoOrdens({ ordens, onAdd }: { ordens: any[]; onAdd?: () => void }) {
   if (!ordens?.length) {
     return (
       <Box sx={{ py: 6, textAlign: "center" }}>
         <AssignmentRoundedIcon sx={{ fontSize: 40, color: "text.disabled", mb: 1 }} />
         <Typography color="text.disabled">Nenhuma ordem de serviço encontrada</Typography>
+        {onAdd && (
+          <Button
+            onClick={onAdd}
+            startIcon={<AddRoundedIcon />}
+            variant="contained"
+            disableElevation
+            sx={{ mt: 2, borderRadius: 999, fontWeight: 700 }}
+          >
+            Nova OS
+          </Button>
+        )}
       </Box>
     );
   }
 
   return (
-    <TableContainer component={Paper} elevation={0}
+    <Stack spacing={1.5}>
+      {onAdd && (
+        <Stack direction="row" justifyContent="flex-end">
+          <Button onClick={onAdd} startIcon={<AddRoundedIcon />} variant="contained" disableElevation sx={{ borderRadius: 999, fontWeight: 700 }}>
+            Nova OS
+          </Button>
+        </Stack>
+      )}
+      <TableContainer component={Paper} elevation={0}
       sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 2 }}>
       <Table size="small">
         <TableHead>
@@ -98,7 +121,8 @@ function VeiculoOrdens({ ordens }: { ordens: any[] }) {
           })}
         </TableBody>
       </Table>
-    </TableContainer>
+      </TableContainer>
+    </Stack>
   );
 }
 
@@ -127,11 +151,13 @@ function HeaderSkeleton() {
 export default function VeiculoDetalhesPage() {
   const { id } = useParams();
   const nav = useNavigate();
+  const { success, error } = useToast();
 
   const [tab, setTab] = React.useState(0);
   const [veiculo, setVeiculo] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [openEdit, setOpenEdit] = React.useState(false);
+  const [openOrdem, setOpenOrdem] = React.useState(false);
 
   React.useEffect(() => {
     (async () => {
@@ -153,6 +179,22 @@ export default function VeiculoDetalhesPage() {
       setOpenEdit(false);
     } catch (err) {
       console.error("Erro ao atualizar veículo:", err);
+    }
+  };
+
+  const handleCreateOrdem = async (data: any) => {
+    try {
+      const nova = await criarOrdem({
+        ...data,
+        cliente_id: Number(veiculo.cliente_id),
+        veiculo_id: Number(veiculo.id),
+      });
+      setOpenOrdem(false);
+      success("Ordem de servico criada!");
+      nav(`/ordens/${nova.id}`);
+    } catch (err) {
+      console.error("Erro ao criar ordem:", err);
+      error("Nao foi possivel criar a ordem de servico.");
     }
   };
 
@@ -198,9 +240,18 @@ export default function VeiculoDetalhesPage() {
                 </Avatar>
 
                 <Stack spacing={0.75}>
-                  <Typography variant="h6" fontWeight={800} lineHeight={1.2}>
-                    {veiculo.marca} {veiculo.modelo}
-                  </Typography>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography variant="h6" fontWeight={800} lineHeight={1.2}>
+                      {veiculo.marca} {veiculo.modelo}
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      onClick={() => setOpenEdit(true)}
+                      sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 1.5 }}
+                    >
+                      <EditRoundedIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
 
                   {/* Placa estilo visual */}
                   <Box sx={{
@@ -236,15 +287,8 @@ export default function VeiculoDetalhesPage() {
                 </Stack>
               </Stack>
 
-              {/* Proprietário + editar */}
+              {/* Proprietário */}
               <Stack alignItems={{ xs: "flex-start", sm: "flex-end" }} spacing={1}>
-                <IconButton
-                  onClick={() => setOpenEdit(true)}
-                  sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 2 }}
-                >
-                  <EditRoundedIcon fontSize="small" />
-                </IconButton>
-
                 {veiculo.cliente && (
                   <Stack spacing={0.25} alignItems={{ xs: "flex-start", sm: "flex-end" }}>
                     <Typography variant="caption" color="text.secondary">Proprietário</Typography>
@@ -306,7 +350,7 @@ export default function VeiculoDetalhesPage() {
                 ))}
               </Stack>
             ) : (
-              tab === 0 && <VeiculoOrdens ordens={veiculo?.ordens ?? []} />
+              tab === 0 && <VeiculoOrdens ordens={veiculo?.ordens ?? []} onAdd={() => setOpenOrdem(true)} />
             )}
           </Box>
         </Paper>
@@ -334,6 +378,21 @@ export default function VeiculoDetalhesPage() {
           }}
           onClose={() => setOpenEdit(false)}
           onSubmit={handleEditSubmit}
+        />
+      )}
+
+      {veiculo && (
+        <OrdemServicoDialog
+          open={openOrdem}
+          mode="create"
+          initial={{
+            cliente_id: Number(veiculo.cliente_id),
+            cliente: veiculo.cliente ? { id: Number(veiculo.cliente_id), nome: veiculo.cliente.nome } : undefined,
+            veiculo_id: Number(veiculo.id),
+            veiculo: { id: Number(veiculo.id), marca: veiculo.marca, modelo: veiculo.modelo, placa: veiculo.placa },
+          }}
+          onClose={() => setOpenOrdem(false)}
+          onSubmit={handleCreateOrdem}
         />
       )}
     </>

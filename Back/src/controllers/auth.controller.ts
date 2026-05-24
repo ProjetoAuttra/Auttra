@@ -155,7 +155,7 @@ export async function forgotPassword(req: Request, res: Response) {
     if (err instanceof EmailDeliveryError) {
       return res.status(502).json({
         message:
-          "Nao foi possivel enviar o e-mail de recuperacao. Se estiver usando o dominio de teste do Resend, verifique se o destinatario e permitido ou configure um dominio verificado.",
+          "Nao foi possivel enviar o e-mail de recuperacao. Verifique a API key do Resend, o remetente configurado e o status do dominio.",
       });
     }
 

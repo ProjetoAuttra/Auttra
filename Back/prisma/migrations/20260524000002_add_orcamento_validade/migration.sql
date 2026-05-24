@@ -1,0 +1,2 @@
+ALTER TABLE "orcamento"
+ADD COLUMN IF NOT EXISTS "validade" TIMESTAMP(3);

@@ -406,12 +406,6 @@ export default function Login() {
           <Typography variant="subtitle1" fontWeight={800} mb={1}>
             Recuperar senha
           </Typography>
-          <Typography variant="subtitle1" fontWeight={800} mb={1} sx={{ display: "none" }}>
-            Redefinição de senha
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ display: "none" }}>
-            Para redefinir sua senha, entre em contato com o administrador do sistema. Ele poderá gerar uma nova senha para você pelo painel de configurações.
-          </Typography>
           <Stack spacing={2} mt={2}>
             <Typography variant="body2" color="text.secondary">
               Informe o e-mail da sua conta para receber um link seguro de redefinição.

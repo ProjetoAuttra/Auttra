@@ -27,6 +27,9 @@ export function PagarDialog({ open, onClose, onConfirm }: {
     <AppDialog
       open={open}
       onClose={onClose}
+      onCloseClick={onClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
       maxWidth="xs"
       title="Marcar como pago"
       icon={<CheckRoundedIcon />}
@@ -91,6 +94,9 @@ export function PagamentoParcialDialog({ open, onClose, onConfirm, saldoRestante
     <AppDialog
       open={open}
       onClose={onClose}
+      onCloseClick={onClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
       maxWidth="xs"
       title="Pagamento parcial"
       icon={<PaymentsRoundedIcon />}
@@ -166,6 +172,9 @@ export function DescontoDialog({ open, onClose, onConfirm, valorOriginal }: {
     <AppDialog
       open={open}
       onClose={onClose}
+      onCloseClick={onClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
       maxWidth="xs"
       title="Aplicar desconto"
       icon={<SellRoundedIcon />}
@@ -199,7 +208,6 @@ export function DescontoDialog({ open, onClose, onConfirm, valorOriginal }: {
             onChange={(e) => setMotivo(e.target.value)}
             size="small"
             fullWidth
-            placeholder="Ex.: cliente fiel, acordo comercial..."
           />
         </Stack>
       </AppDialogContent>
@@ -234,6 +242,9 @@ export function RenegociarDialog({ open, onClose, onConfirm }: {
     <AppDialog
       open={open}
       onClose={onClose}
+      onCloseClick={onClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
       maxWidth="xs"
       title="Renegociar prazo"
       icon={<EventRepeatRoundedIcon />}
@@ -291,6 +302,9 @@ export function ParcelarDialog({ open, onClose, onConfirm, valorOriginal }: {
     <AppDialog
       open={open}
       onClose={onClose}
+      onCloseClick={onClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
       maxWidth="xs"
       title="Parcelar título"
       icon={<AccountTreeRoundedIcon />}

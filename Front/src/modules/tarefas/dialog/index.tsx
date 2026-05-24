@@ -272,6 +272,9 @@ export default function OrdemServicoDialog({ open, mode = "create", initial, onC
     <AppDialog
       open={open}
       onClose={onClose}
+      onCloseClick={onClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
       maxWidth="lg"
       title={isEdit ? "Editar Ordem de Serviço" : "Nova Ordem de Serviço"}
       icon={<AssignmentRoundedIcon />}
@@ -450,7 +453,6 @@ export default function OrdemServicoDialog({ open, mode = "create", initial, onC
               <NotesRoundedIcon sx={{ fontSize: 12, mr: 0.5 }} /> Observações / Check-list de Entrada
             </SectionLabel>
             <TextField
-              placeholder="Detalhe o estado do veículo, solicitações específicas do cliente ou qualquer observação relevante..."
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
               fullWidth multiline rows={2}

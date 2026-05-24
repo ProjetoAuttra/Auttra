@@ -162,6 +162,9 @@ export default function ServicoDialog({ open, mode, initial, onClose, onSubmit, 
     <AppDialog
       open={open}
       onClose={onClose}
+      onCloseClick={onClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
       maxWidth="sm"
       title={isEdit ? "Editar serviço" : "Novo serviço"}
       icon={<BuildRoundedIcon />}
@@ -178,7 +181,6 @@ export default function ServicoDialog({ open, mode, initial, onClose, onSubmit, 
               label="Nome do serviço *"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
-              placeholder="Ex.: Troca de óleo, Alinhamento, Revisão 10.000km..."
               size="small"
               fullWidth
               autoFocus
@@ -222,7 +224,6 @@ export default function ServicoDialog({ open, mode, initial, onClose, onSubmit, 
               label="Preço *"
               value={precoFormatado}
               onChange={(e) => setPrecoFormatado(formatPreco(e.target.value))}
-              placeholder="0,00"
               size="small"
               fullWidth
               error={!!errors.preco}
