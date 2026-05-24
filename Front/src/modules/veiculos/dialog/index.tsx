@@ -1,10 +1,10 @@
 import * as React from "react";
 import {
-  Dialog, DialogContent, DialogActions, Stack, TextField,
-  Button, IconButton, Typography, Paper, Grid, InputAdornment,
-  MenuItem, Divider, Chip, alpha, Tooltip, Autocomplete,
+  Box,
+  Stack, TextField,
+  Button, IconButton, Typography, Grid, InputAdornment,
+  MenuItem, Chip, Tooltip, Autocomplete,
 } from "@mui/material";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DirectionsCarRoundedIcon from "@mui/icons-material/DirectionsCarRounded";
 import CreditCardRoundedIcon from "@mui/icons-material/CreditCardRounded";
 import CalendarTodayRoundedIcon from "@mui/icons-material/CalendarTodayRounded";
@@ -14,9 +14,9 @@ import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import { listarClientes } from "../../../api/client";
-import { HeaderIcon } from "../../../components/styled/DialogStyles";
 import ClientDialog, { type ClientForm } from "../../clientes/dialog";
 import api from "../../../api/api";
+import { AppDialog, AppDialogActions, AppDialogContent, SectionLabel } from "../../../components/common/AppDialog";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -171,40 +171,17 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
   };
 
   return (
-    <Dialog
+    <AppDialog
       open={open}
       onClose={onClose}
-      fullWidth
       maxWidth="sm"
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
-          overflow: "hidden",
-          boxShadow: (t) => `0 24px 60px ${alpha(t.palette.common.black, 0.18)}`,
-        },
-      }}
+      title={isEdit ? "Editar veículo" : "Novo veículo"}
+      icon={<DirectionsCarRoundedIcon />}
+      variant="entity"
     >
-      {/* ── Header ── */}
-      <Paper elevation={0} square sx={{
-        px: 3, py: 2,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        bgcolor: (t) => alpha(t.palette.primary.main, 0.06),
-        borderBottom: (t) => `1px solid ${alpha(t.palette.primary.main, 0.1)}`,
-      }}>
-        <Stack direction="row" spacing={1.25} alignItems="center">
-          <HeaderIcon><DirectionsCarRoundedIcon /></HeaderIcon>
-          <Typography variant="subtitle1" fontWeight={800}>
-            {isEdit ? "Editar veículo" : "Novo veículo"}
-          </Typography>
-        </Stack>
-        <IconButton onClick={onClose} size="small">
-          <CloseRoundedIcon fontSize="small" />
-        </IconButton>
-      </Paper>
-
       {/* ── Body ── */}
-      <DialogContent sx={{ px: 3, pt: 2.5, pb: 1 }}>
-        <Grid container spacing={2}>
+      <AppDialogContent>
+        <Grid container spacing={1.5}>
 
           {/* Cliente (só no criar) */}
           {!isEdit && (
@@ -223,7 +200,7 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
                     {...params}
                     label="Cliente proprietário *"
                     error={!!errors.clienteId}
-                    helperText={errors.clienteId || " "}
+                    helperText={errors.clienteId}
                     InputProps={{
                       ...params.InputProps,
                       startAdornment: (
@@ -261,7 +238,7 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
               fullWidth size="small" label="Marca *"
               value={marca} onChange={(e) => setMarca(e.target.value)}
               placeholder="Honda, Volkswagen..."
-              error={!!errors.marca} helperText={errors.marca || " "}
+              error={!!errors.marca} helperText={errors.marca}
             />
           </Grid>
           <Grid size={6}>
@@ -269,7 +246,7 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
               fullWidth size="small" label="Modelo *"
               value={modelo} onChange={(e) => setModelo(e.target.value)}
               placeholder="Civic, Gol, Creta..."
-              error={!!errors.modelo} helperText={errors.modelo || " "}
+              error={!!errors.modelo} helperText={errors.modelo}
             />
           </Grid>
 
@@ -280,7 +257,7 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
               value={placa}
               onChange={(e) => setPlaca(formatPlaca(e.target.value))}
               placeholder="ABC-1234"
-              error={!!errors.placa} helperText={errors.placa || " "}
+              error={!!errors.placa} helperText={errors.placa}
               inputProps={{
                 maxLength: 8,
                 style: { fontFamily: "monospace", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" },
@@ -307,7 +284,6 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
               value={ano}
               onChange={(e) => setAno(e.target.value === "" ? "" : parseInt(e.target.value, 10))}
               placeholder={String(currentYear)}
-              helperText=" "
               inputProps={{ min: 1900, max: currentYear + 1 }}
               slotProps={{
                 input: {
@@ -321,13 +297,8 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
             />
           </Grid>
 
-          {/* Divider DADOS ADICIONAIS */}
           <Grid size={12}>
-            <Divider sx={{ mt: 0.5 }}>
-              <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, letterSpacing: 1 }}>
-                DADOS ADICIONAIS
-              </Typography>
-            </Divider>
+            <SectionLabel>Dados adicionais</SectionLabel>
           </Grid>
 
           {/* Cor + chips */}
@@ -336,9 +307,8 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
               fullWidth size="small" label="Cor"
               value={cor} onChange={(e) => setCor(e.target.value)}
               placeholder="Branco, Prata..."
-              helperText=" "
             />
-            <Stack direction="row" flexWrap="wrap" gap={0.5} mt={-1.5} mb={0.5}>
+            <Stack direction="row" flexWrap="wrap" gap={0.5} mt={0.5}>
               {CORES.map((c) => (
                 <Chip
                   key={c} label={c} size="small"
@@ -356,7 +326,6 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
             <TextField
               select fullWidth size="small" label="Combustível"
               value={combustivel} onChange={(e) => setCombustivel(e.target.value)}
-              helperText=" "
               slotProps={{
                 input: {
                   startAdornment: (
@@ -378,7 +347,6 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
               fullWidth size="small" label="Quilometragem" type="number"
               value={quilometragem}
               onChange={(e) => setQuilometragem(e.target.value === "" ? "" : parseInt(e.target.value, 10))}
-              helperText=" "
               slotProps={{
                 input: {
                   startAdornment: (
@@ -401,18 +369,18 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
             <TextField
               fullWidth size="small" label="Observações"
               value={observacao} onChange={(e) => setObservacao(e.target.value)}
-              multiline rows={3}
-              helperText=" "
+              multiline rows={2}
             />
           </Grid>
         </Grid>
-      </DialogContent>
+      </AppDialogContent>
 
       {/* ── Footer ── */}
-      <DialogActions sx={{ px: 3, py: 2, borderTop: (t) => `1px solid ${t.palette.divider}` }}>
+      <AppDialogActions>
         <Button
           onClick={onClose}
-          sx={{ textTransform: "none", borderRadius: 999, color: "text.secondary" }}
+          variant="outlined"
+          sx={{ borderRadius: 999 }}
         >
           Cancelar
         </Button>
@@ -420,14 +388,11 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
           variant="contained"
           onClick={handleSubmit}
           disableElevation
-          sx={{
-            textTransform: "none", borderRadius: 999, px: 3, fontWeight: 700,
-            background: (t) => `linear-gradient(135deg, ${t.palette.primary.main}, ${t.palette.primary.dark})`,
-          }}
+          sx={{ borderRadius: 999, fontWeight: 700 }}
         >
           {isEdit ? "Salvar alterações" : "Cadastrar veículo"}
         </Button>
-      </DialogActions>
+      </AppDialogActions>
 
       {/* ── Dialog: criar cliente rápido ── */}
       <ClientDialog
@@ -436,6 +401,6 @@ export default function VeiculoDialog({ open, mode, initial, onClose, onSubmit }
         onClose={() => setOpenNovoCliente(false)}
         onSubmit={handleClienteCriado}
       />
-    </Dialog>
+    </AppDialog>
   );
 }

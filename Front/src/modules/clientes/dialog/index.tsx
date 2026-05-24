@@ -1,25 +1,16 @@
 import * as React from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogActions,
   Stack,
   TextField,
   Button,
-  IconButton,
-  Typography,
-  Paper,
   Grid,
   InputAdornment,
-  Divider,
   Collapse,
   Alert,
   Box,
-  Avatar,
   CircularProgress,
-  alpha,
+  Typography,
 } from "@mui/material";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
 import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
@@ -32,7 +23,7 @@ import LocationCityRoundedIcon from "@mui/icons-material/LocationCityRounded";
 import FmdGoodRoundedIcon from "@mui/icons-material/FmdGoodRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import { HeaderIcon } from "../../../components/styled/DialogStyles";
+import { AppDialog, AppDialogActions, AppDialogContent, SectionLabel } from "../../../components/common/AppDialog";
 import { useCep } from "../../../hooks/useCep";
 import api from "../../../api/api";
 import { maskCpf, maskTelefone, maskCep } from "../../../utils/masks";
@@ -202,92 +193,20 @@ export default function ClientDialog({
     onClose();
   };
 
-  const avatarLetter = nome.trim() ? nome.trim()[0].toUpperCase() : "?";
-
   return (
-    <Dialog
+    <AppDialog
       open={open}
       onClose={onClose}
-      fullWidth
       maxWidth="md"
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
-          overflow: "hidden",
-          boxShadow: (t) => `0 24px 60px ${alpha(t.palette.common.black, 0.18)}`,
-        },
-      }}
+      title={isEdit ? "Editar cliente" : "Novo cliente"}
+      icon={<PersonRoundedIcon />}
+      variant="entity"
     >
-      {/* ── Cabeçalho ── */}
-      <Paper
-        elevation={0}
-        square
-        sx={{
-          px: 3.5,
-          py: 2.5,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          background: (t) =>
-            `linear-gradient(135deg, ${alpha(t.palette.primary.main, 0.1)} 0%, ${alpha(
-              t.palette.primary.light,
-              0.04
-            )} 100%)`,
-          borderBottom: (t) => `1px solid ${alpha(t.palette.primary.main, 0.1)}`,
-        }}
-      >
-        <Stack direction="row" spacing={1.75} alignItems="center">
-          <HeaderIcon>
-            <PersonRoundedIcon />
-          </HeaderIcon>
-          <Stack spacing={0.25}>
-            <Typography variant="h6" fontWeight={800} lineHeight={1.2}>
-              {isEdit ? "Editar cliente" : "Novo cliente"}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {isEdit
-                ? "Atualize as informações do cliente"
-                : "Preencha os dados do cliente abaixo"}
-            </Typography>
-          </Stack>
-        </Stack>
-
-        {/* Avatar preview */}
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          {nome && (
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Avatar
-                sx={{
-                  bgcolor: (t) => t.palette.primary.main,
-                  width: 36,
-                  height: 36,
-                  fontSize: 16,
-                  fontWeight: 700,
-                }}
-              >
-                {avatarLetter}
-              </Avatar>
-              <Typography variant="body2" fontWeight={600} color="text.secondary">
-                {nome.trim().split(" ")[0]}
-              </Typography>
-            </Stack>
-          )}
-          <IconButton onClick={onClose} size="small">
-            <CloseRoundedIcon fontSize="small" />
-          </IconButton>
-        </Stack>
-      </Paper>
-
-      {/* ── Conteúdo ── */}
-      <DialogContent
-        sx={{
-          px: { xs: 3, sm: 4 },
-          pt: 3,
-          pb: 2,
-          bgcolor: (t) => alpha(t.palette.background.default, 0.4),
-        }}
-      >
-        <Grid container spacing={2}>
+      <AppDialogContent>
+        <Grid container spacing={1.5}>
+          <Grid size={12}>
+            <SectionLabel>Informações gerais</SectionLabel>
+          </Grid>
 
           {/* ── Informações principais ── */}
           <Grid size={12}>
@@ -299,7 +218,7 @@ export default function ClientDialog({
               size="small"
               fullWidth
               error={!!errors.nome}
-              helperText={errors.nome || " "}
+              helperText={errors.nome}
               autoFocus
               InputProps={{
                 startAdornment: (
@@ -311,7 +230,7 @@ export default function ClientDialog({
             />
           </Grid>
 
-          <Grid size={{ xs: 12, sm: 5 }}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               label="Telefone / WhatsApp"
               value={telefone}
@@ -319,7 +238,6 @@ export default function ClientDialog({
               placeholder="(48) 99999-9999"
               size="small"
               fullWidth
-              helperText=" "
               inputProps={{ maxLength: 15 }}
               InputProps={{
                 startAdornment: (
@@ -331,7 +249,7 @@ export default function ClientDialog({
             />
           </Grid>
 
-          <Grid size={{ xs: 12, sm: 7 }}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               label="E-mail"
               value={email}
@@ -340,7 +258,7 @@ export default function ClientDialog({
               size="small"
               fullWidth
               error={!!errors.email}
-              helperText={errors.email || " "}
+              helperText={errors.email}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -357,16 +275,7 @@ export default function ClientDialog({
             />
           </Grid>
 
-          {/* ── Dados adicionais ── */}
-          <Grid size={12}>
-            <Divider>
-              <Typography variant="caption" fontWeight={700} color="text.disabled" sx={{ textTransform: "uppercase", letterSpacing: 0.8, px: 0.5 }}>
-                Dados adicionais
-              </Typography>
-            </Divider>
-          </Grid>
-
-          {/* CPF + Data de nascimento — dados pessoais */}
+          {/* CPF + Data de nascimento */}
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               label="CPF"
@@ -376,7 +285,7 @@ export default function ClientDialog({
               size="small"
               fullWidth
               error={!!errors.cpf}
-              helperText={errors.cpf || " "}
+              helperText={errors.cpf}
               inputProps={{ maxLength: 14 }}
               InputProps={{
                 startAdornment: (
@@ -402,7 +311,6 @@ export default function ClientDialog({
               onChange={(e) => setDataNascimento(e.target.value)}
               size="small"
               fullWidth
-              helperText=" "
               InputLabelProps={{ shrink: true }}
               InputProps={{
                 startAdornment: (
@@ -414,23 +322,19 @@ export default function ClientDialog({
             />
           </Grid>
 
-          {/* Separador visual — Endereço */}
           <Grid size={12}>
-            <Typography variant="caption" fontWeight={600} color="text.disabled"
-              sx={{ textTransform: "uppercase", letterSpacing: 0.7, display: "block", mb: -0.5 }}>
-              Endereço
-            </Typography>
+            <SectionLabel>Endereço</SectionLabel>
           </Grid>
 
-          {/* CEP + Número + Complemento na mesma linha */}
-          <Grid size={{ xs: 12, sm: 4, md: 3 }}>
+          {/* linha 1: CEP / Nº / Complemento / Logradouro */}
+          <Grid size={{ xs: 12, sm: 3 }}>
             <TextField
               label="CEP"
               value={maskCep(cep)}
               size="small"
               fullWidth
               error={!!cepErro}
-              helperText={cepErro ?? " "}
+              helperText={cepErro}
               onChange={(e) => {
                 const raw = e.target.value.replace(/\D/g, "").slice(0, 8);
                 handleCepChange(raw);
@@ -447,13 +351,12 @@ export default function ClientDialog({
             />
           </Grid>
 
-          <Grid size={{ xs: 5, sm: 3, md: 2 }}>
+          <Grid size={{ xs: 6, sm: 2 }}>
             <TextField
               label="Número"
               value={numero}
               size="small"
               fullWidth
-              helperText=" "
               onChange={(e) => setNumero(e.target.value)}
               InputProps={{
                 startAdornment: (
@@ -465,24 +368,22 @@ export default function ClientDialog({
             />
           </Grid>
 
-          <Grid size={{ xs: 7, sm: 5, md: 7 }}>
+          <Grid size={{ xs: 6, sm: 3 }}>
             <TextField
               label="Complemento"
               value={complemento}
               size="small"
               fullWidth
-              helperText=" "
               onChange={(e) => setComplemento(e.target.value)}
             />
           </Grid>
 
-          <Grid size={12}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               label="Logradouro"
               value={logradouro}
               size="small"
               fullWidth
-              helperText=" "
               onChange={(e) => setLogradouro(e.target.value)}
               InputProps={{
                 startAdornment: (
@@ -494,14 +395,16 @@ export default function ClientDialog({
             />
           </Grid>
 
-          <Grid size={{ xs: 9 }}>
+          {/* linha 2: Cidade / UF */}
+          <Grid size={{ xs: 12, sm: 9 }}>
             <TextField
               label="Cidade"
               value={cidadeNome}
               size="small"
               fullWidth
               disabled
-              helperText={cep.length === 8 && !cidadeNome ? "CEP não encontrou a cidade" : " "}
+              error={cep.length === 8 && !cidadeNome}
+              helperText={cep.length === 8 && !cidadeNome ? "CEP não encontrou a cidade" : undefined}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -512,14 +415,13 @@ export default function ClientDialog({
             />
           </Grid>
 
-          <Grid size={{ xs: 3 }}>
+          <Grid size={{ xs: 12, sm: 3 }}>
             <TextField
               label="UF"
               value={uf}
               size="small"
               fullWidth
               disabled
-              helperText=" "
               inputProps={{ maxLength: 2 }}
             />
           </Grid>
@@ -533,8 +435,7 @@ export default function ClientDialog({
               size="small"
               fullWidth
               multiline
-              rows={3}
-              helperText=" "
+              rows={2}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start" sx={{ alignSelf: "flex-start", mt: 1 }}>
@@ -552,18 +453,9 @@ export default function ClientDialog({
             Corrija os campos destacados antes de salvar.
           </Alert>
         </Collapse>
-      </DialogContent>
+      </AppDialogContent>
 
-      {/* ── Rodapé ── */}
-      <DialogActions
-        sx={{
-          px: 4,
-          py: 2,
-          borderTop: (t) => `1px solid ${t.palette.divider}`,
-          justifyContent: "space-between",
-          bgcolor: "background.paper",
-        }}
-      >
+      <AppDialogActions sx={{ justifyContent: "space-between" }}>
         <Box>
           {isEdit && onDelete && initial && (
             <>
@@ -572,7 +464,7 @@ export default function ClientDialog({
                   color="error"
                   startIcon={<DeleteOutlineRoundedIcon />}
                   onClick={() => setConfirmDelete(true)}
-                  sx={{ textTransform: "none", borderRadius: 999 }}
+                  sx={{ borderRadius: 999 }}
                 >
                   Excluir cliente
                 </Button>
@@ -587,15 +479,11 @@ export default function ClientDialog({
                     size="small"
                     disableElevation
                     onClick={() => onDelete(initial)}
-                    sx={{ textTransform: "none", borderRadius: 999 }}
+                    sx={{ borderRadius: 999 }}
                   >
                     Sim, excluir
                   </Button>
-                  <Button
-                    size="small"
-                    onClick={() => setConfirmDelete(false)}
-                    sx={{ textTransform: "none", borderRadius: 999 }}
-                  >
+                  <Button size="small" onClick={() => setConfirmDelete(false)} sx={{ borderRadius: 999 }}>
                     Cancelar
                   </Button>
                 </Stack>
@@ -605,29 +493,19 @@ export default function ClientDialog({
         </Box>
 
         <Stack direction="row" spacing={1.5}>
-          <Button
-            onClick={onClose}
-            sx={{ textTransform: "none", borderRadius: 999, color: "text.secondary" }}
-          >
+          <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>
             Cancelar
           </Button>
           <Button
             variant="contained"
             onClick={handleSubmit}
             disableElevation
-            sx={{
-              textTransform: "none",
-              borderRadius: 999,
-              px: 3.5,
-              fontWeight: 700,
-              background: (t) =>
-                `linear-gradient(135deg, ${t.palette.primary.main}, ${t.palette.primary.dark})`,
-            }}
+            sx={{ borderRadius: 999, fontWeight: 700 }}
           >
             {isEdit ? "Salvar alterações" : "Cadastrar cliente"}
           </Button>
         </Stack>
-      </DialogActions>
-    </Dialog>
+      </AppDialogActions>
+    </AppDialog>
   );
 }

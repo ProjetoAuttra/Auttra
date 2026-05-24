@@ -4,7 +4,7 @@ import { requirePermission } from "../middlewares/ensureAuth.js";
 
 const router = Router();
 
-router.get("/", NotificacoesController.list);
+router.get("/", requirePermission("painel", "read"), NotificacoesController.list);
 router.get("/config", requirePermission("configuracoes", "read"), NotificacoesController.getConfig);
 router.put("/config", requirePermission("configuracoes", "update"), NotificacoesController.updateConfig);
 

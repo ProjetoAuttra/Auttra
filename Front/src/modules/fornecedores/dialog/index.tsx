@@ -1,11 +1,8 @@
 import * as React from "react";
 import {
-  Dialog, DialogContent, DialogActions, Stack, TextField,
-  Button, IconButton, Typography, Paper, Grid, InputAdornment,
-  CircularProgress,
+  Box, Stack, TextField,
+  Button, Typography, Grid, InputAdornment, CircularProgress,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import BusinessRoundedIcon from "@mui/icons-material/BusinessRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
@@ -13,10 +10,12 @@ import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
 import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded";
 import NumbersRoundedIcon from "@mui/icons-material/NumbersRounded";
 import LocationCityRoundedIcon from "@mui/icons-material/LocationCityRounded";
-import LocalPostOfficeRoundedIcon from "@mui/icons-material/LocalPostOfficeRounded";
+import FmdGoodRoundedIcon from "@mui/icons-material/FmdGoodRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import { useCep } from "../../../hooks/useCep";
 import api from "../../../api/api";
 import { maskCep } from "../../../utils/masks";
+import { AppDialog, AppDialogActions, AppDialogContent, SectionLabel } from "../../../components/common/AppDialog";
 
 export type Supplier = {
   id: string;
@@ -54,18 +53,18 @@ type Props = {
   onDelete?: (supplier: Supplier) => void;
 };
 
-
 export default function SupplierDialog({ open, mode, initial, onClose, onSubmit, onDelete }: Props) {
+  const isEdit = mode === "edit";
   const { buscar, loading: cepLoading, erro: cepErro, setErro: setCepErro } = useCep();
 
   const [form, setForm] = React.useState<SupplierForm>({
     nome: "", contato: "", telefone: "", email: "",
     logradouro: "", numero: "", complemento: "", cep: "", cidade_id: null,
   });
-
-  // Campos de exibição — preenchidos pelo CEP, não salvos diretamente
   const [cidadeNome, setCidadeNome] = React.useState("");
   const [uf, setUf] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) return;
@@ -82,6 +81,7 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
     });
     setCidadeNome(initial?.cidade?.nome ?? "");
     setUf(initial?.cidade?.uf ?? "");
+    setConfirmDelete(false);
     setCepErro(null);
   }, [open, initial]);
 
@@ -91,14 +91,11 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
   const handleCepChange = async (raw: string) => {
     handleChange("cep", raw);
     if (raw.length !== 8) return;
-
     const dados = await buscar(raw);
     if (!dados) return;
-
     handleChange("logradouro", dados.logradouro);
     setCidadeNome(dados.cidade);
     setUf(dados.uf);
-
     try {
       const res = await api.post("/cidade", { nome: dados.cidade, uf: dados.uf });
       handleChange("cidade_id", res.data.id);
@@ -106,8 +103,6 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
       handleChange("cidade_id", null);
     }
   };
-
-  const [saving, setSaving] = React.useState(false);
 
   const handleSubmit = async () => {
     if (!form.nome.trim()) return;
@@ -120,61 +115,95 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm"
-      PaperProps={{ sx: { borderRadius: 4, overflow: "hidden" } }}>
-
-      <Paper elevation={0} square sx={{
-        px: 3, py: 2, display: "flex", alignItems: "center", justifyContent: "space-between",
-        bgcolor: (t) => alpha(t.palette.primary.main, 0.08),
-      }}>
-        <Stack direction="row" spacing={1.25} alignItems="center">
-          <HeaderIcon><BusinessRoundedIcon /></HeaderIcon>
-          <Stack spacing={0}>
-            <Typography variant="subtitle1" fontWeight={800}>
-              {mode === "create" ? "Novo fornecedor" : "Editar fornecedor"}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Preencha os dados do fornecedor abaixo
-            </Typography>
-          </Stack>
-        </Stack>
-        <IconButton onClick={onClose} size="small"><CloseRoundedIcon /></IconButton>
-      </Paper>
-
-      <DialogContent sx={{ px: 4, pt: 2, pb: 1 }}>
-        <Grid container spacing={2}>
-
-          {/* Dados básicos */}
+    <AppDialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      title={isEdit ? "Editar fornecedor" : "Novo fornecedor"}
+      icon={<BusinessRoundedIcon />}
+      variant="entity"
+    >
+      <AppDialogContent>
+        <Grid container spacing={1.5}>
           <Grid size={12}>
-            <TextField label="Nome do fornecedor" value={form.nome} required size="small" fullWidth
+            <SectionLabel>Dados básicos</SectionLabel>
+          </Grid>
+
+          <Grid size={12}>
+            <TextField
+              label="Nome do fornecedor *"
+              value={form.nome}
               onChange={(e) => handleChange("nome", e.target.value)}
-              InputProps={{ startAdornment: <InputAdornment position="start"><BusinessRoundedIcon fontSize="small" /></InputAdornment> }}
+              size="small"
+              fullWidth
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <BusinessRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
             />
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
-            <TextField label="Contato" value={form.contato} size="small" fullWidth
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField
+              label="Contato"
+              value={form.contato}
               onChange={(e) => handleChange("contato", e.target.value)}
-              InputProps={{ startAdornment: <InputAdornment position="start"><PersonRoundedIcon fontSize="small" /></InputAdornment> }}
+              size="small"
+              fullWidth
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PersonRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
             />
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
-            <TextField label="Telefone" value={form.telefone} size="small" fullWidth
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField
+              label="Telefone"
+              value={form.telefone}
               onChange={(e) => handleChange("telefone", e.target.value)}
-              InputProps={{ startAdornment: <InputAdornment position="start"><PhoneRoundedIcon fontSize="small" /></InputAdornment> }}
+              size="small"
+              fullWidth
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PhoneRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
             />
           </Grid>
 
           <Grid size={12}>
-            <TextField label="E-mail" value={form.email} size="small" fullWidth type="email"
+            <TextField
+              label="E-mail"
+              value={form.email}
               onChange={(e) => handleChange("email", e.target.value)}
-              InputProps={{ startAdornment: <InputAdornment position="start"><EmailRoundedIcon fontSize="small" /></InputAdornment> }}
+              size="small"
+              fullWidth
+              type="email"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <EmailRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
             />
           </Grid>
 
-          {/* Endereço */}
-          <Grid size={{ xs: 5, md: 4 }}>
+          <Grid size={12}>
+            <SectionLabel>Endereço</SectionLabel>
+          </Grid>
+
+          {/* Linha 1: CEP / Nº / Complemento / Logradouro */}
+          <Grid size={{ xs: 12, sm: 3 }}>
             <TextField
               label="CEP"
               value={maskCep(form.cep ?? "")}
@@ -191,34 +220,59 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
                   <InputAdornment position="start">
                     {cepLoading
                       ? <CircularProgress size={14} />
-                      : <LocalPostOfficeRoundedIcon fontSize="small" />}
+                      : <FmdGoodRoundedIcon fontSize="small" />}
                   </InputAdornment>
                 ),
               }}
             />
           </Grid>
 
-          <Grid size={{ xs: 3, md: 2 }}>
-            <TextField label="Número" value={form.numero} size="small" fullWidth
+          <Grid size={{ xs: 6, sm: 2 }}>
+            <TextField
+              label="Número"
+              value={form.numero}
               onChange={(e) => handleChange("numero", e.target.value)}
-              InputProps={{ startAdornment: <InputAdornment position="start"><NumbersRoundedIcon fontSize="small" /></InputAdornment> }}
+              size="small"
+              fullWidth
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <NumbersRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
             />
           </Grid>
 
-          <Grid size={{ xs: 4, md: 6 }}>
-            <TextField label="Complemento" value={form.complemento} size="small" fullWidth
+          <Grid size={{ xs: 6, sm: 3 }}>
+            <TextField
+              label="Complemento"
+              value={form.complemento}
               onChange={(e) => handleChange("complemento", e.target.value)}
+              size="small"
+              fullWidth
             />
           </Grid>
 
-          <Grid size={12}>
-            <TextField label="Logradouro" value={form.logradouro} size="small" fullWidth
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <TextField
+              label="Logradouro"
+              value={form.logradouro}
               onChange={(e) => handleChange("logradouro", e.target.value)}
-              InputProps={{ startAdornment: <InputAdornment position="start"><PlaceRoundedIcon fontSize="small" /></InputAdornment> }}
+              size="small"
+              fullWidth
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PlaceRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
             />
           </Grid>
 
-          <Grid size={9}>
+          {/* Linha 2: Cidade / UF */}
+          <Grid size={{ xs: 12, sm: 9 }}>
             <TextField
               label="Cidade"
               value={cidadeNome}
@@ -226,45 +280,76 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
               fullWidth
               disabled
               helperText={cidadeNome ? undefined : "Preenchido automaticamente pelo CEP"}
-              InputProps={{ startAdornment: <InputAdornment position="start"><LocationCityRoundedIcon fontSize="small" /></InputAdornment> }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LocationCityRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
             />
           </Grid>
 
-          <Grid size={3}>
-            <TextField label="UF" value={uf} size="small" fullWidth disabled
+          <Grid size={{ xs: 12, sm: 3 }}>
+            <TextField
+              label="UF"
+              value={uf}
+              size="small"
+              fullWidth
+              disabled
               inputProps={{ maxLength: 2 }}
             />
           </Grid>
-
         </Grid>
-      </DialogContent>
+      </AppDialogContent>
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        {mode === "edit" && onDelete && initial?.id && (
-          <Button color="error" onClick={() => { onDelete(initial!); onClose(); }}>
-            Excluir
+      <AppDialogActions sx={{ justifyContent: "space-between" }}>
+        <Box>
+          {isEdit && onDelete && initial && (
+            <>
+              {!confirmDelete ? (
+                <Button
+                  color="error"
+                  startIcon={<DeleteOutlineRoundedIcon />}
+                  onClick={() => setConfirmDelete(true)}
+                  sx={{ borderRadius: 999 }}
+                >
+                  Excluir fornecedor
+                </Button>
+              ) : (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography variant="body2" color="error" fontWeight={600}>Confirmar exclusão?</Typography>
+                  <Button
+                    color="error" variant="contained" size="small" disableElevation
+                    onClick={() => { onDelete(initial); onClose(); }}
+                    sx={{ borderRadius: 999 }}
+                  >
+                    Sim, excluir
+                  </Button>
+                  <Button size="small" onClick={() => setConfirmDelete(false)} sx={{ borderRadius: 999 }}>
+                    Cancelar
+                  </Button>
+                </Stack>
+              )}
+            </>
+          )}
+        </Box>
+
+        <Stack direction="row" spacing={1.5}>
+          <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>
+            Cancelar
           </Button>
-        )}
-        <Stack direction="row" spacing={1} sx={{ ml: "auto" }}>
-          <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
-          <Button onClick={handleSubmit} variant="contained" disabled={saving} sx={{ borderRadius: 999 }}>
-            {saving ? <CircularProgress size={18} /> : "Salvar"}
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            disableElevation
+            disabled={saving}
+            sx={{ borderRadius: 999, fontWeight: 700 }}
+          >
+            {saving ? <CircularProgress size={18} /> : (isEdit ? "Salvar alterações" : "Cadastrar fornecedor")}
           </Button>
         </Stack>
-      </DialogActions>
-    </Dialog>
-  );
-}
-
-function HeaderIcon({ children }: { children: React.ReactNode }) {
-  return (
-    <Stack sx={{
-      width: 36, height: 36, borderRadius: "50%",
-      display: "grid", placeItems: "center",
-      bgcolor: (t) => alpha(t.palette.primary.main, 0.15),
-      color: "primary.main", flexShrink: 0,
-    }}>
-      {children}
-    </Stack>
+      </AppDialogActions>
+    </AppDialog>
   );
 }

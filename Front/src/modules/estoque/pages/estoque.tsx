@@ -4,7 +4,7 @@ import {
   Box, Stack, Typography, IconButton, Menu, MenuItem, Divider,
   Avatar, Table, TableBody, TableCell, TableHead, TableRow,
   TablePagination, Fade, Chip, Button, TextField, InputAdornment,
-  Dialog, DialogContent, DialogActions, Paper, TableSortLabel,
+  Paper, TableSortLabel,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
@@ -14,6 +14,7 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import RemoveRoundedIcon from "@mui/icons-material/RemoveRounded";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import { AppDialog, AppDialogActions, AppDialogContent } from "../../../components/common/AppDialog";
 import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
@@ -360,12 +361,8 @@ export default function EstoquePage() {
       </Menu>
 
       {/* ── Dialog de Ajuste (Entrada / Saída) ─────────────────── */}
-      <Dialog open={openAjuste} onClose={() => setOpenAjuste(false)} maxWidth="xs" fullWidth
-        PaperProps={{ sx: { borderRadius: 2, overflow: "hidden" } }}>
-        <Paper elevation={0} square sx={{
-          px: 3, py: 2, display: "flex", alignItems: "center", justifyContent: "space-between",
-          bgcolor: (t) => alpha(tipoAjuste === "entrada" ? t.palette.success.main : t.palette.error.main, 0.06),
-        }}>
+      <AppDialog open={openAjuste} onClose={() => setOpenAjuste(false)} maxWidth="xs" title={tipoAjuste === "entrada" ? "Entrada de peças" : "Saída de peças"} icon={tipoAjuste === "entrada" ? <AddRoundedIcon /> : <RemoveRoundedIcon />} variant="entity">
+        <Box sx={{ display: "none" }}>
           <Stack direction="row" spacing={1.25} alignItems="center">
             <Stack sx={{
               width: 36, height: 36, borderRadius: "50%", display: "grid", placeItems: "center",
@@ -386,9 +383,9 @@ export default function EstoquePage() {
           <IconButton size="small" onClick={() => setOpenAjuste(false)}>
             <CloseRoundedIcon />
           </IconButton>
-        </Paper>
+        </Box>
 
-        <DialogContent sx={{ px: 3, pt: 3, pb: 1 }}>
+        <AppDialogContent>
           <TextField
             label="Quantidade"
             type="number"
@@ -407,9 +404,9 @@ export default function EstoquePage() {
               </Typography>
             ) : null;
           })()}
-        </DialogContent>
+        </AppDialogContent>
 
-        <DialogActions sx={{ px: 3, py: 2 }}>
+        <AppDialogActions>
           <Button onClick={() => setOpenAjuste(false)} variant="outlined" sx={{ borderRadius: 999 }}>
             Cancelar
           </Button>
@@ -422,8 +419,8 @@ export default function EstoquePage() {
           >
             {loadingAjuste ? "Salvando..." : "Confirmar"}
           </Button>
-        </DialogActions>
-      </Dialog>
+        </AppDialogActions>
+      </AppDialog>
 
       {/* ── Dialog de Cadastro/Edição ───────────────────────────── */}
       <EstoqueDialog

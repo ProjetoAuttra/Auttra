@@ -13,9 +13,6 @@ import {
   ListItemIcon,
   CircularProgress,
   Typography,
-  Dialog,
-  DialogContent,
-  DialogActions,
   Button,
   TextField,
   InputAdornment,
@@ -37,6 +34,7 @@ import { useNavigate } from "react-router-dom";
 import NotificationsMenu from "./NotificationsMenu";
 import EmpresaModal from "./EmpresaModal";
 import MeuPerfilModal from "./MeuPerfilModal";
+import { AppDialog, AppDialogActions, AppDialogContent } from "../common/AppDialog";
 
 const CARGO_LABEL: Record<string, string> = {
   administrador: "Administrador",
@@ -397,24 +395,13 @@ export default function AppTopbar({
         onChangePassword={() => setTrocaSenhaOpen(true)}
       />
 
-      <Dialog
+      <AppDialog
         open={trocaSenhaOpen}
         onClose={() => { setTrocaSenhaOpen(false); setSenhaForm({ senha_atual: "", nova_senha: "", confirmar: "" }); }}
-        fullWidth
         maxWidth="xs"
-        PaperProps={{ sx: { borderRadius: 2 } }}
+        title="Trocar senha"
       >
-        <Box sx={{ px: 3, py: 2.5, display: "flex", alignItems: "center", gap: 1.5, borderBottom: (t) => `1px solid ${t.palette.divider}` }}>
-          <Box sx={{ width: 40, height: 40, borderRadius: "50%", display: "grid", placeItems: "center", bgcolor: (t) => alpha(t.palette.primary.main, 0.12), color: "primary.main" }}>
-            <LockRoundedIcon />
-          </Box>
-          <Box>
-            <Typography variant="subtitle1" fontWeight={800}>Trocar senha</Typography>
-            <Typography variant="body2" color="text.secondary">Informe sua senha atual e a nova senha</Typography>
-          </Box>
-        </Box>
-
-        <DialogContent sx={{ px: 3, pt: 2.5, pb: 1 }}>
+        <AppDialogContent>
           <Stack spacing={2}>
             <TextField
               label="Senha atual"
@@ -442,9 +429,9 @@ export default function AppTopbar({
               InputProps={{ startAdornment: <InputAdornment position="start"><LockRoundedIcon fontSize="small" /></InputAdornment> }}
             />
           </Stack>
-        </DialogContent>
+        </AppDialogContent>
 
-        <DialogActions sx={{ px: 3, py: 2 }}>
+        <AppDialogActions>
           <Button
             onClick={() => { setTrocaSenhaOpen(false); setSenhaForm({ senha_atual: "", nova_senha: "", confirmar: "" }); }}
             variant="outlined"
@@ -461,8 +448,8 @@ export default function AppTopbar({
           >
             {savingSenha ? <CircularProgress size={18} /> : "Salvar"}
           </Button>
-        </DialogActions>
-      </Dialog>
+        </AppDialogActions>
+      </AppDialog>
     </>
   );
 }
