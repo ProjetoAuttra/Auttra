@@ -1,13 +1,7 @@
 import { prisma } from "../prisma/client.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-
-function getJwtSecret() {
-  if (!process.env.JWT_SECRET) {
-    throw new Error("JWT_SECRET nao configurado.");
-  }
-  return process.env.JWT_SECRET;
-}
+import { getJwtSecret } from "../config/env.js";
 
 export const AuthService = {
   async login(email: string, senha: string) {

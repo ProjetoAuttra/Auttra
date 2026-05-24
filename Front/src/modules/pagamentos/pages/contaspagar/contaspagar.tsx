@@ -3,7 +3,6 @@ import {
   Box, Stack, Typography, Paper, Button, IconButton, Chip, Tooltip,
   Table, TableBody, TableCell, TableHead, TableRow, TablePagination,
   Menu, MenuItem, Divider, Fade, CircularProgress, TextField, InputAdornment,
-  Dialog, DialogContent, DialogActions,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
@@ -22,6 +21,8 @@ import { useToast } from "../../../../context/ToastContext";
 import { useConfirm } from "../../../../context/ConfirmContext";
 import ModuleHeader from "../../../../components/layout/ModuleHeader";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
+import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../components/common/AppDialog";
+import api from "../../../../api/api";
 import {
   type Conta, brl, isVencido, valorLiquido, valorRestante,
   METODO_LABEL, METODO_OPTIONS,
@@ -73,9 +74,7 @@ export default function ContasPagar() {
     if (!user?.oficina_id) return;
     Promise.all([
       listarPagamentos(user.oficina_id),
-      fetch(`/api/fornecedores?oficina_id=${user.oficina_id}`)
-        .then((r) => r.json())
-        .catch(() => []),
+      api.get("/fornecedores").then((r) => r.data).catch(() => []),
     ])
       .then(([pags, forns]) => {
         setContas(pags.filter((p) => p.tipo === "pagar"));
@@ -423,25 +422,22 @@ function EditarDialog({ open, conta, onClose, onConfirm }: {
   }, [open, conta]);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-      <Box sx={{ px: 3, py: 2.5, bgcolor: (t) => alpha(t.palette.primary.main, 0.06), borderBottom: (t) => `1px solid ${t.palette.divider}` }}>
-        <Typography variant="subtitle1" fontWeight={800}>Editar conta</Typography>
-      </Box>
-      <DialogContent sx={{ pt: 2.5 }}>
+    <AppDialog open={open} onClose={onClose} maxWidth="xs" title="Editar conta" icon={<EditRoundedIcon />} variant="entity">
+      <AppDialogContent>
         <Stack spacing={2}>
           <TextField label="Descrição" value={descricao} onChange={(e) => setDescricao(e.target.value)} size="small" fullWidth />
           <TextField label="Categoria" value={categoria} onChange={(e) => setCategoria(e.target.value)} size="small" fullWidth />
           <TextField label="Observação" value={observacao} onChange={(e) => setObservacao(e.target.value)} size="small" fullWidth multiline rows={2} />
         </Stack>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} sx={{ textTransform: "none" }}>Cancelar</Button>
+      </AppDialogContent>
+      <AppDialogActions>
+        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
         <Button variant="contained" disableElevation sx={{ textTransform: "none", borderRadius: 999 }}
           onClick={() => onConfirm({ descricao, categoria, observacao })}>
           Salvar
         </Button>
-      </DialogActions>
-    </Dialog>
+      </AppDialogActions>
+    </AppDialog>
   );
 }
 
@@ -461,11 +457,8 @@ function NovaContaPagarDialog({ open, onClose, fornecedores, onConfirm }: {
   const valido = form.descricao.trim() && parseFloat(form.valor) > 0 && form.data_vencimento;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-      <Box sx={{ px: 3, py: 2.5, bgcolor: (t) => alpha(t.palette.primary.main, 0.06), borderBottom: (t) => `1px solid ${t.palette.divider}` }}>
-        <Typography variant="subtitle1" fontWeight={800}>Nova Conta a Pagar</Typography>
-      </Box>
-      <DialogContent sx={{ pt: 2.5 }}>
+    <AppDialog open={open} onClose={onClose} maxWidth="sm" title="Nova conta a pagar" icon={<TrendingDownRoundedIcon />} variant="entity">
+      <AppDialogContent>
         <Stack spacing={2}>
           <TextField select label="Fornecedor (opcional)" value={form.fornecedor_id} onChange={(e) => set("fornecedor_id", e.target.value)} size="small" fullWidth>
             <MenuItem value="">Sem fornecedor</MenuItem>
@@ -480,14 +473,14 @@ function NovaContaPagarDialog({ open, onClose, fornecedores, onConfirm }: {
           </TextField>
           <TextField label="Observação" value={form.observacao} onChange={(e) => set("observacao", e.target.value)} size="small" fullWidth multiline rows={2} />
         </Stack>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} sx={{ textTransform: "none" }}>Cancelar</Button>
+      </AppDialogContent>
+      <AppDialogActions>
+        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
         <Button variant="contained" disableElevation disabled={!valido} sx={{ textTransform: "none", borderRadius: 999 }}
           onClick={() => onConfirm({ ...form, valor: parseFloat(form.valor), fornecedor_id: form.fornecedor_id ? Number(form.fornecedor_id) : null, status: "pendente" })}>
           Salvar
         </Button>
-      </DialogActions>
-    </Dialog>
+      </AppDialogActions>
+    </AppDialog>
   );
 }

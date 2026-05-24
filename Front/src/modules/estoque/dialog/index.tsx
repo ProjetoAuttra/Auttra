@@ -1,14 +1,14 @@
 import * as React from "react";
 import {
-  Dialog, DialogContent, DialogActions, Stack, TextField,
-  Button, IconButton, Typography, Paper, Grid, InputAdornment, CircularProgress,
+  Box, Stack, TextField,
+  Button, Typography, Grid, InputAdornment, CircularProgress,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import PaidRoundedIcon from "@mui/icons-material/PaidRounded";
 import NumbersRoundedIcon from "@mui/icons-material/NumbersRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import { AppDialog, AppDialogActions, AppDialogContent, SectionLabel } from "../../../components/common/AppDialog";
 
 export type EstoqueItem = {
   id: number;
@@ -31,21 +31,14 @@ type Props = {
   onDelete?: (item: EstoqueItem) => void;
 };
 
-export default function EstoqueDialog({
-  open,
-  mode,
-  initial,
-  onClose,
-  onSubmit,
-  onDelete,
-}: Props) {
+export default function EstoqueDialog({ open, mode, initial, onClose, onSubmit, onDelete }: Props) {
+  const isEdit = mode === "edit";
+
   const [form, setForm] = React.useState<EstoqueForm>({
-    nome: "",
-    descricao: "",
-    preco_custo: 0,
-    preco_venda: 0,
-    estoque: 0,
+    nome: "", descricao: "", preco_custo: 0, preco_venda: 0, estoque: 0,
   });
+  const [saving, setSaving] = React.useState(false);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) return;
@@ -56,12 +49,11 @@ export default function EstoqueDialog({
       preco_venda: initial?.preco_venda ?? 0,
       estoque: initial?.estoque ?? 0,
     });
+    setConfirmDelete(false);
   }, [open, initial]);
 
   const handleChange = (field: keyof EstoqueForm, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
-
-  const [saving, setSaving] = React.useState(false);
 
   const handleSubmit = async () => {
     if (!form.nome.trim()) return;
@@ -74,44 +66,37 @@ export default function EstoqueDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md"
-      PaperProps={{ sx: { borderRadius: 2, overflow: "hidden" } }}>
-      <Paper
-        elevation={0}
-        square
-        sx={{
-          px: 3, py: 2, display: "flex", alignItems: "center", justifyContent: "space-between",
-          bgcolor: (t) => alpha(t.palette.primary.main, 0.06),
-        }}
-      >
-        <Stack direction="row" spacing={1.25} alignItems="center">
-          <HeaderIcon><Inventory2RoundedIcon /></HeaderIcon>
-          <Stack spacing={0}>
-            <Typography variant="subtitle1" fontWeight={800}>
-              {mode === "create" ? "Nova peça" : "Editar peça"}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Preencha as informações do produto/peça
-            </Typography>
-          </Stack>
-        </Stack>
-        <IconButton onClick={onClose} size="small">
-          <CloseRoundedIcon />
-        </IconButton>
-      </Paper>
+    <AppDialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      title={isEdit ? "Editar peça" : "Nova peça"}
+      icon={<Inventory2RoundedIcon />}
+      variant="entity"
+    >
+      <AppDialogContent>
+        <Grid container spacing={1.5}>
+          <Grid size={12}>
+            <SectionLabel>Informações da peça</SectionLabel>
+          </Grid>
 
-      <DialogContent sx={{ px: 4, pt: 2, pb: 1 }}>
-        <Grid container spacing={2}>
           <Grid size={12}>
             <TextField
-              label="Nome"
+              label="Nome *"
               value={form.nome}
               onChange={(e) => handleChange("nome", e.target.value)}
               size="small"
               fullWidth
-              InputProps={{ startAdornment: <InputAdornment position="start"><Inventory2RoundedIcon fontSize="small" /></InputAdornment> }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Inventory2RoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
             />
           </Grid>
+
           <Grid size={12}>
             <TextField
               label="Descrição"
@@ -120,10 +105,18 @@ export default function EstoqueDialog({
               size="small"
               fullWidth
               multiline
-              InputProps={{ startAdornment: <InputAdornment position="start"><DescriptionRoundedIcon fontSize="small" /></InputAdornment> }}
+              rows={2}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start" sx={{ alignSelf: "flex-start", mt: 1 }}>
+                    <DescriptionRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
             />
           </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
+
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               label="Preço de custo (R$)"
               type="number"
@@ -131,10 +124,17 @@ export default function EstoqueDialog({
               onChange={(e) => handleChange("preco_custo", parseFloat(e.target.value))}
               size="small"
               fullWidth
-              InputProps={{ startAdornment: <InputAdornment position="start"><PaidRoundedIcon fontSize="small" /></InputAdornment> }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PaidRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
             />
           </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
+
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               label="Preço de venda (R$)"
               type="number"
@@ -142,53 +142,83 @@ export default function EstoqueDialog({
               onChange={(e) => handleChange("preco_venda", parseFloat(e.target.value))}
               size="small"
               fullWidth
-              InputProps={{ startAdornment: <InputAdornment position="start"><PaidRoundedIcon fontSize="small" /></InputAdornment> }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PaidRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
             />
           </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
+
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
-              label="Estoque"
+              label="Estoque atual"
               type="number"
               value={form.estoque}
               onChange={(e) => handleChange("estoque", parseInt(e.target.value))}
               size="small"
               fullWidth
-              InputProps={{ startAdornment: <InputAdornment position="start"><NumbersRoundedIcon fontSize="small" /></InputAdornment> }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <NumbersRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
             />
           </Grid>
         </Grid>
-      </DialogContent>
+      </AppDialogContent>
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        {mode === "edit" && onDelete && initial?.id && (
-          <Button color="error" onClick={() => { onDelete(initial!); onClose(); }}>
-            Excluir
-          </Button>
-        )}
-        <Stack direction="row" spacing={1} sx={{ ml: "auto" }}>
+      <AppDialogActions sx={{ justifyContent: "space-between" }}>
+        <Box>
+          {isEdit && onDelete && initial && (
+            <>
+              {!confirmDelete ? (
+                <Button
+                  color="error"
+                  startIcon={<DeleteOutlineRoundedIcon />}
+                  onClick={() => setConfirmDelete(true)}
+                  sx={{ borderRadius: 999 }}
+                >
+                  Excluir peça
+                </Button>
+              ) : (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography variant="body2" color="error" fontWeight={600}>Confirmar exclusão?</Typography>
+                  <Button
+                    color="error" variant="contained" size="small" disableElevation
+                    onClick={() => { onDelete(initial); onClose(); }}
+                    sx={{ borderRadius: 999 }}
+                  >
+                    Sim, excluir
+                  </Button>
+                  <Button size="small" onClick={() => setConfirmDelete(false)} sx={{ borderRadius: 999 }}>
+                    Cancelar
+                  </Button>
+                </Stack>
+              )}
+            </>
+          )}
+        </Box>
+
+        <Stack direction="row" spacing={1.5}>
           <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} variant="contained" disabled={saving} sx={{ borderRadius: 999 }}>
-            {saving ? <CircularProgress size={18} /> : "Salvar"}
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            disableElevation
+            disabled={saving}
+            sx={{ borderRadius: 999, fontWeight: 700 }}
+          >
+            {saving ? <CircularProgress size={18} /> : (isEdit ? "Salvar alterações" : "Cadastrar peça")}
           </Button>
         </Stack>
-      </DialogActions>
-    </Dialog>
-  );
-}
-
-function HeaderIcon({ children }: { children: React.ReactNode }) {
-  return (
-    <Stack
-      sx={{
-        width: 36, height: 36, borderRadius: "50%",
-        display: "grid", placeItems: "center",
-        bgcolor: (t) => alpha(t.palette.primary.main, 0.15),
-        color: "primary.main", flexShrink: 0,
-      }}
-    >
-      {children}
-    </Stack>
+      </AppDialogActions>
+    </AppDialog>
   );
 }

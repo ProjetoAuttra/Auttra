@@ -6,6 +6,7 @@ export type EmpresaData = {
   cnpj?: string | null;
   email?: string | null;
   telefone?: string | null;
+  logo_url?: string | null;
   logradouro: string;
   numero: string;
   complemento?: string | null;
@@ -23,6 +24,7 @@ export async function atualizarEmpresa(payload: {
   cnpj?: string;
   email?: string;
   telefone?: string;
+  logo_url?: string | null;
   logradouro?: string;
   numero?: string;
   complemento?: string;

@@ -2,8 +2,8 @@ import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box, Typography, Stack, Paper, Tabs, Tab, CircularProgress, IconButton,
-  Avatar, Chip, Divider, Button, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, Skeleton,
+  Avatar, Chip, Divider, Button,
+  TextField, MenuItem, Select, FormControl, InputLabel, Skeleton,
 } from "@mui/material";
 
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
@@ -22,6 +22,7 @@ import api from "../../../../api/api";
 import ClienteVeiculos from "./subcomponentes/clienteveiculos";
 import ClienteOrdens from "./subcomponentes/clienteordens";
 import ClientePagamentos from "./subcomponentes/clientepagamentos";
+import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../components/common/AppDialog";
 
 // ─── Skeleton do cabeçalho ────────────────────────────────────────────────
 
@@ -260,9 +261,15 @@ export default function ClienteDetalhesPage() {
       </Box>
 
       {/* ── Dialog WhatsApp ── */}
-      <Dialog open={openWhats} onClose={() => setOpenWhats(false)} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ fontWeight: 700 }}>Enviar mensagem no WhatsApp</DialogTitle>
-        <DialogContent dividers>
+      <AppDialog
+        open={openWhats}
+        onClose={() => setOpenWhats(false)}
+        maxWidth="sm"
+        title="Enviar mensagem no WhatsApp"
+        icon={<WhatsAppIcon />}
+        variant="entity"
+      >
+        <AppDialogContent>
           <Stack spacing={2.5}>
             <FormControl fullWidth size="small">
               <InputLabel>Modelo de mensagem</InputLabel>
@@ -277,15 +284,15 @@ export default function ClienteDetalhesPage() {
             <TextField label="Mensagem" multiline rows={4} fullWidth value={mensagem}
               onChange={(e) => setMensagem(e.target.value)} />
           </Stack>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setOpenWhats(false)} color="inherit">Cancelar</Button>
+        </AppDialogContent>
+        <AppDialogActions>
+          <Button onClick={() => setOpenWhats(false)} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
           <Button variant="contained" onClick={enviarWhats} disabled={!mensagem}
             sx={{ bgcolor: "#25D366", "&:hover": { bgcolor: "#1CA653" }, textTransform: "none", fontWeight: 700, borderRadius: 999 }}>
             Enviar
           </Button>
-        </DialogActions>
-      </Dialog>
+        </AppDialogActions>
+      </AppDialog>
 
       {/* ── Dialog Editar Cliente ── */}
       {cliente && (

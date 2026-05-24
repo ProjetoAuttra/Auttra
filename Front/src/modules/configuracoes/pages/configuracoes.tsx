@@ -13,9 +13,6 @@ import {
   Chip,
   Checkbox,
   CircularProgress,
-  Dialog,
-  DialogContent,
-  DialogActions,
   MenuItem,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
@@ -31,7 +28,6 @@ import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded';
 import SecurityRoundedIcon from '@mui/icons-material/SecurityRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
-import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutlined';
 import EventOutlineIcon from '@mui/icons-material/EventOutlined';
 import PaymentsOutlineIcon from '@mui/icons-material/PaymentsOutlined';
@@ -69,6 +65,7 @@ import {
 import { useSearchParams } from 'react-router-dom';
 import { useToast } from '../../../context/ToastContext';
 import { useConfirm } from '../../../context/ConfirmContext';
+import { AppDialog, AppDialogActions, AppDialogContent } from '../../../components/common/AppDialog';
 
 type Section = 'perfis' | 'agenda' | 'financeiro' | 'notificacoes';
 
@@ -597,36 +594,15 @@ function AccessProfilesManager() {
         })}
       </Stack>
 
-      <Dialog
+      <AppDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        fullWidth
         maxWidth="md"
-        PaperProps={{ sx: { borderRadius: 1, overflow: 'hidden' } }}
+        title={selectedId ? 'Editar perfil' : 'Novo perfil'}
+        icon={<SecurityRoundedIcon />}
+        variant="entity"
       >
-        <Box sx={{ px: 3, pt: 2.5, pb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Box
-              sx={(t) => ({
-                width: 44,
-                height: 44,
-                borderRadius: '50%',
-                display: 'grid',
-                placeItems: 'center',
-                bgcolor: alpha(t.palette.primary.main, 0.11),
-                color: t.palette.primary.main,
-              })}
-            >
-              <SecurityRoundedIcon />
-            </Box>
-            <Typography variant="h6">{selectedId ? 'Editar perfil' : 'Novo perfil'}</Typography>
-          </Stack>
-          <IconButton onClick={() => setDialogOpen(false)}>
-            <CloseRoundedIcon />
-          </IconButton>
-        </Box>
-
-        <DialogContent sx={{ px: 3, pt: 1, pb: 0 }}>
+        <AppDialogContent>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} mb={2.5}>
             <TextField
               label="Nome"
@@ -699,21 +675,21 @@ function AccessProfilesManager() {
               })}
             </Stack>
           </Box>
-        </DialogContent>
+        </AppDialogContent>
 
-        <DialogActions sx={{ px: 3, py: 2 }}>
+        <AppDialogActions>
           {selectedId && (
             <Button startIcon={<DeleteRoundedIcon />} color="error" onClick={remove}>
               Excluir
             </Button>
           )}
           <Box sx={{ flex: 1 }} />
-          <Button onClick={() => setDialogOpen(false)}>Cancelar</Button>
-          <Button variant="contained" onClick={save} disabled={saving}>
+          <Button onClick={() => setDialogOpen(false)} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
+          <Button variant="contained" onClick={save} disabled={saving} disableElevation sx={{ borderRadius: 999 }}>
             Salvar
           </Button>
-        </DialogActions>
-      </Dialog>
+        </AppDialogActions>
+      </AppDialog>
     </Stack>
   );
 }

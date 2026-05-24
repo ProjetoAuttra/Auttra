@@ -51,6 +51,13 @@ function normalizeEmail(value: unknown) {
   return email;
 }
 
+function optionalLogo(value: unknown) {
+  const logo = optionalText(value);
+  if (!logo) return null;
+  if (!logo.startsWith("data:image/")) throw new Error("Logo invalida.");
+  return logo;
+}
+
 async function ensureUnique(field: "nome" | "cnpj" | "email", value: string | null, oficinaId?: number) {
   if (!value) return;
 
@@ -141,6 +148,7 @@ export const OficinaService = {
       validateExactLength(patch.cnpj, 14, "CNPJ");
     }
     if (data?.email !== undefined) patch.email = normalizeEmail(data.email);
+    if (data?.logo_url !== undefined) patch.logo_url = optionalLogo(data.logo_url);
     if (data?.telefone !== undefined) {
       patch.telefone = optionalDigits(data.telefone);
       if (patch.telefone && ![10, 11].includes(patch.telefone.length)) {

@@ -40,6 +40,7 @@ type Ordem = {
   cliente?: { nome?: string | null };
   veiculo?: { modelo?: string | null; placa?: string | null };
   funcionario?: { id?: number; nome?: string | null };
+  pagamentos?: { status: string }[];
 };
 
 type OrdemPayload = Record<string, unknown>;
@@ -242,6 +243,7 @@ export default function OrdensPage() {
                   <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Mecânico</TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Valor</TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Pagamento</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}></TableCell>
                 </TableRow>
               </TableHead>
@@ -274,6 +276,16 @@ export default function OrdensPage() {
                       <TableCell>
                         <Chip label={st.label} size="small" color={st.color} sx={{ fontWeight: 700, fontSize: 11 }} />
                       </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const pags = r.pagamentos ?? [];
+                          if (pags.length === 0) return <Typography variant="caption" color="text.disabled">—</Typography>;
+                          if (pags.some((p) => p.status === "pago")) return <Chip label="Pago" size="small" color="success" sx={{ fontWeight: 700, fontSize: 11 }} />;
+                          if (pags.some((p) => p.status === "parcial")) return <Chip label="Parcial" size="small" color="warning" sx={{ fontWeight: 700, fontSize: 11 }} />;
+                          if (pags.every((p) => p.status === "cancelado")) return <Typography variant="caption" color="text.disabled">Cancelado</Typography>;
+                          return <Chip label="Pendente" size="small" sx={{ fontWeight: 700, fontSize: 11, bgcolor: (t) => alpha(t.palette.warning.main, 0.12), color: "warning.dark" }} />;
+                        })()}
+                      </TableCell>
                       <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                         <IconButton size="small" onClick={(e) => handleMenuOpen(e, r.id)}>
                           <MoreVertRoundedIcon fontSize="small" />
@@ -283,7 +295,7 @@ export default function OrdensPage() {
                   );
                 }) : (
                   <TableRow>
-                    <TableCell colSpan={7} sx={{ border: 0 }}>
+                    <TableCell colSpan={8} sx={{ border: 0 }}>
                       <EmptyState
                         illustration={<IllustrationOS />}
                         icon={<AssignmentRoundedIcon />}

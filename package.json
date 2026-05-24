@@ -1,0 +1,26 @@
+{
+  "name": "driveon",
+  "version": "1.0.0",
+  "description": "Driveon test orchestration",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LucasGasparA/Driveon.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "private": true,
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/LucasGasparA/Driveon/issues"
+  },
+  "homepage": "https://github.com/LucasGasparA/Driveon#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "wait-on": "^9.0.10"
+  }
+}
