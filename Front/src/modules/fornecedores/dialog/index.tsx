@@ -118,6 +118,9 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
     <AppDialog
       open={open}
       onClose={onClose}
+      onCloseClick={onClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
       maxWidth="sm"
       title={isEdit ? "Editar fornecedor" : "Novo fornecedor"}
       icon={<BusinessRoundedIcon />}

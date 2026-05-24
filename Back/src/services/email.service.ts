@@ -5,8 +5,8 @@ type SendEmailInput = {
 };
 
 const RESEND_API_URL = "https://api.resend.com/emails";
-const DEFAULT_FROM = "DriveOn <onboarding@resend.dev>";
-const VERIFIED_FROM = "DriveOn <no-reply@driveon.com.br>";
+const DEFAULT_FROM = "DriveOn <no-reply@driveonn.com.br>";
+const FALLBACK_TEST_FROM = "DriveOn <onboarding@resend.dev>";
 
 export class EmailDeliveryError extends Error {
   constructor(
@@ -51,5 +51,5 @@ export async function sendEmail({ to, subject, html }: SendEmailInput) {
 
 export const emailSenders = {
   current: DEFAULT_FROM,
-  futureVerifiedDomain: VERIFIED_FROM,
+  resendTestDomain: FALLBACK_TEST_FROM,
 };

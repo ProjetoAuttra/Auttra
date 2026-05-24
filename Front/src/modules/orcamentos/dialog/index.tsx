@@ -26,6 +26,7 @@ export type OrcamentoForm = {
   descricao: string;
   valor: number;
   data: string;
+  validade?: string | null;
   itens: OrcamentoItem[];
 };
 
@@ -45,6 +46,7 @@ export type Orcamento = {
   descricao: string;
   valor: number;
   data: string;
+  validade?: string | null;
   status: "analise" | "aprovado" | "recusado";
   cliente: { id: number; nome: string };
   veiculo: { id: number; modelo: string; placa: string };
@@ -71,6 +73,12 @@ function parsePreco(formatted: string): number {
   return parseFloat(formatted.replace(/\./g, "").replace(",", ".")) || 0;
 }
 
+function dateInputAfterDays(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().split("T")[0];
+}
+
 export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit, onDelete }: Props) {
   const { user } = useAuth();
   const isEdit = mode === "edit";
@@ -89,6 +97,7 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
   const [descricao, setDescricao] = React.useState("");
   const [precoFormatado, setPrecoFormatado] = React.useState("");
   const [data, setData] = React.useState(new Date().toISOString().split("T")[0]);
+  const [validade, setValidade] = React.useState(dateInputAfterDays(7));
   const [itens, setItens] = React.useState<OrcamentoItem[]>([]);
   const [selecaoAberta, setSelecaoAberta] = React.useState<null | "servico" | "peca">(null);
   const [selecionadoItem, setSelecionadoItem] = React.useState<any | null>(null);
@@ -164,6 +173,7 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
         : ""
     );
     setData(initial?.data ? initial.data.split("T")[0] : new Date().toISOString().split("T")[0]);
+    setValidade(initial?.validade ? initial.validade.split("T")[0] : dateInputAfterDays(7));
     setItens((initial?.itens ?? []).map((i: any) => ({
       id: i.id,
       tipo_item: i.tipo_item,
@@ -186,7 +196,7 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
   React.useEffect(() => {
     if (submitAttempted) validate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clienteId, veiculoId, descricao, precoFormatado, itens]);
+  }, [clienteId, veiculoId, descricao, precoFormatado, itens, validade]);
 
   const totalItens = itens.reduce((sum, item) => sum + Number(item.subtotal ?? 0), 0);
 
@@ -230,7 +240,6 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
     const errs: Record<string, string> = {};
     if (!clienteId) errs.clienteId = "Selecione o cliente";
     if (!veiculoId) errs.veiculoId = "Selecione o veículo";
-    if (!descricao.trim()) errs.descricao = "Descreva os serviços do orçamento";
     const preco = totalItens > 0 ? totalItens : parsePreco(precoFormatado);
     if (!preco || preco <= 0) errs.valor = "Informe um valor válido";
     setErrors(errs);
@@ -244,7 +253,9 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
       clienteId, veiculoId,
       descricao: descricao.trim(),
       valor: totalItens > 0 ? totalItens : parsePreco(precoFormatado),
-      data, itens,
+      data,
+      validade: validade || null,
+      itens,
     });
     onClose();
   };
@@ -255,6 +266,9 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
     <AppDialog
       open={open}
       onClose={onClose}
+      onCloseClick={onClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
       maxWidth="md"
       title={isEdit ? "Editar orçamento" : "Novo orçamento"}
       icon={<RequestQuoteRoundedIcon />}
@@ -468,10 +482,9 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
 
           <Grid size={12}>
             <TextField
-              label="Descrição dos serviços *"
+              label="Descrição dos serviços"
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
-              placeholder="Ex.: Troca de óleo + filtro, alinhamento, balanceamento..."
               size="small"
               fullWidth
               multiline
@@ -488,13 +501,12 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
             />
           </Grid>
 
-          <Grid size={{ xs: 12, sm: 6 }}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               label="Valor total *"
               value={totalItens > 0 ? totalItens.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : precoFormatado}
               onChange={(e) => setPrecoFormatado(formatPreco(e.target.value))}
               disabled={totalItens > 0}
-              placeholder="0,00"
               size="small"
               fullWidth
               error={!!errors.valor}
@@ -511,12 +523,31 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
             />
           </Grid>
 
-          <Grid size={{ xs: 12, sm: 6 }}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               label="Data do orçamento"
               type="date"
               value={data}
               onChange={(e) => setData(e.target.value)}
+              size="small"
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <CalendarTodayRoundedIcon fontSize="small" color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <TextField
+              label="Válido até"
+              type="date"
+              value={validade}
+              onChange={(e) => setValidade(e.target.value)}
               size="small"
               fullWidth
               InputLabelProps={{ shrink: true }}

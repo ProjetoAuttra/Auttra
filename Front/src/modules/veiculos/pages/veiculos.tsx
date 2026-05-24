@@ -85,6 +85,7 @@ export default function VeiculosPage() {
         const novo = await criarVeiculo(data, user.oficina_id);
         setRows((prev) => [novo, ...prev]);
         success("Veículo cadastrado com sucesso!");
+        nav(`/veiculos/${novo.id}`);
       } else if (current) {
         const atualizado = await atualizarVeiculo(current.id, data);
         setRows((prev) => prev.map((r) => (r.id === current.id ? atualizado : r)));

@@ -41,6 +41,9 @@ export default function MeuPerfilModal({ open, onClose, onChangePassword }: Prop
     <AppDialog
       open={open}
       onClose={onClose}
+      onCloseClick={onClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
       maxWidth="sm"
       title="Meu perfil"
     >

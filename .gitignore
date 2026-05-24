@@ -34,6 +34,13 @@ coverage/
 .cache/
 .vite/
 
+# Playwright artifacts
+playwright-report/
+test-results/
+
+# TypeScript incremental builds
+*.tsbuildinfo
+
 # Local platform/editor files
 .DS_Store
 Thumbs.db

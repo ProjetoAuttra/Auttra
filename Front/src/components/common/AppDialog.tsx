@@ -15,14 +15,43 @@ type AppDialogProps = Omit<DialogProps, "title"> & {
   title: React.ReactNode;
   icon?: React.ReactNode;
   variant?: "simple" | "entity";
+  closeOnBackdrop?: boolean;
+  closeOnEscape?: boolean;
+  onCloseClick?: () => void;
 };
 
-export function AppDialog({ title, icon, variant = "simple", children, PaperProps, ...props }: AppDialogProps) {
+export function AppDialog({
+  title,
+  icon,
+  variant = "simple",
+  children,
+  PaperProps,
+  closeOnBackdrop = true,
+  closeOnEscape = true,
+  onClose,
+  onCloseClick,
+  ...props
+}: AppDialogProps) {
   const isEntity = variant === "entity";
+
+  const handleClose: DialogProps["onClose"] = (event, reason) => {
+    if (reason === "backdropClick" && !closeOnBackdrop) return;
+    if (reason === "escapeKeyDown" && !closeOnEscape) return;
+    onClose?.(event, reason);
+  };
+
+  const handleCloseButton = () => {
+    if (onCloseClick) {
+      onCloseClick();
+      return;
+    }
+    onClose?.({} as React.SyntheticEvent, "escapeKeyDown");
+  };
 
   return (
     <Dialog
       fullWidth
+      onClose={handleClose}
       PaperProps={{
         ...PaperProps,
         sx: {
@@ -68,7 +97,7 @@ export function AppDialog({ title, icon, variant = "simple", children, PaperProp
             {title}
           </Typography>
         </Box>
-        <IconButton onClick={(event) => props.onClose?.(event, "escapeKeyDown")} size="small">
+        <IconButton onClick={handleCloseButton} size="small">
           <CloseRoundedIcon />
         </IconButton>
       </Box>

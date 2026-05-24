@@ -27,7 +27,7 @@ export default function ResetPassword() {
     setMessage(null);
 
     if (!token) {
-      setError("Link de recuperação inválido.");
+      setError("Link de recuperacao invalido.");
       return;
     }
     if (password.length < 6) {
@@ -35,17 +35,17 @@ export default function ResetPassword() {
       return;
     }
     if (password !== confirm) {
-      setError("A confirmação não corresponde à nova senha.");
+      setError("A confirmacao nao corresponde a nova senha.");
       return;
     }
 
     try {
       setLoading(true);
       await api.post("/auth/reset-password", { token, nova_senha: password });
-      setMessage("Senha redefinida com sucesso. Você já pode entrar com a nova senha.");
+      setMessage("Senha redefinida com sucesso. Voce ja pode entrar com a nova senha.");
       setTimeout(() => nav(paths.login, { replace: true }), 1800);
     } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Não foi possível redefinir a senha.");
+      setError(err?.response?.data?.message ?? "Nao foi possivel redefinir a senha.");
     } finally {
       setLoading(false);
     }

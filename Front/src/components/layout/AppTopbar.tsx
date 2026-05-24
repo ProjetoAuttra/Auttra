@@ -70,6 +70,7 @@ export default function AppTopbar({
   const [empresaOpen, setEmpresaOpen] = useState(false);
   const [meuPerfilOpen, setMeuPerfilOpen] = useState(false);
   const [trocaSenhaOpen, setTrocaSenhaOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [senhaForm, setSenhaForm] = useState({ senha_atual: "", nova_senha: "", confirmar: "" });
   const [savingSenha, setSavingSenha] = useState(false);
 
@@ -380,7 +381,13 @@ export default function AppTopbar({
 
             <Divider sx={{ my: 0.5 }} />
 
-            <MenuItem onClick={handleLogout} sx={{ py: 1.25, color: "error.main", mb: 0.5 }}>
+            <MenuItem
+              onClick={() => {
+                setAnchorEl(null);
+                setLogoutConfirmOpen(true);
+              }}
+              sx={{ py: 1.25, color: "error.main", mb: 0.5 }}
+            >
               <ListItemIcon><LogoutRoundedIcon fontSize="small" color="error" /></ListItemIcon>
               <Typography variant="body2" color="error">Sair</Typography>
             </MenuItem>
@@ -398,6 +405,9 @@ export default function AppTopbar({
       <AppDialog
         open={trocaSenhaOpen}
         onClose={() => { setTrocaSenhaOpen(false); setSenhaForm({ senha_atual: "", nova_senha: "", confirmar: "" }); }}
+        onCloseClick={() => { setTrocaSenhaOpen(false); setSenhaForm({ senha_atual: "", nova_senha: "", confirmar: "" }); }}
+        closeOnBackdrop={false}
+        closeOnEscape={false}
         maxWidth="xs"
         title="Trocar senha"
       >
@@ -447,6 +457,43 @@ export default function AppTopbar({
             sx={{ borderRadius: 999, fontWeight: 700 }}
           >
             {savingSenha ? <CircularProgress size={18} /> : "Salvar"}
+          </Button>
+        </AppDialogActions>
+      </AppDialog>
+
+      <AppDialog
+        open={logoutConfirmOpen}
+        onClose={() => setLogoutConfirmOpen(false)}
+        onCloseClick={() => setLogoutConfirmOpen(false)}
+        closeOnBackdrop={false}
+        closeOnEscape={false}
+        maxWidth="xs"
+        title="Sair do sistema"
+        icon={<LogoutRoundedIcon />}
+        variant="entity"
+      >
+        <AppDialogContent>
+          <Typography variant="body2" color="text.secondary">
+            Tem certeza que deseja sair da sua conta?
+          </Typography>
+        </AppDialogContent>
+
+        <AppDialogActions>
+          <Button
+            onClick={() => setLogoutConfirmOpen(false)}
+            variant="outlined"
+            sx={{ borderRadius: 999 }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleLogout}
+            variant="contained"
+            color="error"
+            disableElevation
+            sx={{ borderRadius: 999, fontWeight: 700 }}
+          >
+            Sair
           </Button>
         </AppDialogActions>
       </AppDialog>

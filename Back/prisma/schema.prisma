@@ -509,6 +509,7 @@ model orcamento {
   descricao  String
   valor      Decimal
   data       DateTime
+  validade   DateTime?
   status     status_orcamento  @default(analise)
 
   cliente_id Int

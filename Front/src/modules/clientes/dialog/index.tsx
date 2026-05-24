@@ -26,7 +26,7 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import { AppDialog, AppDialogActions, AppDialogContent, SectionLabel } from "../../../components/common/AppDialog";
 import { useCep } from "../../../hooks/useCep";
 import api from "../../../api/api";
-import { maskCpf, maskTelefone, maskCep } from "../../../utils/masks";
+import { maskCpf, maskCnpj, maskTelefone, maskCep } from "../../../utils/masks";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -86,6 +86,34 @@ function isCPFValido(cpf: string): boolean {
   return r === parseInt(d[10]);
 }
 
+function isCNPJValido(cnpj: string): boolean {
+  const d = cnpj.replace(/\D/g, "");
+  if (d.length !== 14 || /^(\d)\1+$/.test(d)) return false;
+
+  const calc = (base: string, weights: number[]) => {
+    const sum = weights.reduce((acc, weight, index) => acc + Number(base[index]) * weight, 0);
+    const rest = sum % 11;
+    return rest < 2 ? 0 : 11 - rest;
+  };
+
+  const digit1 = calc(d.slice(0, 12), [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  const digit2 = calc(d.slice(0, 13), [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  return digit1 === Number(d[12]) && digit2 === Number(d[13]);
+}
+
+function maskCpfCnpj(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  return digits.length > 11 ? maskCnpj(digits) : maskCpf(digits);
+}
+
+function isDocumentoValido(value: string): boolean {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return true;
+  if (digits.length === 11) return isCPFValido(digits);
+  if (digits.length === 14) return isCNPJValido(digits);
+  return false;
+}
+
 function isEmailValido(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
@@ -126,7 +154,7 @@ export default function ClientDialog({
     if (!open) return;
     setNome(initial?.nome ?? "");
     setEmail(initial?.email ?? "");
-    setCpf(initial?.cpf ? maskCpf(initial.cpf) : "");
+    setCpf(initial?.cpf ? maskCpfCnpj(initial.cpf) : "");
     setTelefone(initial?.telefone ? maskTelefone(initial.telefone) : "");
     setDataNascimento(initial?.data_nascimento ?? "");
     setObservacao(initial?.observacao ?? "");
@@ -153,7 +181,7 @@ export default function ClientDialog({
     const errs: Record<string, string> = {};
     if (!nome.trim()) errs.nome = "Informe o nome do cliente";
     if (email && !isEmailValido(email)) errs.email = "E-mail inválido";
-    if (cpf && !isCPFValido(cpf)) errs.cpf = "CPF inválido";
+    if (cpf && !isDocumentoValido(cpf)) errs.cpf = "CPF/CNPJ inválido";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -197,6 +225,9 @@ export default function ClientDialog({
     <AppDialog
       open={open}
       onClose={onClose}
+      onCloseClick={onClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
       maxWidth="md"
       title={isEdit ? "Editar cliente" : "Novo cliente"}
       icon={<PersonRoundedIcon />}
@@ -211,10 +242,9 @@ export default function ClientDialog({
           {/* ── Informações principais ── */}
           <Grid size={12}>
             <TextField
-              label="Nome completo *"
+              label="Nome / Razão social *"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
-              placeholder="Ex.: João da Silva"
               size="small"
               fullWidth
               error={!!errors.nome}
@@ -235,7 +265,6 @@ export default function ClientDialog({
               label="Telefone / WhatsApp"
               value={telefone}
               onChange={(e) => setTelefone(maskTelefone(e.target.value))}
-              placeholder="(48) 99999-9999"
               size="small"
               fullWidth
               inputProps={{ maxLength: 15 }}
@@ -254,7 +283,6 @@ export default function ClientDialog({
               label="E-mail"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="exemplo@email.com"
               size="small"
               fullWidth
               error={!!errors.email}
@@ -275,18 +303,17 @@ export default function ClientDialog({
             />
           </Grid>
 
-          {/* CPF + Data de nascimento */}
+          {/* Documento + data */}
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
-              label="CPF"
+              label="CPF/CNPJ"
               value={cpf}
-              onChange={(e) => setCpf(maskCpf(e.target.value))}
-              placeholder="000.000.000-00"
+              onChange={(e) => setCpf(maskCpfCnpj(e.target.value))}
               size="small"
               fullWidth
               error={!!errors.cpf}
               helperText={errors.cpf}
-              inputProps={{ maxLength: 14 }}
+              inputProps={{ maxLength: 18 }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -294,7 +321,7 @@ export default function ClientDialog({
                   </InputAdornment>
                 ),
                 endAdornment:
-                  cpf && isCPFValido(cpf) ? (
+                  cpf && isDocumentoValido(cpf) ? (
                     <InputAdornment position="end">
                       <CheckCircleOutlineRoundedIcon fontSize="small" color="success" />
                     </InputAdornment>
@@ -305,7 +332,7 @@ export default function ClientDialog({
 
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
-              label="Data de nascimento"
+              label="Nascimento / Fundação"
               type="date"
               value={dataNascimento}
               onChange={(e) => setDataNascimento(e.target.value)}
@@ -431,7 +458,6 @@ export default function ClientDialog({
               label="Observações"
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
-              placeholder="Preferências, histórico, informações relevantes..."
               size="small"
               fullWidth
               multiline

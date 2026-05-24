@@ -65,6 +65,9 @@ export default function DialogAgendamento({
       <AppDialog
         open={open}
         onClose={handleClose}
+        onCloseClick={handleClose}
+        closeOnBackdrop={false}
+        closeOnEscape={false}
         maxWidth="sm"
         title="Nova tarefa"
         icon={<CalendarMonthRoundedIcon />}
@@ -83,7 +86,6 @@ export default function DialogAgendamento({
                 <TextField
                   {...field}
                   label="Titulo"
-                  placeholder="Ex.: Troca de vela - Civic 2009"
                   autoFocus
                   error={!!errors.title}
                   helperText={errors.title?.message}
@@ -120,7 +122,6 @@ export default function DialogAgendamento({
                 <TextField
                   {...field}
                   label="Descricao (opcional)"
-                  placeholder="Detalhes, observacoes..."
                   multiline
                   minRows={3}
                   error={!!errors.description}

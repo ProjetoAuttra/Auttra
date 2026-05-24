@@ -181,6 +181,9 @@ export default function EmpresaModal({ open, onClose }: Props) {
     <AppDialog
       open={open}
       onClose={onClose}
+      onCloseClick={onClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
       maxWidth="md"
       title="Dados da Empresa"
     >
@@ -318,7 +321,6 @@ export default function EmpresaModal({ open, onClose }: Props) {
                     fullWidth
                     value={form.cnpj}
                     onChange={(e) => set("cnpj", maskCnpj(e.target.value))}
-                    placeholder="XX.XXX.XXX/XXXX-XX"
                     inputProps={{ maxLength: 18 }}
                     InputProps={{
                       startAdornment: (
@@ -336,7 +338,6 @@ export default function EmpresaModal({ open, onClose }: Props) {
                     fullWidth
                     value={form.telefone}
                     onChange={(e) => set("telefone", maskTelefone(e.target.value))}
-                    placeholder="(XX) X XXXX-XXXX"
                     inputProps={{ maxLength: 16 }}
                     InputProps={{
                       startAdornment: (
@@ -380,7 +381,6 @@ export default function EmpresaModal({ open, onClose }: Props) {
                     value={form.cep}
                     onChange={(e) => set("cep", maskCep(e.target.value))}
                     onBlur={handleCepBlur}
-                    placeholder="XXXXX-XXX"
                     inputProps={{ maxLength: 9 }}
                     InputProps={{
                       startAdornment: (
@@ -427,7 +427,6 @@ export default function EmpresaModal({ open, onClose }: Props) {
                     fullWidth
                     value={form.complemento}
                     onChange={(e) => set("complemento", e.target.value)}
-                    placeholder="Apto, sala, bloco..."
                   />
                 </Grid>
 

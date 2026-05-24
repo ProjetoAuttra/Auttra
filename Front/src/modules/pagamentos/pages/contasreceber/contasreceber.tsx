@@ -422,7 +422,7 @@ function EditarDialog({ open, conta, onClose, onConfirm }: {
   }, [open, conta]);
 
   return (
-    <AppDialog open={open} onClose={onClose} maxWidth="xs" title="Editar conta" icon={<EditRoundedIcon />} variant="entity">
+    <AppDialog open={open} onClose={onClose} onCloseClick={onClose} closeOnBackdrop={false} closeOnEscape={false} maxWidth="xs" title="Editar conta" icon={<EditRoundedIcon />} variant="entity">
       <AppDialogContent>
         <Stack spacing={2}>
           <TextField label="Descrição" value={descricao} onChange={(e) => setDescricao(e.target.value)} size="small" fullWidth />
@@ -457,7 +457,7 @@ function NovaContaReceberDialog({ open, onClose, clientes, onConfirm }: {
   const valido = form.descricao.trim() && parseFloat(form.valor) > 0 && form.data_vencimento;
 
   return (
-    <AppDialog open={open} onClose={onClose} maxWidth="sm" title="Nova conta a receber" icon={<TrendingUpRoundedIcon />} variant="entity">
+    <AppDialog open={open} onClose={onClose} onCloseClick={onClose} closeOnBackdrop={false} closeOnEscape={false} maxWidth="sm" title="Nova conta a receber" icon={<TrendingUpRoundedIcon />} variant="entity">
       <AppDialogContent>
         <Stack spacing={2}>
           <TextField select label="Cliente (opcional)" value={form.cliente_id} onChange={(e) => set("cliente_id", e.target.value)} size="small" fullWidth>

@@ -2,10 +2,12 @@ import * as React from "react";
 import {
   Table, TableHead, TableRow, TableCell, TableBody,
   Typography, Paper, Chip, Stack, Box, IconButton, Menu, MenuItem,
-  Divider, Tooltip,
+  Divider, Tooltip, Button, TextField, InputAdornment,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import PaymentsRoundedIcon from "@mui/icons-material/PaymentsRounded";
@@ -19,9 +21,11 @@ import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import { useToast } from "../../../../../context/ToastContext";
 import { useConfirm } from "../../../../../context/ConfirmContext";
 import ListTableContainer from "../../../../../components/common/ListTableContainer";
+import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../../components/common/AppDialog";
 import {
   type Conta, brl, isVencido, valorLiquido, valorRestante,
-  METODO_LABEL,
+  METODO_LABEL, METODO_OPTIONS,
+  criarPagamento,
   marcarComoPago, registrarParcial, aplicarDesconto, renegociarPrazo,
   parcelar, cancelarPagamento,
 } from "../../../../pagamentos/api/api";
@@ -49,7 +53,15 @@ function StatusChip({ conta }: { conta: Conta }) {
   return <Chip label="Pendente" size="small" color="warning" sx={{ fontWeight: 700, fontSize: 11 }} />;
 }
 
-export default function ClientePagamentos({ pagamentos: pagamentosInit }: { pagamentos: any[] }) {
+export default function ClientePagamentos({
+  pagamentos: pagamentosInit,
+  clienteId,
+  oficinaId,
+}: {
+  pagamentos: any[];
+  clienteId: number;
+  oficinaId: number;
+}) {
   const { success, error } = useToast();
   const confirm = useConfirm();
 
@@ -57,6 +69,7 @@ export default function ClientePagamentos({ pagamentos: pagamentosInit }: { paga
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [selected, setSelected] = React.useState<Conta | null>(null);
   const [acao, setAcao] = React.useState<Acao>(null);
+  const [dialogNova, setDialogNova] = React.useState(false);
 
   React.useEffect(() => {
     setContas((pagamentosInit ?? []) as Conta[]);
@@ -105,11 +118,46 @@ export default function ClientePagamentos({ pagamentos: pagamentosInit }: { paga
     }
   };
 
+  const handleCriarPagamento = async (payload: any) => {
+    if (!clienteId || !oficinaId) {
+      error("Nao foi possivel identificar cliente ou oficina.");
+      return;
+    }
+    try {
+      const nova = await criarPagamento({
+        ...payload,
+        tipo: "receber",
+        cliente_id: clienteId,
+        oficina_id: oficinaId,
+        status: "pendente",
+      });
+      setContas((prev) => [nova, ...prev]);
+      setDialogNova(false);
+      success("Pagamento cadastrado!");
+    } catch (err: any) {
+      error(err?.response?.data?.message ?? "Nao foi possivel cadastrar o pagamento.");
+    }
+  };
+
   if (!contas.length) {
     return (
       <Box sx={{ py: 6, textAlign: "center" }}>
         <AccountBalanceWalletOutlinedIcon sx={{ fontSize: 40, color: "text.disabled", mb: 1 }} />
         <Typography color="text.disabled">Nenhum título financeiro registrado</Typography>
+        <Button
+          onClick={() => setDialogNova(true)}
+          startIcon={<AddRoundedIcon />}
+          variant="contained"
+          disableElevation
+          sx={{ mt: 2, borderRadius: 999, fontWeight: 700 }}
+        >
+          Novo pagamento
+        </Button>
+        <NovoPagamentoClienteDialog
+          open={dialogNova}
+          onClose={() => setDialogNova(false)}
+          onConfirm={handleCriarPagamento}
+        />
       </Box>
     );
   }
@@ -135,6 +183,18 @@ export default function ClientePagamentos({ pagamentos: pagamentosInit }: { paga
 
   return (
     <Stack spacing={2.5}>
+      <Stack direction="row" justifyContent="flex-end">
+        <Button
+          onClick={() => setDialogNova(true)}
+          startIcon={<AddRoundedIcon />}
+          variant="contained"
+          disableElevation
+          sx={{ borderRadius: 999, fontWeight: 700 }}
+        >
+          Novo pagamento
+        </Button>
+      </Stack>
+
       {/* Resumo */}
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
         {[
@@ -297,6 +357,98 @@ export default function ClientePagamentos({ pagamentos: pagamentosInit }: { paga
         valorOriginal={selected ? valorLiquido(selected) : 0}
         onConfirm={(d) => handleAcao(() => parcelar(selected!.id, d), "Título parcelado!")}
       />
+      <NovoPagamentoClienteDialog
+        open={dialogNova}
+        onClose={() => setDialogNova(false)}
+        onConfirm={handleCriarPagamento}
+      />
     </Stack>
+  );
+}
+
+function NovoPagamentoClienteDialog({
+  open,
+  onClose,
+  onConfirm,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: (data: any) => void;
+}) {
+  const [form, setForm] = React.useState({
+    descricao: "",
+    valor: "",
+    data_vencimento: "",
+    metodo: "pix",
+    categoria: "",
+    observacao: "",
+  });
+
+  React.useEffect(() => {
+    if (open) {
+      setForm({ descricao: "", valor: "", data_vencimento: "", metodo: "pix", categoria: "", observacao: "" });
+    }
+  }, [open]);
+
+  const set = (field: string, value: string) => setForm((prev) => ({ ...prev, [field]: value }));
+  const valido = form.descricao.trim() && Number(form.valor) > 0 && form.data_vencimento;
+
+  return (
+    <AppDialog
+      open={open}
+      onClose={onClose}
+      onCloseClick={onClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
+      maxWidth="sm"
+      title="Novo pagamento"
+      icon={<TrendingUpRoundedIcon />}
+      variant="entity"
+    >
+      <AppDialogContent>
+        <Stack spacing={2}>
+          <TextField label="Descricao *" value={form.descricao} onChange={(e) => set("descricao", e.target.value)} size="small" fullWidth />
+          <TextField label="Categoria" value={form.categoria} onChange={(e) => set("categoria", e.target.value)} size="small" fullWidth />
+          <TextField
+            label="Valor *"
+            type="number"
+            value={form.valor}
+            onChange={(e) => set("valor", e.target.value)}
+            size="small"
+            fullWidth
+            InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }}
+          />
+          <TextField
+            label="Vencimento *"
+            type="date"
+            value={form.data_vencimento}
+            onChange={(e) => set("data_vencimento", e.target.value)}
+            size="small"
+            fullWidth
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField select label="Metodo" value={form.metodo} onChange={(e) => set("metodo", e.target.value)} size="small" fullWidth>
+            {METODO_OPTIONS.map((m) => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+          </TextField>
+          <TextField label="Observacao" value={form.observacao} onChange={(e) => set("observacao", e.target.value)} size="small" fullWidth multiline rows={2} />
+        </Stack>
+      </AppDialogContent>
+      <AppDialogActions>
+        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
+        <Button
+          variant="contained"
+          disableElevation
+          disabled={!valido}
+          sx={{ borderRadius: 999, fontWeight: 700 }}
+          onClick={() => onConfirm({
+            ...form,
+            valor: Number(form.valor),
+            data_pagamento: null,
+          })}
+        >
+          Salvar
+        </Button>
+      </AppDialogActions>
+    </AppDialog>
   );
 }

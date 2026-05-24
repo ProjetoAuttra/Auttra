@@ -15,6 +15,8 @@ import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
 import RequestQuoteRoundedIcon from "@mui/icons-material/RequestQuoteRounded";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import BuildRoundedIcon from "@mui/icons-material/BuildRounded";
+import PrintRoundedIcon from "@mui/icons-material/PrintRounded";
+import { useNavigate } from "react-router-dom";
 
 import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
@@ -32,6 +34,7 @@ type Orcamento = {
   descricao: string;
   valor: number;
   data: string;
+  validade?: string | null;
   status: "analise" | "aprovado" | "recusado";
   cliente: { id: number; nome: string; telefone?: string };
   veiculo: { id: number; modelo: string; placa: string };
@@ -62,11 +65,12 @@ const STATUS_CONFIG = {
 export default function OrcamentosPage() {
   const { success, error, warning } = useToast();
   const confirm = useConfirm();
+  const nav = useNavigate();
 
   const [orcamentos, setOrcamentos] = React.useState<Orcamento[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [query, setQuery] = React.useState("");
-  const [filtroStatus, setFiltroStatus] = React.useState<string>("todos");
+  const [filtroStatus, setFiltroStatus] = React.useState<string>("analise");
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [osDialogOpen, setOsDialogOpen] = React.useState(false);
   const [osInitial, setOsInitial] = React.useState<any>(null);
@@ -190,7 +194,7 @@ export default function OrcamentosPage() {
   const criarOSConvertida = async (payload: any) => {
     if (!convertingOrcamento) return;
     try {
-      await api.post("/ordens", payload);
+      const novaOS = await api.post("/ordens", payload);
       await api.patch(`/orcamentos/${convertingOrcamento.id}/status`, { status: "aprovado" });
       setOrcamentos((p) => p.map((o) => o.id === convertingOrcamento.id ? { ...o, status: "aprovado" } : o));
       setOsDialogOpen(false);
@@ -198,6 +202,7 @@ export default function OrcamentosPage() {
       setConvertingOrcamento(null);
 
       success(`O.S. criada com sucesso para ${convertingOrcamento.cliente?.nome}!`);
+      nav(`/ordens/${novaOS.data.id}`);
     } catch (err) {
       console.error("Erro ao converter em OS:", err);
       error("Não foi possível converter o orçamento em O.S.");
@@ -252,10 +257,36 @@ export default function OrcamentosPage() {
   };
 
   // ── Criar orçamento ──
+  const handlePrint = async () => {
+    if (!selectedOrcamento) return;
+    const orc = selectedOrcamento;
+    const pdfWindow = window.open("", "_blank");
+    if (!pdfWindow) {
+      handleMenuClose();
+      error("O navegador bloqueou a abertura do PDF. Libere pop-ups para imprimir o orçamento.");
+      return;
+    }
+
+    handleMenuClose();
+    try {
+      pdfWindow.document.write("<p>Gerando PDF do orçamento...</p>");
+      const res = await api.get(`/orcamentos/${orc.id}/pdf`, { responseType: "blob" });
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      pdfWindow.location.href = url;
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    } catch (err) {
+      console.error("Erro ao gerar PDF do orçamento:", err);
+      pdfWindow.close();
+      error("Não foi possível gerar o PDF do orçamento.");
+    }
+  };
+
   const criarOrcamento = async (data: any) => {
     try {
       const res = await api.post("/orcamentos", data);
       setOrcamentos((prev) => [res.data, ...prev]);
+      nav(`/orcamentos/${res.data.id}`);
       success("Orçamento criado com sucesso!");
     } catch (err) {
       console.error(err);
@@ -337,7 +368,12 @@ export default function OrcamentosPage() {
               {paginated.length > 0 ? paginated.map((o) => {
                 const st = STATUS_CONFIG[o.status] ?? STATUS_CONFIG.analise;
                 return (
-                  <TableRow key={o.id} hover sx={{ height: 56 }}>
+                  <TableRow
+                    key={o.id}
+                    hover
+                    onDoubleClick={() => nav(`/orcamentos/${o.id}`)}
+                    sx={{ height: 56, cursor: "pointer" }}
+                  >
                     {/* Cliente */}
                     <TableCell>
                       <Stack spacing={0.1}>
@@ -372,9 +408,16 @@ export default function OrcamentosPage() {
 
                     {/* Data */}
                     <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {new Date(o.data).toLocaleDateString("pt-BR")}
-                      </Typography>
+                      <Stack spacing={0.1}>
+                        <Typography variant="body2" color="text.secondary">
+                          {new Date(o.data).toLocaleDateString("pt-BR")}
+                        </Typography>
+                        {o.validade && (
+                          <Typography variant="caption" color="text.secondary">
+                            Válido até {new Date(o.validade).toLocaleDateString("pt-BR")}
+                          </Typography>
+                        )}
+                      </Stack>
                     </TableCell>
 
                     {/* Status */}
@@ -468,6 +511,10 @@ export default function OrcamentosPage() {
         <MenuItem onClick={handleWhatsApp} sx={{ gap: 1.5 }}>
           <WhatsAppIcon fontSize="small" sx={{ color: "#25D366" }} />
           Enviar WhatsApp
+        </MenuItem>
+        <MenuItem onClick={handlePrint} sx={{ gap: 1.5 }}>
+          <PrintRoundedIcon fontSize="small" />
+          Imprimir
         </MenuItem>
         <Divider />
         <MenuItem onClick={handleExcluir} sx={{ gap: 1.5, color: "error.main" }}>

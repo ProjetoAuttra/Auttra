@@ -25,6 +25,7 @@ async function listarClientes(): Promise<Client[]> {
     id: String(c.id),
     nome: c.nome,
     email: c.email,
+    cpf: c.cpf,
     telefone: c.telefone,
     observacao: c.observacao,
   }));
@@ -41,7 +42,7 @@ async function criarCliente(data: ClientForm, oficinaId: number): Promise<Client
     oficina_id: oficinaId,
   };
   const { data: c } = await api.post("/clientes", payload);
-  return { id: String(c.id), nome: c.nome, email: c.email, telefone: c.telefone, observacao: c.observacao };
+  return { id: String(c.id), nome: c.nome, email: c.email, cpf: c.cpf, telefone: c.telefone, observacao: c.observacao };
 }
 
 async function atualizarCliente(id: string, data: ClientForm): Promise<Client> {
@@ -52,7 +53,7 @@ async function atualizarCliente(id: string, data: ClientForm): Promise<Client> {
     telefone: data.telefone || null,
     observacao: data.observacao || null,
   });
-  return { id: String(c.id), nome: c.nome, email: c.email, telefone: c.telefone, observacao: c.observacao };
+  return { id: String(c.id), nome: c.nome, email: c.email, cpf: c.cpf, telefone: c.telefone, observacao: c.observacao };
 }
 
 async function excluirCliente(id: string): Promise<void> {
@@ -123,6 +124,7 @@ export default function ClientsPage() {
         setRows((p) => [novo, ...p]);
         setOpenDialog(false);
         success("Cliente cadastrado com sucesso!");
+        navigate(`/clientes/${novo.id}`);
       } else if (current) {
         const atualizado = await atualizarCliente(current.id, data);
         setRows((p) => p.map((r) => (r.id === current.id ? atualizado : r)));
@@ -148,8 +150,9 @@ export default function ClientsPage() {
   const filtered = rows.filter((r) => {
     const q = query.trim().toLowerCase();
     if (!q) return true;
+    const digits = q.replace(/[^\d]/g, "");
     return r.nome.toLowerCase().includes(q) || (r.email ?? "").toLowerCase().includes(q) ||
-      (r.telefone ?? "").includes(q.replace(/[^\d]/g, ""));
+      (r.telefone ?? "").includes(digits) || (r.cpf ?? "").includes(digits);
   });
 
   const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);

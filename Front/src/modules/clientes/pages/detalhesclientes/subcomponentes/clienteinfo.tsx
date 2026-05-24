@@ -5,11 +5,19 @@ import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
 import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
+import { maskCpf, maskCnpj } from "../../../../../utils/masks";
 
 type Props = {
   cliente: any;
   onEditar: () => void;
 };
+
+function formatDocumento(value?: string | null) {
+  const digits = value?.replace(/\D/g, "") ?? "";
+  if (digits.length === 14) return maskCnpj(digits);
+  if (digits.length === 11) return maskCpf(digits);
+  return value ?? "";
+}
 
 export default function ClienteHeaderCard({ cliente, onEditar }: Props) {
   return (
@@ -31,7 +39,7 @@ export default function ClienteHeaderCard({ cliente, onEditar }: Props) {
             </Stack>
             <Stack direction="row" alignItems="center" spacing={1}>
               <BadgeRoundedIcon sx={{ fontSize: 15, color: "text.disabled" }} />
-              <Typography variant="body2" color="text.secondary">{cliente.cpf || "Sem CPF"}</Typography>
+              <Typography variant="body2" color="text.secondary">{cliente.cpf ? formatDocumento(cliente.cpf) : "Sem CPF/CNPJ"}</Typography>
             </Stack>
           </Stack>
         </Stack>

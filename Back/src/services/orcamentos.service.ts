@@ -74,6 +74,7 @@ export class OrcamentoService {
     descricao: string;
     valor: number;
     data: string;
+    validade?: string | null;
     itens?: OrcamentoItemInput[];
 	    oficinaId: number;
 	  }) {
@@ -97,6 +98,7 @@ export class OrcamentoService {
         descricao: data.descricao,
         valor,
         data: new Date(data.data),
+        validade: data.validade ? new Date(data.validade) : null,
         cliente_id: data.clienteId,
         veiculo_id: data.veiculoId,
         itens: itens.length ? { create: itens } : undefined,
@@ -148,6 +150,7 @@ export class OrcamentoService {
           descricao: data.descricao,
           valor,
           data: data.data ? new Date(data.data) : undefined,
+          validade: data.validade !== undefined ? (data.validade ? new Date(data.validade) : null) : undefined,
           cliente_id: clienteId != null ? Number(clienteId) : undefined,
           veiculo_id: veiculoId != null ? Number(veiculoId) : undefined,
         },

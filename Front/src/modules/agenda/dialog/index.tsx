@@ -83,6 +83,9 @@ function NewAppointmentDialog({
     <AppDialog
       open={open}
       onClose={handleClose}
+      onCloseClick={handleClose}
+      closeOnBackdrop={false}
+      closeOnEscape={false}
       maxWidth="sm"
       title="Novo agendamento"
       icon={<EventNoteRoundedIcon />}
@@ -101,7 +104,6 @@ function NewAppointmentDialog({
               <TextField
                 {...field}
                 label="Título *"
-                placeholder="Ex.: Troca de vela - Gustavo"
                 size="small"
                 autoFocus
                 error={!!errors.title}
@@ -119,7 +121,6 @@ function NewAppointmentDialog({
               <TextField
                 {...field}
                 label="Descrição"
-                placeholder="Anotações, observações, etc..."
                 size="small"
                 multiline
                 rows={2}
@@ -195,7 +196,6 @@ function NewAppointmentDialog({
                 {...field}
                 label="Local (opcional)"
                 size="small"
-                placeholder="Sala 2, Estúdio, Online…"
                 error={!!errors.location}
                 helperText={errors.location?.message}
                 fullWidth
