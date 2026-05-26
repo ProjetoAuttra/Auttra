@@ -1,7 +1,16 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import api from "../api/api";
 
-type AdminUser = { id: number; nome: string; email: string; tipo: string; totp_enabled?: boolean };
+type AdminUser = {
+  id: number;
+  nome: string;
+  email: string;
+  tipo: string;
+  totp_enabled?: boolean;
+  last_login_at?: string | null;
+  last_login_ip?: string | null;
+  last_login_user_agent?: string | null;
+};
 
 type SignInResult =
   | { requires2fa: true; pre_auth_token: string }

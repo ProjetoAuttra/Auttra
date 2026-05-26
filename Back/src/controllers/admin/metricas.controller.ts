@@ -8,7 +8,7 @@ export const MetricasAdminController = {
       return res.json(metricas);
     } catch (err) {
       console.error("Erro ao buscar métricas:", err);
-      return res.status(500).json({ error: "Erro interno." });
+      return res.status(500).json({ message: "Erro interno." });
     }
   },
 };

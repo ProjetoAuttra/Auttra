@@ -1,4 +1,5 @@
 import request from "supertest";
+import jwt from "jsonwebtoken";
 import { describe, expect, it } from "vitest";
 import { app } from "../src/app.js";
 import { getJwtSecret } from "../src/config/env.js";
@@ -23,6 +24,26 @@ describe("security baseline", () => {
       .send({ nome: "Teste", uf: "SP" });
 
     expect(response.status).toBe(401);
+  });
+
+  it("blocks admin routes without token", async () => {
+    const response = await request(app).get("/api/admin/oficinas");
+
+    expect(response.status).toBe(401);
+  });
+
+  it("blocks admin routes for non-system users", async () => {
+    const token = jwt.sign(
+      { id: 1, email: "gestor@example.com", nome: "Gestor", tipo: "gestoroficina" },
+      getJwtSecret(),
+      { expiresIn: "5m" }
+    );
+
+    const response = await request(app)
+      .get("/api/admin/oficinas")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(403);
   });
 
   it("rejects insecure JWT secrets in production", () => {

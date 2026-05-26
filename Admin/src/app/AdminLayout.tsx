@@ -30,6 +30,10 @@ export function AdminLayout() {
     navigate("/login");
   }
 
+  const lastLogin = user?.last_login_at
+    ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(user.last_login_at))
+    : null;
+
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
       {/* Sidebar */}
@@ -115,7 +119,9 @@ export function AdminLayout() {
             <Typography sx={{ fontSize: 13, fontWeight: 600, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {user?.nome}
             </Typography>
-            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>Sistema</Typography>
+            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
+              {lastLogin ? `Último acesso ${lastLogin}` : "Sistema"}
+            </Typography>
           </Box>
           <Tooltip title="Minha conta">
             <IconButton size="small" onClick={() => setContaOpen(true)} sx={{ color: "text.secondary" }}>
