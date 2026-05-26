@@ -20,9 +20,11 @@ import importacaoXmlRouter from "./importacaoXml.routes.js";
 import notificacoesRouter from "./notificacoes.routes.js";
 import { authMiddleware, officeScopeMiddleware, requirePermission } from "../middlewares/ensureAuth.js";
 import type { AccessModule, AccessAction } from "../permissions/accessProfiles.js";
+import adminRouter from "./admin/index.js";
 
 export const router = Router();
 
+router.use("/admin", adminRouter);
 router.use("/auth", authRouter);
 
 router.use(authMiddleware);

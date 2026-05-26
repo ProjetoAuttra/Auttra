@@ -17,6 +17,8 @@ model usuario {
   status   status_usuario @default(ativo)
   foto_url String?
 
+  totp_secret    String?
+
   funcionarios   funcionario[] @relation("FuncionarioUsuario")
   cliente        cliente? @relation("UsuarioCliente")
   gestor_oficina oficina? @relation("GestorOficina")
