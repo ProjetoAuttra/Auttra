@@ -253,6 +253,41 @@ export const AdminAuthController = {
     }
   },
 
+  async alterarSenha(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: "Não autorizado." });
+
+      const { senha_atual, nova_senha } = req.body ?? {};
+      if (!senha_atual || !nova_senha) {
+        return res.status(400).json({ message: "Senha atual e nova senha são obrigatórias." });
+      }
+
+      const usuario = await prisma.usuario.findFirst({
+        where: { id: userId, tipo: "sistema", deleted_at: null },
+      });
+      if (!usuario) return res.status(404).json({ message: "Usuário não encontrado." });
+
+      const senhaOk = await bcrypt.compare(senha_atual, usuario.senha);
+      if (!senhaOk) return res.status(400).json({ message: "Senha atual incorreta." });
+
+      const complexidade = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+      if (!complexidade.test(nova_senha)) {
+        return res.status(400).json({
+          message: "A nova senha deve ter no mínimo 8 caracteres com maiúscula, minúscula, número e caractere especial.",
+        });
+      }
+
+      const hash = await bcrypt.hash(nova_senha, 10);
+      await (prisma.usuario as any).update({ where: { id: userId }, data: { senha: hash } });
+
+      return res.json({ message: "Senha alterada com sucesso." });
+    } catch (err) {
+      console.error("Erro ao alterar senha:", err);
+      return res.status(500).json({ message: "Erro interno." });
+    }
+  },
+
   async me(req: Request, res: Response) {
     try {
       const userId = req.user?.id;

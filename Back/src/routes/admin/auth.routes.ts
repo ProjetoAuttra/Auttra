@@ -17,6 +17,7 @@ router.post("/2fa/first-setup", loginLimiter, AdminAuthController.completeFirstS
 
 // rotas abaixo exigem token completo
 router.get("/me", requireSistema, AdminAuthController.me);
+router.post("/senha", requireSistema, AdminAuthController.alterarSenha);
 router.post("/2fa/setup", requireSistema, AdminAuthController.setup2fa);
 router.post("/2fa/confirm", requireSistema, AdminAuthController.confirm2fa);
 router.delete("/2fa", requireSistema, AdminAuthController.disable2fa);

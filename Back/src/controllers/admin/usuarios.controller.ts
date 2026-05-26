@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { UsuariosAdminService } from "../../services/admin/usuarios.service.js";
 import { updateEmailSchema } from "../../schemas/admin/usuarios.schema.js";
-import { EmailDeliveryError } from "../../services/email.service.js";
 
 export const UsuariosAdminController = {
   async listar(req: Request, res: Response) {
@@ -38,11 +37,11 @@ export const UsuariosAdminController = {
     try {
       const id = Number(req.params.id);
       const resultado = await UsuariosAdminService.resetSenha(id);
-      return res.json({ message: `E-mail enviado para ${resultado.email}.` });
+      return res.json({
+        message: `Senha resetada com sucesso.`,
+        senha_temporaria: resultado.senha_temporaria,
+      });
     } catch (err: any) {
-      if (err instanceof EmailDeliveryError) {
-        return res.status(502).json({ message: "Não foi possível enviar o e-mail. Verifique o Resend." });
-      }
       if (err.message.includes("não encontrado")) {
         return res.status(404).json({ message: err.message });
       }

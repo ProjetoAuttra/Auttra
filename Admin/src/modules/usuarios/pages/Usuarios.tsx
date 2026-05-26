@@ -2,10 +2,12 @@ import React, { useEffect, useState } from "react";
 import {
   Box, Typography, Paper, Table, TableHead, TableBody, TableRow, TableCell,
   TableContainer, IconButton, Menu, MenuItem, Chip, Skeleton, TextField,
-  InputAdornment,
+  InputAdornment, ToggleButtonGroup, ToggleButton, Dialog, DialogContent,
+  DialogActions, Button,
 } from "@mui/material";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import api from "../../../api/api";
 import { TrocarEmailDialog } from "../dialog/TrocarEmail";
 import { useToast } from "../../../context/ToastContext";
@@ -20,12 +22,23 @@ type Usuario = {
   acessos: { oficina: { id: number; nome: string } }[];
 };
 
+type FiltroTipo = "todos" | "funcionario" | "cliente" | "gestoroficina";
+
+const TIPO_LABELS: Record<string, string> = {
+  funcionario: "Funcionário",
+  cliente: "Cliente",
+  gestoroficina: "Gestor",
+};
+
 export function UsuariosPage() {
   const [rows, setRows] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>("todos");
   const [menuAnchor, setMenuAnchor] = useState<{ el: HTMLElement; id: number } | null>(null);
   const [trocarEmailId, setTrocarEmailId] = useState<number | null>(null);
+  const [senhaDialog, setSenhaDialog] = useState<{ senha: string; email: string } | null>(null);
+  const [copiado, setCopiado] = useState(false);
   const { success, error } = useToast();
   const confirm = useConfirm();
 
@@ -40,24 +53,33 @@ export function UsuariosPage() {
     const usuario = rows.find((u) => u.id === id);
     const ok = await confirm({
       title: "Resetar senha?",
-      message: `Uma senha temporária será enviada para ${usuario?.email}. O usuário precisará alterá-la no próximo acesso.`,
-      confirmLabel: "Resetar e enviar",
+      message: `Uma senha aleatória de 8 caracteres será gerada para ${usuario?.nome}. A senha aparecerá na tela para você copiar.`,
+      confirmLabel: "Gerar nova senha",
     });
     if (!ok) return;
     try {
       const { data } = await api.post(`/usuarios/${id}/reset-senha`);
-      success(data.message);
+      navigator.clipboard.writeText(data.senha_temporaria).catch(() => {});
+      setSenhaDialog({ senha: data.senha_temporaria, email: usuario?.email ?? "" });
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 3000);
     } catch {
       error("Erro ao resetar senha.");
     }
     setMenuAnchor(null);
   }
 
-  const filtered = rows.filter(
-    (u) =>
-      u.nome.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase())
-  );
+  function handleCopiar(senha: string) {
+    navigator.clipboard.writeText(senha).catch(() => {});
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 3000);
+  }
+
+  const filtered = rows.filter((u) => {
+    const tipoOk = filtroTipo === "todos" || u.tipo === filtroTipo;
+    const searchOk = !search || u.nome.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
+    return tipoOk && searchOk;
+  });
 
   return (
     <Box sx={{ p: 4 }}>
@@ -84,6 +106,21 @@ export function UsuariosPage() {
             },
           }}
         />
+      </Box>
+
+      {/* Filtro por tipo */}
+      <Box sx={{ mb: 2 }}>
+        <ToggleButtonGroup
+          value={filtroTipo}
+          exclusive
+          onChange={(_, v) => { if (v) setFiltroTipo(v); }}
+          size="small"
+        >
+          <ToggleButton value="todos">Todos</ToggleButton>
+          <ToggleButton value="gestoroficina">Gestores</ToggleButton>
+          <ToggleButton value="funcionario">Funcionários</ToggleButton>
+          <ToggleButton value="cliente">Clientes</ToggleButton>
+        </ToggleButtonGroup>
       </Box>
 
       <Paper>
@@ -114,7 +151,7 @@ export function UsuariosPage() {
                     <TableCell sx={{ color: "text.secondary", fontSize: 13 }}>{row.email}</TableCell>
                     <TableCell>
                       <Chip
-                        label={row.tipo}
+                        label={TIPO_LABELS[row.tipo] ?? row.tipo}
                         size="small"
                         sx={{ bgcolor: "#f3f4f6", color: "#374151", fontSize: 11, fontWeight: 500 }}
                       />
@@ -156,11 +193,7 @@ export function UsuariosPage() {
         </TableContainer>
       </Paper>
 
-      <Menu
-        anchorEl={menuAnchor?.el}
-        open={Boolean(menuAnchor)}
-        onClose={() => setMenuAnchor(null)}
-      >
+      <Menu anchorEl={menuAnchor?.el} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
         <MenuItem onClick={() => { setTrocarEmailId(menuAnchor!.id); setMenuAnchor(null); }}>
           Trocar e-mail
         </MenuItem>
@@ -179,6 +212,41 @@ export function UsuariosPage() {
           success("E-mail atualizado com sucesso.");
         }}
       />
+
+      {/* Dialog: senha gerada */}
+      <Dialog open={Boolean(senhaDialog)} onClose={() => setSenhaDialog(null)} maxWidth="xs" fullWidth>
+        <Box sx={{ px: 3, py: 2, borderBottom: "1px solid", borderColor: "divider" }}>
+          <Typography variant="subtitle1">Senha gerada</Typography>
+        </Box>
+        <DialogContent sx={{ pt: 2.5 }}>
+          <Typography sx={{ fontSize: 13, color: "text.secondary", mb: 2 }}>
+            Nova senha temporária para <strong>{senhaDialog?.email}</strong>. O usuário deve trocá-la no próximo acesso.
+          </Typography>
+          <Box sx={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            bgcolor: "#f9fafb", border: "1px solid", borderColor: "divider",
+            borderRadius: 1, px: 2, py: 1.5,
+          }}>
+            <Typography sx={{ fontFamily: "monospace", fontSize: 22, fontWeight: 700, letterSpacing: "0.12em" }}>
+              {senhaDialog?.senha}
+            </Typography>
+            <IconButton size="small" onClick={() => handleCopiar(senhaDialog!.senha)}>
+              <ContentCopyRoundedIcon fontSize="small" />
+            </IconButton>
+          </Box>
+          {copiado && (
+            <Typography sx={{ fontSize: 12, color: "success.main", mt: 1 }}>
+              Copiado para a área de transferência!
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button variant="outlined" startIcon={<ContentCopyRoundedIcon />} onClick={() => handleCopiar(senhaDialog!.senha)}>
+            {copiado ? "Copiado!" : "Copiar novamente"}
+          </Button>
+          <Button variant="contained" onClick={() => setSenhaDialog(null)}>Fechar</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

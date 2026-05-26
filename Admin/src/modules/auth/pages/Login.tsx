@@ -2,9 +2,12 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box, Paper, Typography, TextField, Button, CircularProgress, Alert,
+  InputAdornment, IconButton,
 } from "@mui/material";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import QrCode2RoundedIcon from "@mui/icons-material/QrCode2Rounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
+import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
 import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "../../../context/AuthContext";
 
@@ -17,6 +20,7 @@ export function LoginPage() {
   const [step, setStep] = useState<Step>("credentials");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [showSenha, setShowSenha] = useState(false);
   const [code, setCode] = useState("");
   const [preAuthToken, setPreAuthToken] = useState("");
   const [otpauth, setOtpauth] = useState("");
@@ -108,7 +112,24 @@ export function LoginPage() {
               {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
               <Box component="form" onSubmit={handleCredentials} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <TextField label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus fullWidth size="small" />
-                <TextField label="Senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required fullWidth size="small" />
+                <TextField
+                  label="Senha"
+                  type={showSenha ? "text" : "password"}
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  required fullWidth size="small"
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton size="small" onClick={() => setShowSenha((v) => !v)} edge="end">
+                            {showSenha ? <VisibilityOffRoundedIcon fontSize="small" /> : <VisibilityRoundedIcon fontSize="small" />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
+                />
                 <Button type="submit" variant="contained" fullWidth disabled={loading} sx={{ mt: 0.5 }}>
                   {loading ? <CircularProgress size={16} color="inherit" /> : "Entrar"}
                 </Button>

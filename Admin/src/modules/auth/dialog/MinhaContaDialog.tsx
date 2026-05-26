@@ -2,9 +2,12 @@ import React, { useState } from "react";
 import {
   Dialog, Box, Typography, IconButton, DialogContent, DialogActions,
   Button, CircularProgress, TextField, Divider, Chip, Alert,
+  InputAdornment,
 } from "@mui/material";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
+import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
 import { QRCodeSVG } from "qrcode.react";
 import api from "../../../api/api";
 import { useAuth } from "../../../context/AuthContext";
@@ -12,6 +15,8 @@ import { useToast } from "../../../context/ToastContext";
 
 type Props = { open: boolean; onClose: () => void };
 type Stage = "idle" | "setup-qr" | "setup-confirm" | "disable";
+
+const SENHA_EMPTY = { atual: "", nova: "", confirmar: "" };
 
 export function MinhaContaDialog({ open, onClose }: Props) {
   const { user, refreshMe } = useAuth();
@@ -23,6 +28,13 @@ export function MinhaContaDialog({ open, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
+  const [senhaForm, setSenhaForm] = useState(SENHA_EMPTY);
+  const [senhaLoading, setSenhaLoading] = useState(false);
+  const [senhaErr, setSenhaErr] = useState("");
+  const [showAtual, setShowAtual] = useState(false);
+  const [showNova, setShowNova] = useState(false);
+  const [showConfirmar, setShowConfirmar] = useState(false);
+
   function reset() {
     setStage("idle");
     setOtpauth("");
@@ -32,6 +44,8 @@ export function MinhaContaDialog({ open, onClose }: Props) {
 
   function handleClose() {
     reset();
+    setSenhaForm(SENHA_EMPTY);
+    setSenhaErr("");
     onClose();
   }
 
@@ -76,6 +90,25 @@ export function MinhaContaDialog({ open, onClose }: Props) {
       setErr(e?.response?.data?.message ?? "Código inválido.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleAlterarSenha(e: React.FormEvent) {
+    e.preventDefault();
+    setSenhaErr("");
+    if (senhaForm.nova !== senhaForm.confirmar) {
+      setSenhaErr("As senhas não coincidem.");
+      return;
+    }
+    setSenhaLoading(true);
+    try {
+      await api.post("/auth/senha", { senha_atual: senhaForm.atual, nova_senha: senhaForm.nova });
+      success("Senha alterada com sucesso.");
+      setSenhaForm(SENHA_EMPTY);
+    } catch (e: any) {
+      setSenhaErr(e?.response?.data?.message ?? "Erro ao alterar senha.");
+    } finally {
+      setSenhaLoading(false);
     }
   }
 
@@ -132,12 +165,7 @@ export function MinhaContaDialog({ open, onClose }: Props) {
                 <Typography sx={{ fontSize: 13, color: "text.secondary", mb: 2 }}>
                   Com o 2FA ativo, além da senha você precisará do código gerado pelo Google Authenticator a cada login.
                 </Typography>
-                <Button
-                  variant="contained"
-                  fullWidth
-                  onClick={handleSetup}
-                  disabled={loading}
-                >
+                <Button variant="contained" fullWidth onClick={handleSetup} disabled={loading}>
                   {loading ? <CircularProgress size={16} color="inherit" /> : "Ativar 2FA"}
                 </Button>
               </>
@@ -146,12 +174,7 @@ export function MinhaContaDialog({ open, onClose }: Props) {
                 <Typography sx={{ fontSize: 13, color: "text.secondary", mb: 2 }}>
                   O 2FA está ativo na sua conta. Para desativar, confirme com o código atual do Google Authenticator.
                 </Typography>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  color="error"
-                  onClick={() => setStage("disable")}
-                >
+                <Button variant="outlined" fullWidth color="error" onClick={() => setStage("disable")}>
                   Desativar 2FA
                 </Button>
               </>
@@ -189,17 +212,10 @@ export function MinhaContaDialog({ open, onClose }: Props) {
               label="Código de verificação"
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              autoFocus
-              fullWidth
-              size="small"
+              autoFocus fullWidth size="small"
               inputProps={{ inputMode: "numeric", maxLength: 6 }}
             />
-            <Button
-              variant="contained"
-              fullWidth
-              disabled={loading || code.length !== 6}
-              onClick={handleConfirm}
-            >
+            <Button variant="contained" fullWidth disabled={loading || code.length !== 6} onClick={handleConfirm}>
               {loading ? <CircularProgress size={16} color="inherit" /> : "Confirmar e ativar"}
             </Button>
             <Button size="small" onClick={() => setStage("setup-qr")} sx={{ color: "text.secondary" }}>
@@ -218,24 +234,94 @@ export function MinhaContaDialog({ open, onClose }: Props) {
               label="Código de verificação"
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              autoFocus
-              fullWidth
-              size="small"
+              autoFocus fullWidth size="small"
               inputProps={{ inputMode: "numeric", maxLength: 6 }}
             />
-            <Button
-              variant="outlined"
-              color="error"
-              fullWidth
-              disabled={loading || code.length !== 6}
-              onClick={handleDisable}
-            >
+            <Button variant="outlined" color="error" fullWidth disabled={loading || code.length !== 6} onClick={handleDisable}>
               {loading ? <CircularProgress size={16} color="inherit" /> : "Desativar 2FA"}
             </Button>
             <Button size="small" onClick={reset} sx={{ color: "text.secondary" }}>
               Cancelar
             </Button>
           </Box>
+        )}
+
+        {/* Password change section — only in idle stage */}
+        {stage === "idle" && (
+          <>
+            <Divider sx={{ my: 2.5 }} />
+            <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", mb: 1.5 }}>
+              Trocar senha
+            </Typography>
+            {senhaErr && <Alert severity="error" sx={{ mb: 2 }}>{senhaErr}</Alert>}
+            <Box component="form" onSubmit={handleAlterarSenha} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <TextField
+                label="Senha atual"
+                type={showAtual ? "text" : "password"}
+                value={senhaForm.atual}
+                onChange={(e) => setSenhaForm((p) => ({ ...p, atual: e.target.value }))}
+                required fullWidth size="small"
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton size="small" onClick={() => setShowAtual((v) => !v)} edge="end">
+                          {showAtual ? <VisibilityOffRoundedIcon fontSize="small" /> : <VisibilityRoundedIcon fontSize="small" />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+              <TextField
+                label="Nova senha"
+                type={showNova ? "text" : "password"}
+                value={senhaForm.nova}
+                onChange={(e) => setSenhaForm((p) => ({ ...p, nova: e.target.value }))}
+                required fullWidth size="small"
+                helperText="Mín. 8 caracteres com maiúscula, minúscula, número e especial"
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton size="small" onClick={() => setShowNova((v) => !v)} edge="end">
+                          {showNova ? <VisibilityOffRoundedIcon fontSize="small" /> : <VisibilityRoundedIcon fontSize="small" />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+              <TextField
+                label="Confirmar nova senha"
+                type={showConfirmar ? "text" : "password"}
+                value={senhaForm.confirmar}
+                onChange={(e) => setSenhaForm((p) => ({ ...p, confirmar: e.target.value }))}
+                required fullWidth size="small"
+                error={senhaForm.confirmar.length > 0 && senhaForm.nova !== senhaForm.confirmar}
+                helperText={senhaForm.confirmar.length > 0 && senhaForm.nova !== senhaForm.confirmar ? "As senhas não coincidem" : undefined}
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton size="small" onClick={() => setShowConfirmar((v) => !v)} edge="end">
+                          {showConfirmar ? <VisibilityOffRoundedIcon fontSize="small" /> : <VisibilityRoundedIcon fontSize="small" />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+              <Button
+                type="submit"
+                variant="outlined"
+                fullWidth
+                disabled={senhaLoading || !senhaForm.atual || !senhaForm.nova || senhaForm.nova !== senhaForm.confirmar}
+              >
+                {senhaLoading ? <CircularProgress size={16} color="inherit" /> : "Alterar senha"}
+              </Button>
+            </Box>
+          </>
         )}
       </DialogContent>
 
