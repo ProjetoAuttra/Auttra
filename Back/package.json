@@ -12,7 +12,8 @@
     "test:run": "vitest run",
     "test:cov": "vitest run --coverage",
     "prisma": "npx prisma",
-    "seed:admin": "node scripts/create-admin.mjs"
+    "seed:admin": "node scripts/create-admin.mjs",
+    "seed:sistema": "node scripts/create-sistema-user.mjs"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +28,7 @@
     "express-rate-limit": "^8.5.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.1.1",
+    "otplib": "^13.4.0",
     "pdfkit": "^0.17.2",
     "prisma": "^6.17.1",
     "puppeteer": "^24.26.1",

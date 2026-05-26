@@ -50,5 +50,18 @@ services:
     ports:
       - "8080:80"
 
+  admin-web:
+    build:
+      context: ./Admin
+      dockerfile: Dockerfile
+    container_name: driveon-admin-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      BACKEND: ${BACKEND:-http://driveon-api:4000}
+    ports:
+      - "8081:80"
+
 volumes:
   driveon-postgres:
