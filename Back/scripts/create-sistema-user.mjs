@@ -17,8 +17,9 @@ async function main() {
   const senha = required("SISTEMA_PASSWORD", ["SISTEMA_SENHA"]);
   const nome = required("SISTEMA_NAME", ["SISTEMA_NOME"]);
 
-  if (senha.length < 32) {
-    throw new Error("SISTEMA_PASSWORD deve ter pelo menos 32 caracteres.");
+  const senhaOk = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(senha);
+  if (!senhaOk) {
+    throw new Error("SISTEMA_PASSWORD deve ter no mínimo 8 caracteres com maiúscula, minúscula, número e caractere especial.");
   }
 
   const senhaHash = await bcrypt.hash(senha, 10);
