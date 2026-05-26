@@ -3,7 +3,7 @@ import {
   Box, Typography, Paper, Table, TableHead, TableBody, TableRow, TableCell,
   TableContainer, IconButton, Menu, MenuItem, Chip, Skeleton, TextField,
   InputAdornment, ToggleButtonGroup, ToggleButton, Dialog, DialogContent,
-  DialogActions, Button,
+  DialogActions, Button, Alert,
 } from "@mui/material";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
@@ -37,7 +37,7 @@ export function UsuariosPage() {
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>("todos");
   const [menuAnchor, setMenuAnchor] = useState<{ el: HTMLElement; id: number } | null>(null);
   const [trocarEmailId, setTrocarEmailId] = useState<number | null>(null);
-  const [senhaDialog, setSenhaDialog] = useState<{ senha: string; email: string } | null>(null);
+  const [resetDialog, setResetDialog] = useState<{ url: string; email: string; emailSent: boolean } | null>(null);
   const [copiado, setCopiado] = useState(false);
   const { success, error } = useToast();
   const confirm = useConfirm();
@@ -52,25 +52,22 @@ export function UsuariosPage() {
   async function handleResetSenha(id: number) {
     const usuario = rows.find((u) => u.id === id);
     const ok = await confirm({
-      title: "Resetar senha?",
-      message: `Uma senha aleatória de 8 caracteres será gerada para ${usuario?.nome}. A senha aparecerá na tela para você copiar.`,
-      confirmLabel: "Gerar nova senha",
+      title: "Gerar link de redefinição?",
+      message: `Um link com expiração será gerado para ${usuario?.nome}. Se o e-mail estiver configurado, ele também será enviado.`,
+      confirmLabel: "Gerar link",
     });
     if (!ok) return;
     try {
       const { data } = await api.post(`/usuarios/${id}/reset-senha`);
-      navigator.clipboard.writeText(data.senha_temporaria).catch(() => {});
-      setSenhaDialog({ senha: data.senha_temporaria, email: usuario?.email ?? "" });
-      setCopiado(true);
-      setTimeout(() => setCopiado(false), 3000);
+      setResetDialog({ url: data.reset_url, email: data.email, emailSent: data.email_sent });
     } catch {
-      error("Erro ao resetar senha.");
+      error("Erro ao gerar link de redefinição.");
     }
     setMenuAnchor(null);
   }
 
-  function handleCopiar(senha: string) {
-    navigator.clipboard.writeText(senha).catch(() => {});
+  function handleCopiar(value: string) {
+    navigator.clipboard.writeText(value).catch(() => {});
     setCopiado(true);
     setTimeout(() => setCopiado(false), 3000);
   }
@@ -108,14 +105,8 @@ export function UsuariosPage() {
         />
       </Box>
 
-      {/* Filtro por tipo */}
       <Box sx={{ mb: 2 }}>
-        <ToggleButtonGroup
-          value={filtroTipo}
-          exclusive
-          onChange={(_, v) => { if (v) setFiltroTipo(v); }}
-          size="small"
-        >
+        <ToggleButtonGroup value={filtroTipo} exclusive onChange={(_, v) => { if (v) setFiltroTipo(v); }} size="small">
           <ToggleButton value="todos">Todos</ToggleButton>
           <ToggleButton value="gestoroficina">Gestores</ToggleButton>
           <ToggleButton value="funcionario">Funcionários</ToggleButton>
@@ -149,32 +140,13 @@ export function UsuariosPage() {
                   <TableRow key={row.id} hover>
                     <TableCell sx={{ fontWeight: 500 }}>{row.nome}</TableCell>
                     <TableCell sx={{ color: "text.secondary", fontSize: 13 }}>{row.email}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={TIPO_LABELS[row.tipo] ?? row.tipo}
-                        size="small"
-                        sx={{ bgcolor: "#f3f4f6", color: "#374151", fontSize: 11, fontWeight: 500 }}
-                      />
-                    </TableCell>
+                    <TableCell><Chip label={TIPO_LABELS[row.tipo] ?? row.tipo} size="small" /></TableCell>
                     <TableCell sx={{ color: "text.secondary", fontSize: 13 }}>
                       {row.acessos?.map((a) => a.oficina?.nome).filter(Boolean).join(", ") || "—"}
                     </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={row.status === "ativo" ? "Ativo" : "Inativo"}
-                        size="small"
-                        sx={{
-                          bgcolor: row.status === "ativo" ? "#f0fdf4" : "#f9fafb",
-                          color: row.status === "ativo" ? "#16a34a" : "#6b7280",
-                          fontWeight: 600, fontSize: 11,
-                        }}
-                      />
-                    </TableCell>
+                    <TableCell><Chip label={row.status === "ativo" ? "Ativo" : "Inativo"} size="small" /></TableCell>
                     <TableCell align="right">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => { e.stopPropagation(); setMenuAnchor({ el: e.currentTarget, id: row.id }); }}
-                      >
+                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); setMenuAnchor({ el: e.currentTarget, id: row.id }); }}>
                         <MoreVertRoundedIcon fontSize="small" />
                       </IconButton>
                     </TableCell>
@@ -198,7 +170,7 @@ export function UsuariosPage() {
           Trocar e-mail
         </MenuItem>
         <MenuItem onClick={() => handleResetSenha(menuAnchor!.id)} sx={{ color: "text.secondary" }}>
-          Resetar senha
+          Gerar link de redefinição
         </MenuItem>
       </Menu>
 
@@ -213,38 +185,22 @@ export function UsuariosPage() {
         }}
       />
 
-      {/* Dialog: senha gerada */}
-      <Dialog open={Boolean(senhaDialog)} onClose={() => setSenhaDialog(null)} maxWidth="xs" fullWidth>
+      <Dialog open={Boolean(resetDialog)} onClose={() => setResetDialog(null)} maxWidth="sm" fullWidth>
         <Box sx={{ px: 3, py: 2, borderBottom: "1px solid", borderColor: "divider" }}>
-          <Typography variant="subtitle1">Senha gerada</Typography>
+          <Typography variant="subtitle1">Link de redefinição gerado</Typography>
         </Box>
         <DialogContent sx={{ pt: 2.5 }}>
-          <Typography sx={{ fontSize: 13, color: "text.secondary", mb: 2 }}>
-            Nova senha temporária para <strong>{senhaDialog?.email}</strong>. O usuário deve trocá-la no próximo acesso.
-          </Typography>
-          <Box sx={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            bgcolor: "#f9fafb", border: "1px solid", borderColor: "divider",
-            borderRadius: 1, px: 2, py: 1.5,
-          }}>
-            <Typography sx={{ fontFamily: "monospace", fontSize: 22, fontWeight: 700, letterSpacing: "0.12em" }}>
-              {senhaDialog?.senha}
-            </Typography>
-            <IconButton size="small" onClick={() => handleCopiar(senhaDialog!.senha)}>
-              <ContentCopyRoundedIcon fontSize="small" />
-            </IconButton>
-          </Box>
-          {copiado && (
-            <Typography sx={{ fontSize: 12, color: "success.main", mt: 1 }}>
-              Copiado para a área de transferência!
-            </Typography>
-          )}
+          <Alert severity={resetDialog?.emailSent ? "success" : "warning"} sx={{ mb: 2 }}>
+            {resetDialog?.emailSent ? `Link enviado para ${resetDialog.email}.` : `Não foi possível enviar e-mail para ${resetDialog?.email}. Use o link abaixo.`}
+          </Alert>
+          <TextField value={resetDialog?.url ?? ""} fullWidth multiline minRows={2} InputProps={{ readOnly: true }} />
+          {copiado && <Typography sx={{ fontSize: 12, color: "success.main", mt: 1 }}>Copiado para a área de transferência.</Typography>}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button variant="outlined" startIcon={<ContentCopyRoundedIcon />} onClick={() => handleCopiar(senhaDialog!.senha)}>
-            {copiado ? "Copiado!" : "Copiar novamente"}
+          <Button variant="outlined" startIcon={<ContentCopyRoundedIcon />} onClick={() => handleCopiar(resetDialog!.url)}>
+            Copiar link
           </Button>
-          <Button variant="contained" onClick={() => setSenhaDialog(null)}>Fechar</Button>
+          <Button variant="contained" onClick={() => setResetDialog(null)}>Fechar</Button>
         </DialogActions>
       </Dialog>
     </Box>

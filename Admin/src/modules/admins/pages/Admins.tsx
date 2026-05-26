@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box, Typography, Button, Paper, Table, TableHead, TableBody,
   TableRow, TableCell, TableContainer, IconButton, Menu, MenuItem,
   Chip, Skeleton, TextField, InputAdornment, ToggleButtonGroup, ToggleButton,
+  TablePagination,
 } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
@@ -12,7 +13,6 @@ import { CriarAdminDialog } from "../dialog/CriarAdmin";
 import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
 import { useAuth } from "../../../context/AuthContext";
-import dayjs from "dayjs";
 
 type Admin = {
   id: number;
@@ -20,9 +20,16 @@ type Admin = {
   email: string;
   status: string;
   created_at: string;
+  last_login_at?: string | null;
+  last_login_ip?: string | null;
 };
 
 type FiltroStatus = "ativos" | "inativos" | "todos";
+
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
+}
 
 export function AdminsPage() {
   const [rows, setRows] = useState<Admin[]>([]);
@@ -31,16 +38,21 @@ export function AdminsPage() {
   const [menuAnchor, setMenuAnchor] = useState<{ el: HTMLElement; id: number } | null>(null);
   const [search, setSearch] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>("ativos");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   const { success, error } = useToast();
   const confirm = useConfirm();
   const { user } = useAuth();
 
-  useEffect(() => {
+  function load() {
+    setLoading(true);
     api.get<Admin[]>("/admins")
       .then((r) => setRows(r.data))
       .catch(() => error("Erro ao carregar administradores."))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []);
 
   async function handleDesativar(id: number) {
     const admin = rows.find((a) => a.id === id);
@@ -65,8 +77,8 @@ export function AdminsPage() {
       await api.patch(`/admins/${id}/reativar`);
       setRows((prev) => prev.map((a) => a.id === id ? { ...a, status: "ativo" } : a));
       success("Administrador reativado.");
-    } catch {
-      error("Erro ao reativar.");
+    } catch (err: any) {
+      error(err?.response?.data?.message ?? "Erro ao reativar.");
     }
     setMenuAnchor(null);
   }
@@ -74,36 +86,32 @@ export function AdminsPage() {
   const ativos = rows.filter((a) => a.status === "ativo").length;
   const inativos = rows.filter((a) => a.status === "inativo").length;
 
-  const filtered = rows.filter((a) => {
+  const filtered = useMemo(() => rows.filter((a) => {
     const statusOk = filtroStatus === "todos" || a.status === (filtroStatus === "ativos" ? "ativo" : "inativo");
-    const searchOk = !search || a.nome.toLowerCase().includes(search.toLowerCase()) || a.email.toLowerCase().includes(search.toLowerCase());
+    const q = search.toLowerCase();
+    const searchOk = !q || a.nome.toLowerCase().includes(q) || a.email.toLowerCase().includes(q);
     return statusOk && searchOk;
-  });
+  }), [rows, filtroStatus, search]);
 
+  const paginated = filtered.slice(page * pageSize, page * pageSize + pageSize);
   const selectedAdmin = rows.find((a) => a.id === menuAnchor?.id);
 
   return (
     <Box sx={{ p: 4 }}>
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, mb: 3, flexWrap: "wrap" }}>
         <Box>
           <Typography variant="h6" fontWeight={700}>Administradores</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-            Usuários com acesso ao painel admin
+            Usuários com acesso ao painel admin. Limite: 2 ativos.
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={() => setCriarOpen(true)}>
+        <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={() => setCriarOpen(true)} disabled={ativos >= 2}>
           Novo administrador
         </Button>
       </Box>
 
-      {/* Filters */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-        <ToggleButtonGroup
-          value={filtroStatus}
-          exclusive
-          onChange={(_, v) => { if (v) setFiltroStatus(v); }}
-          size="small"
-        >
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, flexWrap: "wrap" }}>
+        <ToggleButtonGroup value={filtroStatus} exclusive onChange={(_, v) => { if (v) { setFiltroStatus(v); setPage(0); } }} size="small">
           <ToggleButton value="ativos">Ativos ({ativos})</ToggleButton>
           <ToggleButton value="inativos">Inativos ({inativos})</ToggleButton>
           <ToggleButton value="todos">Todos ({rows.length})</ToggleButton>
@@ -112,7 +120,7 @@ export function AdminsPage() {
           size="small"
           placeholder="Buscar por nome ou e-mail..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(0); }}
           sx={{ width: 280 }}
           slotProps={{
             input: {
@@ -135,6 +143,8 @@ export function AdminsPage() {
                 <TableCell>E-mail</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Criado em</TableCell>
+                <TableCell>Último acesso</TableCell>
+                <TableCell>IP</TableCell>
                 <TableCell />
               </TableRow>
             </TableHead>
@@ -142,40 +152,27 @@ export function AdminsPage() {
               {loading
                 ? Array.from({ length: 2 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 5 }).map((__, j) => (
+                    {Array.from({ length: 7 }).map((__, j) => (
                       <TableCell key={j}><Skeleton variant="text" /></TableCell>
                     ))}
                   </TableRow>
                 ))
-                : filtered.map((row) => (
+                : paginated.map((row) => (
                   <TableRow key={row.id} hover>
                     <TableCell sx={{ fontWeight: 500 }}>
                       {row.nome}
-                      {row.id === user?.id && (
-                        <Chip label="você" size="small" sx={{ ml: 1, fontSize: 10, height: 18, bgcolor: "#f3f4f6", color: "#374151" }} />
-                      )}
+                      {row.id === user?.id && <Chip label="você" size="small" sx={{ ml: 1, fontSize: 10, height: 18 }} />}
                     </TableCell>
                     <TableCell sx={{ color: "text.secondary", fontSize: 13 }}>{row.email}</TableCell>
                     <TableCell>
-                      <Chip
-                        label={row.status === "ativo" ? "Ativo" : "Inativo"}
-                        size="small"
-                        sx={{
-                          bgcolor: row.status === "ativo" ? "#f0fdf4" : "#f9fafb",
-                          color: row.status === "ativo" ? "#16a34a" : "#6b7280",
-                          fontWeight: 600, fontSize: 11,
-                        }}
-                      />
+                      <Chip label={row.status === "ativo" ? "Ativo" : "Inativo"} size="small" color={row.status === "ativo" ? "success" : "default"} />
                     </TableCell>
-                    <TableCell sx={{ color: "text.secondary", fontSize: 13 }}>
-                      {dayjs(row.created_at).format("DD/MM/YYYY")}
-                    </TableCell>
+                    <TableCell sx={{ color: "text.secondary", fontSize: 13 }}>{formatDate(row.created_at)}</TableCell>
+                    <TableCell sx={{ color: "text.secondary", fontSize: 13 }}>{formatDate(row.last_login_at)}</TableCell>
+                    <TableCell sx={{ color: "text.secondary", fontSize: 13 }}>{row.last_login_ip ?? "—"}</TableCell>
                     <TableCell align="right">
                       {row.id !== user?.id && (
-                        <IconButton
-                          size="small"
-                          onClick={(e) => { e.stopPropagation(); setMenuAnchor({ el: e.currentTarget, id: row.id }); }}
-                        >
+                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); setMenuAnchor({ el: e.currentTarget, id: row.id }); }}>
                           <MoreVertRoundedIcon fontSize="small" />
                         </IconButton>
                       )}
@@ -185,7 +182,7 @@ export function AdminsPage() {
               }
               {!loading && filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 6, color: "text.secondary", fontSize: 14 }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 6, color: "text.secondary", fontSize: 14 }}>
                     {search ? "Nenhum resultado para a busca." : "Nenhum administrador nesta categoria."}
                   </TableCell>
                 </TableRow>
@@ -193,6 +190,16 @@ export function AdminsPage() {
             </TableBody>
           </Table>
         </TableContainer>
+        <TablePagination
+          component="div"
+          count={filtered.length}
+          page={page}
+          onPageChange={(_, nextPage) => setPage(nextPage)}
+          rowsPerPage={pageSize}
+          onRowsPerPageChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); }}
+          rowsPerPageOptions={[10, 25, 50]}
+          labelRowsPerPage="Linhas por página"
+        />
       </Paper>
 
       <Menu anchorEl={menuAnchor?.el} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
@@ -202,15 +209,7 @@ export function AdminsPage() {
         }
       </Menu>
 
-      <CriarAdminDialog
-        open={criarOpen}
-        onClose={() => setCriarOpen(false)}
-        onSuccess={(novo) => {
-          setRows((prev) => [...prev, novo]);
-          setCriarOpen(false);
-          success("Administrador criado com sucesso.");
-        }}
-      />
+      <CriarAdminDialog open={criarOpen} onClose={() => setCriarOpen(false)} onSuccess={() => { setCriarOpen(false); load(); success("Administrador criado com sucesso."); }} />
     </Box>
   );
 }

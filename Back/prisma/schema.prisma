@@ -18,12 +18,18 @@ model usuario {
   foto_url String?
 
   totp_secret    String?
+  failed_login_attempts Int      @default(0)
+  locked_until          DateTime?
+  last_login_at         DateTime?
+  last_login_ip         String?
+  last_login_user_agent String?
 
   funcionarios   funcionario[] @relation("FuncionarioUsuario")
   cliente        cliente? @relation("UsuarioCliente")
   gestor_oficina oficina? @relation("GestorOficina")
   acessos        usuario_oficina[]
   password_reset_tokens password_reset_token[]
+  admin_audit_logs admin_audit_log[] @relation("AdminAuditActor")
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -99,6 +105,9 @@ model oficina {
   telefone          String?
   email             String? @unique
   logo_url          String?
+  status_admin      status_oficina_admin @default(ativa)
+  notas_internas    String?
+  implantacao_checklist Json @default("{\"dados_completos\":false,\"gestor_criado\":false,\"perfis_criados\":false,\"primeiro_acesso\":false,\"logo_cadastrada\":false,\"usuarios_convidados\":false}")
   recursos_adicionais Json @default("{\"agenda\":true,\"estoque\":true,\"fornecedores\":true}")
   notificacoes_config Json @default("{\"agenda\":{\"ativo\":true,\"diasAntecedencia\":1},\"financeiro\":{\"ativo\":true,\"diasVencimento\":3},\"estoque\":{\"ativo\":true,\"limiteBaixo\":3},\"ordens\":{\"ativo\":true,\"diasParada\":3,\"diasCritico\":7},\"orcamentos\":{\"ativo\":true,\"diasPendente\":2}}")
 
@@ -119,6 +128,7 @@ model oficina {
   agendamentos           agendamento[]
   veiculos               veiculo[]
   notas_fiscais_importadas nota_fiscal_importada[]
+  admin_audit_logs admin_audit_log[] @relation("AdminAuditOficina")
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -486,6 +496,13 @@ enum status_usuario {
   bloqueado
 }
 
+enum status_oficina_admin {
+  implantacao
+  ativa
+  suspensa
+  cancelada
+}
+
 enum tipo_pagamento {
   pagar // contas a pagar (saída)
   receber // contas a receber (entrada)
@@ -617,4 +634,27 @@ model agendamento {
   @@index([status])
   @@index([deleted_at])
   @@index([ordem_servico_id])
+}
+
+model admin_audit_log {
+  id             Int      @id @default(autoincrement())
+  actor_id       Int?
+  oficina_id     Int?
+  action         String
+  entity_type    String
+  entity_id      Int?
+  message        String
+  metadata       Json?
+  ip             String?
+  user_agent     String?
+  created_at     DateTime @default(now())
+
+  actor   usuario? @relation("AdminAuditActor", fields: [actor_id], references: [id], onDelete: SetNull)
+  oficina oficina? @relation("AdminAuditOficina", fields: [oficina_id], references: [id], onDelete: SetNull)
+
+  @@index([actor_id])
+  @@index([oficina_id])
+  @@index([action])
+  @@index([entity_type, entity_id])
+  @@index([created_at])
 }

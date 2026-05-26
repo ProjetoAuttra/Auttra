@@ -88,6 +88,7 @@ async function ensureProfiles(tx: any, oficinaId: number) {
 export type CriarOficinaInput = {
   oficina: {
     nome: string;
+    cnpj?: string;
     logradouro: string;
     numero: string;
     cep: string;
@@ -104,58 +105,127 @@ export type CriarOficinaInput = {
   };
 };
 
+export type ListarOficinasParams = {
+  q?: string;
+  status?: "ativas" | "inativas" | "todas" | "implantacao" | "ativa" | "suspensa" | "cancelada";
+  cidade?: string;
+  gestor?: string;
+  page?: number;
+  pageSize?: number;
+  sortBy?: "nome" | "cidade" | "created_at" | "total_usuarios" | "total_os_abertas";
+  sortDir?: "asc" | "desc";
+};
+
+function normalizePage(page?: number) {
+  return Number.isFinite(page) && page && page > 0 ? Math.floor(page) : 1;
+}
+
+function normalizePageSize(pageSize?: number) {
+  if (!Number.isFinite(pageSize) || !pageSize || pageSize <= 0) return 10;
+  return Math.min(Math.floor(pageSize), 100);
+}
+
+function mapOficina(o: any) {
+  return {
+    id: o.id,
+    nome: o.nome,
+    cnpj: o.cnpj ?? null,
+    cidade: o.cidade ? `${o.cidade.nome}/${o.cidade.uf}` : null,
+    telefone: o.telefone ?? null,
+    email: o.email ?? null,
+    gestor: o.gestor ? { id: o.gestor.id, nome: o.gestor.nome, email: o.gestor.email } : null,
+    total_usuarios: o._count?.acessos ?? 0,
+    total_os_abertas: o._count?.ordens_servico ?? 0,
+    criada_em: o.created_at,
+    status_admin: o.status_admin,
+    deleted_at: o.deleted_at ?? null,
+  };
+}
+
 export const OficinasAdminService = {
-  async listar(q?: string) {
-    const where: any = { deleted_at: null };
-    if (q) {
-      where.OR = [
-        { nome: { contains: q, mode: "insensitive" } },
-        { cnpj: { contains: q, mode: "insensitive" } },
-        { telefone: { contains: q, mode: "insensitive" } },
-        { email: { contains: q, mode: "insensitive" } },
-        { gestor: { nome: { contains: q, mode: "insensitive" } } },
-        { gestor: { email: { contains: q, mode: "insensitive" } } },
-      ];
+  async listar(params: ListarOficinasParams = {}) {
+    const page = normalizePage(params.page);
+    const pageSize = normalizePageSize(params.pageSize);
+    const where: any = {};
+
+    if (!params.status || params.status === "ativas") where.deleted_at = null;
+    if (params.status === "inativas") where.deleted_at = { not: null };
+    if (params.status && ["implantacao", "ativa", "suspensa", "cancelada"].includes(params.status)) {
+      where.deleted_at = null;
+      where.status_admin = params.status;
     }
 
-    const oficinas = await prisma.oficina.findMany({
-      where,
-      include: {
-        cidade: true,
-        gestor: { select: { id: true, nome: true, email: true } },
-        _count: {
-          select: {
-            acessos: { where: { deleted_at: null, status: "ativo" } },
-            ordens_servico: { where: { deleted_at: null, status: "aberta" } },
+    if (params.q) {
+      where.OR = [
+        { nome: { contains: params.q, mode: "insensitive" } },
+        { cnpj: { contains: params.q, mode: "insensitive" } },
+        { telefone: { contains: params.q, mode: "insensitive" } },
+        { email: { contains: params.q, mode: "insensitive" } },
+        { gestor: { nome: { contains: params.q, mode: "insensitive" } } },
+        { gestor: { email: { contains: params.q, mode: "insensitive" } } },
+        { cidade: { nome: { contains: params.q, mode: "insensitive" } } },
+      ];
+    }
+    if (params.cidade) where.cidade = { nome: { contains: params.cidade, mode: "insensitive" } };
+    if (params.gestor) {
+      where.gestor = {
+        OR: [
+          { nome: { contains: params.gestor, mode: "insensitive" } },
+          { email: { contains: params.gestor, mode: "insensitive" } },
+        ],
+      };
+    }
+
+    const orderBy =
+      params.sortBy === "nome" ? { nome: params.sortDir ?? "asc" } :
+      params.sortBy === "cidade" ? { cidade: { nome: params.sortDir ?? "asc" } } :
+      { created_at: params.sortDir ?? "desc" };
+
+    const [total, oficinas] = await Promise.all([
+      prisma.oficina.count({ where }),
+      prisma.oficina.findMany({
+        where,
+        include: {
+          cidade: true,
+          gestor: { select: { id: true, nome: true, email: true } },
+          _count: {
+            select: {
+              acessos: { where: { deleted_at: null, status: "ativo" } },
+              ordens_servico: { where: { deleted_at: null, status: { in: ["aberta", "em_andamento"] } } },
+            },
           },
         },
-      },
-      orderBy: { created_at: "desc" },
-    });
+        orderBy: orderBy as any,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
 
-    return oficinas.map((o) => ({
-      id: o.id,
-      nome: o.nome,
-      cnpj: o.cnpj ?? null,
-      cidade: o.cidade ? `${o.cidade.nome}/${o.cidade.uf}` : null,
-      telefone: o.telefone ?? null,
-      email: o.email ?? null,
-      gestor: o.gestor ? { id: o.gestor.id, nome: o.gestor.nome, email: o.gestor.email } : null,
-      total_usuarios: o._count.acessos,
-      total_os_abertas: o._count.ordens_servico,
-      criada_em: o.created_at,
-      deleted_at: o.deleted_at ?? null,
-    }));
+    return {
+      data: oficinas.map(mapOficina),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    };
   },
 
   async getById(id: number) {
     const oficina = await prisma.oficina.findFirst({
-      where: { id, deleted_at: null },
+      where: { id },
       include: {
         cidade: true,
+        gestor: { select: { id: true, nome: true, email: true } },
         acessos: {
           where: { deleted_at: null },
-          include: { usuario: { select: { id: true, nome: true, email: true, tipo: true, status: true } } },
+          include: { usuario: { select: { id: true, nome: true, email: true, tipo: true, status: true, last_login_at: true } as any } },
+        },
+        _count: {
+          select: {
+            clientes: { where: { deleted_at: null } },
+            veiculos: { where: { deleted_at: null } },
+            ordens_servico: { where: { deleted_at: null, status: { in: ["aberta", "em_andamento"] } } },
+          },
         },
       },
     });
@@ -173,6 +243,7 @@ export const OficinasAdminService = {
       const oficina = await tx.oficina.upsert({
         where: { nome: oficinaData.nome },
         update: {
+          cnpj: oficinaData.cnpj || null,
           logradouro: oficinaData.logradouro,
           numero: oficinaData.numero,
           complemento: oficinaData.complemento ?? null,
@@ -180,10 +251,12 @@ export const OficinasAdminService = {
           cidade_id: cidade.id,
           telefone: oficinaData.telefone ?? null,
           email: oficinaData.email ?? null,
+          status_admin: "implantacao",
           deleted_at: null,
-        },
+        } as any,
         create: {
           nome: oficinaData.nome,
+          cnpj: oficinaData.cnpj || null,
           logradouro: oficinaData.logradouro,
           numero: oficinaData.numero,
           complemento: oficinaData.complemento ?? null,
@@ -191,7 +264,8 @@ export const OficinasAdminService = {
           cidade_id: cidade.id,
           telefone: oficinaData.telefone ?? null,
           email: oficinaData.email ?? null,
-        },
+          status_admin: "implantacao",
+        } as any,
       });
 
       const perfil = await ensureProfiles(tx, oficina.id);
@@ -223,17 +297,69 @@ export const OficinasAdminService = {
 
       await tx.oficina.update({
         where: { id: oficina.id },
-        data: { gestor_usuario_id: usuario.id },
+        data: {
+          gestor_usuario_id: usuario.id,
+          implantacao_checklist: {
+            dados_completos: true,
+            gestor_criado: true,
+            perfis_criados: true,
+            primeiro_acesso: false,
+            logo_cadastrada: false,
+            usuarios_convidados: false,
+          },
+        } as any,
       });
 
       return { oficina, usuario };
     });
   },
 
-  async update(id: number, data: Partial<{ logradouro: string; numero: string; cep: string; telefone: string; email: string; complemento: string }>) {
-    const oficina = await prisma.oficina.findFirst({ where: { id, deleted_at: null } });
+  async update(id: number, data: Partial<{
+    nome: string;
+    cnpj: string | null;
+    logradouro: string;
+    numero: string;
+    cep: string;
+    cidade: string;
+    uf: string;
+    telefone: string | null;
+    email: string | null;
+    complemento: string | null;
+    gestor_usuario_id: number | null;
+    status_admin: "implantacao" | "ativa" | "suspensa" | "cancelada";
+    notas_internas: string | null;
+    implantacao_checklist: Record<string, boolean>;
+  }>) {
+    const oficina = await prisma.oficina.findFirst({ where: { id } });
     if (!oficina) throw new Error("Oficina não encontrada.");
-    return prisma.oficina.update({ where: { id }, data });
+
+    const updateData: any = { ...data };
+    delete updateData.cidade;
+    delete updateData.uf;
+
+    if (data.cidade || data.uf) {
+      const cidadeNome = data.cidade;
+      const uf = data.uf?.toUpperCase();
+      if (!cidadeNome || !uf) throw new Error("Cidade e UF devem ser informadas juntas.");
+      const cidade =
+        (await prisma.cidade.findFirst({ where: { nome: cidadeNome, uf } })) ??
+        (await prisma.cidade.create({ data: { nome: cidadeNome, uf } }));
+      updateData.cidade_id = cidade.id;
+    }
+
+    if (typeof data.gestor_usuario_id === "number") {
+      const gestor = await prisma.usuario.findFirst({
+        where: {
+          id: data.gestor_usuario_id,
+          deleted_at: null,
+          tipo: { not: "sistema" },
+          acessos: { some: { oficina_id: id, deleted_at: null, status: "ativo" } },
+        },
+      });
+      if (!gestor) throw new Error("Gestor inválido para esta oficina.");
+    }
+
+    return prisma.oficina.update({ where: { id }, data: updateData });
   },
 
   async softDelete(id: number) {
@@ -245,7 +371,7 @@ export const OficinasAdminService = {
         where: { oficina_id: id, deleted_at: null },
         data: { deleted_at: new Date() },
       });
-      return tx.oficina.update({ where: { id }, data: { deleted_at: new Date() } });
+      return tx.oficina.update({ where: { id }, data: { deleted_at: new Date(), status_admin: "suspensa" } as any });
     });
   },
 
@@ -259,7 +385,7 @@ export const OficinasAdminService = {
         where: { oficina_id: id },
         data: { deleted_at: null, status: "ativo" },
       });
-      return tx.oficina.update({ where: { id }, data: { deleted_at: null } });
+      return tx.oficina.update({ where: { id }, data: { deleted_at: null, status_admin: "ativa" } as any });
     });
   },
 };

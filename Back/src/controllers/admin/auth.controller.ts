@@ -4,17 +4,65 @@ import jwt from "jsonwebtoken";
 import { generateSecret, verifySync as totpVerify, generateURI } from "otplib";
 import { prisma } from "../../prisma/client.js";
 import { getJwtSecret } from "../../config/env.js";
+import { AdminAuditService } from "../../services/admin/audit.service.js";
 
 const APP_NAME = "DriveOn Admin";
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCK_MINUTES = 15;
 
-function signAdminToken(usuario: { id: number; email: string; nome: string; tipo: string }) {
-  const payload = { id: usuario.id, email: usuario.email, nome: usuario.nome, tipo: usuario.tipo };
-  const token = jwt.sign(payload, getJwtSecret(), { expiresIn: "8h" });
+function signAdminToken(usuario: { id: number; email: string; nome: string; tipo: string; last_login_at?: Date | null }) {
+  const payload = {
+    id: usuario.id,
+    email: usuario.email,
+    nome: usuario.nome,
+    tipo: usuario.tipo,
+    last_login_at: usuario.last_login_at ?? null,
+  };
+  const token = jwt.sign(payload, getJwtSecret(), { expiresIn: "2h" });
   return { token, usuario: payload };
 }
 
 function signPreAuthToken(userId: number) {
   return jwt.sign({ purpose: "2fa-pending", id: userId }, getJwtSecret(), { expiresIn: "5m" });
+}
+
+function requestIp(req: Request) {
+  return req.ip ?? req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ?? null;
+}
+
+async function registerFailedLogin(usuario: { id: number; failed_login_attempts?: number | null }) {
+  const attempts = (usuario.failed_login_attempts ?? 0) + 1;
+  const lockedUntil = attempts >= MAX_LOGIN_ATTEMPTS ? new Date(Date.now() + LOCK_MINUTES * 60 * 1000) : null;
+  await prisma.usuario.update({
+    where: { id: usuario.id },
+    data: { failed_login_attempts: attempts, locked_until: lockedUntil } as any,
+  });
+  return lockedUntil;
+}
+
+async function completeAdminLogin(req: Request, usuario: { id: number; email: string; nome: string; tipo: string }) {
+  const updated = await prisma.usuario.update({
+    where: { id: usuario.id },
+    data: {
+      failed_login_attempts: 0,
+      locked_until: null,
+      last_login_at: new Date(),
+      last_login_ip: requestIp(req),
+      last_login_user_agent: req.get("user-agent") ?? null,
+    } as any,
+    select: { id: true, email: true, nome: true, tipo: true, last_login_at: true } as any,
+  });
+
+  await AdminAuditService.log({
+    req,
+    actorId: usuario.id,
+    action: "admin.login",
+    entityType: "usuario",
+    entityId: usuario.id,
+    message: "Login administrativo concluído.",
+  });
+
+  return signAdminToken(updated as any);
 }
 
 export const AdminAuthController = {
@@ -31,22 +79,35 @@ export const AdminAuthController = {
         where: { email, tipo: "sistema", deleted_at: null, status: "ativo" },
       });
 
+      if ((usuario as any)?.locked_until && (usuario as any).locked_until > new Date()) {
+        return res.status(423).json({ message: "Acesso bloqueado temporariamente. Tente novamente em alguns minutos." });
+      }
+
       if (!usuario || !(await bcrypt.compare(senha, usuario.senha))) {
         await bcrypt.compare(senha, "$2b$10$invalidsaltsimulatingcomparexxxxxxx");
+        if (usuario) {
+          const lockedUntil = await registerFailedLogin(usuario as any);
+          await AdminAuditService.log({
+            req,
+            actorId: usuario.id,
+            action: lockedUntil ? "admin.login_locked" : "admin.login_failed",
+            entityType: "usuario",
+            entityId: usuario.id,
+            message: lockedUntil ? "Administrador bloqueado por tentativas inválidas." : "Tentativa inválida de login administrativo.",
+          });
+        }
         return res.status(401).json({ message: "E-mail ou senha inválidos." });
       }
 
-      const totp_secret = (usuario as any).totp_secret as string | null;
+      const totpSecret = (usuario as any).totp_secret as string | null;
 
-      // 2FA ativo → pedir código
-      if (totp_secret && !totp_secret.startsWith("pending:")) {
+      if (totpSecret && !totpSecret.startsWith("pending:")) {
         return res.json({ requires2fa: true, pre_auth_token: signPreAuthToken(usuario.id) });
       }
 
-      // 2FA não configurado ou pendente → forçar setup durante o login
       let secret: string;
-      if (totp_secret?.startsWith("pending:")) {
-        secret = totp_secret.slice("pending:".length);
+      if (totpSecret?.startsWith("pending:")) {
+        secret = totpSecret.slice("pending:".length);
       } else {
         secret = generateSecret();
         await (prisma.usuario as any).update({
@@ -90,6 +151,9 @@ export const AdminAuthController = {
       });
 
       if (!usuario) return res.status(401).json({ message: "Usuário não encontrado." });
+      if ((usuario as any).locked_until && (usuario as any).locked_until > new Date()) {
+        return res.status(423).json({ message: "Acesso bloqueado temporariamente. Tente novamente em alguns minutos." });
+      }
 
       const raw = (usuario as any).totp_secret as string | null;
       const activeSecret = raw && !raw.startsWith("pending:") ? raw : null;
@@ -97,17 +161,25 @@ export const AdminAuthController = {
 
       const result = totpVerify({ token: String(code).replace(/\s/g, ""), secret: activeSecret });
       if (!result?.valid) {
+        const lockedUntil = await registerFailedLogin(usuario as any);
+        await AdminAuditService.log({
+          req,
+          actorId: usuario.id,
+          action: lockedUntil ? "admin.2fa_locked" : "admin.2fa_failed",
+          entityType: "usuario",
+          entityId: usuario.id,
+          message: lockedUntil ? "Administrador bloqueado por códigos 2FA inválidos." : "Código 2FA administrativo inválido.",
+        });
         return res.status(401).json({ message: "Código inválido ou expirado." });
       }
 
-      return res.json(signAdminToken(usuario));
+      return res.json(await completeAdminLogin(req, usuario));
     } catch (err) {
       console.error("Erro ao verificar 2FA:", err);
       return res.status(500).json({ message: "Erro interno." });
     }
   },
 
-  // Confirma o primeiro setup de 2FA feito durante o login (sem token completo)
   async completeFirstSetup2fa(req: Request, res: Response) {
     try {
       const { pre_auth_token, code } = req.body ?? {};
@@ -148,7 +220,16 @@ export const AdminAuthController = {
         data: { totp_secret: secret },
       });
 
-      return res.json(signAdminToken(usuario));
+      await AdminAuditService.log({
+        req,
+        actorId: usuario.id,
+        action: "admin.2fa_setup",
+        entityType: "usuario",
+        entityId: usuario.id,
+        message: "2FA administrativo configurado.",
+      });
+
+      return res.json(await completeAdminLogin(req, usuario));
     } catch (err) {
       console.error("Erro ao completar setup de 2FA:", err);
       return res.status(500).json({ message: "Erro interno." });
@@ -165,8 +246,8 @@ export const AdminAuthController = {
       });
       if (!usuario) return res.status(404).json({ message: "Usuário não encontrado." });
 
-      const totp_secret = (usuario as any).totp_secret as string | null;
-      if (totp_secret && !totp_secret.startsWith("pending:")) {
+      const totpSecret = (usuario as any).totp_secret as string | null;
+      if (totpSecret && !totpSecret.startsWith("pending:")) {
         return res.status(400).json({ message: "2FA já está ativo. Desative primeiro para reconfigurar." });
       }
 
@@ -213,6 +294,14 @@ export const AdminAuthController = {
         data: { totp_secret: secret },
       });
 
+      await AdminAuditService.log({
+        req,
+        action: "admin.2fa_confirm",
+        entityType: "usuario",
+        entityId: userId,
+        message: "2FA administrativo confirmado.",
+      });
+
       return res.json({ message: "2FA ativado com sucesso." });
     } catch (err) {
       console.error("Erro ao confirmar 2FA:", err);
@@ -232,8 +321,8 @@ export const AdminAuthController = {
       });
       if (!usuario) return res.status(404).json({ message: "Usuário não encontrado." });
 
-      const totp_secret = (usuario as any).totp_secret as string | null;
-      const activeSecret = totp_secret?.startsWith("pending:") ? null : totp_secret;
+      const totpSecret = (usuario as any).totp_secret as string | null;
+      const activeSecret = totpSecret?.startsWith("pending:") ? null : totpSecret;
       if (!activeSecret) return res.status(400).json({ message: "2FA não está ativo." });
 
       const r3 = totpVerify({ token: String(code).replace(/\s/g, ""), secret: activeSecret });
@@ -244,6 +333,14 @@ export const AdminAuthController = {
       await (prisma.usuario as any).update({
         where: { id: userId },
         data: { totp_secret: null },
+      });
+
+      await AdminAuditService.log({
+        req,
+        action: "admin.2fa_disable",
+        entityType: "usuario",
+        entityId: userId,
+        message: "2FA administrativo desativado.",
       });
 
       return res.json({ message: "2FA desativado." });
@@ -281,6 +378,14 @@ export const AdminAuthController = {
       const hash = await bcrypt.hash(nova_senha, 10);
       await (prisma.usuario as any).update({ where: { id: userId }, data: { senha: hash } });
 
+      await AdminAuditService.log({
+        req,
+        action: "admin.password_change",
+        entityType: "usuario",
+        entityId: userId,
+        message: "Senha do administrador alterada.",
+      });
+
       return res.json({ message: "Senha alterada com sucesso." });
     } catch (err) {
       console.error("Erro ao alterar senha:", err);
@@ -295,7 +400,16 @@ export const AdminAuthController = {
 
       const usuario = await prisma.usuario.findFirst({
         where: { id: userId, tipo: "sistema", deleted_at: null },
-        select: { id: true, email: true, nome: true, tipo: true, totp_secret: true } as any,
+        select: {
+          id: true,
+          email: true,
+          nome: true,
+          tipo: true,
+          totp_secret: true,
+          last_login_at: true,
+          last_login_ip: true,
+          last_login_user_agent: true,
+        } as any,
       });
       if (!usuario) return res.status(404).json({ message: "Usuário não encontrado." });
 
@@ -307,6 +421,9 @@ export const AdminAuthController = {
           nome: (usuario as any).nome,
           tipo: (usuario as any).tipo,
           totp_enabled: !!raw && !raw.startsWith("pending:"),
+          last_login_at: (usuario as any).last_login_at,
+          last_login_ip: (usuario as any).last_login_ip,
+          last_login_user_agent: (usuario as any).last_login_user_agent,
         },
       });
     } catch (err) {
