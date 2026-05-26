@@ -3,10 +3,16 @@ import api from "../api/api";
 
 type AdminUser = { id: number; nome: string; email: string; tipo: string; totp_enabled?: boolean };
 
+type SignInResult =
+  | { requires2fa: true; pre_auth_token: string }
+  | { requires2fa_setup: true; pre_auth_token: string; otpauth: string }
+  | { requires2fa: false };
+
 type AuthContextType = {
   user: AdminUser | null;
-  signIn: (email: string, senha: string) => Promise<{ requires2fa: boolean; pre_auth_token?: string }>;
+  signIn: (email: string, senha: string) => Promise<SignInResult>;
   verify2fa: (pre_auth_token: string, code: string) => Promise<void>;
+  completeFirstSetup: (pre_auth_token: string, code: string) => Promise<void>;
   signOut: () => void;
   refreshMe: () => Promise<void>;
 };
@@ -40,10 +46,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
   }, []);
 
-  async function signIn(email: string, senha: string) {
+  async function signIn(email: string, senha: string): Promise<SignInResult> {
     const { data } = await api.post("/auth/login", { email, senha });
     if (data.requires2fa) {
       return { requires2fa: true, pre_auth_token: data.pre_auth_token };
+    }
+    if (data.requires2fa_setup) {
+      return { requires2fa_setup: true, pre_auth_token: data.pre_auth_token, otpauth: data.otpauth };
     }
     localStorage.setItem("admin_token", data.token);
     localStorage.setItem("admin_user", JSON.stringify(data.usuario));
@@ -53,6 +62,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function verify2fa(pre_auth_token: string, code: string) {
     const { data } = await api.post("/auth/2fa/verify", { pre_auth_token, code });
+    localStorage.setItem("admin_token", data.token);
+    localStorage.setItem("admin_user", JSON.stringify(data.usuario));
+    setUser(data.usuario);
+  }
+
+  async function completeFirstSetup(pre_auth_token: string, code: string) {
+    const { data } = await api.post("/auth/2fa/first-setup", { pre_auth_token, code });
     localStorage.setItem("admin_token", data.token);
     localStorage.setItem("admin_user", JSON.stringify(data.usuario));
     setUser(data.usuario);
@@ -74,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, signIn, verify2fa, signOut, refreshMe }}>
+    <AuthContext.Provider value={{ user, signIn, verify2fa, completeFirstSetup, signOut, refreshMe }}>
       {children}
     </AuthContext.Provider>
   );

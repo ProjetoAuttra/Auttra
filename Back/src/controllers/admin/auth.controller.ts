@@ -37,11 +37,30 @@ export const AdminAuthController = {
       }
 
       const totp_secret = (usuario as any).totp_secret as string | null;
-      if (totp_secret) {
+
+      // 2FA ativo → pedir código
+      if (totp_secret && !totp_secret.startsWith("pending:")) {
         return res.json({ requires2fa: true, pre_auth_token: signPreAuthToken(usuario.id) });
       }
 
-      return res.json(signAdminToken(usuario));
+      // 2FA não configurado ou pendente → forçar setup durante o login
+      let secret: string;
+      if (totp_secret?.startsWith("pending:")) {
+        secret = totp_secret.slice("pending:".length);
+      } else {
+        secret = generateSecret();
+        await (prisma.usuario as any).update({
+          where: { id: usuario.id },
+          data: { totp_secret: `pending:${secret}` },
+        });
+      }
+
+      const otpauth = generateURI({ label: usuario.email, issuer: APP_NAME, secret });
+      return res.json({
+        requires2fa_setup: true,
+        pre_auth_token: signPreAuthToken(usuario.id),
+        otpauth,
+      });
     } catch (err) {
       console.error("Erro no login admin:", err);
       return res.status(500).json({ message: "Erro interno ao autenticar." });
@@ -72,10 +91,11 @@ export const AdminAuthController = {
 
       if (!usuario) return res.status(401).json({ message: "Usuário não encontrado." });
 
-      const totp_secret = (usuario as any).totp_secret as string | null;
-      if (!totp_secret) return res.status(400).json({ message: "2FA não configurado." });
+      const raw = (usuario as any).totp_secret as string | null;
+      const activeSecret = raw && !raw.startsWith("pending:") ? raw : null;
+      if (!activeSecret) return res.status(400).json({ message: "2FA não configurado." });
 
-      const result = totpVerify({ token: String(code).replace(/\s/g, ""), secret: totp_secret });
+      const result = totpVerify({ token: String(code).replace(/\s/g, ""), secret: activeSecret });
       if (!result?.valid) {
         return res.status(401).json({ message: "Código inválido ou expirado." });
       }
@@ -83,6 +103,54 @@ export const AdminAuthController = {
       return res.json(signAdminToken(usuario));
     } catch (err) {
       console.error("Erro ao verificar 2FA:", err);
+      return res.status(500).json({ message: "Erro interno." });
+    }
+  },
+
+  // Confirma o primeiro setup de 2FA feito durante o login (sem token completo)
+  async completeFirstSetup2fa(req: Request, res: Response) {
+    try {
+      const { pre_auth_token, code } = req.body ?? {};
+      if (!pre_auth_token || !code) {
+        return res.status(400).json({ message: "Token e código são obrigatórios." });
+      }
+
+      let payload: any;
+      try {
+        payload = jwt.verify(pre_auth_token, getJwtSecret());
+      } catch {
+        return res.status(401).json({ message: "Token expirado. Faça login novamente." });
+      }
+
+      if (payload.purpose !== "2fa-pending") {
+        return res.status(401).json({ message: "Token inválido." });
+      }
+
+      const usuario = await prisma.usuario.findFirst({
+        where: { id: payload.id, tipo: "sistema", deleted_at: null, status: "ativo" },
+      });
+
+      if (!usuario) return res.status(401).json({ message: "Usuário não encontrado." });
+
+      const raw = (usuario as any).totp_secret as string | null;
+      if (!raw?.startsWith("pending:")) {
+        return res.status(400).json({ message: "Nenhuma configuração de 2FA pendente." });
+      }
+
+      const secret = raw.slice("pending:".length);
+      const result = totpVerify({ token: String(code).replace(/\s/g, ""), secret });
+      if (!result?.valid) {
+        return res.status(400).json({ message: "Código inválido. Verifique o Google Authenticator." });
+      }
+
+      await (prisma.usuario as any).update({
+        where: { id: usuario.id },
+        data: { totp_secret: secret },
+      });
+
+      return res.json(signAdminToken(usuario));
+    } catch (err) {
+      console.error("Erro ao completar setup de 2FA:", err);
       return res.status(500).json({ message: "Erro interno." });
     }
   },
@@ -98,7 +166,7 @@ export const AdminAuthController = {
       if (!usuario) return res.status(404).json({ message: "Usuário não encontrado." });
 
       const totp_secret = (usuario as any).totp_secret as string | null;
-      if (totp_secret) {
+      if (totp_secret && !totp_secret.startsWith("pending:")) {
         return res.status(400).json({ message: "2FA já está ativo. Desative primeiro para reconfigurar." });
       }
 
