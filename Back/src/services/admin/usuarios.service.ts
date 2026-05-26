@@ -57,25 +57,26 @@ export const UsuariosAdminService = {
     });
     if (!usuario) throw new Error("Usuário não encontrado.");
 
-    const senhaTemporaria = crypto.randomBytes(6).toString("hex"); // 12 chars hex
+    // charset sem caracteres ambíguos (0/O, l/1/I)
+    const charset = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+    let senhaTemporaria = "";
+    const bytes = crypto.randomBytes(8);
+    for (let i = 0; i < 8; i++) senhaTemporaria += charset[bytes[i] % charset.length];
+
     const senhaHash = await bcrypt.hash(senhaTemporaria, 10);
+    await prisma.usuario.update({ where: { id }, data: { senha: senhaHash } });
 
-    await prisma.$transaction(async (tx) => {
-      await tx.usuario.update({ where: { id }, data: { senha: senhaHash } });
+    // envia email (best effort — não falha se Resend não estiver configurado)
+    try {
+      await sendEmail({
+        to: usuario.email,
+        subject: "Nova senha temporária — DriveOn",
+        html: senhaTemporariaHtml(usuario.email, senhaTemporaria),
+      });
+    } catch {
+      // email falhou mas senha foi atualizada — admin verá a senha na tela
+    }
 
-      try {
-        await sendEmail({
-          to: usuario.email,
-          subject: "Nova senha temporária — DriveOn",
-          html: senhaTemporariaHtml(usuario.email, senhaTemporaria),
-        });
-      } catch (err) {
-        // rollback implícito da transaction
-        if (err instanceof EmailDeliveryError) throw err;
-        throw new EmailDeliveryError("Não foi possível enviar o e-mail com a nova senha.");
-      }
-    });
-
-    return { email: usuario.email };
+    return { email: usuario.email, senha_temporaria: senhaTemporaria };
   },
 };

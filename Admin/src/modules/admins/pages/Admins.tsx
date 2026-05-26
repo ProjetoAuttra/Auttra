@@ -2,15 +2,17 @@ import React, { useEffect, useState } from "react";
 import {
   Box, Typography, Button, Paper, Table, TableHead, TableBody,
   TableRow, TableCell, TableContainer, IconButton, Menu, MenuItem,
-  Chip, Skeleton,
+  Chip, Skeleton, TextField, InputAdornment, ToggleButtonGroup, ToggleButton,
 } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import api from "../../../api/api";
 import { CriarAdminDialog } from "../dialog/CriarAdmin";
 import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
 import { useAuth } from "../../../context/AuthContext";
+import dayjs from "dayjs";
 
 type Admin = {
   id: number;
@@ -20,11 +22,15 @@ type Admin = {
   created_at: string;
 };
 
+type FiltroStatus = "ativos" | "inativos" | "todos";
+
 export function AdminsPage() {
   const [rows, setRows] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
   const [criarOpen, setCriarOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<{ el: HTMLElement; id: number } | null>(null);
+  const [search, setSearch] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>("ativos");
   const { success, error } = useToast();
   const confirm = useConfirm();
   const { user } = useAuth();
@@ -65,6 +71,15 @@ export function AdminsPage() {
     setMenuAnchor(null);
   }
 
+  const ativos = rows.filter((a) => a.status === "ativo").length;
+  const inativos = rows.filter((a) => a.status === "inativo").length;
+
+  const filtered = rows.filter((a) => {
+    const statusOk = filtroStatus === "todos" || a.status === (filtroStatus === "ativos" ? "ativo" : "inativo");
+    const searchOk = !search || a.nome.toLowerCase().includes(search.toLowerCase()) || a.email.toLowerCase().includes(search.toLowerCase());
+    return statusOk && searchOk;
+  });
+
   const selectedAdmin = rows.find((a) => a.id === menuAnchor?.id);
 
   return (
@@ -76,13 +91,39 @@ export function AdminsPage() {
             Usuários com acesso ao painel admin
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddRoundedIcon />}
-          onClick={() => setCriarOpen(true)}
-        >
+        <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={() => setCriarOpen(true)}>
           Novo administrador
         </Button>
+      </Box>
+
+      {/* Filters */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+        <ToggleButtonGroup
+          value={filtroStatus}
+          exclusive
+          onChange={(_, v) => { if (v) setFiltroStatus(v); }}
+          size="small"
+        >
+          <ToggleButton value="ativos">Ativos ({ativos})</ToggleButton>
+          <ToggleButton value="inativos">Inativos ({inativos})</ToggleButton>
+          <ToggleButton value="todos">Todos ({rows.length})</ToggleButton>
+        </ToggleButtonGroup>
+        <TextField
+          size="small"
+          placeholder="Buscar por nome ou e-mail..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          sx={{ width: 280 }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchRoundedIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
       </Box>
 
       <Paper>
@@ -93,6 +134,7 @@ export function AdminsPage() {
                 <TableCell>Nome</TableCell>
                 <TableCell>E-mail</TableCell>
                 <TableCell>Status</TableCell>
+                <TableCell>Criado em</TableCell>
                 <TableCell />
               </TableRow>
             </TableHead>
@@ -100,12 +142,12 @@ export function AdminsPage() {
               {loading
                 ? Array.from({ length: 2 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 4 }).map((__, j) => (
+                    {Array.from({ length: 5 }).map((__, j) => (
                       <TableCell key={j}><Skeleton variant="text" /></TableCell>
                     ))}
                   </TableRow>
                 ))
-                : rows.map((row) => (
+                : filtered.map((row) => (
                   <TableRow key={row.id} hover>
                     <TableCell sx={{ fontWeight: 500 }}>
                       {row.nome}
@@ -125,6 +167,9 @@ export function AdminsPage() {
                         }}
                       />
                     </TableCell>
+                    <TableCell sx={{ color: "text.secondary", fontSize: 13 }}>
+                      {dayjs(row.created_at).format("DD/MM/YYYY")}
+                    </TableCell>
                     <TableCell align="right">
                       {row.id !== user?.id && (
                         <IconButton
@@ -138,10 +183,10 @@ export function AdminsPage() {
                   </TableRow>
                 ))
               }
-              {!loading && rows.length === 0 && (
+              {!loading && filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} align="center" sx={{ py: 6, color: "text.secondary", fontSize: 14 }}>
-                    Nenhum administrador cadastrado.
+                  <TableCell colSpan={5} align="center" sx={{ py: 6, color: "text.secondary", fontSize: 14 }}>
+                    {search ? "Nenhum resultado para a busca." : "Nenhum administrador nesta categoria."}
                   </TableCell>
                 </TableRow>
               )}
@@ -150,11 +195,7 @@ export function AdminsPage() {
         </TableContainer>
       </Paper>
 
-      <Menu
-        anchorEl={menuAnchor?.el}
-        open={Boolean(menuAnchor)}
-        onClose={() => setMenuAnchor(null)}
-      >
+      <Menu anchorEl={menuAnchor?.el} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
         {selectedAdmin?.status === "ativo"
           ? <MenuItem onClick={() => handleDesativar(menuAnchor!.id)} sx={{ color: "error.main" }}>Desativar</MenuItem>
           : <MenuItem onClick={() => handleReativar(menuAnchor!.id)}>Reativar</MenuItem>
