@@ -43,8 +43,8 @@ export function LoginPage() {
       } else {
         navigate("/");
       }
-    } catch {
-      setError("E-mail ou senha inválidos.");
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? "E-mail ou senha inválidos.");
     } finally {
       setLoading(false);
     }
