@@ -45,8 +45,7 @@ export const UsuariosAdminController = {
   async resetSenha(req: Request, res: Response) {
     try {
       const id = Number(req.params.id);
-      const origin = req.get("origin") || undefined;
-      const resultado = await UsuariosAdminService.resetSenha(id, origin);
+      const resultado = await UsuariosAdminService.resetSenha(id);
       await AdminAuditService.log({
         req,
         action: "usuario.password_reset_link",
