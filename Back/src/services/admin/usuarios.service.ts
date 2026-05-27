@@ -38,13 +38,13 @@ export const UsuariosAdminService = {
     return prisma.usuario.update({ where: { id }, data: { email } });
   },
 
-  async resetSenha(id: number, fallbackOrigin?: string) {
+  async resetSenha(id: number) {
     const usuario = await prisma.usuario.findFirst({
       where: { id, deleted_at: null, tipo: { not: "sistema" } },
       select: { id: true },
     });
     if (!usuario) throw new Error("Usuário não encontrado.");
 
-    return PasswordResetService.createResetForUser(id, fallbackOrigin);
+    return PasswordResetService.createResetForUser(id);
   },
 };

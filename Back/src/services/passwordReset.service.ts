@@ -10,14 +10,11 @@ function hashToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
-function buildResetUrl(token: string, fallbackOrigin?: string) {
-  const corsOrigin = process.env.CORS_ORIGIN?.split(",").map((item) => item.trim()).find(Boolean);
+function buildResetUrl(token: string) {
   const baseUrl =
     process.env.PASSWORD_RESET_URL_BASE?.trim() ||
     process.env.FRONTEND_URL?.trim() ||
     process.env.APP_URL?.trim() ||
-    fallbackOrigin ||
-    corsOrigin ||
     "http://localhost:5173";
 
   return `${baseUrl.replace(/\/+$/, "")}/redefinir-senha?token=${encodeURIComponent(token)}`;
@@ -41,7 +38,7 @@ function passwordResetEmailHtml(resetUrl: string) {
 }
 
 export const PasswordResetService = {
-  async requestReset(email: string, fallbackOrigin?: string) {
+  async requestReset(email: string) {
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) throw new Error("E-mail e obrigatorio.");
 
@@ -69,7 +66,7 @@ export const PasswordResetService = {
       },
     });
 
-    const resetUrl = buildResetUrl(token, fallbackOrigin);
+    const resetUrl = buildResetUrl(token);
 
     try {
       await sendEmail({
@@ -77,20 +74,13 @@ export const PasswordResetService = {
         subject: "Recuperação de senha do DriveOn",
         html: passwordResetEmailHtml(resetUrl),
       });
-    } catch (error) {
-      await prisma.password_reset_token.updateMany({
-        where: { token_hash: tokenHash, used_at: null },
-        data: { used_at: new Date() },
-      });
-
-      if (error instanceof EmailDeliveryError) throw error;
-      throw new EmailDeliveryError("Nao foi possivel enviar o e-mail de recuperacao.");
+      return { sent: true };
+    } catch {
+      return { sent: false };
     }
-
-    return { sent: true };
   },
 
-  async createResetForUser(usuarioId: number, fallbackOrigin?: string) {
+  async createResetForUser(usuarioId: number) {
     const usuario = await prisma.usuario.findFirst({
       where: { id: usuarioId, deleted_at: null, status: "ativo" },
       select: { id: true, email: true },
@@ -115,7 +105,7 @@ export const PasswordResetService = {
       },
     });
 
-    const resetUrl = buildResetUrl(token, fallbackOrigin);
+    const resetUrl = buildResetUrl(token);
     let emailSent = true;
 
     try {

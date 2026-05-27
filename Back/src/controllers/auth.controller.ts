@@ -5,7 +5,6 @@ import { prisma } from "../prisma/client.js";
 import { normalizePermissions, type PermissionsMap } from "../permissions/accessProfiles.js";
 import { PerfisAcessoService } from "../services/perfisAcesso.service.js";
 import { getJwtSecret } from "../config/env.js";
-import { EmailDeliveryError } from "../services/email.service.js";
 import { PasswordResetService } from "../services/passwordReset.service.js";
 
 type AuthUsuario = {
@@ -138,27 +137,18 @@ export async function changePassword(req: Request, res: Response) {
 export async function forgotPassword(req: Request, res: Response) {
   try {
     const email = String(req.body?.email ?? "");
-    const origin = req.get("origin") || undefined;
 
     if (!email.trim()) {
       return res.status(400).json({ message: "E-mail e obrigatorio." });
     }
 
-    await PasswordResetService.requestReset(email, origin);
+    await PasswordResetService.requestReset(email);
 
     return res.json({
       message: "Se o e-mail estiver cadastrado, enviaremos um link para redefinir a senha.",
     });
   } catch (err) {
     console.error("Erro ao solicitar recuperacao de senha:", err);
-
-    if (err instanceof EmailDeliveryError) {
-      return res.status(502).json({
-        message:
-          "Nao foi possivel enviar o e-mail de recuperacao. Verifique a API key do Resend, o remetente configurado e o status do dominio.",
-      });
-    }
-
     return res.status(500).json({ message: "Erro interno ao solicitar recuperacao de senha." });
   }
 }
