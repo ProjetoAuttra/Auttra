@@ -37,7 +37,7 @@ export function UsuariosPage() {
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>("todos");
   const [menuAnchor, setMenuAnchor] = useState<{ el: HTMLElement; id: number } | null>(null);
   const [trocarEmailId, setTrocarEmailId] = useState<number | null>(null);
-  const [resetDialog, setResetDialog] = useState<{ url: string; email: string; emailSent: boolean } | null>(null);
+  const [resetDialog, setResetDialog] = useState<{ senha: string; email: string } | null>(null);
   const [copiado, setCopiado] = useState(false);
   const { success, error } = useToast();
   const confirm = useConfirm();
@@ -52,16 +52,19 @@ export function UsuariosPage() {
   async function handleResetSenha(id: number) {
     const usuario = rows.find((u) => u.id === id);
     const ok = await confirm({
-      title: "Gerar link de redefinição?",
-      message: `Um link com expiração será gerado para ${usuario?.nome}. Se o e-mail estiver configurado, ele também será enviado.`,
-      confirmLabel: "Gerar link",
+      title: "Redefinir senha?",
+      message: `Uma nova senha de 8 caracteres será gerada para ${usuario?.nome}. A senha atual deixará de funcionar imediatamente.`,
+      confirmLabel: "Redefinir senha",
     });
     if (!ok) return;
     try {
       const { data } = await api.post(`/usuarios/${id}/reset-senha`);
-      setResetDialog({ url: data.reset_url, email: data.email, emailSent: data.email_sent });
+      setResetDialog({ senha: data.senha, email: data.email });
+      navigator.clipboard.writeText(data.senha).catch(() => {});
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 3000);
     } catch {
-      error("Erro ao gerar link de redefinição.");
+      error("Erro ao redefinir senha.");
     }
     setMenuAnchor(null);
   }
@@ -170,7 +173,7 @@ export function UsuariosPage() {
           Trocar e-mail
         </MenuItem>
         <MenuItem onClick={() => handleResetSenha(menuAnchor!.id)} sx={{ color: "text.secondary" }}>
-          Gerar link de redefinição
+          Redefinir senha
         </MenuItem>
       </Menu>
 
@@ -185,20 +188,27 @@ export function UsuariosPage() {
         }}
       />
 
-      <Dialog open={Boolean(resetDialog)} onClose={() => setResetDialog(null)} maxWidth="sm" fullWidth>
+      <Dialog open={Boolean(resetDialog)} onClose={() => setResetDialog(null)} maxWidth="xs" fullWidth>
         <Box sx={{ px: 3, py: 2, borderBottom: "1px solid", borderColor: "divider" }}>
-          <Typography variant="subtitle1">Link de redefinição gerado</Typography>
+          <Typography variant="subtitle1">Senha redefinida</Typography>
         </Box>
         <DialogContent sx={{ pt: 2.5 }}>
-          <Alert severity={resetDialog?.emailSent ? "success" : "warning"} sx={{ mb: 2 }}>
-            {resetDialog?.emailSent ? `Link enviado para ${resetDialog.email}.` : `Não foi possível enviar e-mail para ${resetDialog?.email}. Use o link abaixo.`}
+          <Alert severity="success" sx={{ mb: 2 }}>
+            Nova senha gerada para <strong>{resetDialog?.email}</strong>. Copie e repasse ao usuário.
           </Alert>
-          <TextField value={resetDialog?.url ?? ""} fullWidth multiline minRows={2} InputProps={{ readOnly: true }} />
+          <TextField
+            value={resetDialog?.senha ?? ""}
+            fullWidth
+            InputProps={{
+              readOnly: true,
+              sx: { fontFamily: "monospace", fontSize: 20, letterSpacing: 2, textAlign: "center" },
+            }}
+          />
           {copiado && <Typography sx={{ fontSize: 12, color: "success.main", mt: 1 }}>Copiado para a área de transferência.</Typography>}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button variant="outlined" startIcon={<ContentCopyRoundedIcon />} onClick={() => handleCopiar(resetDialog!.url)}>
-            Copiar link
+          <Button variant="outlined" startIcon={<ContentCopyRoundedIcon />} onClick={() => handleCopiar(resetDialog!.senha)}>
+            Copiar senha
           </Button>
           <Button variant="contained" onClick={() => setResetDialog(null)}>Fechar</Button>
         </DialogActions>
