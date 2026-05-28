@@ -18,6 +18,7 @@ import perfisAcessoRouter from "./perfisAcesso.routes.js";
 import recursosAdicionaisRouter from "./recursosAdicionais.routes.js";
 import importacaoXmlRouter from "./importacaoXml.routes.js";
 import notificacoesRouter from "./notificacoes.routes.js";
+import whatsappRouter from "./whatsapp.routes.js";
 import { authMiddleware, officeScopeMiddleware, requirePermission } from "../middlewares/ensureAuth.js";
 import type { AccessModule, AccessAction } from "../permissions/accessProfiles.js";
 import adminRouter from "./admin/index.js";
@@ -43,6 +44,7 @@ const modulePermission = (module: AccessModule) => (req: any, res: any, next: an
 
 router.use("/cidade", cidadeRouter);
 router.use("/notificacoes", notificacoesRouter);
+router.use("/whatsapp", whatsappRouter);
 router.use("/perfis-acesso", perfisAcessoRouter);
 router.use("/recursos-adicionais", recursosAdicionaisRouter);
 router.use("/oficinas", modulePermission("configuracoes"), oficinasRouter);
