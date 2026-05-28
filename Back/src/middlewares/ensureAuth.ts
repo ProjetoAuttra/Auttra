@@ -21,12 +21,20 @@ export const authMiddleware = (
   res: Response,
   next: NextFunction
 ) => {
+  let token = "";
   const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ message: "Token não informado" });
+  if (authHeader) {
+    const parts = authHeader.split(" ");
+    if (parts.length === 2) {
+      token = parts[1];
+    }
+  } else if (req.query && typeof req.query.token === "string") {
+    token = req.query.token;
   }
 
-  const [, token] = authHeader.split(" ");
+  if (!token) {
+    return res.status(401).json({ message: "Token não informado" });
+  }
 
   try {
     const decoded = jwt.verify(token, getJwtSecret()) as UserPayload;
