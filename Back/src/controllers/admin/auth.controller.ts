@@ -159,7 +159,7 @@ export const AdminAuthController = {
       const activeSecret = raw && !raw.startsWith("pending:") ? raw : null;
       if (!activeSecret) return res.status(400).json({ message: "2FA não configurado." });
 
-      const result = totpVerify({ token: String(code).replace(/\s/g, ""), secret: activeSecret });
+      const result = totpVerify({ token: String(code).replace(/\s/g, ""), secret: activeSecret, epochTolerance: 30 });
       if (!result?.valid) {
         const lockedUntil = await registerFailedLogin(usuario as any);
         await AdminAuditService.log({
@@ -210,7 +210,7 @@ export const AdminAuthController = {
       }
 
       const secret = raw.slice("pending:".length);
-      const result = totpVerify({ token: String(code).replace(/\s/g, ""), secret });
+      const result = totpVerify({ token: String(code).replace(/\s/g, ""), secret, epochTolerance: 30 });
       if (!result?.valid) {
         return res.status(400).json({ message: "Código inválido. Verifique o Google Authenticator." });
       }

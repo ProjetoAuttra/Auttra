@@ -48,24 +48,21 @@ export const UsuariosAdminController = {
       const resultado = await UsuariosAdminService.resetSenha(id);
       await AdminAuditService.log({
         req,
-        action: "usuario.password_reset_link",
+        action: "usuario.password_reset",
         entityType: "usuario",
         entityId: id,
-        message: "Link de redefinição de senha gerado pelo admin.",
-        metadata: { email_sent: resultado.email_sent, expires_at: resultado.expires_at },
+        message: "Senha redefinida pelo admin.",
       });
       return res.json({
-        message: resultado.email_sent ? "Link de redefinição enviado por e-mail." : "Link de redefinição gerado. O e-mail não pôde ser enviado.",
+        message: "Senha redefinida com sucesso.",
         email: resultado.email,
-        reset_url: resultado.reset_url,
-        expires_at: resultado.expires_at,
-        email_sent: resultado.email_sent,
+        senha: resultado.senha,
       });
     } catch (err: any) {
       if (err.message.includes("não encontrado")) {
         return res.status(404).json({ message: err.message });
       }
-      console.error("Erro ao gerar link de redefinição:", err);
+      console.error("Erro ao redefinir senha:", err);
       return res.status(500).json({ message: "Erro interno." });
     }
   },
