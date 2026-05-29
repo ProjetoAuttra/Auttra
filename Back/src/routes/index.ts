@@ -23,10 +23,21 @@ import { authMiddleware, officeScopeMiddleware, requirePermission } from "../mid
 import type { AccessModule, AccessAction } from "../permissions/accessProfiles.js";
 import adminRouter from "./admin/index.js";
 
+import { shortLinks } from "../services/shortLinks.js";
+
 export const router = Router();
 
 router.use("/admin", adminRouter);
 router.use("/auth", authRouter);
+
+router.get("/s/:code", (req, res) => {
+  const { code } = req.params;
+  const data = shortLinks.get(code);
+  if (!data) {
+    return res.status(404).send("<h1>Link expirado ou inválido.</h1>");
+  }
+  res.redirect(`/ordens/${data.osId}/pdf?token=${data.token}`);
+});
 
 router.use(authMiddleware);
 router.use(officeScopeMiddleware);

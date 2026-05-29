@@ -2,6 +2,8 @@ import { Router } from "express";
 import { OrdensService } from "../services/ordens.service.js";
 import { PdfHtmlService } from "../services/pdfservice.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
+import crypto from "crypto";
+import { shortLinks } from "../services/shortLinks.js";
 
 const router = Router();
 
@@ -60,6 +62,33 @@ router.delete("/:id", async (req, res) => {
   try {
     await OrdensService.delete(Number(req.params.id), getRequiredOfficeId(req));
     res.status(204).send();
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/:id/share", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const token = req.query.token ?? req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(400).json({ error: "Token é obrigatório para compartilhar." });
+    }
+    
+    let code = "";
+    for (const [k, v] of shortLinks.entries()) {
+      if (v.osId === id && v.token === token) {
+        code = k;
+        break;
+      }
+    }
+    
+    if (!code) {
+      code = crypto.randomBytes(3).toString("hex").toUpperCase();
+      shortLinks.set(code, { osId: id, token: String(token) });
+    }
+    
+    res.json({ code });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
