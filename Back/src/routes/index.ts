@@ -36,6 +36,9 @@ router.get("/s/:code", (req, res) => {
   if (!data) {
     return res.status(404).send("<h1>Link expirado ou inválido.</h1>");
   }
+  if (data.orcamentoId) {
+    return res.redirect(`/api/orcamentos/${data.orcamentoId}/pdf?token=${data.token}`);
+  }
   res.redirect(`/api/ordens/${data.osId}/pdf?token=${data.token}`);
 });
 
