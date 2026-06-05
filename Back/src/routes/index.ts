@@ -24,13 +24,29 @@ import type { AccessModule, AccessAction } from "../permissions/accessProfiles.j
 import adminRouter from "./admin/index.js";
 
 import { shortLinks } from "../services/shortLinks.js";
+import { PublicTrackingService } from "../services/publicTracking.service.js";
 
 export const router = Router();
 
 router.use("/admin", adminRouter);
 router.use("/auth", authRouter);
 
+const getFrontendUrl = (req: any) => {
+  const configured = process.env.FRONTEND_URL?.replace(/\/+$/, "");
+  if (configured) return configured;
+  return `${req.protocol}://${req.get("host")}`;
+};
+
 router.get("/s/:code", (req, res) => {
+  const { code } = req.params;
+  const data = shortLinks.get(code);
+  if (!data) {
+    return res.status(404).send("<h1>Link expirado ou inválido.</h1>");
+  }
+  return res.redirect(`${getFrontendUrl(req)}/acompanhamento/${code}`);
+});
+
+router.get("/s/:code/pdf", (req, res) => {
   const { code } = req.params;
   const data = shortLinks.get(code);
   if (!data) {
@@ -40,6 +56,14 @@ router.get("/s/:code", (req, res) => {
     return res.redirect(`/api/orcamentos/${data.orcamentoId}/pdf?token=${data.token}`);
   }
   res.redirect(`/api/ordens/${data.osId}/pdf?token=${data.token}`);
+});
+
+router.get("/public/acompanhamento/:code", async (req, res) => {
+  const data = await PublicTrackingService.getByCode(req.params.code);
+  if (!data) {
+    return res.status(404).json({ error: "Link expirado ou inválido." });
+  }
+  res.json(data);
 });
 
 router.use(authMiddleware);

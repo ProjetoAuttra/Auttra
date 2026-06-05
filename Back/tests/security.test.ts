@@ -18,6 +18,13 @@ describe("security baseline", () => {
     expect(response.status).toBe(401);
   });
 
+  it("allows public tracking lookup without token", async () => {
+    const response = await request(app).get("/api/public/acompanhamento/CODIGO_INVALIDO");
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: "Link expirado ou inválido." });
+  });
+
   it("blocks city writes without token", async () => {
     const response = await request(app)
       .post("/api/cidade")

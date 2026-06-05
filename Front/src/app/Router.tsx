@@ -3,6 +3,7 @@ import { paths } from '../routes/paths';
 import AppLayout from './AppLayout';
 import Login from '../modules/autenticacao/pages/Login';
 import ResetPassword from '../modules/autenticacao/pages/ResetPassword';
+import PublicTrackingPage from '../modules/acompanhamento/PublicTrackingPage';
 import Home from '../modules/painel/pages/Home';
 import Schedule from '../modules/agenda/pages/Schedule';
 import Clients from '../modules/clientes/pages/Clientes';
@@ -61,6 +62,7 @@ export default function Router() {
     <Routes>
       <Route path={paths.login} element={<Login />} />
       <Route path={paths.resetPassword} element={<ResetPassword />} />
+      <Route path={paths.acompanhamentoPublico} element={<PublicTrackingPage />} />
       <Route
         path={paths.root}
         element={
