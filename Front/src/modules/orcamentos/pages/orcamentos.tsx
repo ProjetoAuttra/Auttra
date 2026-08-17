@@ -496,18 +496,13 @@ export default function OrcamentosPage() {
             Aprovar
           </MenuItem>
         )}
-        {selectedOrcamento?.status === "analise" && (
-          <MenuItem onClick={handleRecusar} sx={{ gap: 1.5 }}>
-            <CancelRoundedIcon fontSize="small" color="error" />
-            Recusar
-          </MenuItem>
-        )}
         {selectedOrcamento?.status !== "recusado" && (
           <MenuItem onClick={() => handleConverterOS()} sx={{ gap: 1.5, fontWeight: 600, color: "primary.main" }}>
             <BuildRoundedIcon fontSize="small" />
             Converter em O.S.
           </MenuItem>
         )}
+        <Divider />
         <MenuItem onClick={handleWhatsApp} sx={{ gap: 1.5 }}>
           <WhatsAppIcon fontSize="small" sx={{ color: "#25D366" }} />
           Enviar WhatsApp
@@ -517,6 +512,12 @@ export default function OrcamentosPage() {
           Imprimir
         </MenuItem>
         <Divider />
+        {selectedOrcamento?.status === "analise" && (
+          <MenuItem onClick={handleRecusar} sx={{ gap: 1.5, color: "error.main" }}>
+            <CancelRoundedIcon fontSize="small" color="error" />
+            Recusar
+          </MenuItem>
+        )}
         <MenuItem onClick={handleExcluir} sx={{ gap: 1.5, color: "error.main" }}>
           <DeleteOutlineRoundedIcon fontSize="small" />
           Excluir
