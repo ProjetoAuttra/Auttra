@@ -55,6 +55,16 @@ import {
   type NotificationsConfig,
 } from '../../notificacoes/api';
 import {
+  buscarConfigAgenda,
+  buscarConfigFinanceiro,
+  defaultAgendaConfig,
+  defaultFinanceiroConfig,
+  salvarConfigAgenda,
+  salvarConfigFinanceiro,
+  type AgendaConfig,
+  type FinanceiroConfig,
+} from '../api/configuracoesOperacionais';
+import {
   accessActions,
   accessModules,
   moduleLabels,
@@ -79,32 +89,78 @@ export default function Configuracoes() {
   );
   const [editing, setEditing] = React.useState<Section | null>(null);
 
-  const [agenda, setAgenda] = React.useState({
-    horarioInicio: '08:00',
-    horarioFim: '18:00',
-    dias: 'Segunda a Sábado',
-    tempoMedio: '60 minutos',
-  });
+  const [agenda, setAgenda] = React.useState<AgendaConfig>(defaultAgendaConfig);
+  const [loadingAgenda, setLoadingAgenda] = React.useState(false);
+  const [loadErrorAgenda, setLoadErrorAgenda] = React.useState(false);
+  const [savingAgenda, setSavingAgenda] = React.useState(false);
 
-  const [financeiro, setFinanceiro] = React.useState({
-    formasPagamento: 'Pix, Cartão, Dinheiro',
-    emitirRecibos: true,
-    jurosAtraso: '2%',
-  });
+  const [financeiro, setFinanceiro] = React.useState<FinanceiroConfig>(defaultFinanceiroConfig);
+  const [loadingFinanceiro, setLoadingFinanceiro] = React.useState(false);
+  const [loadErrorFinanceiro, setLoadErrorFinanceiro] = React.useState(false);
+  const [savingFinanceiro, setSavingFinanceiro] = React.useState(false);
 
   const [notificacoes, setNotificacoes] = React.useState<NotificationsConfig>(defaultNotificationsConfig);
   const [loadingNotificacoes, setLoadingNotificacoes] = React.useState(false);
+  const [loadErrorNotificacoes, setLoadErrorNotificacoes] = React.useState(false);
   const [savingNotificacoes, setSavingNotificacoes] = React.useState(false);
 
   React.useEffect(() => {
     let active = true;
+    setLoadingAgenda(true);
+    setLoadErrorAgenda(false);
+    buscarConfigAgenda()
+      .then((data) => {
+        if (active) setAgenda(data);
+      })
+      .catch(() => {
+        if (active) {
+          setLoadErrorAgenda(true);
+          error('Nao foi possivel carregar as configuracoes de agenda.');
+        }
+      })
+      .finally(() => {
+        if (active) setLoadingAgenda(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [error]);
+
+  React.useEffect(() => {
+    let active = true;
+    setLoadingFinanceiro(true);
+    setLoadErrorFinanceiro(false);
+    buscarConfigFinanceiro()
+      .then((data) => {
+        if (active) setFinanceiro(data);
+      })
+      .catch(() => {
+        if (active) {
+          setLoadErrorFinanceiro(true);
+          error('Nao foi possivel carregar as configuracoes financeiras.');
+        }
+      })
+      .finally(() => {
+        if (active) setLoadingFinanceiro(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [error]);
+
+  React.useEffect(() => {
+    let active = true;
     setLoadingNotificacoes(true);
+    setLoadErrorNotificacoes(false);
     buscarConfigNotificacoes()
       .then((data) => {
         if (active) setNotificacoes(data);
       })
       .catch(() => {
-        if (active) error('Nao foi possivel carregar as configuracoes de notificacoes.');
+        if (active) {
+          setLoadErrorNotificacoes(true);
+          error('Nao foi possivel carregar as configuracoes de notificacoes.');
+        }
       })
       .finally(() => {
         if (active) setLoadingNotificacoes(false);
@@ -125,6 +181,36 @@ export default function Configuracoes() {
 
   const handleCancel = () => setEditing(null);
   const handleSave = async (section?: Section) => {
+    if (section === 'agenda') {
+      setSavingAgenda(true);
+      try {
+        const data = await salvarConfigAgenda(agenda);
+        setAgenda(data);
+        success('Configuracoes de agenda salvas.');
+        setEditing(null);
+      } catch {
+        error('Nao foi possivel salvar as configuracoes de agenda.');
+      } finally {
+        setSavingAgenda(false);
+      }
+      return;
+    }
+
+    if (section === 'financeiro') {
+      setSavingFinanceiro(true);
+      try {
+        const data = await salvarConfigFinanceiro(financeiro);
+        setFinanceiro(data);
+        success('Configuracoes financeiras salvas.');
+        setEditing(null);
+      } catch {
+        error('Nao foi possivel salvar as configuracoes financeiras.');
+      } finally {
+        setSavingFinanceiro(false);
+      }
+      return;
+    }
+
     if (section !== 'notificacoes') {
       setEditing(null);
       return;
@@ -179,6 +265,7 @@ export default function Configuracoes() {
           open={openSection === 'perfis'}
           onToggle={() => handleToggle('perfis')}
           editing={false}
+          sectionKey="perfis"
         >
           <AccessProfilesManager />
         </SectionCard>
@@ -188,17 +275,23 @@ export default function Configuracoes() {
           icon={<CalendarMonthRoundedIcon color="primary" />}
           open={openSection === 'agenda'}
           onToggle={() => handleToggle('agenda')}
-          onEdit={() => handleEdit('agenda')}
+          onEdit={loadingAgenda || loadErrorAgenda ? undefined : () => handleEdit('agenda')}
           editing={editing === 'agenda'}
           onCancel={handleCancel}
-          onSave={handleSave}
+          onSave={() => handleSave('agenda')}
+          sectionKey="agenda"
         >
-          {editing === 'agenda' ? (
+          {loadingAgenda ? (
+            <Box sx={{ display: 'grid', placeItems: 'center', py: 3 }}>
+              <CircularProgress size={28} />
+            </Box>
+          ) : editing === 'agenda' ? (
             <Stack spacing={2}>
               <TextField label="Horário de Início" value={agenda.horarioInicio} onChange={(e) => setAgenda((p) => ({ ...p, horarioInicio: e.target.value }))} />
               <TextField label="Horário de Término" value={agenda.horarioFim} onChange={(e) => setAgenda((p) => ({ ...p, horarioFim: e.target.value }))} />
               <TextField label="Dias de atendimento" value={agenda.dias} onChange={(e) => setAgenda((p) => ({ ...p, dias: e.target.value }))} />
               <TextField label="Tempo médio por serviço" value={agenda.tempoMedio} onChange={(e) => setAgenda((p) => ({ ...p, tempoMedio: e.target.value }))} />
+              {savingAgenda && <CircularProgress size={20} />}
             </Stack>
           ) : (
             <DisplayList
@@ -216,12 +309,17 @@ export default function Configuracoes() {
           icon={<PaymentsRoundedIcon color="primary" />}
           open={openSection === 'financeiro'}
           onToggle={() => handleToggle('financeiro')}
-          onEdit={() => handleEdit('financeiro')}
+          onEdit={loadingFinanceiro || loadErrorFinanceiro ? undefined : () => handleEdit('financeiro')}
           editing={editing === 'financeiro'}
           onCancel={handleCancel}
-          onSave={handleSave}
+          onSave={() => handleSave('financeiro')}
+          sectionKey="financeiro"
         >
-          {editing === 'financeiro' ? (
+          {loadingFinanceiro ? (
+            <Box sx={{ display: 'grid', placeItems: 'center', py: 3 }}>
+              <CircularProgress size={28} />
+            </Box>
+          ) : editing === 'financeiro' ? (
             <Stack spacing={2}>
               <TextField
                 label="Formas de pagamento"
@@ -240,6 +338,7 @@ export default function Configuracoes() {
                 />
                 <Typography variant="body2">Emissão automática de recibos</Typography>
               </Stack>
+              {savingFinanceiro && <CircularProgress size={20} />}
             </Stack>
           ) : (
             <DisplayList
@@ -257,10 +356,11 @@ export default function Configuracoes() {
           icon={<NotificationsRoundedIcon color="primary" />}
           open={openSection === 'notificacoes'}
           onToggle={() => handleToggle('notificacoes')}
-          onEdit={() => handleEdit('notificacoes')}
+          onEdit={loadingNotificacoes || loadErrorNotificacoes ? undefined : () => handleEdit('notificacoes')}
           editing={editing === 'notificacoes'}
           onCancel={handleCancel}
           onSave={() => handleSave('notificacoes')}
+          sectionKey="notificacoes"
         >
           {loadingNotificacoes ? (
             <Box sx={{ display: 'grid', placeItems: 'center', py: 3 }}>
@@ -697,10 +797,11 @@ function AccessProfilesManager() {
   );
 }
 
-function SectionCard({ title, icon, open, onToggle, onEdit, editing, onCancel, onSave, children }: any) {
+function SectionCard({ title, icon, open, onToggle, onEdit, editing, onCancel, onSave, sectionKey, children }: any) {
   return (
     <Paper
       elevation={0}
+      data-testid={sectionKey ? `section-${sectionKey}` : undefined}
       sx={(t) => ({
         borderRadius: 1,
         border: `1px solid ${t.palette.divider}`,
@@ -713,6 +814,7 @@ function SectionCard({ title, icon, open, onToggle, onEdit, editing, onCancel, o
         direction="row"
         alignItems="center"
         justifyContent="space-between"
+        data-testid={sectionKey ? `header-${sectionKey}` : undefined}
         sx={{
           px: 2.5,
           py: 1.75,
@@ -731,6 +833,7 @@ function SectionCard({ title, icon, open, onToggle, onEdit, editing, onCancel, o
             <Button
               size="small"
               startIcon={<EditRoundedIcon />}
+              data-testid={sectionKey ? `edit-${sectionKey}` : undefined}
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit();
@@ -743,6 +846,7 @@ function SectionCard({ title, icon, open, onToggle, onEdit, editing, onCancel, o
             <>
               <IconButton
                 size="small"
+                data-testid={sectionKey ? `save-${sectionKey}` : undefined}
                 onClick={(e) => {
                   e.stopPropagation();
                   onSave();
@@ -753,6 +857,7 @@ function SectionCard({ title, icon, open, onToggle, onEdit, editing, onCancel, o
               </IconButton>
               <IconButton
                 size="small"
+                data-testid={sectionKey ? `cancel-${sectionKey}` : undefined}
                 onClick={(e) => {
                   e.stopPropagation();
                   onCancel();
@@ -773,7 +878,7 @@ function SectionCard({ title, icon, open, onToggle, onEdit, editing, onCancel, o
 
       <Collapse in={open}>
         <Divider />
-        <Box sx={{ p: 2.5, bgcolor: 'background.paper' }}>{children}</Box>
+        <Box data-testid={sectionKey ? `content-${sectionKey}` : undefined} sx={{ p: 2.5, bgcolor: 'background.paper' }}>{children}</Box>
       </Collapse>
     </Paper>
   );

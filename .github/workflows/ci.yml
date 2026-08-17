@@ -14,6 +14,23 @@ jobs:
     defaults:
       run:
         working-directory: Back
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: driveon
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/driveon?schema=public
+      JWT_SECRET: test-jwt-secret-with-more-than-32-characters
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,6 +39,7 @@ jobs:
           cache: npm
           cache-dependency-path: Back/package-lock.json
       - run: npm ci
+      - run: npx prisma migrate deploy
       - run: npm run build
       - run: npm run test:run
 
@@ -46,6 +64,27 @@ jobs:
     needs:
       - backend
       - frontend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: driveon
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/driveon?schema=public
+      JWT_SECRET: test-jwt-secret-with-more-than-32-characters
+      CORS_ORIGIN: http://127.0.0.1:5173
+      PORT: 4000
+      E2E_ADMIN_EMAIL: e2e-admin@driveon.test
+      E2E_ADMIN_PASSWORD: SenhaE2E#2026
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -56,6 +95,34 @@ jobs:
       - run: npm ci
       - run: npm ci
         working-directory: Front
+      - run: npm ci
+        working-directory: Back
+      - run: npx prisma migrate deploy
+        working-directory: Back
+      - run: npm run build
+        working-directory: Back
+      - run: node scripts/create-admin.mjs
+        working-directory: Back
+        env:
+          OFICINA_NOME: Oficina E2E
+          OFICINA_LOGRADOURO: Rua de Teste
+          OFICINA_NUMERO: "100"
+          OFICINA_CEP: "00000000"
+          OFICINA_CIDADE: Sao Paulo
+          OFICINA_UF: SP
+          ADMIN_NAME: Admin E2E
+          ADMIN_EMAIL: ${{ env.E2E_ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ env.E2E_ADMIN_PASSWORD }}
+      - run: node dist/index.js &
+        working-directory: Back
+      - run: |
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4000/health > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
       - run: npx playwright install --with-deps chromium
       - run: npm run dev -- --host 127.0.0.1 &
         working-directory: Front
