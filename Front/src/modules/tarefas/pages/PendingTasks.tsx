@@ -14,23 +14,13 @@ import { useNavigate, useSearchParams } from "react-router-dom"; // ← useSearc
 import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
 import api from "../../../api/api";
-import { listarOrdens, excluirOrdem, criarOrdem, atualizarOrdem } from "../api/api";
+import { listarOrdens, excluirOrdem, criarOrdem, atualizarOrdem, mudarStatusOrdem } from "../api/api";
 import OrdemDialog from "../dialog";
 import TableSkeleton from "../../../components/common/TableSkeleton";
 import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationOS } from "../../../components/common/Illustrations";
 import ListTableContainer from "../../../components/common/ListTableContainer";
-
-// ─── Status config ─────────────────────────────────────────────────────────
-
-const STATUS_CONFIG: Record<string, { label: string; color: "default" | "warning" | "info" | "success" | "error" }> = {
-  aberta: { label: "Aberta", color: "warning" },
-  em_andamento: { label: "Em andamento", color: "info" },
-  concluida: { label: "Concluída", color: "success" },
-  cancelada: { label: "Cancelada", color: "error" },
-};
-
-const STATUS_VALIDOS = Object.keys(STATUS_CONFIG);
+import { STATUS_CONFIG, STATUS_VALIDOS, VALID_TRANSITIONS, type OrdemStatus } from "../statusConfig";
 
 type Ordem = {
   id: number;
@@ -111,6 +101,48 @@ export default function OrdensPage() {
       success("Ordem excluída com sucesso.");
     } catch { error("Não foi possível excluir a ordem."); }
     finally { handleMenuClose(); }
+  };
+
+  const STATUS_CONFIRM: Record<
+    string,
+    { title: string; confirmLabel: string; variant: "danger" | "warning" | "info" }
+  > = {
+    em_andamento: { title: "Iniciar atendimento desta OS?", confirmLabel: "Sim, iniciar", variant: "info" },
+    concluida: { title: "Concluir esta OS?", confirmLabel: "Sim, concluir e gerar cobrança", variant: "info" },
+    cancelada: { title: "Cancelar esta OS?", confirmLabel: "Sim, cancelar OS", variant: "danger" },
+  };
+
+  const handleMudarStatus = async (novoStatus: OrdemStatus) => {
+    const targetId = menuId;
+    if (!targetId) return;
+    const os = rows.find((r) => r.id === targetId);
+    const cfg = STATUS_CONFIRM[novoStatus];
+    const message =
+      novoStatus === "concluida"
+        ? Number(os?.valor_total ?? 0) > 0
+          ? `Isso vai gerar automaticamente uma cobrança de R$ ${Number(os?.valor_total).toFixed(2)} em Contas a Receber.`
+          : "Confirma a conclusão desta OS?"
+        : novoStatus === "cancelada"
+        ? "Esta ação não pode ser desfeita."
+        : undefined;
+    handleMenuClose();
+    const ok = await confirm({ title: cfg.title, message, confirmLabel: cfg.confirmLabel, variant: cfg.variant });
+    if (!ok) return;
+    try {
+      const atualizada = await mudarStatusOrdem(targetId, novoStatus);
+      setRows((p) => p.map((x) => (x.id === targetId ? atualizada : x)));
+      if (novoStatus === "concluida" && Number(atualizada.valor_total) > 0) {
+        success("OS concluída! Cobrança gerada automaticamente em Contas a Receber.");
+      } else {
+        success("Status da OS atualizado com sucesso!");
+      }
+    } catch (err: any) {
+      error(
+        err?.response?.data?.error ??
+          err?.response?.data?.message ??
+          "Não foi possível atualizar o status da OS."
+      );
+    }
   };
 
   const handleSubmit = async (data: OrdemPayload) => {
@@ -249,7 +281,7 @@ export default function OrdensPage() {
               </TableHead>
               <TableBody>
                 {paginated.length > 0 ? paginated.map((r) => {
-                  const st = STATUS_CONFIG[r.status] ?? STATUS_CONFIG.aberta;
+                  const st = STATUS_CONFIG[r.status as OrdemStatus] ?? STATUS_CONFIG.aberta;
                   return (
                     <TableRow
                       key={r.id}
@@ -332,6 +364,25 @@ export default function OrdensPage() {
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }} transformOrigin={{ vertical: "top", horizontal: "right" }}>
         <MenuItem onClick={() => { const os = rows.find((r) => r.id === menuId); if (os) handleEdit(os); handleMenuClose(); }}>Editar</MenuItem>
         <MenuItem onClick={() => { if (menuId) navigate(`/ordens/${menuId}`); handleMenuClose(); }}>Ver detalhes</MenuItem>
+        {(() => {
+          const os = rows.find((r) => r.id === menuId);
+          const allowed = VALID_TRANSITIONS[(os?.status as OrdemStatus) ?? "aberta"] ?? [];
+          if (allowed.length === 0) return null;
+          return (
+            <>
+              <Divider />
+              {allowed.includes("em_andamento") && (
+                <MenuItem onClick={() => handleMudarStatus("em_andamento")}>Iniciar atendimento</MenuItem>
+              )}
+              {allowed.includes("concluida") && (
+                <MenuItem onClick={() => handleMudarStatus("concluida")}>Concluir OS</MenuItem>
+              )}
+              {allowed.includes("cancelada") && (
+                <MenuItem onClick={() => handleMudarStatus("cancelada")} sx={{ color: "error.main" }}>Cancelar OS</MenuItem>
+              )}
+            </>
+          );
+        })()}
         <Divider />
         <MenuItem onClick={handleDelete} sx={{ color: "error.main" }}>Excluir</MenuItem>
       </Menu>

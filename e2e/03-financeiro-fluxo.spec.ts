@@ -89,7 +89,9 @@ test.describe("Fluxo financeiro - OS concluida gera cobranca e recebe pagamento"
     try {
       // Cria a OS pela interface, como o usuario faria.
       await page.goto("/tarefas");
-      await page.getByRole("button", { name: "Nova Ordem" }).click();
+      // .first() porque o estado vazio da listagem também renderiza um botão "Nova Ordem"
+      // (dentro do EmptyState) quando a oficina ainda não tem nenhuma OS.
+      await page.getByRole("button", { name: "Nova Ordem" }).first().click();
 
       await page.getByLabel("Selecionar Cliente").click();
       await page.getByLabel("Selecionar Cliente").fill(cliente.nome);
@@ -102,8 +104,10 @@ test.describe("Fluxo financeiro - OS concluida gera cobranca e recebe pagamento"
       await page.getByRole("option").first().click();
 
       await page.getByRole("button", { name: "Mão de Obra" }).click();
-      await page.getByLabel("Pesquisar Serviço").click();
-      await page.getByLabel("Pesquisar Serviço").fill(servico.nome);
+      // getByRole("combobox") em vez de getByLabel: o Autocomplete do MUI associa o mesmo
+      // aria-label ao input e à listbox de opções, o que torna getByLabel ambíguo aqui.
+      await page.getByRole("combobox", { name: "Pesquisar Serviço" }).click();
+      await page.getByRole("combobox", { name: "Pesquisar Serviço" }).fill(servico.nome);
       await page.getByRole("option", { name: new RegExp(servico.nome) }).click();
       await page.getByRole("button", { name: "Adicionar" }).click();
 
@@ -118,20 +122,30 @@ test.describe("Fluxo financeiro - OS concluida gera cobranca e recebe pagamento"
       expect(valorTotal).toBeGreaterThan(0);
       await expect(page.getByText("Ordem de serviço criada!")).toBeVisible();
 
-      // Não existe controle de UI para mudar o status da OS (nem "Iniciar", nem "Concluir OS") —
-      // ver observação no relatório desta tarefa. A transição é feita via API, como o backend
-      // realmente exige: aberta -> em_andamento -> concluida.
-      const emAndamentoRes = await request.put(`/api/ordens/${ordemId}`, {
-        headers,
-        data: { status: "em_andamento" },
-      });
-      expect(emAndamentoRes.ok(), await emAndamentoRes.text()).toBeTruthy();
+      // Transições de status via UI (aberta -> em_andamento -> concluida), na tela de detalhe da OS.
+      await page.goto(`/ordens/${ordemId}`);
 
-      const concluidaRes = await request.put(`/api/ordens/${ordemId}`, {
-        headers,
-        data: { status: "concluida" },
-      });
+      const [iniciarRes] = await Promise.all([
+        page.waitForResponse((r) => r.url().includes(`/api/ordens/${ordemId}`) && r.request().method() === "PUT"),
+        (async () => {
+          await page.getByRole("button", { name: "Iniciar Atendimento" }).click();
+          await page.getByRole("button", { name: "Sim, iniciar" }).click();
+        })(),
+      ]);
+      expect(iniciarRes.ok(), await iniciarRes.text()).toBeTruthy();
+      await expect(page.getByText("Status da OS atualizado com sucesso!")).toBeVisible();
+
+      const [concluidaRes] = await Promise.all([
+        page.waitForResponse((r) => r.url().includes(`/api/ordens/${ordemId}`) && r.request().method() === "PUT"),
+        (async () => {
+          await page.getByRole("button", { name: "Concluir OS" }).click();
+          await page.getByRole("button", { name: "Sim, concluir e gerar cobrança" }).click();
+        })(),
+      ]);
       expect(concluidaRes.ok(), await concluidaRes.text()).toBeTruthy();
+      await expect(
+        page.getByText("OS concluída! Cobrança gerada automaticamente em Contas a Receber.")
+      ).toBeVisible();
 
       // Confirma que o lançamento financeiro foi gerado automaticamente ao concluir a OS.
       const pagamentosRes = await request.get(`/api/pagamentos/cliente/${cliente.id}`, { headers });
