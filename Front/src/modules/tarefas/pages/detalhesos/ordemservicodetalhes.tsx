@@ -12,21 +12,28 @@ import {
 } from "@mui/material";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import PrintRoundedIcon from "@mui/icons-material/PrintRounded";
+import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../../../api/api";
 import { alpha } from "@mui/material/styles";
 import OrdemServicoDialog from "../../dialog";
-import { atualizarOrdem } from "../../api/api";
+import { atualizarOrdem, mudarStatusOrdem } from "../../api/api";
+import { STATUS_CONFIG, VALID_TRANSITIONS, type OrdemStatus } from "../../statusConfig";
 import { useToast } from "../../../../context/ToastContext";
+import { useConfirm } from "../../../../context/ConfirmContext";
 
 export default function OrdemServicoDetalhes() {
   const { id } = useParams();
   const nav = useNavigate();
   const { success, error } = useToast();
+  const confirm = useConfirm();
   const [ordem, setOrdem] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [openEdit, setOpenEdit] = React.useState(false);
   const [printing, setPrinting] = React.useState(false);
+  const [mudandoStatus, setMudandoStatus] = React.useState(false);
 
   const toNumber = (v: any): number => {
     if (v == null) return 0;
@@ -74,6 +81,66 @@ export default function OrdemServicoDetalhes() {
       error("Não foi possível gerar o PDF da OS.");
     } finally {
       setPrinting(false);
+    }
+  };
+
+  const CONFIRM_CONFIG: Record<
+    string,
+    { title: string; confirmLabel: string; variant: "danger" | "warning" | "info" }
+  > = {
+    em_andamento: {
+      title: "Iniciar atendimento desta OS?",
+      confirmLabel: "Sim, iniciar",
+      variant: "info",
+    },
+    concluida: {
+      title: "Concluir esta OS?",
+      confirmLabel: "Sim, concluir e gerar cobrança",
+      variant: "info",
+    },
+    cancelada: {
+      title: "Cancelar esta OS?",
+      confirmLabel: "Sim, cancelar OS",
+      variant: "danger",
+    },
+  };
+
+  const handleMudarStatus = async (novoStatus: OrdemStatus) => {
+    if (!id) return;
+    const cfg = CONFIRM_CONFIG[novoStatus];
+    const message =
+      novoStatus === "concluida"
+        ? toNumber(ordem?.valor_total) > 0
+          ? `Isso vai gerar automaticamente uma cobrança de ${money(ordem.valor_total)} em Contas a Receber.`
+          : "Confirma a conclusão desta OS?"
+        : novoStatus === "cancelada"
+        ? "Esta ação não pode ser desfeita."
+        : undefined;
+    const ok = await confirm({
+      title: cfg.title,
+      message,
+      confirmLabel: cfg.confirmLabel,
+      variant: cfg.variant,
+    });
+    if (!ok) return;
+
+    setMudandoStatus(true);
+    try {
+      const atualizada = await mudarStatusOrdem(Number(id), novoStatus);
+      setOrdem(atualizada);
+      if (novoStatus === "concluida" && toNumber(atualizada.valor_total) > 0) {
+        success("OS concluída! Cobrança gerada automaticamente em Contas a Receber.");
+      } else {
+        success("Status da OS atualizado com sucesso!");
+      }
+    } catch (err: any) {
+      error(
+        err?.response?.data?.error ??
+          err?.response?.data?.message ??
+          "Não foi possível atualizar o status da OS."
+      );
+    } finally {
+      setMudandoStatus(false);
     }
   };
 
@@ -126,14 +193,8 @@ export default function OrdemServicoDetalhes() {
         </Stack>
 
         <Chip
-          label={ordem.status?.toUpperCase() ?? "ABERTA"}
-          color={
-            ordem.status === "fechada"
-              ? "success"
-              : ordem.status === "cancelada"
-              ? "error"
-              : "warning"
-          }
+          label={(STATUS_CONFIG[ordem.status as OrdemStatus] ?? STATUS_CONFIG.aberta).label}
+          color={(STATUS_CONFIG[ordem.status as OrdemStatus] ?? STATUS_CONFIG.aberta).color}
           sx={{ fontWeight: 700 }}
         />
       </Stack>
@@ -251,16 +312,9 @@ export default function OrdemServicoDetalhes() {
         </Stack>
       </Paper>
 
-      <Stack direction="row" justifyContent="flex-end" spacing={1}>
+      <Stack direction="row" justifyContent="flex-end" spacing={1} flexWrap="wrap" useFlexGap>
         <Button variant="outlined" onClick={() => nav("/tarefas")}>
           Voltar
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => setOpenEdit(true)}
-        >
-          Editar OS
         </Button>
         <Button
           variant="outlined"
@@ -270,6 +324,51 @@ export default function OrdemServicoDetalhes() {
         >
           Imprimir OS
         </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => setOpenEdit(true)}
+        >
+          Editar OS
+        </Button>
+
+        {(VALID_TRANSITIONS[ordem.status as OrdemStatus] ?? []).includes("cancelada") && (
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<CancelRoundedIcon />}
+            onClick={() => handleMudarStatus("cancelada")}
+            disabled={mudandoStatus}
+          >
+            Cancelar OS
+          </Button>
+        )}
+
+        {(VALID_TRANSITIONS[ordem.status as OrdemStatus] ?? []).includes("em_andamento") && (
+          <Button
+            variant="contained"
+            color="info"
+            disableElevation
+            startIcon={<PlayArrowRoundedIcon />}
+            onClick={() => handleMudarStatus("em_andamento")}
+            disabled={mudandoStatus}
+          >
+            Iniciar Atendimento
+          </Button>
+        )}
+
+        {(VALID_TRANSITIONS[ordem.status as OrdemStatus] ?? []).includes("concluida") && (
+          <Button
+            variant="contained"
+            color="success"
+            disableElevation
+            startIcon={<CheckCircleRoundedIcon />}
+            onClick={() => handleMudarStatus("concluida")}
+            disabled={mudandoStatus}
+          >
+            Concluir OS
+          </Button>
+        )}
       </Stack>
 
       <OrdemServicoDialog

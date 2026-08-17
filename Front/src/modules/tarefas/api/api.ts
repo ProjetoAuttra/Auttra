@@ -15,6 +15,11 @@ export async function atualizarOrdem(id: number, data: any) {
   return res.data;
 }
 
+export async function mudarStatusOrdem(id: number, status: string) {
+  const res = await api.put(`/ordens/${id}`, { status });
+  return res.data;
+}
+
 export async function excluirOrdem(id: number) {
   await api.delete(`/ordens/${id}`);
 }
