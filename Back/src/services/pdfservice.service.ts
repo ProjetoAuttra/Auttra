@@ -8,7 +8,7 @@ async function renderPdf(html: string): Promise<Buffer> {
     args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
   });
   const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: "networkidle0" });
+  await page.setContent(html, { waitUntil: "load" });
   const buffer = await page.pdf({
     format: "A4",
     printBackground: true,
