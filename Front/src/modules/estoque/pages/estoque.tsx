@@ -4,7 +4,7 @@ import {
   Box, Stack, Typography, IconButton, Menu, MenuItem, Divider,
   Avatar, Table, TableBody, TableCell, TableHead, TableRow,
   TablePagination, Fade, Chip, Button, TextField, InputAdornment,
-  Paper, TableSortLabel,
+  Paper, TableSortLabel, Tooltip,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
@@ -129,7 +129,8 @@ export default function EstoquePage() {
     finally { handleMenuClose(); }
   };
 
-  const handleAbrirAjuste = (tipo: TipoAjuste) => {
+  const handleAbrirAjuste = (tipo: TipoAjuste, id: number) => {
+    setMenuId(id);
     setTipoAjuste(tipo);
     setQtdAjuste(1);
     setOpenAjuste(true);
@@ -291,9 +292,21 @@ export default function EstoquePage() {
                         />
                       </TableCell>
                       <TableCell align="right">
-                        <IconButton onClick={(e) => handleMenuOpen(e, i.id)}>
-                          <MoreVertRoundedIcon />
-                        </IconButton>
+                        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                          <Tooltip title="Registrar entrada">
+                            <IconButton size="small" onClick={() => handleAbrirAjuste("entrada", i.id)} sx={{ color: "success.main" }}>
+                              <AddRoundedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Registrar saída">
+                            <IconButton size="small" onClick={() => handleAbrirAjuste("saida", i.id)} sx={{ color: "error.main" }}>
+                              <RemoveRoundedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <IconButton onClick={(e) => handleMenuOpen(e, i.id)}>
+                            <MoreVertRoundedIcon />
+                          </IconButton>
+                        </Stack>
                       </TableCell>
                     </TableRow>
                   );
@@ -341,13 +354,6 @@ export default function EstoquePage() {
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <MenuItem onClick={() => handleAbrirAjuste("entrada")} sx={{ color: "success.main" }}>
-          <AddRoundedIcon fontSize="small" sx={{ mr: 1 }} /> Entrada
-        </MenuItem>
-        <MenuItem onClick={() => handleAbrirAjuste("saida")} sx={{ color: "error.main" }}>
-          <RemoveRoundedIcon fontSize="small" sx={{ mr: 1 }} /> Saída
-        </MenuItem>
-        <Divider />
         <MenuItem onClick={handleEdit}>Editar</MenuItem>
         <Divider />
         <MenuItem onClick={handleDelete} sx={{ color: "error.main" }}>Excluir</MenuItem>
