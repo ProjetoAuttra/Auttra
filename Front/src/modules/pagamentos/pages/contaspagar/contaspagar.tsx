@@ -89,6 +89,7 @@ export default function ContasPagar() {
   };
   const handleMenuClose = () => { setAnchorEl(null); };
   const openAcao = (a: Acao) => { setAcao(a); handleMenuClose(); };
+  const handlePagarDireto = (conta: Conta) => { setSelected(conta); setAcao("pagar"); };
 
   const handleAcao = async (fn: () => Promise<any>, msg: string) => {
     try {
@@ -288,9 +289,23 @@ export default function ContasPagar() {
                     </TableCell>
                     <TableCell><StatusChip conta={conta} /></TableCell>
                     <TableCell align="right">
-                      <IconButton size="small" onClick={(e) => handleMenuOpen(e, conta)}>
-                        <MoreVertRoundedIcon fontSize="small" />
-                      </IconButton>
+                      <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                        <Tooltip title="Marcar como pago">
+                          <span>
+                            <IconButton
+                              size="small"
+                              onClick={() => handlePagarDireto(conta)}
+                              disabled={conta.status === "pago" || conta.status === "cancelado"}
+                              sx={{ color: "success.main" }}
+                            >
+                              <CheckCircleRoundedIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        <IconButton size="small" onClick={(e) => handleMenuOpen(e, conta)}>
+                          <MoreVertRoundedIcon fontSize="small" />
+                        </IconButton>
+                      </Stack>
                     </TableCell>
                   </TableRow>
                 );
@@ -321,9 +336,6 @@ export default function ContasPagar() {
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <MenuItem onClick={() => openAcao("pagar")} disabled={selected?.status === "pago" || selected?.status === "cancelado"}>
-          <CheckCircleRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "success.main" }} />Marcar como pago
-        </MenuItem>
         <MenuItem onClick={() => openAcao("parcial")} disabled={selected?.status === "pago" || selected?.status === "cancelado"}>
           <PaymentsRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "warning.main" }} />Pagamento parcial
         </MenuItem>
@@ -340,6 +352,7 @@ export default function ContasPagar() {
         <MenuItem onClick={() => openAcao("editar")}>
           <EditRoundedIcon fontSize="small" sx={{ mr: 1.5 }} />Editar
         </MenuItem>
+        <Divider />
         <MenuItem onClick={handleCancelar} sx={{ color: "error.main" }}>
           <BlockRoundedIcon fontSize="small" sx={{ mr: 1.5 }} />Cancelar título
         </MenuItem>
