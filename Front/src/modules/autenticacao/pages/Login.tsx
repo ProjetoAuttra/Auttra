@@ -96,7 +96,7 @@ export default function Login() {
       }
       nav(paths.root, { replace: true });
     } catch (err: any) {
-      setError(err.message || "E-mail ou senha invalidos.");
+      setError(err?.response?.data?.message ?? "Não foi possível entrar. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -263,6 +263,8 @@ export default function Login() {
                     onChange={(e) => { setEmail(e.target.value); setError(null); }}
                     autoComplete="email"
                     autoFocus
+                    error={!!error}
+                    helperText={error || undefined}
                     sx={fieldSx}
                   />
 
@@ -273,6 +275,8 @@ export default function Login() {
                     value={password}
                     onChange={(e) => { setPassword(e.target.value); setError(null); }}
                     autoComplete="current-password"
+                    error={!!error}
+                    helperText={error || undefined}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -336,22 +340,24 @@ export default function Login() {
                 </>
               )}
 
-              <Collapse in={!!error}>
-                <Alert
-                  severity="error"
-                  onClose={() => setError(null)}
-                  sx={{
-                    borderRadius: 2,
-                    bgcolor: alpha("#ef4444", 0.12),
-                    color: "#fca5a5",
-                    border: `1px solid ${alpha("#ef4444", 0.2)}`,
-                    "& .MuiAlert-icon": { color: "#fca5a5" },
-                    py: 0.5, fontSize: 13,
-                  }}
-                >
-                  {error}
-                </Alert>
-              </Collapse>
+              {selectionToken && (
+                <Collapse in={!!error}>
+                  <Alert
+                    severity="error"
+                    onClose={() => setError(null)}
+                    sx={{
+                      borderRadius: 2,
+                      bgcolor: alpha("#ef4444", 0.12),
+                      color: "#fca5a5",
+                      border: `1px solid ${alpha("#ef4444", 0.2)}`,
+                      "& .MuiAlert-icon": { color: "#fca5a5" },
+                      py: 0.5, fontSize: 13,
+                    }}
+                  >
+                    {error}
+                  </Alert>
+                </Collapse>
+              )}
 
               <Button
                 type="submit"
