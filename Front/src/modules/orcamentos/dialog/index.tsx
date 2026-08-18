@@ -3,7 +3,7 @@ import {
   Stack, TextField,
   Button, IconButton, Typography,
   Grid, InputAdornment,
-  Collapse, Alert, Box, CircularProgress, Autocomplete, MenuItem, Divider,
+  Collapse, Alert, Box, CircularProgress, Autocomplete, MenuItem, Divider, Tooltip,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import RequestQuoteRoundedIcon from "@mui/icons-material/RequestQuoteRounded";
@@ -17,6 +17,9 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import api from "../../../api/api";
 import { useAuth } from "../../../context/AuthContext";
 import { AppDialog, AppDialogActions, AppDialogContent, SectionLabel } from "../../../components/common/AppDialog";
+import ClientDialog, { type ClientForm } from "../../clientes/dialog";
+import VeiculoDialog, { type VeiculoForm } from "../../veiculos/dialog";
+import { criarVeiculo } from "../../veiculos/api/api";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -110,6 +113,9 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
   const [submitAttempted, setSubmitAttempted] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
 
+  const [openNovoCliente, setOpenNovoCliente] = React.useState(false);
+  const [openNovoVeiculo, setOpenNovoVeiculo] = React.useState(false);
+
   React.useEffect(() => {
     if (!open || !user?.oficina_id) return;
     api.get(`/servicos?oficina_id=${user.oficina_id}`)
@@ -191,6 +197,8 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
     setSelecionadoItem(null);
     setItemInput("");
     setItemOptions([]);
+    setOpenNovoCliente(false);
+    setOpenNovoVeiculo(false);
   }, [open, initial]);
 
   React.useEffect(() => {
@@ -235,6 +243,33 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
   };
 
   const handleDeleteItem = (id: string | number) => setItens((prev) => prev.filter((item) => item.id !== id));
+
+  const handleClienteCriado = async (data: ClientForm) => {
+    try {
+      const { data: res } = await api.post("/clientes", data);
+      const novo = { id: Number(res.id), nome: res.nome };
+      setClienteValue(novo);
+      setClienteId(novo.id);
+      setClienteInput(novo.nome);
+      setClienteOptions((prev) => [novo, ...prev]);
+      setOpenNovoCliente(false);
+    } catch (err) {
+      console.error("Erro ao criar cliente:", err);
+    }
+  };
+
+  const handleVeiculoCriado = async (data: VeiculoForm) => {
+    if (!user?.oficina_id) return;
+    try {
+      const novo = await criarVeiculo({ ...data, cliente_id: clienteId }, user.oficina_id);
+      const veiculoNovo = { id: Number(novo.id), modelo: novo.modelo, placa: novo.placa };
+      setVeiculos((prev) => [veiculoNovo, ...prev]);
+      setVeiculoId(veiculoNovo.id);
+      setOpenNovoVeiculo(false);
+    } catch (err) {
+      console.error("Erro ao criar veículo:", err);
+    }
+  };
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -312,6 +347,18 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
                       <>
                         {clienteLoading && <CircularProgress size={16} />}
                         {params.InputProps.endAdornment}
+                        <InputAdornment position="end">
+                          <Tooltip title="Criar novo cliente">
+                            <IconButton
+                              size="small"
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={(e) => { e.stopPropagation(); setOpenNovoCliente(true); }}
+                              sx={{ color: "primary.main", p: 0.25 }}
+                            >
+                              <AddRoundedIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                          </Tooltip>
+                        </InputAdornment>
                       </>
                     ),
                   }}
@@ -326,7 +373,10 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
               select
               label="Veículo *"
               value={veiculoId}
-              onChange={(e) => setVeiculoId(Number(e.target.value))}
+              onChange={(e) => {
+                if (e.target.value === "__new__") { setOpenNovoVeiculo(true); return; }
+                setVeiculoId(Number(e.target.value));
+              }}
               size="small"
               fullWidth
               disabled={!clienteId}
@@ -342,6 +392,12 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
                 ),
               }}
             >
+              {clienteId && (
+                <MenuItem value="__new__" sx={{ color: "primary.main", fontWeight: 700 }}>
+                  <AddRoundedIcon fontSize="small" sx={{ mr: 1 }} />
+                  Cadastrar novo veículo
+                </MenuItem>
+              )}
               {veiculos.length === 0 ? (
                 <MenuItem disabled value={0}>
                   {clienteId ? "Nenhum veículo encontrado" : "Selecione o cliente primeiro"}
@@ -602,6 +658,21 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
           </Button>
         </Stack>
       </AppDialogActions>
+
+      <ClientDialog
+        open={openNovoCliente}
+        mode="create"
+        onClose={() => setOpenNovoCliente(false)}
+        onSubmit={handleClienteCriado}
+      />
+
+      <VeiculoDialog
+        open={openNovoVeiculo}
+        mode="create"
+        defaultCliente={clienteValue}
+        onClose={() => setOpenNovoVeiculo(false)}
+        onSubmit={handleVeiculoCriado}
+      />
     </AppDialog>
   );
 }
