@@ -163,7 +163,7 @@ test.describe("Fluxo financeiro - OS concluida gera cobranca e recebe pagamento"
       await page.goto("/contas-receber");
       const row = page.getByRole("row", { name: new RegExp(cliente.nome) });
       await expect(row).toBeVisible();
-      await row.getByRole("button").click();
+      await row.getByRole("button", { name: "Mais ações" }).click();
       await page.getByRole("menuitem", { name: "Recebimento parcial" }).click();
       await page.getByLabel("Valor recebido agora *").fill(String(valorEntrada));
       await page.getByRole("button", { name: "Registrar entrada" }).click();
@@ -251,7 +251,7 @@ test.describe("Fluxo financeiro - OS concluida gera cobranca e recebe pagamento"
       await page.goto("/contas-receber");
       const row = page.getByRole("row", { name: new RegExp(cliente.nome) });
       await expect(row).toBeVisible();
-      await row.getByRole("button").click();
+      await row.getByRole("button", { name: "Mais ações" }).click();
       await page.getByRole("menuitem", { name: "Parcelar" }).click();
 
       // "Número de parcelas *" já vem com 2 por padrão no dialog; só falta a data da 1ª parcela.

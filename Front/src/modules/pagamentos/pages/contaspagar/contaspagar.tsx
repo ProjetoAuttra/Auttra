@@ -302,7 +302,7 @@ export default function ContasPagar() {
                             </IconButton>
                           </span>
                         </Tooltip>
-                        <IconButton size="small" onClick={(e) => handleMenuOpen(e, conta)}>
+                        <IconButton size="small" aria-label="Mais ações" onClick={(e) => handleMenuOpen(e, conta)}>
                           <MoreVertRoundedIcon fontSize="small" />
                         </IconButton>
                       </Stack>
