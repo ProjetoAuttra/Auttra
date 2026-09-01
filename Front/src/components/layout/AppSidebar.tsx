@@ -180,17 +180,16 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
               borderRadius: 2,
               px: collapsed ? 0 : 2,
               justifyContent: collapsed ? 'center' : 'flex-start',
-              bgcolor: selected ? theme.palette.primary.main : 'transparent',
-              color: selected ? '#FFFFFF' : '#667085',
-              transition: 'background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease',
+              bgcolor: selected ? alpha(theme.palette.primary.main, 0.12) : 'transparent',
+              color: selected ? theme.palette.primary.main : '#667085',
+              transition: 'background 0.16s ease, color 0.16s ease',
               border: '1px solid transparent',
-              boxShadow: selected ? `0 14px 28px ${alpha(theme.palette.primary.main, 0.28)}` : 'none',
               '&:hover': {
-                bgcolor: selected ? theme.palette.primary.dark : alpha(theme.palette.primary.main, 0.08),
-                color: selected ? '#FFFFFF' : theme.palette.primary.main,
+                bgcolor: selected ? alpha(theme.palette.primary.main, 0.18) : alpha(theme.palette.primary.main, 0.08),
+                color: theme.palette.primary.main,
               },
-              '&.Mui-selected': { bgcolor: theme.palette.primary.main },
-              '&.Mui-selected:hover': { bgcolor: theme.palette.primary.dark },
+              '&.Mui-selected': { bgcolor: alpha(theme.palette.primary.main, 0.12) },
+              '&.Mui-selected:hover': { bgcolor: alpha(theme.palette.primary.main, 0.18) },
             }}
           >
             <ListItemIcon sx={{ minWidth: collapsed ? 0 : 38, justifyContent: 'center', color: 'inherit' }}>
@@ -283,7 +282,7 @@ export default function AppSidebar({
         color: theme.palette.text.primary,
       }}
     >
-      <Toolbar sx={{ minHeight: { xs: 64, md: 88 }, flexShrink: 0 }} />
+      <Toolbar sx={{ flexShrink: 0 }} />
 
       <Divider sx={{ flexShrink: 0 }} />
       <NavList onItemClick={onCloseMobile} collapsed={collapsed} />

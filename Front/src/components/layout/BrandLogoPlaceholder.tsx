@@ -13,7 +13,7 @@ export default function BrandLogoPlaceholder() {
         fontSize: 14,
         fontWeight: 700,
         letterSpacing: 1.5,
-        color: "text.secondary",
+        color: "#FFFFFF",
         userSelect: "none",
         mr: 2,
         flexShrink: 0,

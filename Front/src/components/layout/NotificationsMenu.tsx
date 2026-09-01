@@ -126,12 +126,9 @@ export default function NotificationsMenu() {
             width: 36,
             height: 36,
             borderRadius: 1.5,
-            border: (t) => `1px solid ${t.palette.divider}`,
-            color: "text.secondary",
-            bgcolor: "#FFFFFF",
+            color: "#FFFFFF",
             "&:hover": {
-              bgcolor: (t) => alpha(t.palette.primary.main, 0.08),
-              color: "primary.main",
+              bgcolor: "rgba(255,255,255,0.12)",
             },
           }}
         >
