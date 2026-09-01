@@ -1,0 +1,42 @@
+# Sobrepoe automaticamente o docker-compose.yml quando voce roda
+# `docker compose up` na raiz do projeto: troca api/web/admin-web para
+# rodar em modo dev (com hot reload) em vez do build de producao.
+#
+# Isso NAO afeta o deploy no Railway (que builda cada Dockerfile
+# direto, sem usar docker-compose). Se algum dia precisar simular o
+# build de producao localmente, rode:
+#   docker compose -f docker-compose.yml up --build
+services:
+  api:
+    build:
+      target: build
+    command: ["npm", "run", "dev"]
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ./Back:/app
+      - /app/node_modules
+
+  web:
+    build:
+      target: build
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8080"]
+    environment:
+      VITE_PROXY_TARGET: http://api:4000
+    ports: !override
+      - "8080:8080"
+    volumes:
+      - ./Front:/app
+      - /app/node_modules
+
+  admin-web:
+    build:
+      target: build
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8081"]
+    environment:
+      VITE_PROXY_TARGET: http://api:4000
+    ports: !override
+      - "8081:8081"
+    volumes:
+      - ./Admin:/app
+      - /app/node_modules
