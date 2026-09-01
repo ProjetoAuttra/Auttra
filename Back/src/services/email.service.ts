@@ -5,7 +5,7 @@ type SendEmailInput = {
 };
 
 const RESEND_API_URL = "https://api.resend.com/emails";
-const DEFAULT_FROM = "Auttra <no-reply@auttra.com.br>";
+const DEFAULT_FROM = "Auttra <no-reply@mail.auttra.com.br>";
 const FALLBACK_TEST_FROM = "Auttra <onboarding@resend.dev>";
 
 export class EmailDeliveryError extends Error {
