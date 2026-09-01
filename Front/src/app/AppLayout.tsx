@@ -45,7 +45,7 @@ export default function AppLayout() {
               overflow: 'hidden',
             }}
           >
-            <Toolbar sx={{ minHeight: { xs: 64, md: 88 }, flexShrink: 0 }} />
+            <Toolbar sx={{ flexShrink: 0 }} />
             <Box
               sx={{
                 flexGrow: 1,

@@ -165,14 +165,13 @@ export default function AppTopbar({
           right: 0,
           width: "100%",
           zIndex: (t) => t.zIndex.drawer + 1,
-          bgcolor: "rgba(245, 247, 250, 0.86)",
-          backdropFilter: "blur(18px)",
+          bgcolor: "primary.main",
           borderBottom: "none",
-          boxShadow: "none",
-          color: "text.primary",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
+          color: "#FFFFFF",
         }}
       >
-        <Toolbar sx={{ minHeight: { xs: "64px !important", md: "88px !important" }, px: { xs: 1.5, sm: 2.5, md: 4 }, position: "relative", gap: 1.5 }}>
+        <Toolbar sx={{ px: { xs: 1.5, sm: 2.5, md: 4 }, position: "relative", gap: 1.5 }}>
           <IconButton
             onClick={onMenuClick}
             sx={{
@@ -181,8 +180,9 @@ export default function AppTopbar({
               width: 38,
               height: 38,
               borderRadius: 1.5,
-              border: (t) => `1px solid ${t.palette.divider}`,
-              color: "text.secondary",
+              border: "1px solid rgba(255,255,255,0.35)",
+              color: "#FFFFFF",
+              "&:hover": { bgcolor: "rgba(255,255,255,0.12)" },
             }}
           >
             <MenuRoundedIcon />
@@ -199,20 +199,29 @@ export default function AppTopbar({
               width: 34,
               height: 34,
               borderRadius: 1.5,
-              border: (t) => `1px solid ${t.palette.divider}`,
-              color: "text.secondary",
+              border: "1px solid rgba(255,255,255,0.35)",
+              color: "#FFFFFF",
               flexShrink: 0,
+              "&:hover": { bgcolor: "rgba(255,255,255,0.12)" },
             }}
           >
             {collapsed ? <ChevronRightRoundedIcon fontSize="small" /> : <ChevronLeftRoundedIcon fontSize="small" />}
           </IconButton>
 
           <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              justifyContent: "center",
+              minWidth: 0,
+            }}
+          >
+          <Box
             ref={searchRef}
             sx={{
               position: "static",
-              width: { xs: "min(58vw, 420px)", sm: 500, md: 620, lg: 700 },
-              maxWidth: { xs: 420, md: 700 },
+              width: { xs: "min(58vw, 320px)", sm: 340, md: 400, lg: 440 },
+              maxWidth: { xs: 320, md: 440 },
               zIndex: 1,
             }}
           >
@@ -225,12 +234,12 @@ export default function AppTopbar({
                 py: { xs: 0.85, sm: 1.05 },
                 borderRadius: 999,
                 border: "1px solid transparent",
-                bgcolor: (t) => searchTerm ? alpha(t.palette.primary.main, 0.04) : "rgba(255,255,255,0.56)",
+                bgcolor: "#FFFFFF",
                 transition: "background 0.2s, border-color 0.2s, box-shadow 0.2s",
-                "&:hover": { bgcolor: "rgba(255,255,255,0.82)" },
+                "&:hover": { bgcolor: "#FFFFFF" },
                 "&:focus-within": {
                   borderColor: (t) => alpha(t.palette.primary.main, 0.42),
-                  boxShadow: (t) => `0 0 0 3px ${alpha(t.palette.primary.main, 0.1)}`,
+                  boxShadow: "0 0 0 3px rgba(255,255,255,0.35)",
                 },
               }}
             >
@@ -312,13 +321,12 @@ export default function AppTopbar({
               </Paper>
             )}
           </Box>
-
-          <Box sx={{ flex: 1 }} />
+          </Box>
 
           <Stack direction="row" alignItems="center" spacing={0.75}>
             <NotificationsMenu />
 
-            <Divider orientation="vertical" flexItem sx={{ mx: 0.5, height: 24, alignSelf: "center" }} />
+            <Divider orientation="vertical" flexItem sx={{ mx: 0.5, height: 24, alignSelf: "center", borderColor: "rgba(255,255,255,0.3)" }} />
 
             <Paper
               variant="outlined"
