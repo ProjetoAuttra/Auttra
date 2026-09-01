@@ -12,6 +12,10 @@ const mockUser = {
   oficina_id: 1
 };
 
+mock.onPost('/auth/verify-email').reply(200, {
+  emailToken: 'mock-email-token'
+});
+
 mock.onPost('/auth/login').reply(200, {
   token: 'mock-test-token-123',
   usuario: mockUser

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   login,
+  verifyEmail,
   selectOficina,
   changePassword,
   updateFoto,
@@ -11,6 +12,7 @@ import { authMiddleware } from "../middlewares/ensureAuth.js";
 
 const router = Router();
 
+router.post("/verify-email", verifyEmail);
 router.post("/login", login);
 router.post("/select-oficina", selectOficina);
 router.post("/forgot-password", forgotPassword);

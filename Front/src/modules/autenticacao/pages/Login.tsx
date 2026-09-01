@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Box,
   TextField,
@@ -15,24 +15,27 @@ import {
   Dialog,
   DialogContent,
   DialogActions,
+  CircularProgress,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import { paths } from "../../../routes/paths";
 import logo from "../../../assets/logo.png";
-import api from "../../../api/api";
+import api, { turnstileSiteKey } from "../../../api/api";
+import { brand } from "../../../app/theme";
+import TurnstileWidget, { type TurnstileWidgetHandle } from "../../../components/common/TurnstileWidget";
 
-// Cores da marca.
-const BLUE_MAIN = "#2563EB";
-const BLUE_LIGHT = "#60A5FA";
-const BLUE_DARK = "#1E3A8A";
-const TEAL = "#0F766E";
-const INK = "#111827";
+// Cores da marca (mesma fonte do tema global, para nao dessincronizar).
+const BLUE_MAIN = brand.primary;
+const BLUE_DARK = brand.primaryDark;
+const TEAL = brand.teal;
+const INK = brand.ink;
 
 // Estilo compartilhado dos campos.
 const fieldSx = {
@@ -58,8 +61,12 @@ export default function Login() {
   const { signIn, selectOffice } = useAuth();
 
   const [show, setShow] = useState(false);
+  const [step, setStep] = useState<"email" | "password">("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [emailToken, setEmailToken] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef<TurnstileWidgetHandle>(null);
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +79,8 @@ export default function Login() {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotMessage, setForgotMessage] = useState<string | null>(null);
   const [forgotError, setForgotError] = useState<string | null>(null);
+  const [forgotCooldown, setForgotCooldown] = useState(0);
+  const [capsLockOn, setCapsLockOn] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -81,13 +90,46 @@ export default function Login() {
     if (token) nav(paths.root, { replace: true });
   }, [nav]);
 
+  useEffect(() => {
+    if (forgotCooldown <= 0) return;
+    const timer = setTimeout(() => setForgotCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [forgotCooldown]);
+
+  const resetToEmailStep = () => {
+    setStep("email");
+    setPassword("");
+    setEmailToken("");
+    setTurnstileToken("");
+    turnstileRef.current?.reset();
+  };
+
+  const handleVerifyEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!email) { setError("Informe seu e-mail."); return; }
+    if (!turnstileToken) { setError("Complete a verificação de segurança."); return; }
+    try {
+      setLoading(true);
+      const { data } = await api.post("/auth/verify-email", { email, turnstileToken });
+      setEmailToken(data.emailToken);
+      setStep("password");
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? "Não foi possível verificar o e-mail.");
+      setTurnstileToken("");
+      turnstileRef.current?.reset();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!email || !password) { setError("Preencha o e-mail e a senha."); return; }
+    if (!password) { setError("Preencha a senha."); return; }
     try {
       setLoading(true);
-      const result = await signIn(email, password, remember);
+      const result = await signIn(email, password, remember, emailToken);
       if (result.requiresOfficeSelection) {
         setSelectionToken(result.selectionToken);
         setOffices(result.oficinas);
@@ -96,10 +138,23 @@ export default function Login() {
       }
       nav(paths.root, { replace: true });
     } catch (err: any) {
+      if (err?.response?.data?.code === "EMAIL_VERIFICATION_REQUIRED") {
+        resetToEmailStep();
+        setError("Verificação de segurança expirada. Confirme seu e-mail novamente.");
+        return;
+      }
       setError(err?.response?.data?.message ?? "Não foi possível entrar. Tente novamente.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBackToLogin = () => {
+    setSelectionToken("");
+    setOffices([]);
+    setOfficeId("");
+    setError(null);
+    resetToEmailStep();
   };
 
   const handleOfficeSubmit = async (e: React.FormEvent) => {
@@ -131,6 +186,7 @@ export default function Login() {
       setForgotLoading(true);
       const { data } = await api.post("/auth/forgot-password", { email: targetEmail });
       setForgotMessage(data?.message ?? "Se o e-mail estiver cadastrado, enviaremos um link para redefinir a senha.");
+      setForgotCooldown(30);
     } catch (err: any) {
       setForgotError(err?.response?.data?.message ?? "Não foi possível enviar o e-mail de recuperação.");
     } finally {
@@ -229,31 +285,49 @@ export default function Login() {
                 lineHeight: 1.2,
               }}
             >
-              Entrar no sistema
+              {selectionToken ? "Entrar no sistema" : "Bem-vindo(a) de volta 👋"}
             </Typography>
             <Typography sx={{ fontSize: 14, color: alpha(INK, 0.6) }}>
-              Acesse sua conta para continuar
+              {selectionToken
+                ? "Acesse sua conta para continuar"
+                : step === "email"
+                ? "Acesse sua conta Auttra para continuar"
+                : "Confirme sua senha para continuar"}
             </Typography>
           </Stack>
 
-          <form onSubmit={selectionToken ? handleOfficeSubmit : handleSubmit} noValidate>
+          <form onSubmit={selectionToken ? handleOfficeSubmit : step === "email" ? handleVerifyEmail : handleSubmit} noValidate>
             <Stack spacing={2.5}>
               {selectionToken ? (
-                <TextField
-                  select
-                  label="Unidade"
-                  fullWidth
-                  value={officeId}
-                  onChange={(e) => { setOfficeId(e.target.value); setError(null); }}
-                  sx={fieldSx}
-                >
-                  {offices.map((office) => (
-                    <MenuItem key={office.id} value={office.id}>
-                      {office.nome}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              ) : (
+                <>
+                  <Button
+                    onClick={handleBackToLogin}
+                    startIcon={<ArrowBackRoundedIcon sx={{ fontSize: 16 }} />}
+                    sx={{
+                      alignSelf: "flex-start",
+                      textTransform: "none", fontWeight: 500, fontSize: 13,
+                      color: alpha(INK, 0.6), p: 0, minWidth: 0,
+                      "&:hover": { color: BLUE_MAIN, bgcolor: "transparent" },
+                    }}
+                  >
+                    Voltar
+                  </Button>
+                  <TextField
+                    select
+                    label="Unidade"
+                    fullWidth
+                    value={officeId}
+                    onChange={(e) => { setOfficeId(e.target.value); setError(null); }}
+                    sx={fieldSx}
+                  >
+                    {offices.map((office) => (
+                      <MenuItem key={office.id} value={office.id}>
+                        {office.nome}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </>
+              ) : step === "email" ? (
                 <>
                   <TextField
                     label="E-mail"
@@ -264,9 +338,35 @@ export default function Login() {
                     autoComplete="email"
                     autoFocus
                     error={!!error}
-                    helperText={error || undefined}
                     sx={fieldSx}
                   />
+
+                  <TurnstileWidget
+                    ref={turnstileRef}
+                    siteKey={turnstileSiteKey}
+                    onVerify={(token) => { setTurnstileToken(token); setError(null); }}
+                    onExpire={() => setTurnstileToken("")}
+                    onError={() => setTurnstileToken("")}
+                  />
+                </>
+              ) : (
+                <>
+                  <Stack direction="row" alignItems="center" justifyContent="space-between">
+                    <Typography sx={{ fontSize: 13, color: alpha(INK, 0.62) }}>
+                      Entrando como <b>{email}</b>
+                    </Typography>
+                    <Button
+                      variant="text" size="small"
+                      onClick={resetToEmailStep}
+                      sx={{
+                        textTransform: "none", fontWeight: 500, fontSize: 13,
+                        color: BLUE_MAIN, p: 0, minWidth: 0,
+                        "&:hover": { color: BLUE_DARK, bgcolor: "transparent" },
+                      }}
+                    >
+                      Trocar e-mail
+                    </Button>
+                  </Stack>
 
                   <TextField
                     label="Senha"
@@ -274,9 +374,13 @@ export default function Login() {
                     fullWidth
                     value={password}
                     onChange={(e) => { setPassword(e.target.value); setError(null); }}
+                    onKeyUp={(e) => setCapsLockOn(e.getModifierState?.("CapsLock") ?? false)}
+                    onBlur={() => setCapsLockOn(false)}
                     autoComplete="current-password"
+                    autoFocus
                     error={!!error}
-                    helperText={error || undefined}
+                    helperText={capsLockOn ? "Caps Lock ativado" : undefined}
+                    FormHelperTextProps={{ sx: { color: brand.amber } }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -326,6 +430,7 @@ export default function Login() {
                         setForgotEmail(email);
                         setForgotMessage(null);
                         setForgotError(null);
+                        setForgotCooldown(0);
                         setForgotOpen(true);
                       }}
                       sx={{
@@ -340,47 +445,39 @@ export default function Login() {
                 </>
               )}
 
-              {selectionToken && (
-                <Collapse in={!!error}>
-                  <Alert
-                    severity="error"
-                    onClose={() => setError(null)}
-                    sx={{
-                      borderRadius: 2,
-                      bgcolor: alpha("#ef4444", 0.12),
-                      color: "#fca5a5",
-                      border: `1px solid ${alpha("#ef4444", 0.2)}`,
-                      "& .MuiAlert-icon": { color: "#fca5a5" },
-                      py: 0.5, fontSize: 13,
-                    }}
-                  >
-                    {error}
-                  </Alert>
-                </Collapse>
-              )}
+              <Collapse in={!!error}>
+                <Alert
+                  severity="error"
+                  onClose={() => setError(null)}
+                  sx={{ borderRadius: 2, py: 0.5, fontSize: 13 }}
+                >
+                  {error}
+                </Alert>
+              </Collapse>
 
               <Button
                 type="submit"
                 variant="contained"
                 fullWidth
-                disabled={loading}
+                disabled={loading || (!selectionToken && step === "email" && !turnstileToken)}
+                startIcon={loading ? <CircularProgress size={16} thickness={5} sx={{ color: "#fff" }} /> : undefined}
                 endIcon={!loading && <ArrowForwardRoundedIcon />}
                 disableElevation
                 sx={{
                   height: 50,
-                  borderRadius: 2,
+                  borderRadius: "999px",
                   fontWeight: 700,
                   fontSize: 14,
                   textTransform: "none",
                   mt: 0.5,
-                  background: `linear-gradient(135deg, ${BLUE_MAIN} 0%, ${BLUE_DARK} 72%, ${TEAL} 100%)`,
+                  background: BLUE_MAIN,
                   color: "#fff",
                   boxShadow: `0 4px 20px ${alpha(BLUE_MAIN, 0.45)}`,
                   transition: "opacity 0.2s, transform 0.15s, box-shadow 0.2s",
                   "&:hover": {
-                    background: `linear-gradient(135deg, ${BLUE_LIGHT} 0%, ${BLUE_MAIN} 68%, ${TEAL} 100%)`,
+                    background: BLUE_DARK,
                     transform: "translateY(-1px)",
-                    boxShadow: `0 6px 28px ${alpha(BLUE_LIGHT, 0.45)}`,
+                    boxShadow: `0 6px 28px ${alpha(BLUE_MAIN, 0.45)}`,
                   },
                   "&:active": { transform: "translateY(0)", boxShadow: "none" },
                   "&.Mui-disabled": {
@@ -389,7 +486,7 @@ export default function Login() {
                   },
                 }}
               >
-                {loading ? "Entrando..." : selectionToken ? "Continuar" : "Entrar"}
+                {loading ? "Entrando..." : selectionToken || step === "email" ? "Continuar" : "Entrar"}
               </Button>
             </Stack>
           </form>
@@ -425,6 +522,7 @@ export default function Login() {
               value={forgotEmail}
               onChange={(event) => setForgotEmail(event.target.value)}
               autoFocus
+              sx={fieldSx}
             />
           </Stack>
         </DialogContent>
@@ -433,9 +531,9 @@ export default function Login() {
             sx={{ textTransform: "none", fontWeight: 700, borderRadius: 2 }}>
             Cancelar
           </Button>
-          <Button onClick={handleForgotSubmit} variant="contained" disableElevation size="small" disabled={forgotLoading}
+          <Button onClick={handleForgotSubmit} variant="contained" disableElevation size="small" disabled={forgotLoading || forgotCooldown > 0}
             sx={{ textTransform: "none", fontWeight: 700, borderRadius: 2 }}>
-            {forgotLoading ? "Enviando..." : "Enviar link"}
+            {forgotLoading ? "Enviando..." : forgotCooldown > 0 ? `Reenviar em ${forgotCooldown}s` : "Enviar link"}
           </Button>
         </DialogActions>
       </Dialog>
