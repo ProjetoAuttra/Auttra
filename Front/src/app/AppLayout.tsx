@@ -25,7 +25,7 @@ export default function AppLayout() {
             bgcolor: 'background.default',
           }}
         >
-          <AppTopbar drawerWidth={currentWidth} onMenuClick={() => setMobileOpen(true)} />
+          <AppTopbar onMenuClick={() => setMobileOpen(true)} />
           <AppSidebar
             drawerWidth={drawerWidth}
             mobileOpen={mobileOpen}

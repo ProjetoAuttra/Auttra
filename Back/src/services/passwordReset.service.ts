@@ -23,8 +23,8 @@ function buildResetUrl(token: string) {
 function passwordResetEmailHtml(resetUrl: string) {
   return `
     <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #111827;">
-      <h2 style="margin: 0 0 16px;">Recuperação de senha do DriveOn</h2>
-      <p>Foi solicitada uma recuperação de senha para a sua conta do DriveOn.</p>
+      <h2 style="margin: 0 0 16px;">Recuperação de senha do Auttra</h2>
+      <p>Foi solicitada uma recuperação de senha para a sua conta do Auttra.</p>
       <p>Para criar uma nova senha, acesse o link seguro abaixo:</p>
       <p>
         <a href="${resetUrl}" style="display: inline-block; padding: 12px 18px; background: #2563EB; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 700;">
@@ -71,7 +71,7 @@ export const PasswordResetService = {
     try {
       await sendEmail({
         to: usuario.email,
-        subject: "Recuperação de senha do DriveOn",
+        subject: "Recuperação de senha do Auttra",
         html: passwordResetEmailHtml(resetUrl),
       });
       return { sent: true };
@@ -111,7 +111,7 @@ export const PasswordResetService = {
     try {
       await sendEmail({
         to: usuario.email,
-        subject: "Redefinição de senha do DriveOn",
+        subject: "Redefinição de senha do Auttra",
         html: passwordResetEmailHtml(resetUrl),
       });
     } catch {

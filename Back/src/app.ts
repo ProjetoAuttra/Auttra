@@ -28,7 +28,7 @@ const loginLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-app.use("/api/auth/login", loginLimiter);
+app.use(["/api/auth/login", "/api/auth/verify-email"], loginLimiter);
 
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 app.use("/api", routes);

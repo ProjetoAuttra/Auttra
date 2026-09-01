@@ -16,9 +16,30 @@ Variaveis obrigatorias:
 DATABASE_URL=<URL do Postgres do Railway>
 JWT_SECRET=<chave longa e aleatoria>
 CORS_ORIGIN=https://<dominio-do-front>.up.railway.app
+TURNSTILE_SECRET_KEY=<secret key do Cloudflare Turnstile>
 ```
 
 O Railway injeta `PORT` automaticamente. A API tambem expoe `GET /health` para health checks.
+
+Sem `TURNSTILE_SECRET_KEY`, a API recusa subir em producao (mesma trava que ja existe pra `JWT_SECRET`). Pegue a chave real no dashboard do Cloudflare Turnstile.
+
+Variaveis opcionais de e-mail (recuperacao de senha), via Resend:
+
+```env
+RESEND_API_KEY=<API key do Resend>
+RESEND_FROM=Auttra <no-reply@auttra.com.br>
+```
+
+`auttra.com.br` precisa estar verificado como dominio no Resend antes de usar esse remetente (veja a secao "E-mail (Resend)" abaixo). Sem `RESEND_API_KEY`, o envio de e-mail falha silenciosamente (o endpoint de recuperacao de senha continua respondendo com sucesso, mas nenhum e-mail sai).
+
+## E-mail (Resend)
+
+Para enviar e-mails a partir de `no-reply@auttra.com.br`:
+
+1. No dashboard do Resend, va em **Domains -> Add Domain** e cadastre `auttra.com.br`.
+2. O Resend vai gerar registros DNS (geralmente um MX + TXT de SPF numa subdominio tipo `send.auttra.com.br`, e um TXT de DKIM em `resend._domainkey.auttra.com.br`). Adicione esses registros exatamente como mostrados no painel de DNS de onde o dominio `auttra.com.br` esta hospedado (registro.br, Cloudflare, etc).
+3. Volte ao Resend e clique em **Verify DNS Records**. A propagacao costuma levar minutos, mas pode levar ate algumas horas.
+4. Quando o dominio aparecer como **Verified**, `RESEND_FROM=Auttra <no-reply@auttra.com.br>` passa a funcionar. Antes disso, o Resend rejeita o envio.
 
 ## Web
 

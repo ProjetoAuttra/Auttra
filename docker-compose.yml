@@ -12,7 +12,7 @@ services:
     volumes:
       - driveon-postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d driveon"]
+      test: ["CMD-SHELL", "PGPASSWORD=$${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U $${POSTGRES_USER} -d driveon -c 'SELECT 1' >/dev/null"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -30,12 +30,19 @@ services:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
-      RESEND_FROM: ${RESEND_FROM:-DriveOn <no-reply@driveonn.com.br>}
+      RESEND_FROM: ${RESEND_FROM:-Auttra <no-reply@auttra.com.br>}
       PASSWORD_RESET_URL_BASE: ${PASSWORD_RESET_URL_BASE:-http://localhost:8080}
       CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN is required}
       PORT: 4000
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:?TURNSTILE_SECRET_KEY is required}
     ports:
       - "4000:4000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   web:
     build:
@@ -44,22 +51,27 @@ services:
     container_name: driveon-web
     restart: unless-stopped
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     environment:
       API_URL: ${API_URL:-/api}
+      BACKEND: ${BACKEND:-http://api:4000}
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-1x00000000000000000000AA}
     ports:
       - "8080:80"
 
   admin-web:
+    profiles: ["admin"]
     build:
       context: ./Admin
       dockerfile: Dockerfile
     container_name: driveon-admin-web
     restart: unless-stopped
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     environment:
-      BACKEND: ${BACKEND:-http://driveon-api:4000}
+      BACKEND: ${BACKEND:-http://api:4000}
     ports:
       - "8081:80"
 

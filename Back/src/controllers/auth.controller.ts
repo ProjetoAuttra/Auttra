@@ -4,8 +4,12 @@ import jwt from "jsonwebtoken";
 import { prisma } from "../prisma/client.js";
 import { normalizePermissions, type PermissionsMap } from "../permissions/accessProfiles.js";
 import { PerfisAcessoService } from "../services/perfisAcesso.service.js";
-import { getJwtSecret } from "../config/env.js";
+import { getJwtSecret, getTurnstileSecret } from "../config/env.js";
 import { PasswordResetService } from "../services/passwordReset.service.js";
+
+function normalizeEmail(raw: unknown): string {
+  return String(raw ?? "").trim().toLowerCase();
+}
 
 type AuthUsuario = {
   id: number;
@@ -167,13 +171,73 @@ export async function resetPassword(req: Request, res: Response) {
   }
 }
 
+export async function verifyEmail(req: Request, res: Response) {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    const turnstileToken = String(req.body?.turnstileToken ?? "");
+
+    if (!email) return res.status(400).json({ message: "E-mail e obrigatorio." });
+    if (!turnstileToken) {
+      return res.status(400).json({ message: "Verificacao de seguranca obrigatoria." });
+    }
+
+    let verifyData: { success?: boolean };
+    try {
+      const verifyRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          secret: getTurnstileSecret(),
+          response: turnstileToken,
+          remoteip: req.ip ?? "",
+        }),
+      });
+      verifyData = await verifyRes.json();
+    } catch (err) {
+      console.error("Erro ao contatar o Cloudflare Turnstile:", err);
+      return res.status(502).json({ message: "Nao foi possivel validar a verificacao de seguranca. Tente novamente." });
+    }
+
+    if (!verifyData.success) {
+      return res.status(401).json({
+        message: "Nao foi possivel confirmar que voce nao e um robo. Tente novamente.",
+        code: "CAPTCHA_FAILED",
+      });
+    }
+
+    const emailToken = jwt.sign({ purpose: "email-verified", email }, getJwtSecret(), { expiresIn: "10m" });
+    return res.json({ emailToken });
+  } catch (err) {
+    console.error("Erro ao verificar e-mail:", err);
+    return res.status(500).json({ message: "Erro interno ao verificar e-mail." });
+  }
+}
+
 export async function login(req: Request, res: Response) {
   try {
-    const email = String(req.body?.email ?? "").trim().toLowerCase();
+    const email = normalizeEmail(req.body?.email);
     const senha = String(req.body?.senha ?? "");
+    const emailToken = String(req.body?.emailToken ?? "");
 
     if (!email || !senha) {
       return res.status(400).json({ message: "E-mail e senha sao obrigatorios." });
+    }
+
+    let emailTokenPayload: { purpose?: string; email?: string } | null = null;
+    try {
+      emailTokenPayload = emailToken ? (jwt.verify(emailToken, getJwtSecret()) as any) : null;
+    } catch {
+      emailTokenPayload = null;
+    }
+    if (
+      !emailTokenPayload ||
+      emailTokenPayload.purpose !== "email-verified" ||
+      emailTokenPayload.email !== email
+    ) {
+      return res.status(401).json({
+        message: "Verificacao de e-mail expirada. Recomece o login.",
+        code: "EMAIL_VERIFICATION_REQUIRED",
+      });
     }
 
     const usuarios = await prisma.usuario.findMany({

@@ -19,7 +19,7 @@ function AuthProbe() {
     <div>
       <span data-testid="auth">{auth.isAuthenticated ? "yes" : "no"}</span>
       <span data-testid="can-clientes">{auth.can("clientes") ? "yes" : "no"}</span>
-      <button onClick={() => auth.signIn("user@test.com", "secret", true)}>login</button>
+      <button onClick={() => auth.signIn("user@test.com", "secret", true, "dummy-email-token")}>login</button>
       <button onClick={auth.signOut}>logout</button>
     </div>
   );

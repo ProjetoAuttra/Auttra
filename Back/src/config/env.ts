@@ -21,6 +21,23 @@ export function getJwtSecret() {
   return secret;
 }
 
+const TURNSTILE_TEST_SECRET_KEY = "1x0000000000000000000000000000000AA";
+
+export function getTurnstileSecret() {
+  const secret = process.env.TURNSTILE_SECRET_KEY?.trim();
+  if (secret) return secret;
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("TURNSTILE_SECRET_KEY nao configurado.");
+  }
+
+  console.warn(
+    "[turnstile] TURNSTILE_SECRET_KEY nao definido — usando chave de teste do Cloudflare (sempre aprova). Configure para producao."
+  );
+  return TURNSTILE_TEST_SECRET_KEY;
+}
+
 export function validateRuntimeEnv() {
   getJwtSecret();
+  getTurnstileSecret();
 }

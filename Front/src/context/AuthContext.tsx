@@ -35,7 +35,7 @@ type AuthContextType = {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
-  signIn: (email: string, password: string, remember: boolean) => Promise<SignInResult>;
+  signIn: (email: string, password: string, remember: boolean, emailToken: string) => Promise<SignInResult>;
   selectOffice: (selectionToken: string, oficinaId: number, remember: boolean) => Promise<void>;
   updateCurrentUser: (patch: Partial<User>) => void;
   can: (module: AccessModule, action?: AccessAction) => boolean;
@@ -84,8 +84,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // ✅ Login e persistência
-  const signIn = useCallback(async (email: string, password: string, remember: boolean): Promise<SignInResult> => {
-    const { data } = await api.post("/auth/login", { email, senha: password });
+  const signIn = useCallback(async (email: string, password: string, remember: boolean, emailToken: string): Promise<SignInResult> => {
+    const { data } = await api.post("/auth/login", { email, senha: password, emailToken });
     if (data.requiresOfficeSelection) {
       return {
         requiresOfficeSelection: true as const,

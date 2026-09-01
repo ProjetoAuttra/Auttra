@@ -45,7 +45,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <Typography sx={{ color: "#fff", fontSize: 12, fontWeight: 800, lineHeight: 1 }}>D</Typography>
         </Box>
         <Box>
-          <Typography sx={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>DriveOn</Typography>
+          <Typography sx={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>Auttra</Typography>
           <Typography sx={{ fontSize: 10, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.08em" }}>
             Admin
           </Typography>
@@ -140,7 +140,7 @@ export function AdminLayout() {
                 <Box sx={{ width: 24, height: 24, bgcolor: "#111827", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Typography sx={{ color: "#fff", fontSize: 10, fontWeight: 800, lineHeight: 1 }}>D</Typography>
                 </Box>
-                <Typography sx={{ fontSize: 14, fontWeight: 700 }}>DriveOn Admin</Typography>
+                <Typography sx={{ fontSize: 14, fontWeight: 700 }}>Auttra Admin</Typography>
               </Box>
             </Toolbar>
           </AppBar>

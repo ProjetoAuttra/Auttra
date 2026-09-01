@@ -1,6 +1,6 @@
 import {
   Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText,
-  useTheme, IconButton, Tooltip, Divider, Collapse, Stack
+  useTheme, Tooltip, Divider, Collapse, Toolbar
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import HomeOutlineIcon from '@mui/icons-material/HomeOutlined';
@@ -12,8 +12,6 @@ import RequestQuoteOutlineIcon from '@mui/icons-material/RequestQuoteOutlined';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutlined';
 import BarChartOutlineIcon from '@mui/icons-material/BarChartOutlined';
 import SettingsOutlineIcon from '@mui/icons-material/SettingsOutlined';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import MenuIcon from '@mui/icons-material/Menu';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
@@ -32,7 +30,6 @@ import { useSidebar } from '../../context/SidebarContext';
 import { useAuth } from '../../context/AuthContext';
 import { useAdditionalResources } from '../../context/AdditionalResourcesContext';
 import type { AccessModule } from '../../permissions/accessProfiles';
-import logo from '../../assets/logo.png';
 
 type Props = {
   drawerWidth: number;
@@ -271,7 +268,7 @@ export default function AppSidebar({
   onCloseMobile,
 }: Props) {
   const theme = useTheme();
-  const { collapsed, toggleCollapsed } = useSidebar();
+  const { collapsed } = useSidebar();
   const collapsedWidth = 68;
   const currentWidth = collapsed ? collapsedWidth : drawerWidth;
 
@@ -286,66 +283,7 @@ export default function AppSidebar({
         color: theme.palette.text.primary,
       }}
     >
-      <Box
-        sx={{
-          px: collapsed ? 1.5 : 4,
-          py: 3.5,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'space-between',
-          minHeight: 112,
-          flexShrink: 0,
-        }}
-      >
-        {collapsed ? (
-          <Box
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: 1.5,
-              bgcolor: alpha(theme.palette.primary.main, 0.1),
-              border: `1px solid ${alpha(theme.palette.primary.main, 0.18)}`,
-              display: 'grid',
-              placeItems: 'center',
-              color: theme.palette.primary.main,
-              fontWeight: 800,
-              fontSize: 18,
-            }}
-          >
-            D
-          </Box>
-        ) : (
-          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Box component="img" src={logo} alt="Logo" sx={{ height: 54, maxHeight: 48, width: 'auto', objectFit: 'contain' }} />
-            </Box>
-            <IconButton
-              onClick={toggleCollapsed}
-              size="small"
-              sx={{
-                '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08) },
-                color: 'text.secondary',
-              }}
-            >
-              <ChevronLeftIcon fontSize="small" />
-            </IconButton>
-          </Stack>
-        )}
-      </Box>
-      {collapsed && (
-        <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'center', pb: 1, flexShrink: 0 }}>
-          <IconButton
-            onClick={toggleCollapsed}
-            size="small"
-            sx={{
-              '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08) },
-              color: 'text.secondary',
-            }}
-          >
-            <MenuIcon fontSize="small" />
-          </IconButton>
-        </Box>
-      )}
+      <Toolbar sx={{ minHeight: { xs: 64, md: 88 }, flexShrink: 0 }} />
 
       <Divider sx={{ flexShrink: 0 }} />
       <NavList onItemClick={onCloseMobile} collapsed={collapsed} />

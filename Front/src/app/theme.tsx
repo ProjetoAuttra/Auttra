@@ -1,9 +1,10 @@
 import { createTheme } from '@mui/material/styles';
 
-const brand = {
+export const brand = {
   ink: '#18202F',
   muted: '#667085',
   primary: '#1D4ED8',
+  primaryLight: '#60A5FA',
   primaryDark: '#173EA5',
   teal: '#047481',
   amber: '#D97706',
@@ -15,7 +16,7 @@ const brand = {
 export const theme = createTheme({
   palette: {
     mode: 'light',
-    primary: { main: brand.primary, light: '#60A5FA', dark: brand.primaryDark, contrastText: '#ffffff' },
+    primary: { main: brand.primary, light: brand.primaryLight, dark: brand.primaryDark, contrastText: '#ffffff' },
     secondary: { main: brand.teal, light: '#2DD4BF', dark: '#115E59', contrastText: '#ffffff' },
     warning: { main: brand.amber, light: '#FBBF24', dark: '#B45309', contrastText: '#111827' },
     background: { default: brand.page, paper: brand.surface },
