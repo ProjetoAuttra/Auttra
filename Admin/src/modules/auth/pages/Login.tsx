@@ -95,7 +95,7 @@ export function LoginPage() {
             <Typography sx={{ color: "#fff", fontSize: 16, fontWeight: 800 }}>D</Typography>
           </Box>
           <Box>
-            <Typography sx={{ fontSize: 16, fontWeight: 700, lineHeight: 1.1 }}>DriveOn</Typography>
+            <Typography sx={{ fontSize: 16, fontWeight: 700, lineHeight: 1.1 }}>Auttra</Typography>
             <Typography sx={{ fontSize: 11, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.08em" }}>Admin</Typography>
           </Box>
         </Box>

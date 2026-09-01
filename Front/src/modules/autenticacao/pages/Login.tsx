@@ -197,7 +197,7 @@ export default function Login() {
           <Box
             component="img"
             src={logo}
-            alt="DriveOn"
+            alt="Auttra"
             sx={{
               height: 62,
               width: "auto",
@@ -403,7 +403,7 @@ export default function Login() {
             color: alpha(INK, 0.42),
           }}
         >
-          © {new Date().getFullYear()} DriveOn · Sistema de Gestao de Oficina
+          © {new Date().getFullYear()} Auttra · Sistema de Gestao de Oficina
         </Typography>
       </Box>
 

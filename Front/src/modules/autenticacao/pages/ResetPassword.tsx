@@ -67,7 +67,7 @@ export default function ResetPassword() {
     >
       <Box sx={{ width: "100%", maxWidth: 440, mx: 3 }}>
         <Stack alignItems="center" mb={5}>
-          <Box component="img" src={logo} alt="DriveOn" sx={{ height: 62, width: "auto", objectFit: "contain" }} />
+          <Box component="img" src={logo} alt="Auttra" sx={{ height: 62, width: "auto", objectFit: "contain" }} />
         </Stack>
 
         <Box sx={{ bgcolor: "#fff", border: "1px solid #D9E2EC", borderRadius: 2, px: { xs: 3.5, sm: 5 }, py: 4.5, boxShadow: "0 24px 70px rgba(15, 23, 42, 0.12)" }}>
@@ -76,7 +76,7 @@ export default function ResetPassword() {
               Redefinir senha
             </Typography>
             <Typography sx={{ fontSize: 14, color: alpha(INK, 0.6) }}>
-              Informe uma nova senha para acessar o DriveOn.
+              Informe uma nova senha para acessar o Auttra.
             </Typography>
           </Stack>
 

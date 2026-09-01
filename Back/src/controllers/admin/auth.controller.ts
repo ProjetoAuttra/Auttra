@@ -6,7 +6,7 @@ import { prisma } from "../../prisma/client.js";
 import { getJwtSecret } from "../../config/env.js";
 import { AdminAuditService } from "../../services/admin/audit.service.js";
 
-const APP_NAME = "DriveOn Admin";
+const APP_NAME = "Auttra Admin";
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_MINUTES = 15;
 

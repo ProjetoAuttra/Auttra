@@ -63,7 +63,7 @@ export const PdfHtmlService = {
         </head>
         <body>
           <header>
-            <div class="logo">DriveOn</div>
+            <div class="logo">Auttra</div>
             <div class="doc-title">
               <h1>Orçamento #${orc.id}</h1>
               <span class="badge">${STATUS_LABEL[orc.status] ?? orc.status}</span>
@@ -107,7 +107,7 @@ export const PdfHtmlService = {
           </div>
 
           <footer>
-            Orçamento gerado automaticamente por DriveOn © ${new Date().getFullYear()}.
+            Orçamento gerado automaticamente por Auttra © ${new Date().getFullYear()}.
             Este documento não tem validade fiscal.
           </footer>
         </body>
@@ -215,7 +215,7 @@ export const PdfHtmlService = {
         </head>
         <body>
           <header>
-            <div class="logo">DriveOn</div>
+            <div class="logo">Auttra</div>
             <div>
               <h1>Ordem de Serviço #${ordem.id}</h1>
               <p>Status: <strong>${ordem.status.toUpperCase()}</strong></p>
@@ -293,7 +293,7 @@ export const PdfHtmlService = {
           </section>
 
           <footer>
-            Gerado automaticamente por DriveOn © ${new Date().getFullYear()}
+            Gerado automaticamente por Auttra © ${new Date().getFullYear()}
           </footer>
         </body>
       </html>
