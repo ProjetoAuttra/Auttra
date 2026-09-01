@@ -30,7 +30,7 @@ services:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
-      RESEND_FROM: ${RESEND_FROM:-Auttra <no-reply@auttra.com.br>}
+      RESEND_FROM: ${RESEND_FROM:-Auttra <no-reply@mail.auttra.com.br>}
       PASSWORD_RESET_URL_BASE: ${PASSWORD_RESET_URL_BASE:-http://localhost:8080}
       CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN is required}
       PORT: 4000
