@@ -232,26 +232,27 @@ export default function AppTopbar({
                 alignItems: "center",
                 px: { xs: 1.5, sm: 2 },
                 py: { xs: 0.85, sm: 1.05 },
-                borderRadius: 999,
+                borderRadius: "12px",
                 border: "1px solid transparent",
-                bgcolor: "#FFFFFF",
+                bgcolor: "rgba(255,255,255,0.16)",
                 transition: "background 0.2s, border-color 0.2s, box-shadow 0.2s",
-                "&:hover": { bgcolor: "#FFFFFF" },
+                "&:hover": { bgcolor: "rgba(255,255,255,0.22)" },
                 "&:focus-within": {
-                  borderColor: (t) => alpha(t.palette.primary.main, 0.42),
-                  boxShadow: "0 0 0 3px rgba(255,255,255,0.35)",
+                  bgcolor: "rgba(255,255,255,0.22)",
+                  borderColor: "rgba(255,255,255,0.5)",
+                  boxShadow: "0 0 0 3px rgba(255,255,255,0.18)",
                 },
               }}
             >
               {loadingSearch ? (
-                <CircularProgress size={18} sx={{ mr: 1.5, flexShrink: 0 }} />
+                <CircularProgress size={18} sx={{ mr: 1.5, flexShrink: 0, color: "#FFFFFF" }} />
               ) : (
                 <SearchRoundedIcon
                   sx={{
                     fontSize: 21,
                     mr: 1.5,
                     flexShrink: 0,
-                    color: searchTerm ? "primary.main" : "text.disabled",
+                    color: "rgba(255,255,255,0.85)",
                     transition: "color 0.2s",
                   }}
                 />
@@ -263,7 +264,8 @@ export default function AppTopbar({
                 sx={{
                   flex: 1,
                   fontSize: { xs: 14, sm: 15 },
-                  "& input": { padding: 0, "&::placeholder": { color: "text.disabled", opacity: 1 } },
+                  color: "#FFFFFF",
+                  "& input": { padding: 0, "&::placeholder": { color: "rgba(255,255,255,0.7)", opacity: 1 } },
                 }}
                 onFocus={() => results.length > 0 && setSearchOpen(true)}
               />
@@ -273,7 +275,7 @@ export default function AppTopbar({
                   onClick={() => { setSearchTerm(""); setSearchOpen(false); }}
                   sx={{ ml: 0.5, p: 0.25 }}
                 >
-                  <Box sx={{ fontSize: 16, lineHeight: 1, color: "text.disabled" }}>x</Box>
+                  <Box sx={{ fontSize: 16, lineHeight: 1, color: "rgba(255,255,255,0.75)" }}>x</Box>
                 </IconButton>
               )}
             </Paper>
@@ -328,41 +330,35 @@ export default function AppTopbar({
 
             <Divider orientation="vertical" flexItem sx={{ mx: 0.5, height: 24, alignSelf: "center", borderColor: "rgba(255,255,255,0.3)" }} />
 
-            <Paper
-              variant="outlined"
+            <Box
               onClick={(e) => setAnchorEl(e.currentTarget)}
               sx={{
-                px: 1.5,
+                px: 1,
                 py: 0.75,
                 borderRadius: 1.5,
                 display: "flex",
                 alignItems: "center",
                 gap: 1.25,
                 cursor: "pointer",
-                border: (t) => `1px solid ${t.palette.divider}`,
-                bgcolor: "#FFFFFF",
-                transition: "border-color 0.2s, box-shadow 0.2s",
-                "&:hover": {
-                  borderColor: "primary.main",
-                  boxShadow: (t) => `0 0 0 3px ${alpha(t.palette.primary.main, 0.08)}`,
-                },
+                transition: "background 0.2s",
+                "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
               }}
             >
-              <Avatar src={empresaLogoUrl ?? undefined} sx={{ width: 30, height: 30, fontSize: 13, fontWeight: 800, bgcolor: "primary.main" }}>
+              <Avatar src={empresaLogoUrl ?? undefined} sx={{ width: 30, height: 30, fontSize: 13, fontWeight: 800, bgcolor: "rgba(255,255,255,0.25)", color: "#FFFFFF" }}>
                 {empresaLetter}
               </Avatar>
 
               <Box sx={{ lineHeight: 1, display: { xs: "none", sm: "block" } }}>
-                <Typography variant="body2" fontWeight={700} lineHeight={1.3} noWrap maxWidth={160}>
+                <Typography variant="body2" fontWeight={700} lineHeight={1.3} noWrap maxWidth={160} sx={{ color: "#FFFFFF" }}>
                   {empresaLabel}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" lineHeight={1.2} noWrap maxWidth={160} component="div">
+                <Typography variant="caption" lineHeight={1.2} noWrap maxWidth={160} component="div" sx={{ color: "rgba(255,255,255,0.75)" }}>
                   {nomeUsuario}
                 </Typography>
               </Box>
 
-              <KeyboardArrowDownRoundedIcon sx={{ fontSize: 16, color: "text.disabled", ml: 0.25 }} />
-            </Paper>
+              <KeyboardArrowDownRoundedIcon sx={{ fontSize: 16, color: "rgba(255,255,255,0.75)", ml: 0.25 }} />
+            </Box>
           </Stack>
 
           <Menu
