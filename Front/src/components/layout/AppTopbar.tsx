@@ -23,17 +23,21 @@ import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownR
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
+import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import BusinessRoundedIcon from "@mui/icons-material/BusinessRounded";
 import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
+import { useSidebar } from "../../context/SidebarContext";
 import api from "../../api/api";
 import { useNavigate } from "react-router-dom";
 import NotificationsMenu from "./NotificationsMenu";
 import EmpresaModal from "./EmpresaModal";
 import MeuPerfilModal from "./MeuPerfilModal";
+import BrandLogoPlaceholder from "./BrandLogoPlaceholder";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../common/AppDialog";
 
 const CARGO_LABEL: Record<string, string> = {
@@ -48,14 +52,13 @@ const CARGO_LABEL: Record<string, string> = {
 };
 
 export default function AppTopbar({
-  drawerWidth,
   onMenuClick,
 }: {
-  drawerWidth: number;
   onMenuClick?: () => void;
 }) {
   const { user, signOut } = useAuth();
   const { success, error, warning } = useToast();
+  const { collapsed, toggleCollapsed } = useSidebar();
   const navigate = useNavigate();
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -158,16 +161,15 @@ export default function AppTopbar({
         elevation={0}
         sx={{
           top: 0,
+          left: 0,
           right: 0,
-          left: { xs: 0, md: `${drawerWidth}px` },
-          width: { xs: "100%", md: `calc(100% - ${drawerWidth}px)` },
-          ml: 0,
+          width: "100%",
+          zIndex: (t) => t.zIndex.drawer + 1,
           bgcolor: "rgba(245, 247, 250, 0.86)",
           backdropFilter: "blur(18px)",
           borderBottom: "none",
           boxShadow: "none",
           color: "text.primary",
-          transition: "width 0.3s ease, margin 0.3s ease",
         }}
       >
         <Toolbar sx={{ minHeight: { xs: "64px !important", md: "88px !important" }, px: { xs: 1.5, sm: 2.5, md: 4 }, position: "relative", gap: 1.5 }}>
@@ -184,6 +186,25 @@ export default function AppTopbar({
             }}
           >
             <MenuRoundedIcon />
+          </IconButton>
+
+          <BrandLogoPlaceholder />
+
+          <IconButton
+            onClick={toggleCollapsed}
+            size="small"
+            sx={{
+              display: { xs: "none", md: "inline-flex" },
+              mr: 1.5,
+              width: 34,
+              height: 34,
+              borderRadius: 1.5,
+              border: (t) => `1px solid ${t.palette.divider}`,
+              color: "text.secondary",
+              flexShrink: 0,
+            }}
+          >
+            {collapsed ? <ChevronRightRoundedIcon fontSize="small" /> : <ChevronLeftRoundedIcon fontSize="small" />}
           </IconButton>
 
           <Box
