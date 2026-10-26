@@ -47,9 +47,9 @@ const fieldSx = {
   "& .MuiOutlinedInput-root": {
     color: INK,
     fontSize: 14,
-    borderRadius: 2,
+    borderRadius: 1,
     bgcolor: "#fff",
-    "& fieldset": { borderColor: "#D9E2EC" },
+    "& fieldset": { borderColor: brand.line },
     "&:hover fieldset": { borderColor: alpha(BLUE_MAIN, 0.5) },
     "&.Mui-focused fieldset": { borderColor: BLUE_MAIN },
   },
@@ -203,7 +203,7 @@ export default function Login() {
         justifyContent: "center",
         position: "relative",
         overflow: "hidden",
-        bgcolor: "#F6F8FB",
+        bgcolor: brand.page,
         backgroundImage: `
           linear-gradient(135deg, ${alpha(BLUE_DARK, 0.08)} 0%, transparent 34%),
           linear-gradient(315deg, ${alpha(TEAL, 0.10)} 0%, transparent 38%)
@@ -217,8 +217,8 @@ export default function Login() {
         sx={{
           position: "absolute",
           inset: { xs: 16, md: 28 },
-          border: "1px solid #D9E2EC",
-          borderRadius: 3,
+          border: `1px solid ${brand.line}`,
+          borderRadius: 2,
           background:
             "linear-gradient(180deg, rgba(255,255,255,0.84) 0%, rgba(255,255,255,0.38) 100%)",
           zIndex: 0,
@@ -266,7 +266,7 @@ export default function Login() {
         <Box
           sx={{
             bgcolor: "#FFFFFF",
-            border: "1px solid #D9E2EC",
+            border: `1px solid ${brand.line}`,
             borderRadius: 2,
             px: { xs: 3.5, sm: 5 },
             pt: 4.5,
@@ -465,7 +465,7 @@ export default function Login() {
                 disableElevation
                 sx={{
                   height: 50,
-                  borderRadius: "999px",
+                  
                   fontWeight: 700,
                   fontSize: 14,
                   textTransform: "none",
@@ -528,11 +528,11 @@ export default function Login() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button onClick={() => setForgotOpen(false)} variant="outlined" disableElevation size="small"
-            sx={{ textTransform: "none", fontWeight: 700, borderRadius: 2 }}>
+            sx={{ textTransform: "none", fontWeight: 700 }}>
             Cancelar
           </Button>
           <Button onClick={handleForgotSubmit} variant="contained" disableElevation size="small" disabled={forgotLoading || forgotCooldown > 0}
-            sx={{ textTransform: "none", fontWeight: 700, borderRadius: 2 }}>
+            sx={{ textTransform: "none", fontWeight: 700 }}>
             {forgotLoading ? "Enviando..." : forgotCooldown > 0 ? `Reenviar em ${forgotCooldown}s` : "Enviar link"}
           </Button>
         </DialogActions>

@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
 import { alpha } from "@mui/material/styles";
+import { brand } from "../../../app/theme";
 
 export const LIMITE_ESTOQUE_BAIXO = 3;
 
@@ -128,11 +129,11 @@ export function MetricCard({
   sx?: SxProps<Theme>;
 }) {
   const colors: Record<string, string> = {
-    default: "#64748b",
-    success: "#16a34a",
-    warning: "#d97706",
-    error: "#dc2626",
-    info: "#0284c7",
+    default: brand.muted,
+    success: brand.success,
+    warning: brand.amber,
+    error: brand.error,
+    info: brand.info,
   };
   const color = colors[tone];
 

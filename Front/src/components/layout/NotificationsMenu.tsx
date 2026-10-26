@@ -16,6 +16,7 @@ import {
   Typography,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import { brand } from "../../app/theme";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
 import EventRoundedIcon from "@mui/icons-material/EventRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
@@ -29,10 +30,10 @@ import { useAuth } from "../../context/AuthContext";
 import { listarNotificacoes, type AppNotification, type NotificationSeverity, type NotificationType } from "../../modules/notificacoes/api";
 
 const severityColor: Record<NotificationSeverity, string> = {
-  danger: "#dc2626",
-  warning: "#d97706",
-  info: "#2563eb",
-  success: "#059669",
+  danger: brand.error,
+  warning: brand.amber,
+  info: brand.primary,
+  success: brand.success,
 };
 
 const typeIcon: Record<NotificationType, React.ReactNode> = {

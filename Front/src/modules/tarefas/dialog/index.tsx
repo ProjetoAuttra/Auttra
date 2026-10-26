@@ -23,6 +23,7 @@ import EngineeringRoundedIcon from "@mui/icons-material/EngineeringRounded";
 import NotesRoundedIcon from "@mui/icons-material/NotesRounded";
 import { DataGrid } from "@mui/x-data-grid";
 import type { GridColDef } from "@mui/x-data-grid/models/colDef";
+import { brand } from "../../../app/theme";
 import api from "../../../api/api";
 import { useAuth } from "../../../context/AuthContext";
 import { SectionLabel, PrecoDisplay } from "../../../components/styled/DialogStyles";
@@ -369,8 +370,8 @@ export default function OrdemServicoDialog({ open, mode = "create", initial, onC
 
           {/* ITENS E SERVIÇOS */}
           <Grid size={{ xs: 12, md: 8 }}>
-            <Box sx={{ bgcolor: "background.paper", borderRadius: 2, border: "1px solid #E0E4EC", overflow: "hidden" }}>
-              <Box sx={{ p: 2, borderBottom: "1px solid #F0F0F0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Box sx={{ bgcolor: "background.paper", borderRadius: 2, border: "1px solid", borderColor: "divider", overflow: "hidden" }}>
+              <Box sx={{ p: 2, borderBottom: (t) => `1px solid ${t.palette.divider}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <SectionLabel sx={{ mb: 0 }}>Itens da Ordem de Serviço</SectionLabel>
                 <Stack direction="row" spacing={1}>
                   <Button size="small" startIcon={<AddRoundedIcon />} variant={selecaoAberta === "servico" ? "contained" : "outlined"} onClick={() => abrirSelecao("servico")}>
@@ -383,7 +384,7 @@ export default function OrdemServicoDialog({ open, mode = "create", initial, onC
               </Box>
 
               {selecaoAberta && (
-                <Box sx={{ p: 2, bgcolor: alpha("#f0f0f0", 0.5), borderBottom: "1px solid #F0F0F0" }}>
+                <Box sx={{ p: 2, bgcolor: brand.subtle, borderBottom: (t) => `1px solid ${t.palette.divider}` }}>
                   <Stack direction="row" spacing={1.5} alignItems="center">
                     <Autocomplete
                       fullWidth size="small"
@@ -431,7 +432,7 @@ export default function OrdemServicoDialog({ open, mode = "create", initial, onC
                 />
               </Box>
 
-              <Box sx={{ p: 2, borderTop: "1px solid #F0F0F0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Box sx={{ p: 2, borderTop: (t) => `1px solid ${t.palette.divider}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Typography variant="body2" color="text.secondary">
                   Total de {itens.length} itens inclusos
                 </Typography>

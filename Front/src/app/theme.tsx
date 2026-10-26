@@ -11,6 +11,9 @@ export const brand = {
   surface: '#FFFFFF',
   page: '#F5F7FA',
   line: '#DDE3EA',
+  // Neutros de superfície: cabeçalho de tabela, painéis internos e controles segmentados.
+  subtle: '#F8FAFC',
+  subtleStrong: '#F1F5F9',
   // Tons de apoio do azul (fundos de ícone, selecionado, hover) e cores de status.
   primarySoft: '#EEF2FF',
   primaryTint: '#DBEAFE',
@@ -125,7 +128,7 @@ export const theme = createTheme({
           fontSize: 12,
           fontWeight: 700,
           textTransform: 'uppercase',
-          backgroundColor: '#F8FAFC',
+          backgroundColor: brand.subtle,
           letterSpacing: '0.04em',
         },
         root: {

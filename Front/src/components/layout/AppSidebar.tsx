@@ -181,7 +181,7 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
               px: collapsed ? 0 : 2,
               justifyContent: collapsed ? 'center' : 'flex-start',
               bgcolor: selected ? alpha(theme.palette.primary.main, 0.12) : 'transparent',
-              color: selected ? theme.palette.primary.main : '#667085',
+              color: selected ? theme.palette.primary.main : theme.palette.text.secondary,
               transition: 'background 0.16s ease, color 0.16s ease',
               border: '1px solid transparent',
               '&:hover': {
@@ -278,7 +278,7 @@ export default function AppSidebar({
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        background: '#FFFFFF',
+        background: theme.palette.background.paper,
         color: theme.palette.text.primary,
       }}
     >
@@ -302,7 +302,7 @@ export default function AppSidebar({
           '& .MuiDrawer-paper': {
             width: drawerWidth,
             boxSizing: 'border-box',
-            bgcolor: '#ffffff',
+            bgcolor: 'background.paper',
             borderRight: (t) => `1px solid ${t.palette.divider}`,
           },
         }}
@@ -323,7 +323,7 @@ export default function AppSidebar({
             height: '100dvh',
             borderRight: (t) => `1px solid ${t.palette.divider}`,
             borderRadius: 0,
-            bgcolor: '#FFFFFF',
+            bgcolor: 'background.paper',
             transition: theme.transitions.create('width', {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.enteringScreen,

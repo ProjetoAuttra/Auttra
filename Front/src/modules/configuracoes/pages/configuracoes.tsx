@@ -16,6 +16,7 @@ import {
   MenuItem,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
+import { brand } from '../../../app/theme';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
@@ -743,7 +744,7 @@ function AccessProfilesManager() {
               {accessModules.map((module) => {
                 const isOpen = Boolean(openModules[module]);
                 return (
-                  <Paper key={module} elevation={0} sx={{ borderRadius: 1, overflow: 'hidden', bgcolor: '#F4F6F8' }}>
+                  <Paper key={module} elevation={0} sx={{ borderRadius: 1, overflow: 'hidden', bgcolor: brand.subtle }}>
                     <Stack
                       direction="row"
                       alignItems="center"
