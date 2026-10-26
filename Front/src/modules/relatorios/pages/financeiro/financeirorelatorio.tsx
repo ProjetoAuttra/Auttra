@@ -77,7 +77,7 @@ export default function RelatorioFinanceiro() {
         })));
       } catch (err) {
         console.error("Erro ao carregar pagamentos:", err);
-        error("Nao foi possivel carregar o relatorio financeiro.");
+        error("Não foi possível carregar o relatório financeiro.");
       } finally {
         setLoading(false);
       }
@@ -106,7 +106,7 @@ export default function RelatorioFinanceiro() {
   const porMetodo = filtrados
     .filter((p) => isReceber(p) && isPago(p))
     .reduce<Record<string, number>>((acc, p) => {
-      const metodo = p.metodo || "sem metodo";
+      const metodo = p.metodo || "sem método";
       acc[metodo] = (acc[metodo] ?? 0) + valorPago(p);
       return acc;
     }, {});
@@ -118,7 +118,7 @@ export default function RelatorioFinanceiro() {
     }
     exportCsv(
       `relatorio_caixa_inadimplencia_${dataInicio}_${dataFim}.csv`,
-      ["Tipo", "Status", "Cliente/Fornecedor", "Descricao", "Valor", "Valor pago", "Vencimento", "Pagamento", "Metodo"],
+      ["Tipo", "Status", "Cliente/Fornecedor", "Descrição", "Valor", "Valor pago", "Vencimento", "Pagamento", "Método"],
       filtrados.map((p) => [
         isReceber(p) ? "Receber" : "Pagar",
         p.status ?? "",
@@ -138,8 +138,8 @@ export default function RelatorioFinanceiro() {
   return (
     <ReportPage>
       <ReportHeader
-        title="Relatorio de Caixa e Inadimplencia"
-        subtitle="Mostra o que entrou, o que ainda deve entrar, contas vencidas e pressao de caixa no periodo."
+        title="Relatório de Caixa e Inadimplência"
+        subtitle="Mostra o que entrou, o que ainda deve entrar, contas vencidas e pressão de caixa no período."
         onExport={handleExportarCSV}
       />
 
@@ -159,12 +159,12 @@ export default function RelatorioFinanceiro() {
           {cobrarPrimeiro.length ? cobrarPrimeiro.map((p) => (
             <Stack key={p.id} direction="row" justifyContent="space-between" alignItems="center" py={0.75} gap={2}>
               <Stack minWidth={0}>
-                <Typography variant="body2" fontWeight={600} noWrap>{p.cliente?.nome ?? "Cliente nao informado"}</Typography>
+                <Typography variant="body2" fontWeight={600} noWrap>{p.cliente?.nome ?? "Cliente não informado"}</Typography>
                 <Typography variant="caption" color="text.secondary">Venceu em {dateBr(p.data_vencimento)}</Typography>
               </Stack>
               <Typography variant="body2" fontWeight={600} color="error.main">{brl(valorAberto(p))}</Typography>
             </Stack>
-          )) : <Typography variant="body2" color="text.secondary">Nenhuma conta vencida no periodo.</Typography>}
+          )) : <Typography variant="body2" color="text.secondary">Nenhuma conta vencida no período.</Typography>}
         </Paper>
 
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
@@ -174,7 +174,7 @@ export default function RelatorioFinanceiro() {
               <Typography variant="body2" sx={{ textTransform: "capitalize" }}>{metodo.replace("_", " ")}</Typography>
               <Typography variant="body2" fontWeight={600}>{brl(total)}</Typography>
             </Stack>
-          )) : <Typography variant="body2" color="text.secondary">Nenhum recebimento pago no periodo.</Typography>}
+          )) : <Typography variant="body2" color="text.secondary">Nenhum recebimento pago no período.</Typography>}
         </Paper>
       </Stack>
 
@@ -186,7 +186,7 @@ export default function RelatorioFinanceiro() {
                 <TableCell>Tipo</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Cliente/Fornecedor</TableCell>
-                <TableCell>Descricao</TableCell>
+                <TableCell>Descrição</TableCell>
                 <TableCell align="right">Valor</TableCell>
                 <TableCell>Vencimento</TableCell>
                 <TableCell>Pagamento</TableCell>
@@ -221,7 +221,7 @@ export default function RelatorioFinanceiro() {
               })}
             </TableBody>
           </Table>
-        ) : <EmptyReport message="Nenhum movimento financeiro encontrado no periodo." />}
+        ) : <EmptyReport message="Nenhum movimento financeiro encontrado no período." />}
       </Paper>
     </ReportPage>
   );

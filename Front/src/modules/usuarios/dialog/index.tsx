@@ -14,7 +14,9 @@ import { listarPerfisAcesso, type PerfilAcesso } from "../../configuracoes/api/p
 import { maskTelefone } from "../../../utils/masks";
 import { AppDialog, AppDialogActions, AppDialogContent, SectionLabel } from "../../../components/common/AppDialog";
 
+// O valor enviado à API continua sem acento (enum do backend); só o rótulo exibido é acentuado.
 const cargos = ["Mecanico", "Atendente", "Gerente", "Administrador"];
+const cargoLabel = (c: string) => (c === "Mecanico" ? "Mecânico" : c);
 
 export type FuncionarioForm = {
   nome: string;
@@ -188,7 +190,7 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
                 ),
               }}
             >
-              {cargos.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+              {cargos.map((c) => <MenuItem key={c} value={c}>{cargoLabel(c)}</MenuItem>)}
             </TextField>
           </Grid>
 

@@ -42,7 +42,7 @@ type Ordem = {
 const STATUS_LABEL: Record<string, string> = {
   aberta: "Aberta",
   em_andamento: "Em andamento",
-  concluida: "Concluida",
+  concluida: "Concluída",
   cancelada: "Cancelada",
 };
 
@@ -67,7 +67,7 @@ export default function OrdensParadasRelatorio() {
         setOrdens(data ?? []);
       } catch (err) {
         console.error("Erro ao carregar ordens paradas:", err);
-        error("Nao foi possivel carregar as ordens de servico.");
+        error("Não foi possível carregar as ordens de serviço.");
       } finally {
         setLoading(false);
       }
@@ -84,7 +84,7 @@ export default function OrdensParadasRelatorio() {
   const maiorValorAberto = [...abertas].sort((a, b) => Number(b.valor_total ?? 0) - Number(a.valor_total ?? 0))[0];
 
   const porMecanico = paradas.reduce<Record<string, { qtd: number; valor: number }>>((acc, o) => {
-    const nome = o.funcionario?.nome ?? "Sem mecanico";
+    const nome = o.funcionario?.nome ?? "Sem mecânico";
     acc[nome] = acc[nome] ?? { qtd: 0, valor: 0 };
     acc[nome].qtd += 1;
     acc[nome].valor += Number(o.valor_total ?? 0);
@@ -98,7 +98,7 @@ export default function OrdensParadasRelatorio() {
     }
     exportCsv(
       `relatorio_ordens_abertas_paradas_${new Date().toISOString().slice(0, 10)}.csv`,
-      ["OS", "Cliente", "Veiculo", "Mecanico", "Status", "Data abertura", "Dias aberta", "Valor"],
+      ["OS", "Cliente", "Veículo", "Mecânico", "Status", "Data abertura", "Dias aberta", "Valor"],
       paradas.map((o) => [
         `#${o.id}`,
         o.cliente?.nome ?? "",
@@ -117,8 +117,8 @@ export default function OrdensParadasRelatorio() {
   return (
     <ReportPage>
       <ReportHeader
-        title="Relatorio de OS em Aberto e Paradas"
-        subtitle="Lista o trabalho que esta parado, ha quantos dias esta aberto e quanto dinheiro esta preso."
+        title="Relatório de OS em Aberto e Paradas"
+        subtitle="Lista o trabalho que está parado, há quantos dias está aberto e quanto dinheiro está preso."
         onExport={handleExportarCSV}
       />
 
@@ -137,7 +137,7 @@ export default function OrdensParadasRelatorio() {
       <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} mb={2.5}>
         <MetricCard label="OS abertas" value={abertas.length} tone="info" />
         <MetricCard label="OS paradas" value={paradas.length} tone={paradas.length ? "warning" : "default"} helper={`${diasMinimos}+ dia(s)`} />
-        <MetricCard label="Criticas" value={acima7Dias} tone={acima7Dias ? "error" : "default"} helper="7+ dias abertas" />
+        <MetricCard label="Críticas" value={acima7Dias} tone={acima7Dias ? "error" : "default"} helper="7+ dias abertas" />
         <MetricCard label="Valor preso" value={brl(valorPreso)} tone={valorPreso > 0 ? "warning" : "default"} />
         <MetricCard label="Valor parado" value={brl(valorParado)} tone={valorParado > 0 ? "error" : "default"} />
       </Stack>
@@ -147,7 +147,7 @@ export default function OrdensParadasRelatorio() {
           <Typography fontWeight={700} mb={1}>Prioridade por valor</Typography>
           {maiorValorAberto ? (
             <Stack spacing={0.5}>
-              <Typography variant="body2" fontWeight={600}>OS #{maiorValorAberto.id} - {maiorValorAberto.cliente?.nome ?? "Cliente nao informado"}</Typography>
+              <Typography variant="body2" fontWeight={600}>OS #{maiorValorAberto.id} - {maiorValorAberto.cliente?.nome ?? "Cliente não informado"}</Typography>
               <Typography variant="body2" color="text.secondary">{daysBetween(maiorValorAberto.data_abertura)} dia(s) aberta</Typography>
               <Typography fontWeight={700} color="warning.main">{brl(Number(maiorValorAberto.valor_total ?? 0))}</Typography>
             </Stack>
@@ -155,13 +155,13 @@ export default function OrdensParadasRelatorio() {
         </Paper>
 
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
-          <Typography fontWeight={700} mb={1}>Paradas por mecanico</Typography>
+          <Typography fontWeight={700} mb={1}>Paradas por mecânico</Typography>
           {Object.entries(porMecanico).length ? Object.entries(porMecanico).map(([nome, item]) => (
             <Stack key={nome} direction="row" justifyContent="space-between" py={0.75}>
               <Typography variant="body2">{nome}</Typography>
               <Typography variant="body2" fontWeight={600}>{item.qtd} OS - {brl(item.valor)}</Typography>
             </Stack>
-          )) : <Typography variant="body2" color="text.secondary">Nenhuma OS parada nesse criterio.</Typography>}
+          )) : <Typography variant="body2" color="text.secondary">Nenhuma OS parada nesse critério.</Typography>}
         </Paper>
       </Stack>
 
@@ -172,8 +172,8 @@ export default function OrdensParadasRelatorio() {
               <TableRow>
                 <TableCell>OS</TableCell>
                 <TableCell>Cliente</TableCell>
-                <TableCell>Veiculo</TableCell>
-                <TableCell>Mecanico</TableCell>
+                <TableCell>Veículo</TableCell>
+                <TableCell>Mecânico</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Abertura</TableCell>
                 <TableCell align="right">Dias</TableCell>
@@ -195,7 +195,7 @@ export default function OrdensParadasRelatorio() {
               ))}
             </TableBody>
           </Table>
-        ) : <EmptyReport message="Nenhuma OS parada no criterio selecionado." />}
+        ) : <EmptyReport message="Nenhuma OS parada no critério selecionado." />}
       </Paper>
     </ReportPage>
   );

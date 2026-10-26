@@ -10,7 +10,7 @@ export default function ClienteVeiculos({ veiculos, onAdd }: { veiculos: any[]; 
     return (
       <Box sx={{ py: 6, textAlign: "center" }}>
         <DirectionsCarRoundedIcon sx={{ fontSize: 40, color: "text.disabled", mb: 1 }} />
-        <Typography color="text.disabled">Nenhum veiculo cadastrado</Typography>
+        <Typography color="text.disabled">Nenhum veículo cadastrado</Typography>
         {onAdd && (
           <Button
             onClick={onAdd}
@@ -19,7 +19,7 @@ export default function ClienteVeiculos({ veiculos, onAdd }: { veiculos: any[]; 
             disableElevation
             sx={{ mt: 2, fontWeight: 700 }}
           >
-            Novo veiculo
+            Novo veículo
           </Button>
         )}
       </Box>
@@ -31,7 +31,7 @@ export default function ClienteVeiculos({ veiculos, onAdd }: { veiculos: any[]; 
       {onAdd && (
         <Stack direction="row" justifyContent="flex-end">
           <Button onClick={onAdd} startIcon={<AddRoundedIcon />} variant="contained" disableElevation sx={{ fontWeight: 700 }}>
-            Novo veiculo
+            Novo veículo
           </Button>
         </Stack>
       )}
@@ -40,7 +40,7 @@ export default function ClienteVeiculos({ veiculos, onAdd }: { veiculos: any[]; 
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Veiculo</TableCell>
+              <TableCell>Veículo</TableCell>
               <TableCell>Placa</TableCell>
               <TableCell>Ano</TableCell>
               <TableCell>Cor</TableCell>

@@ -76,7 +76,7 @@ export default function RentabilidadeRelatorio() {
         setOrdens(data ?? []);
       } catch (err) {
         console.error("Erro ao carregar rentabilidade:", err);
-        error("Nao foi possivel carregar a rentabilidade por OS.");
+        error("Não foi possível carregar a rentabilidade por OS.");
       } finally {
         setLoading(false);
       }
@@ -95,7 +95,7 @@ export default function RentabilidadeRelatorio() {
   const margemBaixa = concluidas.filter((o) => margem(o) < 30);
 
   const porCliente = concluidas.reduce<Record<string, { qtd: number; receita: number; lucro: number }>>((acc, o) => {
-    const nome = o.cliente?.nome ?? "Cliente nao informado";
+    const nome = o.cliente?.nome ?? "Cliente não informado";
     acc[nome] = acc[nome] ?? { qtd: 0, receita: 0, lucro: 0 };
     acc[nome].qtd += 1;
     acc[nome].receita += receita(o);
@@ -104,7 +104,7 @@ export default function RentabilidadeRelatorio() {
   }, {});
 
   const porMecanico = concluidas.reduce<Record<string, { qtd: number; receita: number; lucro: number }>>((acc, o) => {
-    const nome = o.funcionario?.nome ?? "Sem mecanico";
+    const nome = o.funcionario?.nome ?? "Sem mecânico";
     acc[nome] = acc[nome] ?? { qtd: 0, receita: 0, lucro: 0 };
     acc[nome].qtd += 1;
     acc[nome].receita += receita(o);
@@ -114,12 +114,12 @@ export default function RentabilidadeRelatorio() {
 
   const handleExportarCSV = () => {
     if (!concluidas.length) {
-      warning("Nenhuma OS concluida para exportar.");
+      warning("Nenhuma OS concluída para exportar.");
       return;
     }
     exportCsv(
       `relatorio_rentabilidade_os_${dataInicio}_${dataFim}.csv`,
-      ["OS", "Cliente", "Veiculo", "Mecanico", "Data", "Receita", "Custo pecas", "Lucro bruto", "Margem"],
+      ["OS", "Cliente", "Veículo", "Mecânico", "Data", "Receita", "Custo peças", "Lucro bruto", "Margem"],
       concluidas.map((o) => [
         `#${o.id}`,
         o.cliente?.nome ?? "",
@@ -139,24 +139,24 @@ export default function RentabilidadeRelatorio() {
   return (
     <ReportPage>
       <ReportHeader
-        title="Relatorio de Rentabilidade por OS"
-        subtitle="Mostra quais ordens deram mais lucro bruto e quais precisam de revisao de preco."
+        title="Relatório de Rentabilidade por OS"
+        subtitle="Mostra quais ordens deram mais lucro bruto e quais precisam de revisão de preço."
         onExport={handleExportarCSV}
       />
 
       <PeriodFilter dataInicio={dataInicio} dataFim={dataFim} onDataInicio={setDataInicio} onDataFim={setDataFim} />
 
       <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} mb={2.5}>
-        <MetricCard label="OS concluidas" value={concluidas.length} />
+        <MetricCard label="OS concluídas" value={concluidas.length} />
         <MetricCard label="Faturamento" value={brl(faturamento)} tone="info" />
-        <MetricCard label="Custo pecas" value={brl(custoTotal)} tone="warning" />
+        <MetricCard label="Custo peças" value={brl(custoTotal)} tone="warning" />
         <MetricCard label="Lucro bruto estimado" value={brl(lucroTotal)} tone={lucroTotal >= 0 ? "success" : "error"} />
         <MetricCard label="Margem media" value={percent(margemMedia)} tone={margemMedia >= 30 ? "success" : "warning"} helper={`Ticket: ${brl(ticketMedio)}`} />
       </Stack>
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
-          <Typography fontWeight={700} mb={1}>Clientes mais rentaveis</Typography>
+          <Typography fontWeight={700} mb={1}>Clientes mais rentáveis</Typography>
           {Object.entries(porCliente).length ? Object.entries(porCliente)
             .sort((a, b) => b[1].lucro - a[1].lucro)
             .slice(0, 8)
@@ -165,11 +165,11 @@ export default function RentabilidadeRelatorio() {
                 <Typography variant="body2" noWrap>{nome}</Typography>
                 <Typography variant="body2" fontWeight={600}>{item.qtd} OS - {brl(item.lucro)}</Typography>
               </Stack>
-            )) : <Typography variant="body2" color="text.secondary">Nenhuma OS concluida no periodo.</Typography>}
+            )) : <Typography variant="body2" color="text.secondary">Nenhuma OS concluída no período.</Typography>}
         </Paper>
 
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
-          <Typography fontWeight={700} mb={1}>Rentabilidade por mecanico</Typography>
+          <Typography fontWeight={700} mb={1}>Rentabilidade por mecânico</Typography>
           {Object.entries(porMecanico).length ? Object.entries(porMecanico)
             .sort((a, b) => b[1].lucro - a[1].lucro)
             .slice(0, 8)
@@ -178,19 +178,19 @@ export default function RentabilidadeRelatorio() {
                 <Typography variant="body2" noWrap>{nome}</Typography>
                 <Typography variant="body2" fontWeight={600}>{item.qtd} OS - {brl(item.lucro)}</Typography>
               </Stack>
-            )) : <Typography variant="body2" color="text.secondary">Nenhuma OS concluida no periodo.</Typography>}
+            )) : <Typography variant="body2" color="text.secondary">Nenhuma OS concluída no período.</Typography>}
         </Paper>
       </Stack>
 
       <Paper variant="outlined" sx={{ p: 2, mb: 2.5, borderRadius: 1.5 }}>
-        <Typography fontWeight={700} mb={1}>OS que pedem revisao de preco</Typography>
+        <Typography fontWeight={700} mb={1}>OS que pedem revisão de preço</Typography>
         {margemBaixa.length ? (
           <Stack direction="row" gap={1} flexWrap="wrap">
             {margemBaixa.slice(0, 12).map((o) => (
               <Chip key={o.id} label={`#${o.id} - ${percent(margem(o))}`} color="warning" sx={{ fontWeight: 700 }} />
             ))}
           </Stack>
-        ) : <Typography variant="body2" color="text.secondary">Nenhuma OS concluida com margem abaixo de 30%.</Typography>}
+        ) : <Typography variant="body2" color="text.secondary">Nenhuma OS concluída com margem abaixo de 30%.</Typography>}
       </Paper>
 
       <Paper variant="outlined" sx={{ borderRadius: 1.5, overflowX: "auto" }}>
@@ -200,11 +200,11 @@ export default function RentabilidadeRelatorio() {
               <TableRow>
                 <TableCell>OS</TableCell>
                 <TableCell>Cliente</TableCell>
-                <TableCell>Veiculo</TableCell>
-                <TableCell>Mecanico</TableCell>
+                <TableCell>Veículo</TableCell>
+                <TableCell>Mecânico</TableCell>
                 <TableCell>Data</TableCell>
                 <TableCell align="right">Receita</TableCell>
-                <TableCell align="right">Custo pecas</TableCell>
+                <TableCell align="right">Custo peças</TableCell>
                 <TableCell align="right">Lucro bruto</TableCell>
                 <TableCell align="right">Margem</TableCell>
               </TableRow>
@@ -230,7 +230,7 @@ export default function RentabilidadeRelatorio() {
               })}
             </TableBody>
           </Table>
-        ) : <EmptyReport message="Nenhuma OS concluida no periodo." />}
+        ) : <EmptyReport message="Nenhuma OS concluída no período." />}
       </Paper>
     </ReportPage>
   );

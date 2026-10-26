@@ -79,13 +79,13 @@ export default function DialogAgendamento({
               name="title"
               control={control}
               rules={{
-                required: 'Informe um titulo',
+                required: 'Informe um título',
                 maxLength: { value: 100, message: 'Max. 100 caracteres' },
               }}
               render={({ field }) => (
                 <TextField
                   {...field}
-                  label="Titulo"
+                  label="Título"
                   autoFocus
                   error={!!errors.title}
                   helperText={errors.title?.message}
@@ -121,7 +121,7 @@ export default function DialogAgendamento({
               render={({ field }) => (
                 <TextField
                   {...field}
-                  label="Descricao (opcional)"
+                  label="Descrição (opcional)"
                   multiline
                   minRows={3}
                   error={!!errors.description}

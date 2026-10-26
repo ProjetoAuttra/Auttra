@@ -106,7 +106,7 @@ function RelatorioCard({
           onClick={() => nav(destino)}
           sx={{ textTransform: "none", fontWeight: 600, color: "primary.main", p: 0, minWidth: 0, "&:hover": { bgcolor: "transparent", opacity: 0.82 } }}
         >
-          Abrir relatorio
+          Abrir relatório
         </Button>
       </Stack>
     </Paper>
@@ -177,8 +177,8 @@ export default function Relatorios() {
           rentabilidade: { faturamento, lucro, margem: faturamento ? (lucro / faturamento) * 100 : 0 },
         });
       } catch (err) {
-        console.error("Erro ao carregar preview de relatorios:", err);
-        error("Nao foi possivel carregar os indicadores dos relatorios.");
+        console.error("Erro ao carregar preview de relatórios:", err);
+        error("Não foi possível carregar os indicadores dos relatórios.");
       } finally {
         setLoading(false);
       }
@@ -190,15 +190,15 @@ export default function Relatorios() {
   return (
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
       <Stack spacing={0.5} mb={4}>
-        <Typography variant="h5" fontWeight={700}>Relatorios</Typography>
+        <Typography variant="h5" fontWeight={700}>Relatórios</Typography>
         <Typography variant="body2" color="text.secondary">
-          Relatorios essenciais para cobrar, destravar servicos, comprar melhor e revisar margem.
+          Relatórios essenciais para cobrar, destravar serviços, comprar melhor e revisar margem.
         </Typography>
       </Stack>
 
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <RelatorioCard titulo="Caixa e Inadimplencia" descricao="Entradas, vencidos e pressao de caixa" icone={<AccountBalanceWalletRoundedIcon />} destino={paths.financeiroRelatorio} loading={loading}>
+          <RelatorioCard titulo="Caixa e Inadimplência" descricao="Entradas, vencidos e pressão de caixa" icone={<AccountBalanceWalletRoundedIcon />} destino={paths.financeiroRelatorio} loading={loading}>
             <PreviewRow label="Recebido" value={brl(p?.caixa.recebido ?? 0)} color="success.main" />
             <PreviewRow label="Vencido" value={brl(p?.caixa.vencido ?? 0)} color={(p?.caixa.vencido ?? 0) > 0 ? "error.main" : "text.primary"} />
             <PreviewRow label="A pagar" value={brl(p?.caixa.aPagar ?? 0)} color="warning.main" />
@@ -206,23 +206,23 @@ export default function Relatorios() {
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <RelatorioCard titulo="OS em Aberto e Paradas" descricao="Servicos travados e valor preso" icone={<AssignmentLateRoundedIcon />} destino={paths.ordensParadasRelatorio} loading={loading}>
+          <RelatorioCard titulo="OS em Aberto e Paradas" descricao="Serviços travados e valor preso" icone={<AssignmentLateRoundedIcon />} destino={paths.ordensParadasRelatorio} loading={loading}>
             <PreviewRow label="OS abertas" value={p?.ordens.abertas ?? 0} />
-            <PreviewRow label="Paradas ha 3+ dias" value={p?.ordens.paradas ?? 0} color={(p?.ordens.paradas ?? 0) > 0 ? "warning.main" : "text.primary"} />
+            <PreviewRow label="Paradas há 3+ dias" value={p?.ordens.paradas ?? 0} color={(p?.ordens.paradas ?? 0) > 0 ? "warning.main" : "text.primary"} />
             <PreviewRow label="Valor preso" value={brl(p?.ordens.valorPreso ?? 0)} color="warning.main" />
           </RelatorioCard>
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <RelatorioCard titulo="Estoque Critico" descricao="Compra urgente e dinheiro parado" icone={<Inventory2RoundedIcon />} destino={paths.estoqueCriticoRelatorio} loading={loading}>
-            <PreviewRow label="Pecas criticas" value={p?.estoque.criticas ?? 0} color={(p?.estoque.criticas ?? 0) > 0 ? "error.main" : "text.primary"} />
+          <RelatorioCard titulo="Estoque Crítico" descricao="Compra urgente e dinheiro parado" icone={<Inventory2RoundedIcon />} destino={paths.estoqueCriticoRelatorio} loading={loading}>
+            <PreviewRow label="Peças críticas" value={p?.estoque.criticas ?? 0} color={(p?.estoque.criticas ?? 0) > 0 ? "error.main" : "text.primary"} />
             <PreviewRow label="Capital em estoque" value={brl(p?.estoque.capital ?? 0)} color="warning.main" />
             <PreviewRow label="Margem baixa" value={p?.estoque.margemBaixa ?? 0} />
           </RelatorioCard>
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <RelatorioCard titulo="Orcamentos Perdidos" descricao="Receita nao convertida e follow-up" icone={<RequestQuoteRoundedIcon />} destino={paths.orcamentosPerdidosRelatorio} loading={loading}>
+          <RelatorioCard titulo="Orçamentos Perdidos" descricao="Receita não convertida e follow-up" icone={<RequestQuoteRoundedIcon />} destino={paths.orcamentosPerdidosRelatorio} loading={loading}>
             <PreviewRow label="Perdidos" value={p?.orcamentos.perdidos ?? 0} color="error.main" />
             <PreviewRow label="Valor perdido" value={brl(p?.orcamentos.valorPerdido ?? 0)} color="error.main" />
             <PreviewRow label="Pendentes" value={p?.orcamentos.pendentes ?? 0} color="warning.main" />

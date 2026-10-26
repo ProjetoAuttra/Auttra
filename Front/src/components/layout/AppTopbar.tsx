@@ -144,7 +144,7 @@ export default function AppTopbar({
   };
 
   const nomeUsuario = user?.nome || "Usuário";
-  const empresaLabel = user?.oficina_nome?.trim() || "Empresa nao informada";
+  const empresaLabel = user?.oficina_nome?.trim() || "Empresa não informada";
   const empresaLetter = empresaLabel[0]?.toUpperCase() || "D";
   const empresaLogoUrl = user?.oficina_logo_url ?? null;
   const cargoLabel =

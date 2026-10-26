@@ -73,7 +73,7 @@ function resizeToBase64(file: File, size = 240): Promise<string> {
       const ctx = canvas.getContext("2d");
       if (!ctx) {
         URL.revokeObjectURL(url);
-        reject(new Error("Nao foi possivel processar a imagem."));
+        reject(new Error("Não foi possível processar a imagem."));
         return;
       }
       const min = Math.min(img.width, img.height);
@@ -85,7 +85,7 @@ function resizeToBase64(file: File, size = 240): Promise<string> {
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error("Nao foi possivel carregar a imagem."));
+      reject(new Error("Não foi possível carregar a imagem."));
     };
     img.src = url;
   });
@@ -129,7 +129,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
       const logo = await resizeToBase64(file);
       setForm((prev) => ({ ...prev, logo_url: logo }));
     } catch {
-      error("Nao foi possivel carregar a logo.");
+      error("Não foi possível carregar a logo.");
     } finally {
       setUploadingLogo(false);
       event.target.value = "";

@@ -84,7 +84,7 @@ export default function NotificationsMenu() {
       const data = await listarNotificacoes();
       setNotifications(data);
     } catch (err) {
-      console.error("Erro ao carregar notificacoes", err);
+      console.error("Erro ao carregar notificações", err);
       setNotifications([]);
     } finally {
       setLoading(false);
@@ -119,7 +119,7 @@ export default function NotificationsMenu() {
 
   return (
     <>
-      <Tooltip title="Notificacoes">
+      <Tooltip title="Notificações">
         <IconButton
           size="small"
           onClick={(event) => setAnchorEl(event.currentTarget)}
@@ -198,7 +198,7 @@ export default function NotificationsMenu() {
               Nenhum alerta agora
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Agenda, financeiro, estoque, O.S e orcamentos estao sem pendencias.
+              Agenda, financeiro, estoque, O.S e orçamentos estão sem pendências.
             </Typography>
           </Box>
         ) : (

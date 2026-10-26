@@ -10,8 +10,8 @@ const CARGO_LABEL: Record<string, string> = {
   gestoroficina: "Gestor",
   gerente: "Gerente",
   atendente: "Atendente",
-  mecanico: "Mecanico",
-  funcionario: "Funcionario",
+  mecanico: "Mecânico",
+  funcionario: "Funcionário",
   cliente: "Cliente",
   sistema: "Sistema",
 };
@@ -25,12 +25,12 @@ type Props = {
 export default function MeuPerfilModal({ open, onClose, onChangePassword }: Props) {
   const { user } = useAuth();
 
-  const nomeUsuario = user?.nome || "Usuario";
+  const nomeUsuario = user?.nome || "Usuário";
   const perfilLabel =
     user?.perfilAcessoNome ??
     CARGO_LABEL[(user?.tipo ?? "").toLowerCase()] ??
     user?.tipo ??
-    "Usuario";
+    "Usuário";
 
   const handleChangePassword = () => {
     onClose();

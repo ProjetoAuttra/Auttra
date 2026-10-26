@@ -118,17 +118,17 @@ export default function ClienteDetalhesPage() {
   const handleCreateVeiculo = async (data: VeiculoForm) => {
     if (!cliente) return;
     if (!user?.oficina_id) {
-      error("Usuario sem oficina vinculada.");
+      error("Usuário sem oficina vinculada.");
       return;
     }
     try {
       const novo = await criarVeiculo({ ...data, cliente_id: Number(cliente.id) }, user.oficina_id);
       setOpenVeiculo(false);
-      success("Veiculo cadastrado com sucesso!");
+      success("Veículo cadastrado com sucesso!");
       nav(`/veiculos/${novo.id}`);
     } catch (err) {
-      console.error("Erro ao cadastrar veiculo:", err);
-      error("Nao foi possivel cadastrar o veiculo.");
+      console.error("Erro ao cadastrar veículo:", err);
+      error("Não foi possível cadastrar o veículo.");
     }
   };
 
@@ -136,11 +136,11 @@ export default function ClienteDetalhesPage() {
     try {
       const nova = await criarOrdem({ ...data, cliente_id: Number(cliente.id) });
       setOpenOrdem(false);
-      success("Ordem de servico criada!");
+      success("Ordem de serviço criada!");
       nav(`/ordens/${nova.id}`);
     } catch (err) {
       console.error("Erro ao criar ordem:", err);
-      error("Nao foi possivel criar a ordem de servico.");
+      error("Não foi possível criar a ordem de serviço.");
     }
   };
 

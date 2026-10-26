@@ -45,21 +45,21 @@ const resourceConfigs: ResourceConfig[] = [
   {
     id: "agenda",
     label: "Agenda",
-    description: "Organize agendamentos, acompanhe compromissos e mantenha a rotina da oficina previsivel.",
-    details: ["Calendario de servicos", "Vinculo com clientes e veiculos", "Status de atendimento"],
+    description: "Organize agendamentos, acompanhe compromissos e mantenha a rotina da oficina previsível.",
+    details: ["Calendário de serviços", "Vínculo com clientes e veículos", "Status de atendimento"],
     icon: <EventOutlinedIcon />,
   },
   {
     id: "estoque",
     label: "Estoque",
-    description: "Controle pecas e itens disponiveis para venda ou uso em ordens de servico.",
-    details: ["Cadastro de itens", "Quantidade disponivel", "Precos de custo e venda"],
+    description: "Controle peças e itens disponíveis para venda ou uso em ordens de serviço.",
+    details: ["Cadastro de itens", "Quantidade disponível", "Preços de custo e venda"],
     icon: <Inventory2OutlinedIcon />,
   },
   {
     id: "fornecedores",
     label: "Fornecedores",
-    description: "Mantenha contatos, compras e parceiros da oficina reunidos em um unico lugar.",
+    description: "Mantenha contatos, compras e parceiros da oficina reunidos em um único lugar.",
     details: ["Cadastro de parceiros", "Dados de contato", "Base para contas a pagar"],
     icon: <StorefrontOutlinedIcon />,
   },
@@ -101,7 +101,7 @@ export default function RecursosAdicionais() {
       await save(form);
       success("Recursos adicionais atualizados com sucesso.");
     } catch (err: any) {
-      error(err?.response?.data?.message ?? "Nao foi possivel salvar os recursos adicionais.");
+      error(err?.response?.data?.message ?? "Não foi possível salvar os recursos adicionais.");
     } finally {
       setSaving(false);
     }
@@ -114,7 +114,7 @@ export default function RecursosAdicionais() {
           Recursos adicionais
         </Typography>
         <Typography color="text.secondary">
-          Escolha quais recursos adicionais ficarao disponiveis para os usuarios desta oficina.
+          Escolha quais recursos adicionais ficarão disponíveis para os usuários desta oficina.
         </Typography>
       </Stack>
 
@@ -228,7 +228,7 @@ export default function RecursosAdicionais() {
               <Divider />
 
               <Stack spacing={1.25}>
-                <Typography fontWeight={700}>Itens incluidos</Typography>
+                <Typography fontWeight={700}>Itens incluídos</Typography>
                 {selected.details.map((detail) => (
                   <Stack
                     key={detail}
@@ -244,7 +244,7 @@ export default function RecursosAdicionais() {
               </Stack>
 
               <Alert severity="info" icon={<InfoOutlinedIcon />}>
-                Os recursos desativados deixam de aparecer no menu lateral. O acesso a esta tela tambem depende da permissao no perfil de acesso.
+                Os recursos desativados deixam de aparecer no menu lateral. O acesso a esta tela também depende da permissão no perfil de acesso.
               </Alert>
 
               <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ xs: "stretch", sm: "center" }} justifyContent="space-between" spacing={2}>
