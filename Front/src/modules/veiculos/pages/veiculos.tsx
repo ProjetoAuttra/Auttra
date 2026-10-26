@@ -166,7 +166,7 @@ export default function VeiculosPage() {
                     </Stack>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" fontFamily="monospace" fontWeight={700}>
+                    <Typography variant="body2" fontFamily="monospace" fontWeight={600}>
                       {v.placa || "—"}
                     </Typography>
                   </TableCell>

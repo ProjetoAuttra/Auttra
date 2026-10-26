@@ -371,7 +371,7 @@ export default function EstoquePage() {
               {tipoAjuste === "entrada" ? <AddRoundedIcon /> : <RemoveRoundedIcon />}
             </Stack>
             <Stack>
-              <Typography variant="subtitle1" fontWeight={800}>
+              <Typography variant="subtitle1" fontWeight={700}>
                 {tipoAjuste === "entrada" ? "Entrada de peças" : "Saída de peças"}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -456,7 +456,7 @@ function MetricCard({
         sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}>
         {label}
       </Typography>
-      <Typography variant="h6" fontWeight={800} color={destaque && !ativo ? "warning.dark" : "text.primary"}>
+      <Typography variant="h6" fontWeight={700} color={destaque && !ativo ? "warning.dark" : "text.primary"}>
         {valor}
       </Typography>
     </Paper>

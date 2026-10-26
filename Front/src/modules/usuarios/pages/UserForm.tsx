@@ -149,7 +149,7 @@ export default function FuncionariosPage() {
                 <TableRow key={f.id} hover sx={{ height: 56 }}>
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={1.5}>
-                      <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main", fontSize: 14, fontWeight: 700 }}>
+                      <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main", fontSize: 14, fontWeight: 600 }}>
                         {f.nome[0].toUpperCase()}
                       </Avatar>
                       <Typography fontWeight={600}>{f.nome}</Typography>

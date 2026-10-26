@@ -189,7 +189,7 @@ export default function VeiculoDialog({ open, mode, initial, defaultCliente, onC
     >
       {/* ── Body ── */}
       <AppDialogContent>
-        <Grid container spacing={1.5}>
+        <Grid container spacing={2}>
 
           {/* Cliente (só no criar) */}
           {!isEdit && (
@@ -321,7 +321,7 @@ export default function VeiculoDialog({ open, mode, initial, defaultCliente, onC
                   variant={cor === c ? "filled" : "outlined"}
                   color={cor === c ? "primary" : "default"}
                   onClick={() => setCor(cor === c ? "" : c)}
-                  sx={{ fontSize: 10, height: 20, cursor: "pointer" }}
+                  sx={{ fontSize: 12, height: 20, cursor: "pointer" }}
                 />
               ))}
             </Stack>

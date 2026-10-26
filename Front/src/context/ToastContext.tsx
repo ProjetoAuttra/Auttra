@@ -130,7 +130,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                         {/* Texto */}
                         <Stack spacing={0.15} flex={1} minWidth={0}>
                             {title && (
-                                <Typography variant="body2" fontWeight={700} lineHeight={1.3}>
+                                <Typography variant="body2" fontWeight={600} lineHeight={1.3}>
                                     {title}
                                 </Typography>
                             )}

@@ -16,6 +16,7 @@ import ServicoDialog, { type Servico, type ServicoForm, CATEGORIAS } from "../di
 import { listarServicos, criarServico, atualizarServico, excluirServico } from "../api/api";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import ListTableContainer from "../../../components/common/ListTableContainer";
+import EmptyState from "../../../components/common/EmptyState";
 
 const CATEGORIA_LABEL: Record<string, string> = Object.fromEntries(
   CATEGORIAS.map((c) => [c.value, c.label])
@@ -198,14 +199,14 @@ export default function ServicosPage() {
                         label={CATEGORIA_LABEL[s.categoria] ?? s.categoria}
                         size="small"
                         variant="outlined"
-                        sx={{ fontSize: 11, fontWeight: 600 }}
+                        sx={{ fontSize: 12, fontWeight: 600 }}
                       />
                     ) : (
                       <Typography variant="body2" color="text.disabled">—</Typography>
                     )}
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" fontWeight={700} color="success.main">
+                    <Typography variant="body2" fontWeight={600} color="success.main">
                       {Number(s.preco).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                     </Typography>
                   </TableCell>
@@ -240,8 +241,16 @@ export default function ServicosPage() {
                 </TableRow>
               )) : (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 8, color: "text.secondary" }}>
-                    Nenhum serviço encontrado
+                  <TableCell colSpan={6} sx={{ border: 0 }}>
+                    <EmptyState
+                      icon={<BuildRoundedIcon />}
+                      title="Nenhum serviço cadastrado"
+                      description="Cadastre os serviços e valores que a oficina oferece."
+                      actionLabel="Novo Serviço"
+                      onAction={openCreate}
+                      isFiltered={!!query}
+                      onClearFilter={() => setQuery("")}
+                    />
                   </TableCell>
                 </TableRow>
               )}

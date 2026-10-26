@@ -374,7 +374,7 @@ export default function OrcamentosPage() {
                       {o.veiculo ? (
                         <Stack spacing={0.1}>
                           <Typography variant="body2">{o.veiculo.modelo}</Typography>
-                          <Typography variant="caption" fontFamily="monospace" fontWeight={700}
+                          <Typography variant="caption" fontFamily="monospace" fontWeight={600}
                             sx={{ px: 0.75, py: 0.1, borderRadius: 0.75, bgcolor: (t) => alpha(t.palette.text.primary, 0.06), display: "inline-block", width: "fit-content" }}>
                             {o.veiculo.placa}
                           </Typography>
@@ -389,7 +389,7 @@ export default function OrcamentosPage() {
 
                     {/* Valor */}
                     <TableCell>
-                      <Typography variant="body2" fontWeight={700} color="success.main">
+                      <Typography variant="body2" fontWeight={600} color="success.main">
                         R$ {Number(o.valor ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </Typography>
                     </TableCell>
@@ -414,7 +414,7 @@ export default function OrcamentosPage() {
                         label={st.label}
                         size="small"
                         color={st.chipColor}
-                        sx={{ fontWeight: 700, fontSize: 11 }}
+                        sx={{ fontWeight: 600, fontSize: 12 }}
                       />
                     </TableCell>
 

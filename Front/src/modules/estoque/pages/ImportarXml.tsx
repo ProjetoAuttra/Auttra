@@ -172,7 +172,7 @@ export default function ImportarXmlPage() {
   };
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, sm: 3, md: 4 }, py: { xs: 3, md: 4 } }}>
+    <Box sx={{ maxWidth: 1200, mx: "auto" }}>
       <ModuleHeader
         title="Importar XML da nota"
         subtitle="Envie o XML da nota de compra para atualizar seu estoque com mais rapidez."
@@ -356,7 +356,7 @@ export default function ImportarXmlPage() {
                               label={acaoLabel[v as AcaoItem]}
                               size="small"
                               color={acaoCor[v as AcaoItem]}
-                              sx={{ fontWeight: 600, fontSize: 11 }}
+                              sx={{ fontWeight: 600, fontSize: 12 }}
                             />
                           )}
                         >
@@ -428,7 +428,7 @@ export default function ImportarXmlPage() {
       {etapa === "sucesso" && resultado && (
         <Stack spacing={3} alignItems="center" sx={{ py: 4 }}>
           <CheckCircleRoundedIcon sx={{ fontSize: 72, color: "success.main" }} />
-          <Typography variant="h5" fontWeight={800} textAlign="center">
+          <Typography variant="h5" fontWeight={700} textAlign="center">
             Estoque atualizado com sucesso!
           </Typography>
 

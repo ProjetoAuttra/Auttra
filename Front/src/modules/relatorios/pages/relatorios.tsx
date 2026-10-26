@@ -36,7 +36,7 @@ function PreviewRow({ label, value, color }: { label: string; value: string | nu
   return (
     <Stack direction="row" justifyContent="space-between" alignItems="center" py={0.5} gap={2}>
       <Typography variant="caption" color="text.secondary">{label}</Typography>
-      <Typography variant="caption" fontWeight={800} color={color ?? "text.primary"}>{value}</Typography>
+      <Typography variant="caption" fontWeight={600} color={color ?? "text.primary"}>{value}</Typography>
     </Stack>
   );
 }
@@ -79,7 +79,7 @@ function RelatorioCard({
             {icone}
           </Box>
           <Stack flex={1} spacing={0.25} minWidth={0}>
-            <Typography fontWeight={800} fontSize={15}>{titulo}</Typography>
+            <Typography fontWeight={700} fontSize={15}>{titulo}</Typography>
             <Typography variant="caption" color="text.secondary">{descricao}</Typography>
           </Stack>
         </Stack>
@@ -104,7 +104,7 @@ function RelatorioCard({
           size="small"
           endIcon={<ArrowForwardRoundedIcon />}
           onClick={() => nav(destino)}
-          sx={{ textTransform: "none", fontWeight: 800, color: "primary.main", p: 0, minWidth: 0, "&:hover": { bgcolor: "transparent", opacity: 0.82 } }}
+          sx={{ textTransform: "none", fontWeight: 600, color: "primary.main", p: 0, minWidth: 0, "&:hover": { bgcolor: "transparent", opacity: 0.82 } }}
         >
           Abrir relatorio
         </Button>

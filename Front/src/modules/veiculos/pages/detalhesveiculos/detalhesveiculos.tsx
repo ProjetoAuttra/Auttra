@@ -114,7 +114,7 @@ function VeiculoOrdens({ ordens, onAdd }: { ordens: any[]; onAdd?: () => void })
                 </TableCell>
                 <TableCell>
                   <Chip label={st.label} size="small" color={st.color}
-                    sx={{ fontWeight: 700, fontSize: 11 }} />
+                    sx={{ fontWeight: 600, fontSize: 12 }} />
                 </TableCell>
               </TableRow>
             );
@@ -202,7 +202,7 @@ export default function VeiculoDetalhesPage() {
 
   return (
     <>
-      <Box sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, sm: 3, md: 4 }, py: { xs: 3, md: 4 } }}>
+      <Box sx={{ maxWidth: 1200, mx: "auto" }}>
 
         {/* ── Breadcrumb ── */}
         <Stack direction="row" alignItems="center" spacing={1.5} mb={3}>
@@ -241,7 +241,7 @@ export default function VeiculoDetalhesPage() {
 
                 <Stack spacing={0.75}>
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="h6" fontWeight={800} lineHeight={1.2}>
+                    <Typography variant="h6" fontWeight={700} lineHeight={1.2}>
                       {veiculo.marca} {veiculo.modelo}
                     </Typography>
                     <IconButton
@@ -260,7 +260,7 @@ export default function VeiculoDetalhesPage() {
                     border: (t) => `2px solid ${t.palette.text.primary}`,
                     bgcolor: (t) => alpha(t.palette.text.primary, 0.04),
                   }}>
-                    <Typography fontFamily="monospace" fontWeight={800} fontSize={15} letterSpacing={2}>
+                    <Typography fontFamily="monospace" fontWeight={700} fontSize={15} letterSpacing={2}>
                       {veiculo.placa}
                     </Typography>
                   </Box>
@@ -296,7 +296,7 @@ export default function VeiculoDetalhesPage() {
                       size="small"
                       startIcon={<PersonRoundedIcon fontSize="small" />}
                       onClick={() => nav(`/clientes/${veiculo.cliente_id}`)}
-                      sx={{ textTransform: "none", fontWeight: 700, p: 0, minWidth: 0 }}
+                      sx={{ textTransform: "none", fontWeight: 600, p: 0, minWidth: 0 }}
                     >
                       {veiculo.cliente.nome}
                     </Button>
@@ -336,7 +336,7 @@ export default function VeiculoDetalhesPage() {
                 <span>Ordens de Serviço</span>
                 {countOrdens > 0 && (
                   <Chip label={countOrdens} size="small"
-                    sx={{ height: 18, fontSize: 10, fontWeight: 700 }} />
+                    sx={{ height: 18, fontSize: 12, fontWeight: 600 }} />
                 )}
               </Stack>
             } />

@@ -232,7 +232,7 @@ export default function OrdemServicoDialog({ open, mode = "create", initial, onC
     {
       field: "tipo_item", headerName: "Tipo", width: 100,
       renderCell: (params) => (
-        <Typography variant="caption" sx={{ textTransform: "uppercase", fontWeight: 700, color: params.value === "servico" ? "primary.main" : "secondary.main" }}>
+        <Typography variant="caption" sx={{ textTransform: "uppercase", fontWeight: 600, color: params.value === "servico" ? "primary.main" : "secondary.main" }}>
           {params.value}
         </Typography>
       ),
@@ -254,7 +254,7 @@ export default function OrdemServicoDialog({ open, mode = "create", initial, onC
       field: "subtotal", headerName: "Subtotal", width: 120,
       valueFormatter: (value: number) => `R$ ${value.toFixed(2)}`,
       renderCell: (params) => (
-        <Typography variant="body2" fontWeight={700}>R$ {params.value.toFixed(2)}</Typography>
+        <Typography variant="body2" fontWeight={600}>R$ {params.value.toFixed(2)}</Typography>
       ),
     },
     {
@@ -439,8 +439,8 @@ export default function OrdemServicoDialog({ open, mode = "create", initial, onC
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Typography variant="subtitle2" fontWeight={700}>TOTAL:</Typography>
                   <PrecoDisplay>
-                    <Typography variant="caption" fontWeight={800} color="success.main" sx={{ mt: 0.5 }}>R$</Typography>
-                    <Typography variant="h6" fontWeight={900} color="success.main">
+                    <Typography variant="caption" fontWeight={600} color="success.main" sx={{ mt: 0.5 }}>R$</Typography>
+                    <Typography variant="h6" fontWeight={700} color="success.main">
                       {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </Typography>
                   </PrecoDisplay>
@@ -473,7 +473,7 @@ export default function OrdemServicoDialog({ open, mode = "create", initial, onC
           variant="contained"
           disableElevation
           disabled={!clienteId || !veiculoId || !funcionarioId}
-          sx={{ px: 5, fontWeight: 800 }}
+          sx={{ px: 5, fontWeight: 700 }}
         >
           {isEdit ? "Salvar Alterações" : "Gerar Ordem de Serviço"}
         </Button>

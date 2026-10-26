@@ -162,30 +162,30 @@ export default function OrcamentosPerdidosRelatorio() {
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
-          <Typography fontWeight={800} mb={1}>Principais perdas por item</Typography>
+          <Typography fontWeight={700} mb={1}>Principais perdas por item</Typography>
           {Object.entries(servicosPerdidos).length ? Object.entries(servicosPerdidos)
             .sort((a, b) => b[1].valor - a[1].valor)
             .slice(0, 8)
             .map(([nome, item]) => (
               <Stack key={nome} direction="row" justifyContent="space-between" gap={2} py={0.75}>
                 <Typography variant="body2" noWrap>{nome}</Typography>
-                <Typography variant="body2" fontWeight={800}>{item.qtd} - {brl(item.valor)}</Typography>
+                <Typography variant="body2" fontWeight={600}>{item.qtd} - {brl(item.valor)}</Typography>
               </Stack>
             )) : <Typography variant="body2" color="text.secondary">Nenhum orcamento perdido no periodo.</Typography>}
         </Paper>
 
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
-          <Typography fontWeight={800} mb={1}>Follow-up prioritario</Typography>
+          <Typography fontWeight={700} mb={1}>Follow-up prioritario</Typography>
           {pendentes.length ? [...pendentes]
             .sort((a, b) => daysBetween(b.data) - daysBetween(a.data) || Number(b.valor ?? 0) - Number(a.valor ?? 0))
             .slice(0, 8)
             .map((o) => (
               <Stack key={o.id} direction="row" justifyContent="space-between" gap={2} py={0.75}>
                 <Stack minWidth={0}>
-                  <Typography variant="body2" fontWeight={700} noWrap>{o.cliente?.nome ?? "Cliente nao informado"}</Typography>
+                  <Typography variant="body2" fontWeight={600} noWrap>{o.cliente?.nome ?? "Cliente nao informado"}</Typography>
                   <Typography variant="caption" color="text.secondary">{daysBetween(o.data)} dia(s) em analise</Typography>
                 </Stack>
-                <Typography variant="body2" fontWeight={800}>{brl(Number(o.valor ?? 0))}</Typography>
+                <Typography variant="body2" fontWeight={600}>{brl(Number(o.valor ?? 0))}</Typography>
               </Stack>
             )) : <Typography variant="body2" color="text.secondary">Nenhum orcamento pendente no periodo.</Typography>}
         </Paper>
@@ -208,13 +208,13 @@ export default function OrcamentosPerdidosRelatorio() {
             <TableBody>
               {linhas.map((o) => (
                 <TableRow key={o.id} hover>
-                  <TableCell sx={{ fontWeight: 800 }}>#{o.id}</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>#{o.id}</TableCell>
                   <TableCell>{o.cliente?.nome ?? "-"}</TableCell>
                   <TableCell>{o.cliente?.telefone ?? "-"}</TableCell>
                   <TableCell>{[o.veiculo?.modelo, o.veiculo?.placa].filter(Boolean).join(" ") || "-"}</TableCell>
                   <TableCell><Chip size="small" label={statusLabel[o.status] ?? o.status} color={statusColor(o.status)} sx={{ fontWeight: 700 }} /></TableCell>
                   <TableCell>{dateBr(o.data)}</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 800 }}>{brl(Number(o.valor ?? 0))}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>{brl(Number(o.valor ?? 0))}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

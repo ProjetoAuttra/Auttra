@@ -110,7 +110,7 @@ export default function RecursosAdicionais() {
   return (
     <Box sx={{ py: { xs: 2, md: 4 } }}>
       <Stack spacing={0.75} mb={3}>
-        <Typography variant="h5" fontWeight={850}>
+        <Typography variant="h5" fontWeight={700}>
           Recursos adicionais
         </Typography>
         <Typography color="text.secondary">
@@ -157,7 +157,7 @@ export default function RecursosAdicionais() {
                       {item.icon}
                     </ListItemIcon>
                     <ListItemText
-                      primary={<Typography fontWeight={800}>{item.label}</Typography>}
+                      primary={<Typography fontWeight={700}>{item.label}</Typography>}
                       secondary={active ? "Ativo" : "Inativo"}
                       secondaryTypographyProps={{ color: active ? "success.main" : "text.secondary", fontWeight: 700 }}
                     />
@@ -208,7 +208,7 @@ export default function RecursosAdicionais() {
                   </Box>
                   <Stack>
                     <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                      <Typography variant="h6" fontWeight={850}>
+                      <Typography variant="h6" fontWeight={700}>
                         {selected.label}
                       </Typography>
                       <Chip label={form[selected.id] ? "Ativo" : "Inativo"} size="small" color={form[selected.id] ? "success" : "default"} />
@@ -228,7 +228,7 @@ export default function RecursosAdicionais() {
               <Divider />
 
               <Stack spacing={1.25}>
-                <Typography fontWeight={800}>Itens incluidos</Typography>
+                <Typography fontWeight={700}>Itens incluidos</Typography>
                 {selected.details.map((detail) => (
                   <Stack
                     key={detail}
@@ -256,7 +256,7 @@ export default function RecursosAdicionais() {
                   startIcon={<SaveRoundedIcon />}
                   onClick={handleSave}
                   disabled={!canUpdate || saving || !hasChanges}
-                  sx={{ borderRadius: 1, textTransform: "none", fontWeight: 800 }}
+                  sx={{ borderRadius: 1, textTransform: "none", fontWeight: 600 }}
                 >
                   Salvar alteracoes
                 </Button>

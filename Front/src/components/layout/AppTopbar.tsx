@@ -293,7 +293,7 @@ export default function AppTopbar({
                       sx={{ py: 1.25, px: 2 }}
                     >
                       <Stack direction="row" spacing={1.5} alignItems="center">
-                        <Avatar sx={{ width: 30, height: 30, fontSize: 13, fontWeight: 700, bgcolor: "primary.main" }}>
+                        <Avatar sx={{ width: 30, height: 30, fontSize: 13, fontWeight: 600, bgcolor: "primary.main" }}>
                           {(c.nome ?? "?")[0].toUpperCase()}
                         </Avatar>
                         <Box>
@@ -328,12 +328,12 @@ export default function AppTopbar({
                 "&:hover": { bgcolor: brand.subtleStrong },
               }}
             >
-              <Avatar src={empresaLogoUrl ?? undefined} sx={{ width: 30, height: 30, fontSize: 13, fontWeight: 800, bgcolor: brand.primarySoft, color: brand.primary }}>
+              <Avatar src={empresaLogoUrl ?? undefined} sx={{ width: 30, height: 30, fontSize: 13, fontWeight: 600, bgcolor: brand.primarySoft, color: brand.primary }}>
                 {empresaLetter}
               </Avatar>
 
               <Box sx={{ lineHeight: 1, display: { xs: "none", sm: "block" } }}>
-                <Typography variant="body2" fontWeight={700} lineHeight={1.3} noWrap maxWidth={160} >
+                <Typography variant="body2" fontWeight={600} lineHeight={1.3} noWrap maxWidth={160} >
                   {empresaLabel}
                 </Typography>
                 <Typography variant="caption" lineHeight={1.2} noWrap maxWidth={160} component="div" color="text.secondary">
@@ -362,7 +362,7 @@ export default function AppTopbar({
             }}
           >
             <Box sx={{ px: 2, py: 1.5, borderBottom: (t) => `1px solid ${t.palette.divider}` }}>
-              <Typography variant="body2" fontWeight={700} noWrap>{nomeUsuario}</Typography>
+              <Typography variant="body2" fontWeight={600} noWrap>{nomeUsuario}</Typography>
               <Typography variant="caption" color="text.secondary" display="block" noWrap>{empresaLabel}</Typography>
               <Typography variant="caption" color="text.secondary" display="block" noWrap>{cargoLabel}</Typography>
             </Box>

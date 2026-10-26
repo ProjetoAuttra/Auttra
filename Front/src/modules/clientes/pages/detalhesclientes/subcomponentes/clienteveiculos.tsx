@@ -58,7 +58,7 @@ export default function ClienteVeiculos({ veiculos, onAdd }: { veiculos: any[]; 
                   </Box>
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2" fontFamily="monospace" fontWeight={700}>{v.placa || "-"}</Typography>
+                  <Typography variant="body2" fontFamily="monospace" fontWeight={600}>{v.placa || "-"}</Typography>
                 </TableCell>
                 <TableCell>{v.ano || "-"}</TableCell>
                 <TableCell>{v.cor || "-"}</TableCell>

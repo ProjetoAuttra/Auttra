@@ -171,7 +171,7 @@ export default function ServicoDialog({ open, mode, initial, onClose, onSubmit, 
       variant="entity"
     >
       <AppDialogContent>
-        <Grid container spacing={1.5}>
+        <Grid container spacing={2}>
           <Grid size={12}>
             <SectionLabel>Informações do serviço</SectionLabel>
           </Grid>
@@ -291,7 +291,7 @@ export default function ServicoDialog({ open, mode, initial, onClose, onSubmit, 
                   variant={tempoEstimado === t.value ? "filled" : "outlined"}
                   color={tempoEstimado === t.value ? "primary" : "default"}
                   onClick={() => setTempoEstimado(tempoEstimado === t.value ? "" : t.value)}
-                  sx={{ fontSize: 10, height: 20, cursor: "pointer" }}
+                  sx={{ fontSize: 12, height: 20, cursor: "pointer" }}
                 />
               ))}
             </Stack>

@@ -114,7 +114,7 @@ export default function PublicTrackingPage() {
                     {data.title}
                   </Typography>
                 </Box>
-                <Chip label={data.statusLabel} color={data.statusTone === "default" ? "default" : data.statusTone} sx={{ fontWeight: 800 }} />
+                <Chip label={data.statusLabel} color={data.statusTone === "default" ? "default" : data.statusTone} sx={{ fontWeight: 700 }} />
               </Stack>
 
               <Box>
@@ -122,7 +122,7 @@ export default function PublicTrackingPage() {
                   <Typography variant="body2" sx={{ opacity: 0.85 }}>
                     Progresso
                   </Typography>
-                  <Typography variant="body2" fontWeight={800}>
+                  <Typography variant="body2" fontWeight={600}>
                     {data.progress}%
                   </Typography>
                 </Stack>
@@ -185,7 +185,7 @@ export default function PublicTrackingPage() {
                           Qtd. {item.quantidade} · Unit. {currency(item.precoUnitario)}
                         </Typography>
                       </Box>
-                      <Typography fontWeight={800}>{currency(item.subtotal)}</Typography>
+                      <Typography fontWeight={700}>{currency(item.subtotal)}</Typography>
                     </Stack>
                   )) : (
                     <Typography color="text.secondary" sx={{ p: 1.5 }}>Nenhum item informado.</Typography>
@@ -217,7 +217,7 @@ function InfoBlock({ label, value, strong, icon }: { label: string; value: strin
       <Stack direction="row" spacing={1} alignItems="center">
         {icon}
         <Box>
-          <Typography variant="caption" color="text.secondary" fontWeight={800} textTransform="uppercase">
+          <Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase">
             {label}
           </Typography>
           <Typography fontWeight={strong ? 900 : 700}>{value}</Typography>

@@ -354,12 +354,12 @@ function AppointmentCard({
     >
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
         <Box minWidth={0}>
-          <Typography fontWeight={800} noWrap>
+          <Typography fontWeight={700} noWrap>
             {appointment.title}
           </Typography>
           <Stack direction="row" spacing={1} alignItems="center" mt={0.7} color="text.secondary">
             <AccessTimeRoundedIcon sx={{ fontSize: 16 }} />
-            <Typography variant="caption" fontWeight={700}>
+            <Typography variant="caption" fontWeight={600}>
               {formatTimeRange(appointment)}
             </Typography>
           </Stack>
@@ -377,7 +377,7 @@ function AppointmentCard({
             </Typography>
           )}
           {appointment.ordemServicoId && (
-            <Typography variant="caption" color="primary.main" display="block" mt={0.4} fontWeight={700} noWrap>
+            <Typography variant="caption" color="primary.main" display="block" mt={0.4} fontWeight={600} noWrap>
               OS #{appointment.ordemServicoId}
             </Typography>
           )}
@@ -420,7 +420,7 @@ function CompactAppointment({ appointment, onOpen }: { appointment: Appointment;
         '&:hover': onOpen ? { bgcolor: alpha(theme.palette.primary.main, 0.14) } : undefined,
       })}
     >
-      <Typography sx={{ fontSize: 12, fontWeight: 800 }} noWrap>
+      <Typography sx={{ fontSize: 12, fontWeight: 600 }} noWrap>
         {dayjs(appointment.start).format('HH:mm')} {appointment.title}
       </Typography>
     </Box>
@@ -539,12 +539,12 @@ function AppointmentDetailsDialog({
         ) : (
           <Stack spacing={2.25}>
             <Box>
-              <Typography variant="h6" fontWeight={900}>{appointment.title}</Typography>
+              <Typography variant="h6" fontWeight={700}>{appointment.title}</Typography>
               <Typography variant="body2" color="text.secondary">{dayjs(appointment.start).format('dddd, DD [de] MMMM [de] YYYY')}</Typography>
             </Box>
             <Stack direction="row" spacing={1.25} alignItems="center">
               <AccessTimeRoundedIcon color="primary" />
-              <Typography fontWeight={800}>{formatTimeRange(appointment)}</Typography>
+              <Typography fontWeight={700}>{formatTimeRange(appointment)}</Typography>
             </Stack>
             {appointment.location && (
               <Stack direction="row" spacing={1.25} alignItems="center">
@@ -554,15 +554,15 @@ function AppointmentDetailsDialog({
             )}
             {(appointment.clientName || appointment.vehicleLabel) && (
               <Paper elevation={0} sx={{ p: 1.5, borderRadius: 1.25, bgcolor: brand.subtle, border: (t) => `1px solid ${t.palette.divider}` }}>
-                <Typography variant="caption" color="text.secondary" fontWeight={900}>Cliente e veículo</Typography>
-                <Typography fontWeight={800}>{appointment.clientName || 'Cliente não informado'}</Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>Cliente e veículo</Typography>
+                <Typography fontWeight={700}>{appointment.clientName || 'Cliente não informado'}</Typography>
                 <Typography variant="body2" color="text.secondary">{appointment.vehicleLabel || 'Veículo não informado'}</Typography>
               </Paper>
             )}
             {appointment.ordemServicoId && (
               <Paper elevation={0} sx={{ p: 1.5, borderRadius: 1.25, bgcolor: brand.subtle, border: (t) => `1px solid ${t.palette.divider}` }}>
-                <Typography variant="caption" color="text.secondary" fontWeight={900}>Ordem de Serviço vinculada</Typography>
-                <Typography fontWeight={800}>OS #{appointment.ordemServicoId}</Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>Ordem de Serviço vinculada</Typography>
+                <Typography fontWeight={700}>OS #{appointment.ordemServicoId}</Typography>
                 {appointment.ordemServicoStatus && (
                   <Typography variant="body2" color="text.secondary">{appointment.ordemServicoStatus}</Typography>
                 )}
@@ -570,7 +570,7 @@ function AppointmentDetailsDialog({
             )}
             {appointment.description && (
               <Box>
-                <Typography variant="caption" color="text.secondary" fontWeight={900}>Observações</Typography>
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>Observações</Typography>
                 <Typography variant="body2">{appointment.description}</Typography>
               </Box>
             )}
@@ -818,7 +818,7 @@ export default function Schedule() {
                 <ArrowBackRoundedIcon />
               </IconButton>
               <Box>
-                <Typography variant="h6" fontWeight={900} sx={{ textTransform: 'capitalize' }}>
+                <Typography variant="h6" fontWeight={700} sx={{ textTransform: 'capitalize' }}>
                   {visibleRangeLabel}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -847,7 +847,7 @@ export default function Schedule() {
                     px: 2,
                     border: 0,
                     borderRadius: 999,
-                    fontWeight: 800,
+                    fontWeight: 700,
                     color: 'text.secondary',
                     '&.Mui-selected': { bgcolor: '#fff', color: 'primary.main', boxShadow: '0 8px 20px rgba(16,24,40,0.08)' },
                   },
@@ -870,7 +870,7 @@ export default function Schedule() {
             <Box>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 1, mb: 1 }}>
                 {weekDays.map((day) => (
-                  <Typography key={day.format('ddd')} variant="caption" color="text.secondary" fontWeight={900} textAlign="center">
+                  <Typography key={day.format('ddd')} variant="caption" color="text.secondary" fontWeight={600} textAlign="center">
                     {day.format('ddd')}
                   </Typography>
                 ))}
@@ -895,7 +895,7 @@ export default function Schedule() {
                         bgcolor: active ? alpha(theme.palette.primary.main, 0.055) : inMonth ? '#fff' : alpha(theme.palette.text.primary, 0.025),
                       })}
                     >
-                      <Typography fontWeight={900} color={inMonth ? 'text.primary' : 'text.disabled'}>
+                      <Typography fontWeight={700} color={inMonth ? 'text.primary' : 'text.disabled'}>
                         {day.format('DD')}
                       </Typography>
                       <Stack spacing={0.55} mt={1}>
@@ -903,7 +903,7 @@ export default function Schedule() {
                           <CompactAppointment key={appointment.id} appointment={appointment} onOpen={setSelectedAppointment} />
                         ))}
                         {dayAppointments.length > 3 && (
-                          <Typography variant="caption" color="text.secondary" fontWeight={800}>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>
                             +{dayAppointments.length - 3} mais
                           </Typography>
                         )}
@@ -934,14 +934,14 @@ export default function Schedule() {
                   >
                     <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5}>
                       <Box>
-                        <Typography variant="caption" color="text.secondary" fontWeight={700}>
+                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
                           {day.format('ddd')}
                         </Typography>
                         <Typography fontWeight={700} sx={{ fontSize: 24 }}>
                           {day.format('DD')}
                         </Typography>
                       </Box>
-                      <Typography variant="caption" color="text.secondary" fontWeight={800}>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
                         {dayAppointments.length}
                       </Typography>
                     </Stack>
@@ -992,7 +992,7 @@ export default function Schedule() {
                       '&:hover': { bgcolor: 'rgba(37, 99, 235, 0.025)' },
                     }}
                   >
-                    <Typography variant="caption" color="text.secondary" fontWeight={800}>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
                       {String(hour).padStart(2, '0')}:00
                     </Typography>
                     <Stack spacing={1}>

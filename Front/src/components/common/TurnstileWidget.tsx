@@ -100,7 +100,7 @@ const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidgetProps>(
 
   if (failedToLoad) {
     return (
-      <Typography sx={{ fontSize: 12.5, color: "error.main" }}>
+      <Typography sx={{ fontSize: 13, color: "error.main" }}>
         Não foi possível carregar a verificação de segurança. Verifique sua conexão e recarregue a página.
       </Typography>
     );

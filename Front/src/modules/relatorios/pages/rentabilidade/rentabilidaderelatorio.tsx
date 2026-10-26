@@ -156,34 +156,34 @@ export default function RentabilidadeRelatorio() {
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
-          <Typography fontWeight={800} mb={1}>Clientes mais rentaveis</Typography>
+          <Typography fontWeight={700} mb={1}>Clientes mais rentaveis</Typography>
           {Object.entries(porCliente).length ? Object.entries(porCliente)
             .sort((a, b) => b[1].lucro - a[1].lucro)
             .slice(0, 8)
             .map(([nome, item]) => (
               <Stack key={nome} direction="row" justifyContent="space-between" gap={2} py={0.75}>
                 <Typography variant="body2" noWrap>{nome}</Typography>
-                <Typography variant="body2" fontWeight={800}>{item.qtd} OS - {brl(item.lucro)}</Typography>
+                <Typography variant="body2" fontWeight={600}>{item.qtd} OS - {brl(item.lucro)}</Typography>
               </Stack>
             )) : <Typography variant="body2" color="text.secondary">Nenhuma OS concluida no periodo.</Typography>}
         </Paper>
 
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
-          <Typography fontWeight={800} mb={1}>Rentabilidade por mecanico</Typography>
+          <Typography fontWeight={700} mb={1}>Rentabilidade por mecanico</Typography>
           {Object.entries(porMecanico).length ? Object.entries(porMecanico)
             .sort((a, b) => b[1].lucro - a[1].lucro)
             .slice(0, 8)
             .map(([nome, item]) => (
               <Stack key={nome} direction="row" justifyContent="space-between" gap={2} py={0.75}>
                 <Typography variant="body2" noWrap>{nome}</Typography>
-                <Typography variant="body2" fontWeight={800}>{item.qtd} OS - {brl(item.lucro)}</Typography>
+                <Typography variant="body2" fontWeight={600}>{item.qtd} OS - {brl(item.lucro)}</Typography>
               </Stack>
             )) : <Typography variant="body2" color="text.secondary">Nenhuma OS concluida no periodo.</Typography>}
         </Paper>
       </Stack>
 
       <Paper variant="outlined" sx={{ p: 2, mb: 2.5, borderRadius: 1.5 }}>
-        <Typography fontWeight={800} mb={1}>OS que pedem revisao de preco</Typography>
+        <Typography fontWeight={700} mb={1}>OS que pedem revisao de preco</Typography>
         {margemBaixa.length ? (
           <Stack direction="row" gap={1} flexWrap="wrap">
             {margemBaixa.slice(0, 12).map((o) => (
@@ -214,14 +214,14 @@ export default function RentabilidadeRelatorio() {
                 const m = margem(o);
                 return (
                   <TableRow key={o.id} hover>
-                    <TableCell sx={{ fontWeight: 800 }}>#{o.id}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>#{o.id}</TableCell>
                     <TableCell>{o.cliente?.nome ?? "-"}</TableCell>
                     <TableCell>{[o.veiculo?.modelo, o.veiculo?.placa].filter(Boolean).join(" ") || "-"}</TableCell>
                     <TableCell>{o.funcionario?.nome ?? "-"}</TableCell>
                     <TableCell>{dateBr(dataConclusao(o))}</TableCell>
                     <TableCell align="right">{brl(receita(o))}</TableCell>
                     <TableCell align="right">{brl(custoPecas(o))}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800 }}>{brl(lucro(o))}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>{brl(lucro(o))}</TableCell>
                     <TableCell align="right">
                       <Chip size="small" label={percent(m)} color={m < 30 ? "warning" : "success"} sx={{ fontWeight: 700 }} />
                     </TableCell>

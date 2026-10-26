@@ -279,7 +279,7 @@ export default function Login() {
             <Typography
               sx={{
                 fontSize: 22,
-                fontWeight: 800,
+                fontWeight: 700,
                 color: INK,
                 letterSpacing: 0,
                 lineHeight: 1.2,
@@ -506,7 +506,7 @@ export default function Login() {
 
       <Dialog open={forgotOpen} onClose={() => setForgotOpen(false)} maxWidth="xs" fullWidth>
         <DialogContent sx={{ pt: 3.5, pb: 2 }}>
-          <Typography variant="subtitle1" fontWeight={800} mb={1}>
+          <Typography variant="subtitle1" fontWeight={700} mb={1}>
             Recuperar senha
           </Typography>
           <Stack spacing={2} mt={2}>
@@ -528,11 +528,11 @@ export default function Login() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button onClick={() => setForgotOpen(false)} variant="outlined" disableElevation size="small"
-            sx={{ textTransform: "none", fontWeight: 700 }}>
+            sx={{ textTransform: "none", fontWeight: 600 }}>
             Cancelar
           </Button>
           <Button onClick={handleForgotSubmit} variant="contained" disableElevation size="small" disabled={forgotLoading || forgotCooldown > 0}
-            sx={{ textTransform: "none", fontWeight: 700 }}>
+            sx={{ textTransform: "none", fontWeight: 600 }}>
             {forgotLoading ? "Enviando..." : forgotCooldown > 0 ? `Reenviar em ${forgotCooldown}s` : "Enviar link"}
           </Button>
         </DialogActions>

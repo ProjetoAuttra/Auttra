@@ -110,7 +110,7 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
       variant="entity"
     >
       <AppDialogContent>
-        <Grid container spacing={1.5}>
+        <Grid container spacing={2}>
           <Grid size={12}>
             <SectionLabel>Dados pessoais</SectionLabel>
           </Grid>

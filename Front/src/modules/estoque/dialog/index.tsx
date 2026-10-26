@@ -78,7 +78,7 @@ export default function EstoqueDialog({ open, mode, initial, onClose, onSubmit, 
       variant="entity"
     >
       <AppDialogContent>
-        <Grid container spacing={1.5}>
+        <Grid container spacing={2}>
           <Grid size={12}>
             <SectionLabel>Informações da peça</SectionLabel>
           </Grid>

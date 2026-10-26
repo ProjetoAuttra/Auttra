@@ -124,7 +124,7 @@ export default function OrdensParadasRelatorio() {
 
       <Paper variant="outlined" sx={{ p: 2, mb: 2.5, borderRadius: 1.5 }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }}>
-          <Typography variant="body2" fontWeight={700}>Considerar parada a partir de</Typography>
+          <Typography variant="body2" fontWeight={600}>Considerar parada a partir de</Typography>
           <Select size="small" value={diasMinimos} onChange={(e: SelectChangeEvent) => setDiasMinimos(e.target.value)} sx={{ minWidth: 150 }}>
             <MenuItem value="1">1 dia</MenuItem>
             <MenuItem value="3">3 dias</MenuItem>
@@ -144,22 +144,22 @@ export default function OrdensParadasRelatorio() {
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
-          <Typography fontWeight={800} mb={1}>Prioridade por valor</Typography>
+          <Typography fontWeight={700} mb={1}>Prioridade por valor</Typography>
           {maiorValorAberto ? (
             <Stack spacing={0.5}>
-              <Typography variant="body2" fontWeight={700}>OS #{maiorValorAberto.id} - {maiorValorAberto.cliente?.nome ?? "Cliente nao informado"}</Typography>
+              <Typography variant="body2" fontWeight={600}>OS #{maiorValorAberto.id} - {maiorValorAberto.cliente?.nome ?? "Cliente nao informado"}</Typography>
               <Typography variant="body2" color="text.secondary">{daysBetween(maiorValorAberto.data_abertura)} dia(s) aberta</Typography>
-              <Typography fontWeight={900} color="warning.main">{brl(Number(maiorValorAberto.valor_total ?? 0))}</Typography>
+              <Typography fontWeight={700} color="warning.main">{brl(Number(maiorValorAberto.valor_total ?? 0))}</Typography>
             </Stack>
           ) : <Typography variant="body2" color="text.secondary">Nenhuma OS aberta.</Typography>}
         </Paper>
 
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
-          <Typography fontWeight={800} mb={1}>Paradas por mecanico</Typography>
+          <Typography fontWeight={700} mb={1}>Paradas por mecanico</Typography>
           {Object.entries(porMecanico).length ? Object.entries(porMecanico).map(([nome, item]) => (
             <Stack key={nome} direction="row" justifyContent="space-between" py={0.75}>
               <Typography variant="body2">{nome}</Typography>
-              <Typography variant="body2" fontWeight={800}>{item.qtd} OS - {brl(item.valor)}</Typography>
+              <Typography variant="body2" fontWeight={600}>{item.qtd} OS - {brl(item.valor)}</Typography>
             </Stack>
           )) : <Typography variant="body2" color="text.secondary">Nenhuma OS parada nesse criterio.</Typography>}
         </Paper>
@@ -183,14 +183,14 @@ export default function OrdensParadasRelatorio() {
             <TableBody>
               {paradas.map((o) => (
                 <TableRow key={o.id} hover>
-                  <TableCell sx={{ fontWeight: 800 }}>#{o.id}</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>#{o.id}</TableCell>
                   <TableCell>{o.cliente?.nome ?? "-"}</TableCell>
                   <TableCell>{[o.veiculo?.marca, o.veiculo?.modelo, o.veiculo?.placa].filter(Boolean).join(" ") || "-"}</TableCell>
                   <TableCell>{o.funcionario?.nome ?? "-"}</TableCell>
                   <TableCell><Chip size="small" label={STATUS_LABEL[o.status ?? ""] ?? o.status ?? "-"} color={statusColor(o.status)} sx={{ fontWeight: 700 }} /></TableCell>
                   <TableCell>{dateBr(o.data_abertura)}</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 800 }}>{daysBetween(o.data_abertura)}</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 800 }}>{brl(Number(o.valor_total ?? 0))}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>{daysBetween(o.data_abertura)}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>{brl(Number(o.valor_total ?? 0))}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

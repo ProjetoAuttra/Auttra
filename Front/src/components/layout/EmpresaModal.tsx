@@ -213,7 +213,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
             <BusinessRoundedIcon />
           </Box>
           <Box>
-            <Typography variant="subtitle1" fontWeight={800} lineHeight={1.3}>
+            <Typography variant="subtitle1" fontWeight={700} lineHeight={1.3}>
               Dados da Empresa
               Informações da sua oficina
             </Typography>
@@ -245,7 +245,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
                             height: 64,
                             borderRadius: 1.5,
                             fontSize: 24,
-                            fontWeight: 900,
+                            fontWeight: 700,
                             bgcolor: "primary.main",
                             cursor: "pointer",
                             boxShadow: (t) => `0 0 0 1px ${t.palette.divider}`,

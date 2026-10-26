@@ -20,6 +20,7 @@ import { useAuth } from "../../../../context/AuthContext";
 import { useToast } from "../../../../context/ToastContext";
 import { useConfirm } from "../../../../context/ConfirmContext";
 import ModuleHeader from "../../../../components/layout/ModuleHeader";
+import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../components/common/AppDialog";
 import api from "../../../../api/api";
@@ -38,20 +39,20 @@ type Acao = "pagar" | "parcial" | "desconto" | "renegociar" | "parcelar" | "edit
 
 function StatusChip({ conta }: { conta: Conta }) {
   if (isVencido(conta))
-    return <Chip label="Vencido" size="small" color="error" sx={{ fontWeight: 700, fontSize: 11 }} />;
+    return <Chip label="Vencido" size="small" color="error" sx={{ fontWeight: 600, fontSize: 12 }} />;
   if (conta.status === "parcial")
     return (
       <Chip
         label={`${brl(Number(conta.valor_pago))} de ${brl(valorLiquido(conta))}`}
         size="small"
-        sx={{ bgcolor: (t) => alpha(t.palette.warning.main, 0.15), color: "warning.dark", fontWeight: 700, fontSize: 11 }}
+        sx={{ bgcolor: (t) => alpha(t.palette.warning.main, 0.15), color: "warning.dark", fontWeight: 600, fontSize: 12 }}
       />
     );
   if (conta.status === "pago")
-    return <Chip label="Recebido" size="small" color="success" sx={{ fontWeight: 700, fontSize: 11 }} />;
+    return <Chip label="Recebido" size="small" color="success" sx={{ fontWeight: 600, fontSize: 12 }} />;
   if (conta.status === "cancelado")
-    return <Chip label="Cancelado" size="small" sx={{ fontWeight: 700, fontSize: 11 }} />;
-  return <Chip label="Pendente" size="small" color="warning" sx={{ fontWeight: 700, fontSize: 11 }} />;
+    return <Chip label="Cancelado" size="small" sx={{ fontWeight: 600, fontSize: 12 }} />;
+  return <Chip label="Pendente" size="small" color="warning" sx={{ fontWeight: 600, fontSize: 12 }} />;
 }
 
 export default function ContasReceber() {
@@ -200,7 +201,7 @@ export default function ContasReceber() {
               <Box sx={{ color: `${r.tone}.main`, display: "flex", fontSize: 18 }}>{r.icon}</Box>
               <Typography variant="caption" color="text.secondary" fontWeight={600}>{r.label}</Typography>
             </Stack>
-            <Typography variant="h6" fontWeight={800} color={`${r.tone}.main`}>{r.value}</Typography>
+            <Typography variant="h6" fontWeight={700} color={`${r.tone}.main`}>{r.value}</Typography>
           </Paper>
         ))}
       </Stack>
@@ -246,7 +247,7 @@ export default function ContasReceber() {
                     <TableCell>
                       <Stack direction="row" spacing={0.75} alignItems="center">
                         <Typography
-                          variant="body2" fontWeight={700}
+                          variant="body2" fontWeight={600}
                           color={conta.status === "pago" ? "success.main" : vencido ? "error.main" : "text.primary"}
                         >
                           {brl(liquido)}
@@ -255,7 +256,7 @@ export default function ContasReceber() {
                           <Chip
                             label={`${conta.parcela_numero ?? 1}/${conta.total_parcelas}`}
                             size="small"
-                            sx={{ height: 18, fontSize: 10, fontWeight: 700 }}
+                            sx={{ height: 18, fontSize: 12, fontWeight: 600 }}
                           />
                         )}
                         {conta.desconto > 0 && (
@@ -311,8 +312,16 @@ export default function ContasReceber() {
                 );
               }) : (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 8, color: "text.secondary" }}>
-                    Nenhuma conta encontrada
+                  <TableCell colSpan={7} sx={{ border: 0 }}>
+                    <EmptyState
+                      icon={<TrendingUpRoundedIcon />}
+                      title="Nenhuma conta a receber"
+                      description="Registre recebimentos de clientes para acompanhar o caixa."
+                      actionLabel="Nova Conta"
+                      onAction={() => setDialogNova(true)}
+                      isFiltered={!!query}
+                      onClearFilter={() => setQuery("")}
+                    />
                   </TableCell>
                 </TableRow>
               )}

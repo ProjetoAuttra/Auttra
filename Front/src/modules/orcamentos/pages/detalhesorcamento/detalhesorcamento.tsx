@@ -134,14 +134,14 @@ export default function OrcamentoDetalhes() {
   const itens = orcamento.itens ?? [];
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, sm: 3, md: 4 }, py: { xs: 3, md: 4 } }}>
+    <Box sx={{ maxWidth: 1200, mx: "auto" }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3} gap={2}>
         <Stack direction="row" spacing={1.5} alignItems="center" minWidth={0}>
           <IconButton onClick={() => nav("/orcamentos")} size="small" sx={{ bgcolor: "action.hover", borderRadius: 1.5 }}>
             <ArrowBackRoundedIcon fontSize="small" />
           </IconButton>
           <Stack minWidth={0}>
-            <Typography variant="h5" fontWeight={800} noWrap>
+            <Typography variant="h5" fontWeight={700} noWrap>
               Orçamento #{orcamento.id}
             </Typography>
             <Typography variant="body2" color="text.secondary" noWrap>
@@ -210,7 +210,7 @@ export default function OrcamentoDetalhes() {
       </Paper>
 
       <Paper elevation={0} sx={{ p: 3, borderRadius: 1.5, border: (t) => `1px solid ${t.palette.divider}` }}>
-        <Typography variant="h6" fontWeight={800} mb={2}>Itens</Typography>
+        <Typography variant="h6" fontWeight={700} mb={2}>Itens</Typography>
 
         {itens.length ? (
           <Stack spacing={1}>
@@ -228,7 +228,7 @@ export default function OrcamentoDetalhes() {
                     {item.tipo_item === "peca" ? "Peça" : "Mão de obra"} • {item.quantidade}x {money(item.preco_unitario)}
                   </Typography>
                 </Stack>
-                <Typography fontWeight={800}>{money(item.subtotal)}</Typography>
+                <Typography fontWeight={700}>{money(item.subtotal)}</Typography>
               </Stack>
             ))}
           </Stack>
@@ -238,7 +238,7 @@ export default function OrcamentoDetalhes() {
 
         <Divider sx={{ my: 2 }} />
         <Stack direction="row" justifyContent="flex-end">
-          <Typography variant="h6" fontWeight={900}>
+          <Typography variant="h6" fontWeight={700}>
             Total: {money(orcamento.valor)}
           </Typography>
         </Stack>
