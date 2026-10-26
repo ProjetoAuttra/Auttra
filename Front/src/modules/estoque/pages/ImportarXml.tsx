@@ -172,7 +172,7 @@ export default function ImportarXmlPage() {
   };
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, sm: 3, md: 4 }, py: { xs: 3, md: 4 } }}>
+    <Box sx={{ maxWidth: 1200, mx: "auto" }}>
       <ModuleHeader
         title="Importar XML da nota"
         subtitle="Envie o XML da nota de compra para atualizar seu estoque com mais rapidez."

@@ -20,6 +20,7 @@ import { useAuth } from "../../../../context/AuthContext";
 import { useToast } from "../../../../context/ToastContext";
 import { useConfirm } from "../../../../context/ConfirmContext";
 import ModuleHeader from "../../../../components/layout/ModuleHeader";
+import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../components/common/AppDialog";
 import api from "../../../../api/api";
@@ -311,8 +312,16 @@ export default function ContasReceber() {
                 );
               }) : (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 8, color: "text.secondary" }}>
-                    Nenhuma conta encontrada
+                  <TableCell colSpan={7} sx={{ border: 0 }}>
+                    <EmptyState
+                      icon={<TrendingUpRoundedIcon />}
+                      title="Nenhuma conta a receber"
+                      description="Registre recebimentos de clientes para acompanhar o caixa."
+                      actionLabel="Nova Conta"
+                      onAction={() => setDialogNova(true)}
+                      isFiltered={!!query}
+                      onClearFilter={() => setQuery("")}
+                    />
                   </TableCell>
                 </TableRow>
               )}

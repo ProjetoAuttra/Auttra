@@ -134,7 +134,7 @@ export default function OrcamentoDetalhes() {
   const itens = orcamento.itens ?? [];
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, sm: 3, md: 4 }, py: { xs: 3, md: 4 } }}>
+    <Box sx={{ maxWidth: 1200, mx: "auto" }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3} gap={2}>
         <Stack direction="row" spacing={1.5} alignItems="center" minWidth={0}>
           <IconButton onClick={() => nav("/orcamentos")} size="small" sx={{ bgcolor: "action.hover", borderRadius: 1.5 }}>

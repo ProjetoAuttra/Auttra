@@ -131,7 +131,7 @@ function NewAppointmentDialog({
             )}
           />
 
-          <Grid container spacing={1.5}>
+          <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 6 }}>
               <Controller
                 name="start"

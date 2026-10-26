@@ -189,7 +189,7 @@ export default function VeiculoDialog({ open, mode, initial, defaultCliente, onC
     >
       {/* ── Body ── */}
       <AppDialogContent>
-        <Grid container spacing={1.5}>
+        <Grid container spacing={2}>
 
           {/* Cliente (só no criar) */}
           {!isEdit && (

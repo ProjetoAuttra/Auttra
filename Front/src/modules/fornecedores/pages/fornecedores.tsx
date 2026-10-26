@@ -15,6 +15,7 @@ import SupplierDialog, { type Supplier, type SupplierForm } from "../dialog";
 import api from "../../../api/api";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import ListTableContainer from "../../../components/common/ListTableContainer";
+import EmptyState from "../../../components/common/EmptyState";
 
 export default function SuppliersPage() {
   const { user } = useAuth();
@@ -156,7 +157,19 @@ export default function SuppliersPage() {
                   </TableCell>
                 </TableRow>
               )) : (
-                <TableRow><TableCell colSpan={5} align="center" sx={{ py: 8, color: "text.secondary" }}>Nenhum fornecedor encontrado</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={5} sx={{ border: 0 }}>
+                    <EmptyState
+                      icon={<BusinessRoundedIcon />}
+                      title="Nenhum fornecedor cadastrado"
+                      description="Cadastre fornecedores para registrar compras e contas a pagar."
+                      actionLabel="Novo Fornecedor"
+                      onAction={openCreate}
+                      isFiltered={!!query}
+                      onClearFilter={() => setQuery("")}
+                    />
+                  </TableCell>
+                </TableRow>
               )}
             </TableBody>
           </Table>

@@ -16,6 +16,7 @@ import ServicoDialog, { type Servico, type ServicoForm, CATEGORIAS } from "../di
 import { listarServicos, criarServico, atualizarServico, excluirServico } from "../api/api";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import ListTableContainer from "../../../components/common/ListTableContainer";
+import EmptyState from "../../../components/common/EmptyState";
 
 const CATEGORIA_LABEL: Record<string, string> = Object.fromEntries(
   CATEGORIAS.map((c) => [c.value, c.label])
@@ -240,8 +241,16 @@ export default function ServicosPage() {
                 </TableRow>
               )) : (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 8, color: "text.secondary" }}>
-                    Nenhum serviço encontrado
+                  <TableCell colSpan={6} sx={{ border: 0 }}>
+                    <EmptyState
+                      icon={<BuildRoundedIcon />}
+                      title="Nenhum serviço cadastrado"
+                      description="Cadastre os serviços e valores que a oficina oferece."
+                      actionLabel="Novo Serviço"
+                      onAction={openCreate}
+                      isFiltered={!!query}
+                      onClearFilter={() => setQuery("")}
+                    />
                   </TableCell>
                 </TableRow>
               )}

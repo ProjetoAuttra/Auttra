@@ -202,7 +202,7 @@ export default function VeiculoDetalhesPage() {
 
   return (
     <>
-      <Box sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, sm: 3, md: 4 }, py: { xs: 3, md: 4 } }}>
+      <Box sx={{ maxWidth: 1200, mx: "auto" }}>
 
         {/* ── Breadcrumb ── */}
         <Stack direction="row" alignItems="center" spacing={1.5} mb={3}>

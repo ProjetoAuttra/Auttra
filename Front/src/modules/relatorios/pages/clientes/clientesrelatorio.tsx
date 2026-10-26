@@ -67,7 +67,7 @@ export default function RelatorioClientes() {
     );
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: 'auto', px: 4, py: 3 }}>
+    <Box sx={{ maxWidth: 1500, mx: 'auto' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
         <Stack>
           <Typography variant="h5" fontWeight={700}>Relatório de Clientes</Typography>

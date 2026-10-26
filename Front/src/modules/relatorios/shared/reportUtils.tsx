@@ -164,7 +164,7 @@ export function MetricCard({
 
 export function ReportPage({ children }: { children: React.ReactNode }) {
   return (
-    <Box sx={{ maxWidth: 1500, mx: "auto", px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ maxWidth: 1500, mx: "auto" }}>
       {children}
     </Box>
   );

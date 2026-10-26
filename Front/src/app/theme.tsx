@@ -92,7 +92,8 @@ export const theme = createTheme({
         },
       },
     },
-    MuiTextField: { defaultProps: { size: 'small' } },
+    // Rótulo sempre flutuante: campos com e sem ícone ficam iguais.
+    MuiTextField: { defaultProps: { size: 'small', InputLabelProps: { shrink: true } } },
     MuiOutlinedInput: {
       styleOverrides: {
         root: {

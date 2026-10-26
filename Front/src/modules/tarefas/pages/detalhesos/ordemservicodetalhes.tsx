@@ -174,7 +174,6 @@ export default function OrdemServicoDetalhes() {
       sx={{
         maxWidth: 1200,
         mx: "auto",
-        p: { xs: 2, sm: 3, md: 4 },
       }}
     >
       <Stack
