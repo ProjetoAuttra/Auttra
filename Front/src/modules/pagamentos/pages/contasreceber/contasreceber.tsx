@@ -1,6 +1,6 @@
 import * as React from "react";
 import {
-  Box, Stack, Typography, Paper, Button, IconButton, Chip, Tooltip,
+  Box, Stack, Typography, Button, IconButton, Chip, Tooltip,
   Table, TableBody, TableCell, TableHead, TableRow, TablePagination,
   Menu, MenuItem, Divider, Fade, CircularProgress, TextField, InputAdornment,
 } from "@mui/material";
@@ -20,6 +20,7 @@ import { useAuth } from "../../../../context/AuthContext";
 import { useToast } from "../../../../context/ToastContext";
 import { useConfirm } from "../../../../context/ConfirmContext";
 import ModuleHeader from "../../../../components/layout/ModuleHeader";
+import StatCard from "../../../../components/common/StatCard";
 import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../components/common/AppDialog";
@@ -193,16 +194,7 @@ export default function ContasReceber() {
       {/* Cards */}
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mb={3}>
         {resumo.map((r) => (
-          <Paper key={r.label} elevation={0} sx={{
-            flex: 1, p: 2, borderRadius: 1.5,
-            border: (t) => `1px solid ${t.palette.divider}`,
-          }}>
-            <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
-              <Box sx={{ color: `${r.tone}.main`, display: "flex", fontSize: 18 }}>{r.icon}</Box>
-              <Typography variant="caption" color="text.secondary" fontWeight={600}>{r.label}</Typography>
-            </Stack>
-            <Typography variant="h6" fontWeight={700} color={`${r.tone}.main`}>{r.value}</Typography>
-          </Paper>
+          <StatCard key={r.label} label={r.label} value={r.value} icon={r.icon} tone={r.tone} />
         ))}
       </Stack>
 

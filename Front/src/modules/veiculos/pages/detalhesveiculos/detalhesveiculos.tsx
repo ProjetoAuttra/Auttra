@@ -190,11 +190,11 @@ export default function VeiculoDetalhesPage() {
         veiculo_id: Number(veiculo.id),
       });
       setOpenOrdem(false);
-      success("Ordem de servico criada!");
+      success("Ordem de serviço criada!");
       nav(`/ordens/${nova.id}`);
     } catch (err) {
       console.error("Erro ao criar ordem:", err);
-      error("Nao foi possivel criar a ordem de servico.");
+      error("Não foi possível criar a ordem de serviço.");
     }
   };
 

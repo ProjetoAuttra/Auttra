@@ -1,4 +1,5 @@
 import * as React from "react";
+import StatCard from "../../../components/common/StatCard";
 import {
   Box,
   Button,
@@ -10,8 +11,6 @@ import {
   type Theme,
 } from "@mui/material";
 import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
-import { alpha } from "@mui/material/styles";
-import { brand } from "../../../app/theme";
 
 export const LIMITE_ESTOQUE_BAIXO = 3;
 
@@ -108,58 +107,21 @@ export function PeriodFilter({
     <Paper variant="outlined" sx={{ p: 2, mb: 2.5, borderRadius: 1.5 }}>
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }} flexWrap="wrap">
         <TextField type="date" label="De" size="small" value={dataInicio} onChange={(e) => onDataInicio(e.target.value)} InputLabelProps={{ shrink: true }} />
-        <TextField type="date" label="Ate" size="small" value={dataFim} onChange={(e) => onDataFim(e.target.value)} InputLabelProps={{ shrink: true }} />
+        <TextField type="date" label="Até" size="small" value={dataFim} onChange={(e) => onDataFim(e.target.value)} InputLabelProps={{ shrink: true }} />
         {children}
       </Stack>
     </Paper>
   );
 }
 
-export function MetricCard({
-  label,
-  value,
-  helper,
-  tone = "default",
-  sx,
-}: {
+export function MetricCard(props: {
   label: string;
   value: string | number;
   helper?: string;
   tone?: "default" | "success" | "warning" | "error" | "info";
   sx?: SxProps<Theme>;
 }) {
-  const colors: Record<string, string> = {
-    default: brand.muted,
-    success: brand.success,
-    warning: brand.amber,
-    error: brand.error,
-    info: brand.info,
-  };
-  const color = colors[tone];
-
-  return (
-    <Paper
-      variant="outlined"
-      sx={{
-        px: 2.25,
-        py: 1.75,
-        borderRadius: 1.5,
-        bgcolor: alpha(color, tone === "default" ? 0.025 : 0.055),
-        borderColor: alpha(color, tone === "default" ? 0.16 : 0.24),
-        minWidth: 180,
-        flex: 1,
-        ...sx,
-      }}
-    >
-      <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: "uppercase", letterSpacing: 0 }}>
-        {label}
-      </Typography>
-      <Typography variant="h6" fontWeight={700} color={tone === "default" ? "text.primary" : color}>
-        {value}
-      </Typography>
-      {helper && <Typography variant="caption" color="text.secondary">{helper}</Typography>}
-    </Paper>
-  );
+  return <StatCard {...props} />;
 }
 
 export function ReportPage({ children }: { children: React.ReactNode }) {

@@ -102,6 +102,9 @@ export default function FuncionariosPage() {
   const CARGO_COLOR: Record<string, "default" | "primary" | "warning" | "error"> = {
     mecanico: "primary", atendente: "default", gerente: "warning", administrador: "error",
   };
+  const CARGO_LABEL: Record<string, string> = {
+    mecanico: "Mecânico", atendente: "Atendente", gerente: "Gerente", administrador: "Administrador",
+  };
 
   const filtered = rows.filter((r) => {
     const q = query.trim().toLowerCase();
@@ -156,7 +159,7 @@ export default function FuncionariosPage() {
                     </Stack>
                   </TableCell>
                   <TableCell>
-                    <Chip label={f.cargo ?? "—"} size="small" color={CARGO_COLOR[f.cargo?.toLowerCase() ?? ""] ?? "default"} sx={{ fontWeight: 600 }} />
+                    <Chip label={CARGO_LABEL[f.cargo?.toLowerCase() ?? ""] ?? f.cargo ?? "—"} size="small" color={CARGO_COLOR[f.cargo?.toLowerCase() ?? ""] ?? "default"} sx={{ fontWeight: 600 }} />
                   </TableCell>
                   <TableCell>{f.email || "—"}</TableCell>
                   <TableCell>{f.telefone || "—"}</TableCell>

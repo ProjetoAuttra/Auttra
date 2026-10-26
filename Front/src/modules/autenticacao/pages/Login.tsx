@@ -166,7 +166,7 @@ export default function Login() {
       await selectOffice(selectionToken, Number(officeId), remember);
       nav(paths.root, { replace: true });
     } catch (err: any) {
-      setError(err.message || "Nao foi possivel selecionar a unidade.");
+      setError(err.message || "Não foi possível selecionar a unidade.");
     } finally {
       setLoading(false);
     }

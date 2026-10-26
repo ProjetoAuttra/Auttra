@@ -8,7 +8,7 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 const STATUS_OS: Record<string, { label: string; color: "warning" | "info" | "success" | "error" }> = {
   aberta: { label: "Aberta", color: "warning" },
   em_andamento: { label: "Em andamento", color: "info" },
-  concluida: { label: "Concluida", color: "success" },
+  concluida: { label: "Concluída", color: "success" },
   cancelada: { label: "Cancelada", color: "error" },
 };
 
@@ -19,7 +19,7 @@ export default function ClienteOrdens({ ordens, onAdd }: { ordens: any[]; onAdd?
     return (
       <Box sx={{ py: 6, textAlign: "center" }}>
         <AssignmentRoundedIcon sx={{ fontSize: 40, color: "text.disabled", mb: 1 }} />
-        <Typography color="text.disabled">Nenhuma ordem de servico encontrada</Typography>
+        <Typography color="text.disabled">Nenhuma ordem de serviço encontrada</Typography>
         {onAdd && (
           <Button
             onClick={onAdd}
@@ -49,8 +49,8 @@ export default function ClienteOrdens({ ordens, onAdd }: { ordens: any[]; onAdd?
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Veiculo</TableCell>
-              <TableCell>Mecanico</TableCell>
+              <TableCell>Veículo</TableCell>
+              <TableCell>Mecânico</TableCell>
               <TableCell>Data</TableCell>
               <TableCell>Total</TableCell>
               <TableCell>Status</TableCell>

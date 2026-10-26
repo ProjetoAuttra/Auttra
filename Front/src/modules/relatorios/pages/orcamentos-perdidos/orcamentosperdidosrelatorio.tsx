@@ -46,7 +46,7 @@ type Orcamento = {
 };
 
 const statusLabel: Record<string, string> = {
-  analise: "Em analise",
+  analise: "Em análise",
   aprovado: "Aprovado",
   recusado: "Recusado",
 };
@@ -72,8 +72,8 @@ export default function OrcamentosPerdidosRelatorio() {
         const { data } = await api.get("/orcamentos", { params: { oficina_id: user?.oficina_id } });
         setOrcamentos(data ?? []);
       } catch (err) {
-        console.error("Erro ao carregar orcamentos perdidos:", err);
-        error("Nao foi possivel carregar os orcamentos.");
+        console.error("Erro ao carregar orçamentos perdidos:", err);
+        error("Não foi possível carregar os orçamentos.");
       } finally {
         setLoading(false);
       }
@@ -114,12 +114,12 @@ export default function OrcamentosPerdidosRelatorio() {
 
   const handleExportarCSV = () => {
     if (!linhas.length) {
-      warning("Nenhum orcamento para exportar.");
+      warning("Nenhum orçamento para exportar.");
       return;
     }
     exportCsv(
       `relatorio_orcamentos_perdidos_${dataInicio}_${dataFim}.csv`,
-      ["Orcamento", "Cliente", "Telefone", "Veiculo", "Status", "Data", "Dias sem resposta", "Valor", "Descricao"],
+      ["Orçamento", "Cliente", "Telefone", "Veículo", "Status", "Data", "Dias sem resposta", "Valor", "Descrição"],
       linhas.map((o) => [
         `#${o.id}`,
         o.cliente?.nome ?? "",
@@ -139,8 +139,8 @@ export default function OrcamentosPerdidosRelatorio() {
   return (
     <ReportPage>
       <ReportHeader
-        title="Relatorio de Orcamentos Perdidos"
-        subtitle="Mostra dinheiro que nao virou venda e pendencias que ainda podem ser recuperadas."
+        title="Relatório de Orçamentos Perdidos"
+        subtitle="Mostra dinheiro que não virou venda e pendências que ainda podem ser recuperadas."
         onExport={handleExportarCSV}
       />
 
@@ -153,10 +153,10 @@ export default function OrcamentosPerdidosRelatorio() {
       </PeriodFilter>
 
       <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} mb={2.5}>
-        <MetricCard label="Orcamentos" value={noPeriodo.length} />
+        <MetricCard label="Orçamentos" value={noPeriodo.length} />
         <MetricCard label="Valor perdido" value={brl(valorPerdido)} tone={valorPerdido ? "error" : "default"} />
         <MetricCard label="Pendente para recuperar" value={brl(valorPendente)} tone={valorPendente ? "warning" : "default"} />
-        <MetricCard label="Conversao" value={percent(taxaConversao)} tone={taxaConversao >= 50 ? "success" : "warning"} helper={`${aprovados.length} aprovado(s)`} />
+        <MetricCard label="Conversão" value={percent(taxaConversao)} tone={taxaConversao >= 50 ? "success" : "warning"} helper={`${aprovados.length} aprovado(s)`} />
         <MetricCard label="Potencial total" value={brl(potencialTotal)} tone="info" />
       </Stack>
 
@@ -171,23 +171,23 @@ export default function OrcamentosPerdidosRelatorio() {
                 <Typography variant="body2" noWrap>{nome}</Typography>
                 <Typography variant="body2" fontWeight={600}>{item.qtd} - {brl(item.valor)}</Typography>
               </Stack>
-            )) : <Typography variant="body2" color="text.secondary">Nenhum orcamento perdido no periodo.</Typography>}
+            )) : <Typography variant="body2" color="text.secondary">Nenhum orçamento perdido no período.</Typography>}
         </Paper>
 
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
-          <Typography fontWeight={700} mb={1}>Follow-up prioritario</Typography>
+          <Typography fontWeight={700} mb={1}>Follow-up prioritário</Typography>
           {pendentes.length ? [...pendentes]
             .sort((a, b) => daysBetween(b.data) - daysBetween(a.data) || Number(b.valor ?? 0) - Number(a.valor ?? 0))
             .slice(0, 8)
             .map((o) => (
               <Stack key={o.id} direction="row" justifyContent="space-between" gap={2} py={0.75}>
                 <Stack minWidth={0}>
-                  <Typography variant="body2" fontWeight={600} noWrap>{o.cliente?.nome ?? "Cliente nao informado"}</Typography>
+                  <Typography variant="body2" fontWeight={600} noWrap>{o.cliente?.nome ?? "Cliente não informado"}</Typography>
                   <Typography variant="caption" color="text.secondary">{daysBetween(o.data)} dia(s) em analise</Typography>
                 </Stack>
                 <Typography variant="body2" fontWeight={600}>{brl(Number(o.valor ?? 0))}</Typography>
               </Stack>
-            )) : <Typography variant="body2" color="text.secondary">Nenhum orcamento pendente no periodo.</Typography>}
+            )) : <Typography variant="body2" color="text.secondary">Nenhum orçamento pendente no período.</Typography>}
         </Paper>
       </Stack>
 
@@ -196,10 +196,10 @@ export default function OrcamentosPerdidosRelatorio() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Orcamento</TableCell>
+                <TableCell>Orçamento</TableCell>
                 <TableCell>Cliente</TableCell>
                 <TableCell>Telefone</TableCell>
-                <TableCell>Veiculo</TableCell>
+                <TableCell>Veículo</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Data</TableCell>
                 <TableCell align="right">Valor</TableCell>
@@ -219,7 +219,7 @@ export default function OrcamentosPerdidosRelatorio() {
               ))}
             </TableBody>
           </Table>
-        ) : <EmptyReport message="Nenhum orcamento encontrado nesse filtro." />}
+        ) : <EmptyReport message="Nenhum orçamento encontrado nesse filtro." />}
       </Paper>
     </ReportPage>
   );

@@ -46,7 +46,7 @@ const valorEstoque = (p: Peca) => Number(p.estoque ?? 0) * Number(p.preco_custo 
 
 const acaoSugerida = (p: Peca) => {
   if (Number(p.estoque ?? 0) <= LIMITE_ESTOQUE_BAIXO) return "Comprar";
-  if (!Number(p.preco_custo ?? 0) || !Number(p.preco_venda ?? 0)) return "Corrigir preco";
+  if (!Number(p.preco_custo ?? 0) || !Number(p.preco_venda ?? 0)) return "Corrigir preço";
   if (margem(p) < 20) return "Revisar margem";
   if (valorEstoque(p) >= 1000) return "Avaliar capital parado";
   return "OK";
@@ -65,8 +65,8 @@ export default function EstoqueCriticoRelatorio() {
         const { data } = await api.get("/pecas", { params: { oficina_id: user?.oficina_id } });
         setPecas(data ?? []);
       } catch (err) {
-        console.error("Erro ao carregar estoque critico:", err);
-        error("Nao foi possivel carregar o estoque.");
+        console.error("Erro ao carregar estoque crítico:", err);
+        error("Não foi possível carregar o estoque.");
       } finally {
         setLoading(false);
       }
@@ -94,12 +94,12 @@ export default function EstoqueCriticoRelatorio() {
 
   const handleExportarCSV = () => {
     if (!filtradas.length) {
-      warning("Nenhuma peca para exportar.");
+      warning("Nenhuma peça para exportar.");
       return;
     }
     exportCsv(
       `relatorio_estoque_critico_${new Date().toISOString().slice(0, 10)}.csv`,
-      ["Peca", "Estoque", "Custo", "Venda", "Valor em estoque", "Margem", "Acao sugerida"],
+      ["Peça", "Estoque", "Custo", "Venda", "Valor em estoque", "Margem", "Ação sugerida"],
       filtradas.map((p) => [
         p.nome,
         Number(p.estoque ?? 0),
@@ -117,16 +117,16 @@ export default function EstoqueCriticoRelatorio() {
   return (
     <ReportPage>
       <ReportHeader
-        title="Relatorio de Estoque Critico e Dinheiro Parado"
-        subtitle="Mostra o que comprar, onde ha preco errado e quanto capital esta preso em pecas."
+        title="Relatório de Estoque Crítico e Dinheiro Parado"
+        subtitle="Mostra o que comprar, onde há preço errado e quanto capital está preso em peças."
         onExport={handleExportarCSV}
       />
 
       <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} mb={2.5}>
-        <MetricCard label="Pecas cadastradas" value={pecas.length} />
+        <MetricCard label="Peças cadastradas" value={pecas.length} />
         <MetricCard label="Comprar urgente" value={criticas.length} tone={criticas.length ? "error" : "default"} helper={`Estoque <= ${LIMITE_ESTOQUE_BAIXO}`} />
         <MetricCard label="Capital em estoque" value={brl(capitalParado)} tone="warning" />
-        <MetricCard label="Sem preco correto" value={semPreco.length} tone={semPreco.length ? "error" : "default"} />
+        <MetricCard label="Sem preço correto" value={semPreco.length} tone={semPreco.length ? "error" : "default"} />
         <MetricCard label="Margem baixa" value={margemBaixa.length} tone={margemBaixa.length ? "warning" : "default"} helper="< 20%" />
       </Stack>
 
@@ -138,7 +138,7 @@ export default function EstoqueCriticoRelatorio() {
               <Typography variant="body2" noWrap>{p.nome}</Typography>
               <Typography variant="body2" fontWeight={600}>{brl(valorEstoque(p))}</Typography>
             </Stack>
-          )) : <Typography variant="body2" color="text.secondary">Nenhuma peca cadastrada.</Typography>}
+          )) : <Typography variant="body2" color="text.secondary">Nenhuma peça cadastrada.</Typography>}
         </Paper>
 
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
@@ -146,7 +146,7 @@ export default function EstoqueCriticoRelatorio() {
           <TextField
             size="small"
             fullWidth
-            label="Buscar peca"
+            label="Buscar peça"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -158,19 +158,19 @@ export default function EstoqueCriticoRelatorio() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Peca</TableCell>
+                <TableCell>Peça</TableCell>
                 <TableCell align="right">Estoque</TableCell>
                 <TableCell align="right">Custo</TableCell>
                 <TableCell align="right">Venda</TableCell>
                 <TableCell align="right">Valor estoque</TableCell>
                 <TableCell align="right">Margem</TableCell>
-                <TableCell>Acao sugerida</TableCell>
+                <TableCell>Ação sugerida</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filtradas.map((p) => {
                 const acao = acaoSugerida(p);
-                const tone = acao === "Comprar" || acao === "Corrigir preco" ? "error" : acao === "OK" ? "success" : "warning";
+                const tone = acao === "Comprar" || acao === "Corrigir preço" ? "error" : acao === "OK" ? "success" : "warning";
                 return (
                   <TableRow key={p.id} hover>
                     <TableCell>
@@ -188,7 +188,7 @@ export default function EstoqueCriticoRelatorio() {
               })}
             </TableBody>
           </Table>
-        ) : <EmptyReport message="Nenhuma peca encontrada." />}
+        ) : <EmptyReport message="Nenhuma peça encontrada." />}
       </Paper>
     </ReportPage>
   );

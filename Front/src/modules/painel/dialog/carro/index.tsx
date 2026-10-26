@@ -125,7 +125,7 @@ export default function DialogCarro({
                   required: 'Informe o ano',
                   validate: (v) => {
                     const n = typeof v === 'string' ? parseInt(v, 10) : v;
-                    if (!n || isNaN(n)) return 'Ano invalido';
+                    if (!n || isNaN(n)) return 'Ano inválido';
                     if (n < 1900 || n > currentYear + 1) return `Ano deve estar entre 1900 e ${currentYear + 1}`;
                     return true;
                   },

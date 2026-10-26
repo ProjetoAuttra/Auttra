@@ -116,7 +116,7 @@ export default function Configuracoes() {
       .catch(() => {
         if (active) {
           setLoadErrorAgenda(true);
-          error('Nao foi possivel carregar as configuracoes de agenda.');
+          error('Não foi possível carregar as configurações de agenda.');
         }
       })
       .finally(() => {
@@ -138,7 +138,7 @@ export default function Configuracoes() {
       .catch(() => {
         if (active) {
           setLoadErrorFinanceiro(true);
-          error('Nao foi possivel carregar as configuracoes financeiras.');
+          error('Não foi possível carregar as configurações financeiras.');
         }
       })
       .finally(() => {
@@ -160,7 +160,7 @@ export default function Configuracoes() {
       .catch(() => {
         if (active) {
           setLoadErrorNotificacoes(true);
-          error('Nao foi possivel carregar as configuracoes de notificacoes.');
+          error('Não foi possível carregar as configurações de notificações.');
         }
       })
       .finally(() => {
@@ -187,10 +187,10 @@ export default function Configuracoes() {
       try {
         const data = await salvarConfigAgenda(agenda);
         setAgenda(data);
-        success('Configuracoes de agenda salvas.');
+        success('Configurações de agenda salvas.');
         setEditing(null);
       } catch {
-        error('Nao foi possivel salvar as configuracoes de agenda.');
+        error('Não foi possível salvar as configurações de agenda.');
       } finally {
         setSavingAgenda(false);
       }
@@ -202,10 +202,10 @@ export default function Configuracoes() {
       try {
         const data = await salvarConfigFinanceiro(financeiro);
         setFinanceiro(data);
-        success('Configuracoes financeiras salvas.');
+        success('Configurações financeiras salvas.');
         setEditing(null);
       } catch {
-        error('Nao foi possivel salvar as configuracoes financeiras.');
+        error('Não foi possível salvar as configurações financeiras.');
       } finally {
         setSavingFinanceiro(false);
       }
@@ -221,10 +221,10 @@ export default function Configuracoes() {
     try {
       const data = await salvarConfigNotificacoes(notificacoes);
       setNotificacoes(data);
-      success('Configuracoes de notificacoes salvas.');
+      success('Configurações de notificações salvas.');
       setEditing(null);
     } catch {
-      error('Nao foi possivel salvar as configuracoes de notificacoes.');
+      error('Não foi possível salvar as configurações de notificações.');
     } finally {
       setSavingNotificacoes(false);
     }
@@ -374,11 +374,11 @@ export default function Configuracoes() {
                   checked={notificacoes.agenda.ativo}
                   onChange={(e) => setNotificacoes((p) => ({ ...p, agenda: { ...p.agenda, ativo: e.target.checked } }))}
                 />
-                <Typography variant="body2">Avisar agendamentos proximos</Typography>
+                <Typography variant="body2">Avisar agendamentos próximos</Typography>
               </Stack>
 
               <TextField
-                label="Agendamentos: dias de antecedencia"
+                label="Agendamentos: dias de antecedência"
                 type="number"
                 value={notificacoes.agenda.diasAntecedencia}
                 onChange={(e) => setNotificacoes((p) => ({ ...p, agenda: { ...p.agenda, diasAntecedencia: Number(e.target.value) } }))}
@@ -408,7 +408,7 @@ export default function Configuracoes() {
               </Stack>
 
               <TextField
-                label="Estoque: quantidade minima"
+                label="Estoque: quantidade mínima"
                 type="number"
                 value={notificacoes.estoque.limiteBaixo}
                 onChange={(e) => setNotificacoes((p) => ({ ...p, estoque: { ...p.estoque, limiteBaixo: Number(e.target.value) } }))}
@@ -431,7 +431,7 @@ export default function Configuracoes() {
                   onChange={(e) => setNotificacoes((p) => ({ ...p, ordens: { ...p.ordens, diasParada: Number(e.target.value) } }))}
                 />
                 <TextField
-                  label="O.S: dias critica"
+                  label="O.S: dias crítica"
                   type="number"
                   fullWidth
                   value={notificacoes.ordens.diasCritico}
@@ -444,11 +444,11 @@ export default function Configuracoes() {
                   checked={notificacoes.orcamentos.ativo}
                   onChange={(e) => setNotificacoes((p) => ({ ...p, orcamentos: { ...p.orcamentos, ativo: e.target.checked } }))}
                 />
-                <Typography variant="body2">Avisar orcamentos pendentes</Typography>
+                <Typography variant="body2">Avisar orçamentos pendentes</Typography>
               </Stack>
 
               <TextField
-                label="Orcamentos: dias em analise"
+                label="Orçamentos: dias em análise"
                 type="number"
                 value={notificacoes.orcamentos.diasPendente}
                 onChange={(e) => setNotificacoes((p) => ({ ...p, orcamentos: { ...p.orcamentos, diasPendente: Number(e.target.value) } }))}
@@ -462,8 +462,8 @@ export default function Configuracoes() {
                 ['Agenda', notificacoes.agenda.ativo ? `Ativa - ${notificacoes.agenda.diasAntecedencia} dia(s) antes` : 'Inativa'],
                 ['Financeiro', notificacoes.financeiro.ativo ? `Ativo - ${notificacoes.financeiro.diasVencimento} dia(s) antes` : 'Inativo'],
                 ['Estoque', notificacoes.estoque.ativo ? `Ativo - limite ${notificacoes.estoque.limiteBaixo} un.` : 'Inativo'],
-                ['O.S paradas', notificacoes.ordens.ativo ? `Ativa - ${notificacoes.ordens.diasParada}d / critica ${notificacoes.ordens.diasCritico}d` : 'Inativa'],
-                ['Orcamentos', notificacoes.orcamentos.ativo ? `Ativo - ${notificacoes.orcamentos.diasPendente} dia(s) em analise` : 'Inativo'],
+                ['O.S paradas', notificacoes.ordens.ativo ? `Ativa - ${notificacoes.ordens.diasParada}d / crítica ${notificacoes.ordens.diasCritico}d` : 'Inativa'],
+                ['Orçamentos', notificacoes.orcamentos.ativo ? `Ativo - ${notificacoes.orcamentos.diasPendente} dia(s) em análise` : 'Inativo'],
               ]}
             />
           )}
@@ -532,7 +532,7 @@ function AccessProfilesManager() {
         setForm(first);
       }
     } catch {
-      error('Nao foi possivel carregar os perfis de acesso.');
+      error('Não foi possível carregar os perfis de acesso.');
     } finally {
       setLoading(false);
     }
@@ -589,7 +589,7 @@ function AccessProfilesManager() {
       await load();
       setDialogOpen(false);
     } catch (err: any) {
-      error(err?.response?.data?.message ?? 'Nao foi possivel salvar o perfil.');
+      error(err?.response?.data?.message ?? 'Não foi possível salvar o perfil.');
     } finally {
       setSaving(false);
     }
@@ -599,7 +599,7 @@ function AccessProfilesManager() {
     if (!selectedId) return;
     const ok = await confirm({
       title: 'Excluir perfil?',
-      message: 'Perfis vinculados a usuarios ou definidos como padrao nao podem ser excluidos.',
+      message: 'Perfis vinculados a usuários ou definidos como padrão não podem ser excluídos.',
       confirmLabel: 'Excluir',
       variant: 'danger',
     });
@@ -607,12 +607,12 @@ function AccessProfilesManager() {
 
     try {
       await excluirPerfilAcesso(selectedId);
-      success('Perfil excluido com sucesso.');
+      success('Perfil excluído com sucesso.');
       setSelectedId(null);
       setDialogOpen(false);
       await load();
     } catch (err: any) {
-      error(err?.response?.data?.message ?? 'Nao foi possivel excluir o perfil.');
+      error(err?.response?.data?.message ?? 'Não foi possível excluir o perfil.');
     }
   };
 
@@ -674,11 +674,11 @@ function AccessProfilesManager() {
                 <Stack minWidth={0}>
                   <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                     <Typography fontWeight={700}>{profile.nome}</Typography>
-                    {profile.padrao && <Chip label="Padrao" size="small" color="primary" variant="outlined" />}
+                    {profile.padrao && <Chip label="Padrão" size="small" color="primary" variant="outlined" />}
                     {profile.sistema && <Chip label="Sistema" size="small" variant="outlined" />}
                   </Stack>
                   <Typography variant="body2" color="text.secondary" noWrap>
-                    {profile.descricao || `${permissionsCount} permissao(oes) configurada(s)`}
+                    {profile.descricao || `${permissionsCount} permissão(ões) configurada(s)`}
                   </Typography>
                 </Stack>
               </Stack>
@@ -726,12 +726,12 @@ function AccessProfilesManager() {
               variant="standard"
             >
               <MenuItem value="personalizado">Personalizado</MenuItem>
-              <MenuItem value="padrao">Padrao</MenuItem>
+              <MenuItem value="padrao">Padrão</MenuItem>
             </TextField>
           </Stack>
 
           <TextField
-            label="Descricao"
+            label="Descrição"
             value={form.descricao ?? ''}
             onChange={(event) => setForm((prev) => ({ ...prev, descricao: event.target.value }))}
             fullWidth

@@ -81,7 +81,7 @@ export default function VeiculosPage() {
   const onSubmit = async (data: VeiculoForm) => {
     try {
       if (mode === "create") {
-        if (!user?.oficina_id) { error("Usuario sem oficina vinculada."); return; }
+        if (!user?.oficina_id) { error("Usuário sem oficina vinculada."); return; }
         const novo = await criarVeiculo(data, user.oficina_id);
         setRows((prev) => [novo, ...prev]);
         success("Veículo cadastrado com sucesso!");
@@ -117,8 +117,8 @@ export default function VeiculosPage() {
   return (
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
       <ModuleHeader
-        title="Veiculos"
-        subtitle="Controle placas, proprietarios e dados dos veiculos atendidos."
+        title="Veículos"
+        subtitle="Controle placas, proprietários e dados dos veículos atendidos."
         icon={<DirectionsCarRoundedIcon />}
         metrics={[
           { label: "Cadastrados", value: rows.length, tone: "primary" },
@@ -128,7 +128,7 @@ export default function VeiculosPage() {
         searchValue={query}
         searchPlaceholder="Pesquisar por placa, modelo, marca ou cliente"
         onSearchChange={setQuery}
-        actionLabel="Novo Veiculo"
+        actionLabel="Novo Veículo"
         onAction={openCreate}
       />
 
@@ -215,7 +215,7 @@ export default function VeiculosPage() {
                       icon={<DirectionsCarRoundedIcon />}
                       title="Nenhum veículo cadastrado"
                       description="Cadastre o primeiro veículo para vincular aos clientes e às ordens de serviço."
-                      actionLabel="Novo Veiculo"
+                      actionLabel="Novo Veículo"
                       onAction={openCreate}
                       isFiltered={!!query}
                       onClearFilter={() => setQuery("")}

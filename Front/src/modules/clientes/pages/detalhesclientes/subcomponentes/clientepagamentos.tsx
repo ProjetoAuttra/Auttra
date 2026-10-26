@@ -120,7 +120,7 @@ export default function ClientePagamentos({
 
   const handleCriarPagamento = async (payload: any) => {
     if (!clienteId || !oficinaId) {
-      error("Nao foi possivel identificar cliente ou oficina.");
+      error("Não foi possível identificar cliente ou oficina.");
       return;
     }
     try {
@@ -135,7 +135,7 @@ export default function ClientePagamentos({
       setDialogNova(false);
       success("Pagamento cadastrado!");
     } catch (err: any) {
-      error(err?.response?.data?.message ?? "Nao foi possivel cadastrar o pagamento.");
+      error(err?.response?.data?.message ?? "Não foi possível cadastrar o pagamento.");
     }
   };
 
@@ -407,7 +407,7 @@ function NovoPagamentoClienteDialog({
     >
       <AppDialogContent>
         <Stack spacing={2}>
-          <TextField label="Descricao *" value={form.descricao} onChange={(e) => set("descricao", e.target.value)} size="small" fullWidth />
+          <TextField label="Descrição *" value={form.descricao} onChange={(e) => set("descricao", e.target.value)} size="small" fullWidth />
           <TextField label="Categoria" value={form.categoria} onChange={(e) => set("categoria", e.target.value)} size="small" fullWidth />
           <TextField
             label="Valor *"
@@ -427,10 +427,10 @@ function NovoPagamentoClienteDialog({
             fullWidth
             InputLabelProps={{ shrink: true }}
           />
-          <TextField select label="Metodo" value={form.metodo} onChange={(e) => set("metodo", e.target.value)} size="small" fullWidth>
+          <TextField select label="Método" value={form.metodo} onChange={(e) => set("metodo", e.target.value)} size="small" fullWidth>
             {METODO_OPTIONS.map((m) => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
           </TextField>
-          <TextField label="Observacao" value={form.observacao} onChange={(e) => set("observacao", e.target.value)} size="small" fullWidth multiline rows={2} />
+          <TextField label="Observação" value={form.observacao} onChange={(e) => set("observacao", e.target.value)} size="small" fullWidth multiline rows={2} />
         </Stack>
       </AppDialogContent>
       <AppDialogActions>

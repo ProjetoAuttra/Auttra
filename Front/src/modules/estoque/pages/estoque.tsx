@@ -4,7 +4,7 @@ import {
   Box, Stack, Typography, IconButton, Menu, MenuItem, Divider,
   Avatar, Table, TableBody, TableCell, TableHead, TableRow,
   TablePagination, Fade, Chip, Button, TextField, InputAdornment,
-  Paper, TableSortLabel, Tooltip,
+  TableSortLabel, Tooltip,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
@@ -23,6 +23,7 @@ import {
   listarEstoque, criarEstoque, atualizarEstoque, excluirEstoque, ajustarEstoque,
 } from "../api/api";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
+import StatCard from "../../../components/common/StatCard";
 import ListTableContainer from "../../../components/common/ListTableContainer";
 import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationEstoque } from "../../../components/common/Illustrations";
@@ -196,13 +197,13 @@ export default function EstoquePage() {
 
       {/* ── Métricas ───────────────────────────────────────────── */}
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mb: 2 }}>
-        <MetricCard label="Total de peças" valor={String(rows.length)} />
-        <MetricCard
+        <StatCard label="Total de peças" value={rows.length} />
+        <StatCard
           label="Baixo estoque"
-          valor={String(totalBaixo)}
-          destaque={totalBaixo > 0}
+          value={totalBaixo}
+          tone={totalBaixo > 0 && !filtroBaixo ? "warning" : "default"}
           onClick={() => { setFiltroBaixo((v) => !v); setPage(0); }}
-          ativo={filtroBaixo}
+          active={filtroBaixo}
         />
       </Stack>
 
@@ -430,35 +431,5 @@ export default function EstoquePage() {
         onDelete={(i) => onDelete(i.id)}
       />
     </Box>
-  );
-}
-
-function MetricCard({
-  label, valor, destaque = false, ativo = false, onClick,
-}: {
-  label: string; valor: string; destaque?: boolean; ativo?: boolean; onClick?: () => void;
-}) {
-  return (
-    <Paper
-      variant="outlined"
-      onClick={onClick}
-      sx={{
-        px: 2.5, py: 1.5, borderRadius: 1.5, flex: 1, minWidth: 140,
-        cursor: onClick ? "pointer" : "default",
-        borderColor: ativo ? "primary.main" : destaque ? "warning.main" : "divider",
-        bgcolor: ativo ? (t) => alpha(t.palette.primary.main, 0.04)
-          : destaque ? (t) => alpha(t.palette.warning.main, 0.04) : "background.paper",
-        transition: "border-color .2s, background .2s",
-        "&:hover": onClick ? { borderColor: "primary.main" } : {},
-      }}
-    >
-      <Typography variant="caption" color="text.secondary" fontWeight={600}
-        sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}>
-        {label}
-      </Typography>
-      <Typography variant="h6" fontWeight={700} color={destaque && !ativo ? "warning.dark" : "text.primary"}>
-        {valor}
-      </Typography>
-    </Paper>
   );
 }

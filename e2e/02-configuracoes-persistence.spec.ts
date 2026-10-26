@@ -38,7 +38,7 @@ test.describe("Configuracoes - Agenda e Financeiro persistem de verdade", () => 
     await tempoMedioField.fill("75 minutos");
     await section.getByTestId("save-agenda").click();
 
-    await expect(page.getByText("Configuracoes de agenda salvas.")).toBeVisible();
+    await expect(page.getByText("Configurações de agenda salvas.")).toBeVisible();
 
     await page.reload();
     const reloadedSection = await openSection(page, "agenda");
@@ -53,7 +53,7 @@ test.describe("Configuracoes - Agenda e Financeiro persistem de verdade", () => 
     await jurosField.fill("7%");
     await section.getByTestId("save-financeiro").click();
 
-    await expect(page.getByText("Configuracoes financeiras salvas.")).toBeVisible();
+    await expect(page.getByText("Configurações financeiras salvas.")).toBeVisible();
 
     await page.reload();
     const reloadedSection = await openSection(page, "financeiro");
