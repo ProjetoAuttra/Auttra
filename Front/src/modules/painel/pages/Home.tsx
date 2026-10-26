@@ -59,7 +59,7 @@ function ShortcutCard({ icon, title, subtitle, onClick }: ShortcutProps) {
         cursor: "pointer",
         background: SURFACE,
         border: `1px solid ${LINE}`,
-        borderRadius: 3,
+        borderRadius: 1.5,
         p: "1.75rem 1.5rem",
         display: "flex",
         gap: 2,

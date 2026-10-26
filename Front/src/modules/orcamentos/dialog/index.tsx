@@ -488,7 +488,7 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
               </Stack>
             )}
 
-            <Box sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 2, overflow: "hidden", bgcolor: "background.paper" }}>
+            <Box sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 1.5, overflow: "hidden", bgcolor: "background.paper" }}>
               {itens.length ? (
                 <Stack divider={<Divider />}>
                   {itens.map((item) => (
@@ -619,7 +619,7 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
         </Grid>
 
         <Collapse in={submitAttempted && Object.keys(errors).length > 0}>
-          <Alert severity="error" sx={{ mt: 0.5, borderRadius: 2 }}>
+          <Alert severity="error" sx={{ mt: 0.5, borderRadius: 1.25 }}>
             Preencha todos os campos obrigatórios antes de salvar.
           </Alert>
         </Collapse>

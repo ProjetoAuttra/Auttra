@@ -111,7 +111,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                 fullWidth
                 PaperProps={{
                     sx: {
-                        borderRadius: 3,
+                        borderRadius: 1.5,
                         overflow: "hidden",
                         boxShadow: (t) => `0 24px 60px ${alpha(t.palette.common.black, 0.2)}`,
                     },
@@ -137,7 +137,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                             sx={{
                                 width: 48,
                                 height: 48,
-                                borderRadius: 2.5,
+                                borderRadius: 1.5,
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",

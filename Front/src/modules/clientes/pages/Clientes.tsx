@@ -177,7 +177,7 @@ export default function ClientsPage() {
       />
 
       <Fade in timeout={400}>
-        <ListTableContainer sx={{ borderRadius: 3 }}>
+        <ListTableContainer sx={{ borderRadius: 1.5 }}>
           <Table stickyHeader>
             <TableHead>
               <TableRow>
@@ -237,7 +237,7 @@ export default function ClientsPage() {
         onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
         rowsPerPageOptions={[5, 10, 20]} labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
-        sx={{ mt: 1.5, borderRadius: 3, bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}` }}
+        sx={{ mt: 1.5, borderRadius: 1.5, bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}` }}
       />
 
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}

@@ -218,7 +218,7 @@ export default function Login() {
           position: "absolute",
           inset: { xs: 16, md: 28 },
           border: `1px solid ${brand.line}`,
-          borderRadius: 2,
+          borderRadius: 1.5,
           background:
             "linear-gradient(180deg, rgba(255,255,255,0.84) 0%, rgba(255,255,255,0.38) 100%)",
           zIndex: 0,
@@ -267,7 +267,7 @@ export default function Login() {
           sx={{
             bgcolor: "#FFFFFF",
             border: `1px solid ${brand.line}`,
-            borderRadius: 2,
+            borderRadius: 1.5,
             px: { xs: 3.5, sm: 5 },
             pt: 4.5,
             pb: 5,
@@ -449,7 +449,7 @@ export default function Login() {
                 <Alert
                   severity="error"
                   onClose={() => setError(null)}
-                  sx={{ borderRadius: 2, py: 0.5, fontSize: 13 }}
+                  sx={{ borderRadius: 1.5, py: 0.5, fontSize: 13 }}
                 >
                   {error}
                 </Alert>

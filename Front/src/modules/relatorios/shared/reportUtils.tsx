@@ -84,7 +84,7 @@ export function ReportHeader({
         <Typography variant="h5" fontWeight={700}>{title}</Typography>
         <Typography variant="body2" color="text.secondary">{subtitle}</Typography>
       </Stack>
-      <Button variant="contained" startIcon={<FileDownloadRoundedIcon />} onClick={onExport} sx={{ borderRadius: 2, alignSelf: { xs: "flex-start", sm: "center" } }}>
+      <Button variant="contained" startIcon={<FileDownloadRoundedIcon />} onClick={onExport} sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}>
         Exportar CSV
       </Button>
     </Stack>
@@ -105,7 +105,7 @@ export function PeriodFilter({
   children?: React.ReactNode;
 }) {
   return (
-    <Paper variant="outlined" sx={{ p: 2, mb: 2.5, borderRadius: 2 }}>
+    <Paper variant="outlined" sx={{ p: 2, mb: 2.5, borderRadius: 1.5 }}>
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }} flexWrap="wrap">
         <TextField type="date" label="De" size="small" value={dataInicio} onChange={(e) => onDataInicio(e.target.value)} InputLabelProps={{ shrink: true }} />
         <TextField type="date" label="Ate" size="small" value={dataFim} onChange={(e) => onDataFim(e.target.value)} InputLabelProps={{ shrink: true }} />
@@ -143,7 +143,7 @@ export function MetricCard({
       sx={{
         px: 2.25,
         py: 1.75,
-        borderRadius: 2,
+        borderRadius: 1.5,
         bgcolor: alpha(color, tone === "default" ? 0.025 : 0.055),
         borderColor: alpha(color, tone === "default" ? 0.16 : 0.24),
         minWidth: 180,

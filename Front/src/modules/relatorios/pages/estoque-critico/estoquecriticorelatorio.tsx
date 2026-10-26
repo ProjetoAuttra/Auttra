@@ -131,7 +131,7 @@ export default function EstoqueCriticoRelatorio() {
       </Stack>
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
           <Typography fontWeight={800} mb={1}>Maior dinheiro parado</Typography>
           {topCapital.length ? topCapital.map((p) => (
             <Stack key={p.id} direction="row" justifyContent="space-between" py={0.75} gap={2}>
@@ -141,7 +141,7 @@ export default function EstoqueCriticoRelatorio() {
           )) : <Typography variant="body2" color="text.secondary">Nenhuma peca cadastrada.</Typography>}
         </Paper>
 
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
           <Typography fontWeight={800} mb={1}>Filtro</Typography>
           <TextField
             size="small"
@@ -153,7 +153,7 @@ export default function EstoqueCriticoRelatorio() {
         </Paper>
       </Stack>
 
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflowX: "auto" }}>
+      <Paper variant="outlined" sx={{ borderRadius: 1.5, overflowX: "auto" }}>
         {filtradas.length ? (
           <Table>
             <TableHead>

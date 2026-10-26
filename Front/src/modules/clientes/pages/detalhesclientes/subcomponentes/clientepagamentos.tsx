@@ -204,7 +204,7 @@ export default function ClientePagamentos({
           { label: "Vencido",         value: brl(totalVencidos), color: "error.main",    icon: <ErrorOutlineRoundedIcon sx={{ fontSize: 16 }} /> },
         ].map((c) => (
           <Paper key={c.label} elevation={0} sx={{
-            flex: 1, p: 2, borderRadius: 2, border: (t) => `1px solid ${t.palette.divider}`,
+            flex: 1, p: 2, borderRadius: 1.5, border: (t) => `1px solid ${t.palette.divider}`,
           }}>
             <Stack direction="row" alignItems="center" spacing={0.75} mb={0.25}>
               <Box sx={{ color: c.color, display: "flex" }}>{c.icon}</Box>

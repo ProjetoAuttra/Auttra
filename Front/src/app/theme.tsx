@@ -120,6 +120,15 @@ export const theme = createTheme({
         root: { borderRadius: radius.pill, fontWeight: 600, fontSize: 12 },
         sizeSmall: { height: 22 },
       },
+      // Chips preenchidos são "tonais" (fundo claro, texto escuro): leitura de status sem gritar.
+      variants: [
+        { props: { variant: 'filled', color: 'default' }, style: { backgroundColor: brand.subtleStrong, color: '#475569' } },
+        { props: { variant: 'filled', color: 'primary' }, style: { backgroundColor: brand.primarySoft, color: brand.primaryDark } },
+        { props: { variant: 'filled', color: 'success' }, style: { backgroundColor: '#ECFDF5', color: '#047857' } },
+        { props: { variant: 'filled', color: 'warning' }, style: { backgroundColor: '#FFFBEB', color: '#B45309' } },
+        { props: { variant: 'filled', color: 'error' }, style: { backgroundColor: '#FEF2F2', color: '#B91C1C' } },
+        { props: { variant: 'filled', color: 'info' }, style: { backgroundColor: '#F0F9FF', color: '#0369A1' } },
+      ],
     },
     MuiTableCell: {
       styleOverrides: {
