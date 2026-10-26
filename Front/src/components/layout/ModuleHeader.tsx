@@ -55,7 +55,7 @@ export default function ModuleHeader({
       >
         <Stack spacing={1} minWidth={0}>
           <Stack direction="row" spacing={1.25} alignItems="center" minWidth={0}>
-            {icon && <Box sx={{ color: "primary.main", display: "flex", "& svg": { fontSize: 24 } }}>{icon}</Box>}
+            {icon && <Box sx={{ color: "text.secondary", display: "flex", "& svg": { fontSize: 24 } }}>{icon}</Box>}
             <Box minWidth={0}>
               <Typography variant="h5" sx={{ fontSize: { xs: 22, md: 24 }, lineHeight: 1.15, fontWeight: 700 }}>
                 {title}

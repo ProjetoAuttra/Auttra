@@ -127,9 +127,10 @@ export default function NotificationsMenu() {
             width: 36,
             height: 36,
             borderRadius: 1.5,
-            color: "#FFFFFF",
+            color: "text.secondary",
             "&:hover": {
-              bgcolor: "rgba(255,255,255,0.12)",
+              bgcolor: brand.subtleStrong,
+              color: "text.primary",
             },
           }}
         >

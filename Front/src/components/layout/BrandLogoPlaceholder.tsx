@@ -1,25 +1,46 @@
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
+import { brand } from "../../app/theme";
 
 /**
- * Placeholder temporário para a logo da marca. Quando o asset definitivo
- * existir, trocar o conteúdo deste componente (texto -> imagem) é o único
- * lugar que precisa mudar.
+ * Marca provisória (monograma + nome) até existir o asset definitivo da logo.
+ * Trocar o conteúdo deste componente é o único lugar que precisa mudar.
  */
-export default function BrandLogoPlaceholder() {
+export default function BrandLogoPlaceholder({
+  compact = false,
+  onDark = false,
+}: {
+  compact?: boolean;
+  onDark?: boolean;
+}) {
   return (
-    <Box
-      component="span"
-      sx={{
-        fontSize: 14,
-        fontWeight: 700,
-        letterSpacing: 1.5,
-        color: "#FFFFFF",
-        userSelect: "none",
-        mr: 2,
-        flexShrink: 0,
-      }}
-    >
-      LOGO
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, userSelect: "none", flexShrink: 0 }}>
+      <Box
+        sx={{
+          width: 32,
+          height: 32,
+          borderRadius: 1,
+          display: "grid",
+          placeItems: "center",
+          bgcolor: brand.primary,
+          color: "#FFFFFF",
+          fontSize: 17,
+          fontWeight: 800,
+        }}
+      >
+        A
+      </Box>
+      {!compact && (
+        <Typography
+          sx={{
+            fontSize: 19,
+            fontWeight: 800,
+            letterSpacing: "-0.02em",
+            color: onDark ? "#FFFFFF" : brand.ink,
+          }}
+        >
+          Auttra
+        </Typography>
+      )}
     </Box>
   );
 }
