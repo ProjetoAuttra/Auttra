@@ -64,7 +64,7 @@ function RelatorioCard({
       elevation={0}
       sx={{
         p: 0,
-        borderRadius: 2,
+        borderRadius: 1.5,
         height: "100%",
         display: "flex",
         flexDirection: "column",
@@ -76,7 +76,7 @@ function RelatorioCard({
     >
       <Box sx={{ p: 2.5, background: `linear-gradient(135deg, ${alpha(cor, 0.12)}, ${alpha(cor, 0.04)})`, borderBottom: `1px solid ${alpha(cor, 0.15)}` }}>
         <Stack direction="row" spacing={2} alignItems="center">
-          <Box sx={{ width: 46, height: 46, borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center", bgcolor: alpha(cor, 0.15), color: cor, "& svg": { fontSize: 25 } }}>
+          <Box sx={{ width: 46, height: 46, borderRadius: 1.5, display: "flex", alignItems: "center", justifyContent: "center", bgcolor: alpha(cor, 0.15), color: cor, "& svg": { fontSize: 25 } }}>
             {icone}
           </Box>
           <Stack flex={1} spacing={0.25} minWidth={0}>
@@ -189,7 +189,7 @@ export default function Relatorios() {
   const p = preview;
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2.5, md: 3 } }}>
+    <Box sx={{ maxWidth: 1500, mx: "auto" }}>
       <Stack spacing={0.5} mb={4}>
         <Typography variant="h5" fontWeight={700}>Relatorios</Typography>
         <Typography variant="body2" color="text.secondary">

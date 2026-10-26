@@ -110,7 +110,7 @@ export default function RelatorioAgenda() {
         <Button
           variant="contained"
           startIcon={<FileDownloadRoundedIcon />}
-          sx={{ borderRadius: 2 }}
+          sx={{ borderRadius: 1.5 }}
           onClick={handleExportarCSV}
         >
           Exportar CSV

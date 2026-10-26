@@ -1,13 +1,12 @@
 import * as React from "react";
 import {
-  Box, Stack, Typography, Button,
+  Box, Stack, Typography,
   IconButton, Table, TableBody, TableCell, TableHead,
   TableRow, Menu, MenuItem, Fade, Chip, TablePagination,
   CircularProgress, Divider, ToggleButton, ToggleButtonGroup, Tooltip,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { brand } from "../../../app/theme";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
@@ -27,6 +26,7 @@ import api from "../../../api/api";
 import ListTableContainer from "../../../components/common/ListTableContainer";
 import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationOrcamentos } from "../../../components/common/Illustrations";
+import ModuleHeader from "../../../components/layout/ModuleHeader";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -310,29 +310,16 @@ export default function OrcamentosPage() {
   if (loading) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 2, sm: 3, md: 4 }, py: { xs: 3, md: 4 } }}>
+    <Box sx={{ maxWidth: 1500, mx: "auto" }}>
 
       {/* ── Header ── */}
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3} flexWrap="wrap" gap={2}>
-        <Stack spacing={0.3}>
-          <Typography variant="h5" fontWeight={700}>Orçamentos</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Controle de orçamentos, aprovações e conversão em O.S.
-          </Typography>
-        </Stack>
-        <Button
-          variant="contained"
-          startIcon={<AddRoundedIcon />}
-          onClick={() => setDialogOpen(true)}
-          disableElevation
-          sx={{
-            textTransform: "none", fontWeight: 700, px: 2.5,
-            background: (t) => `linear-gradient(135deg, ${t.palette.primary.main}, ${t.palette.primary.dark})`,
-          }}
-        >
-          Novo Orçamento
-        </Button>
-      </Stack>
+      <ModuleHeader
+        title="Orçamentos"
+        subtitle="Controle de orçamentos, aprovações e conversão em O.S."
+        icon={<RequestQuoteRoundedIcon />}
+        actionLabel="Novo Orçamento"
+        onAction={() => setDialogOpen(true)}
+      />
 
       {/* ── Filtros ── */}
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} mb={2.5} alignItems="center">
@@ -483,13 +470,13 @@ export default function OrcamentosPage() {
         rowsPerPageOptions={[5, 10, 20]}
         labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
-        sx={{ mt: 1.5, borderRadius: 2, bgcolor: "background.paper" }}
+        sx={{ mt: 1.5, borderRadius: 1.5, bgcolor: "background.paper" }}
       />
 
       {/* ── Menu contextual ── */}
       <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={handleMenuClose}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }} transformOrigin={{ vertical: "top", horizontal: "right" }}
-        PaperProps={{ sx: { borderRadius: 2, minWidth: 180, boxShadow: "0 8px 24px rgba(0,0,0,0.10)" } }}
+        PaperProps={{ sx: { borderRadius: 1.5, minWidth: 180, boxShadow: "0 8px 24px rgba(0,0,0,0.10)" } }}
       >
         {selectedOrcamento?.status !== "aprovado" && (
           <MenuItem onClick={handleAprovar} sx={{ gap: 1.5 }}>

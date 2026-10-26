@@ -27,6 +27,7 @@ type Props = {
   secondaryActionLabel?: string;
   onSecondaryAction?: () => void;
   secondaryActionIcon?: React.ReactNode;
+  actions?: React.ReactNode;
 };
 
 export default function ModuleHeader({
@@ -38,6 +39,7 @@ export default function ModuleHeader({
   secondaryActionLabel,
   onSecondaryAction,
   secondaryActionIcon,
+  actions,
 }: Props) {
   return (
     <Box
@@ -65,6 +67,8 @@ export default function ModuleHeader({
           </Stack>
 
         </Stack>
+
+        {actions && <Box sx={{ minWidth: 0 }}>{actions}</Box>}
 
         {(onAction || onSecondaryAction) && (
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems="stretch">

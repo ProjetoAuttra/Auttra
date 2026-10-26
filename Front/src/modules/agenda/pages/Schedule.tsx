@@ -1015,7 +1015,7 @@ export default function Schedule() {
                         <Box
                           sx={(theme) => ({
                             height: 42,
-                            borderRadius: 2,
+                            borderRadius: 1.5,
                             border: `1px dashed ${alpha(theme.palette.text.primary, 0.12)}`,
                             bgcolor: alpha(theme.palette.common.white, 0.45),
                           })}

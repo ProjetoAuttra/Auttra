@@ -161,7 +161,7 @@ export default function OrcamentosPerdidosRelatorio() {
       </Stack>
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
           <Typography fontWeight={800} mb={1}>Principais perdas por item</Typography>
           {Object.entries(servicosPerdidos).length ? Object.entries(servicosPerdidos)
             .sort((a, b) => b[1].valor - a[1].valor)
@@ -174,7 +174,7 @@ export default function OrcamentosPerdidosRelatorio() {
             )) : <Typography variant="body2" color="text.secondary">Nenhum orcamento perdido no periodo.</Typography>}
         </Paper>
 
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
           <Typography fontWeight={800} mb={1}>Follow-up prioritario</Typography>
           {pendentes.length ? [...pendentes]
             .sort((a, b) => daysBetween(b.data) - daysBetween(a.data) || Number(b.valor ?? 0) - Number(a.valor ?? 0))
@@ -191,7 +191,7 @@ export default function OrcamentosPerdidosRelatorio() {
         </Paper>
       </Stack>
 
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflowX: "auto" }}>
+      <Paper variant="outlined" sx={{ borderRadius: 1.5, overflowX: "auto" }}>
         {linhas.length ? (
           <Table>
             <TableHead>

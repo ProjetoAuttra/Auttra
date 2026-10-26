@@ -150,7 +150,7 @@ export default function NotificationsMenu() {
             mt: 1,
             width: { xs: "calc(100vw - 24px)", sm: 390 },
             maxWidth: 390,
-            borderRadius: 2,
+            borderRadius: 1.5,
             border: (t) => `1px solid ${t.palette.divider}`,
             boxShadow: "0 16px 40px rgba(15,23,42,0.14)",
             overflow: "hidden",

@@ -155,7 +155,7 @@ export default function RentabilidadeRelatorio() {
       </Stack>
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
           <Typography fontWeight={800} mb={1}>Clientes mais rentaveis</Typography>
           {Object.entries(porCliente).length ? Object.entries(porCliente)
             .sort((a, b) => b[1].lucro - a[1].lucro)
@@ -168,7 +168,7 @@ export default function RentabilidadeRelatorio() {
             )) : <Typography variant="body2" color="text.secondary">Nenhuma OS concluida no periodo.</Typography>}
         </Paper>
 
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
           <Typography fontWeight={800} mb={1}>Rentabilidade por mecanico</Typography>
           {Object.entries(porMecanico).length ? Object.entries(porMecanico)
             .sort((a, b) => b[1].lucro - a[1].lucro)
@@ -182,7 +182,7 @@ export default function RentabilidadeRelatorio() {
         </Paper>
       </Stack>
 
-      <Paper variant="outlined" sx={{ p: 2, mb: 2.5, borderRadius: 2 }}>
+      <Paper variant="outlined" sx={{ p: 2, mb: 2.5, borderRadius: 1.5 }}>
         <Typography fontWeight={800} mb={1}>OS que pedem revisao de preco</Typography>
         {margemBaixa.length ? (
           <Stack direction="row" gap={1} flexWrap="wrap">
@@ -193,7 +193,7 @@ export default function RentabilidadeRelatorio() {
         ) : <Typography variant="body2" color="text.secondary">Nenhuma OS concluida com margem abaixo de 30%.</Typography>}
       </Paper>
 
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflowX: "auto" }}>
+      <Paper variant="outlined" sx={{ borderRadius: 1.5, overflowX: "auto" }}>
         {concluidas.length ? (
           <Table>
             <TableHead>

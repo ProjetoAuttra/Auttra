@@ -17,6 +17,8 @@ import { useConfirm } from "../../../context/ConfirmContext";
 import FuncionarioDialog, { type FuncionarioForm } from "../dialog";
 import { listarFuncionarios, criarFuncionario, atualizarFuncionario, deletarFuncionario } from "../api/api";
 import ListTableContainer from "../../../components/common/ListTableContainer";
+import ModuleHeader from "../../../components/layout/ModuleHeader";
+import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
 
 type Funcionario = {
   id: number;
@@ -112,23 +114,23 @@ export default function FuncionariosPage() {
   if (loading) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 2, sm: 3, md: 4 }, py: { xs: 3, md: 4 } }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3} flexWrap="wrap" gap={2}>
-        <Stack spacing={0.3}>
-          <Typography variant="h5" fontWeight={700}>Funcionários</Typography>
-          <Typography variant="body2" color="text.secondary">Gerencie os funcionários cadastrados na sua oficina</Typography>
-        </Stack>
-        <Stack direction="row" spacing={1.5}>
-          <TextField value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Pesquisar funcionário" size="small"
-            sx={{ minWidth: 300, "& .MuiOutlinedInput-root": { borderRadius: 2, bgcolor: "background.paper", px: 1 } }}
-            InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment> }}
-          />
-          {can("funcionarios", "create") && <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openCreate}
-            sx={{ textTransform: "none", px: 2.5 }}>
-            Novo Funcionário
-          </Button>}
-        </Stack>
-      </Stack>
+    <Box sx={{ maxWidth: 1500, mx: "auto" }}>
+      <ModuleHeader
+        title="Funcionários"
+        subtitle="Gerencie os funcionários cadastrados na sua oficina"
+        icon={<BadgeRoundedIcon />}
+        actions={
+          <Stack direction="row" spacing={1.5}>
+            <TextField value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Pesquisar funcionário" size="small"
+              sx={{ minWidth: 300, "& .MuiOutlinedInput-root": { borderRadius: 1.5, bgcolor: "background.paper", px: 1 } }}
+              InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment> }}
+            />
+            {can("funcionarios", "create") && <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openCreate}>
+              Novo Funcionário
+            </Button>}
+          </Stack>
+        }
+      />
 
       <Fade in timeout={400}>
         <ListTableContainer>
@@ -177,7 +179,7 @@ export default function FuncionariosPage() {
         onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
         rowsPerPageOptions={[5, 10, 20]} labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
-        sx={{ mt: 1.5, borderRadius: 2, bgcolor: "background.paper" }}
+        sx={{ mt: 1.5, borderRadius: 1.5, bgcolor: "background.paper" }}
       />
 
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}

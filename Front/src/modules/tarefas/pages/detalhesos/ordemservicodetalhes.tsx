@@ -204,7 +204,7 @@ export default function OrdemServicoDetalhes() {
         sx={{
           p: 3,
           mb: 3,
-          borderRadius: 3,
+          borderRadius: 1.5,
           border: (t) => `1px solid ${t.palette.divider}`,
         }}
       >
@@ -264,7 +264,7 @@ export default function OrdemServicoDetalhes() {
         sx={{
           p: 3,
           mb: 3,
-          borderRadius: 3,
+          borderRadius: 1.5,
           border: (t) => `1px solid ${t.palette.divider}`,
         }}
       >
@@ -281,7 +281,7 @@ export default function OrdemServicoDetalhes() {
               alignItems={{ xs: "flex-start", sm: "center" }}
               sx={{
                 p: 1.5,
-                borderRadius: 2,
+                borderRadius: 1.5,
                 mb: 1,
                 bgcolor: (t) => alpha(t.palette.primary.main, 0.02),
               }}

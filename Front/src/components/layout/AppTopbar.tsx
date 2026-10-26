@@ -289,7 +289,7 @@ export default function AppTopbar({
                   left: 0,
                   right: 0,
                   zIndex: 1300,
-                  borderRadius: 2,
+                  borderRadius: 1.5,
                   overflow: "hidden",
                   border: (t) => `1px solid ${t.palette.divider}`,
                   boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
@@ -370,7 +370,7 @@ export default function AppTopbar({
             PaperProps={{
               sx: {
                 mt: 1,
-                borderRadius: 2,
+                borderRadius: 1.5,
                 border: (t) => `1px solid ${t.palette.divider}`,
                 boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
                 minWidth: 220,

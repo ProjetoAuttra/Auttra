@@ -21,6 +21,8 @@ import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationOS } from "../../../components/common/Illustrations";
 import ListTableContainer from "../../../components/common/ListTableContainer";
 import { STATUS_CONFIG, STATUS_VALIDOS, VALID_TRANSITIONS, type OrdemStatus } from "../statusConfig";
+import ModuleHeader from "../../../components/layout/ModuleHeader";
+import ChecklistRoundedIcon from "@mui/icons-material/ChecklistRounded";
 
 type Ordem = {
   id: number;
@@ -182,37 +184,29 @@ export default function OrdensPage() {
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
 
       {/* ── Header ── */}
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3} flexWrap="wrap" gap={2}>
-        <Stack spacing={0.3}>
-          <Typography variant="h5" fontWeight={700}>Ordens de Serviço</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Gerencie as ordens cadastradas na sua oficina
-          </Typography>
-        </Stack>
-        <Stack direction="row" spacing={1.5}>
-          <Button
-            variant="outlined"
-            startIcon={<TuneRoundedIcon />}
-            onClick={() => setShowFilters((p) => !p)}
-            sx={{
-              borderRadius: 3, textTransform: "none", fontWeight: 650,
-              borderColor: (hasActiveFilters && !showFilters) ? "primary.main" : "divider",
-              color: (hasActiveFilters && !showFilters) ? "primary.main" : "text.secondary",
-            }}
-          >
-            Filtros {hasActiveFilters ? `(${[filtroStatus !== "todos", filtroFuncionario !== "todos", !!filtroData].filter(Boolean).length})` : ""}
-          </Button>
-          <Button
-            variant="contained" disableElevation
-            startIcon={<AddRoundedIcon />} onClick={handleCreate}
-            sx={{
-              borderRadius: 3, textTransform: "none", fontWeight: 700, px: 2.5,
-            }}
-          >
-            Nova Ordem
-          </Button>
-        </Stack>
-      </Stack>
+      <ModuleHeader
+        title="Ordens de Serviço"
+        subtitle="Gerencie as ordens cadastradas na sua oficina"
+        icon={<ChecklistRoundedIcon />}
+        actions={
+          <Stack direction="row" spacing={1.5}>
+            <Button
+              variant="outlined"
+              startIcon={<TuneRoundedIcon />}
+              onClick={() => setShowFilters((p) => !p)}
+              sx={{
+                borderColor: (hasActiveFilters && !showFilters) ? "primary.main" : "divider",
+                color: (hasActiveFilters && !showFilters) ? "primary.main" : "text.secondary",
+              }}
+            >
+              Filtros {hasActiveFilters ? `(${[filtroStatus !== "todos", filtroFuncionario !== "todos", !!filtroData].filter(Boolean).length})` : ""}
+            </Button>
+            <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={handleCreate}>
+              Nova Ordem
+            </Button>
+          </Stack>
+        }
+      />
 
       {hasActiveFilters && !showFilters && (
         <Stack direction="row" spacing={1} mb={2.5}>
@@ -224,7 +218,7 @@ export default function OrdensPage() {
       {/* ── Painel de filtros avançados ── */}
       {showFilters && (
         <Fade in timeout={250}>
-          <Paper elevation={0} sx={{ p: 2.5, mb: 2.5, borderRadius: 2, border: (t) => `1px solid ${t.palette.divider}`, bgcolor: (t) => alpha(t.palette.primary.main, 0.02) }}>
+          <Paper elevation={0} sx={{ p: 2.5, mb: 2.5, borderRadius: 1.5, border: (t) => `1px solid ${t.palette.divider}`, bgcolor: (t) => alpha(t.palette.primary.main, 0.02) }}>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <FormControl size="small" sx={{ minWidth: 160 }}>
                 <InputLabel>Status</InputLabel>
@@ -265,7 +259,7 @@ export default function OrdensPage() {
         <TableSkeleton rows={6} columns={6} />
       ) : (
         <Fade in timeout={400}>
-          <ListTableContainer sx={{ borderRadius: 3 }}>
+          <ListTableContainer sx={{ borderRadius: 1.5 }}>
             <Table stickyHeader>
               <TableHead>
                 <TableRow sx={{ bgcolor: (t) => alpha(t.palette.primary.main, 0.03) }}>
@@ -355,7 +349,7 @@ export default function OrdensPage() {
           onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
           rowsPerPageOptions={[5, 10, 20]} labelRowsPerPage="Linhas por página:"
           labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
-          sx={{ mt: 1.5, borderRadius: 3, bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}` }}
+          sx={{ mt: 1.5, borderRadius: 1.5, bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}` }}
         />
       )}
 

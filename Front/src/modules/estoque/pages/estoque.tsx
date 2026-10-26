@@ -181,7 +181,7 @@ export default function EstoquePage() {
   };
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 2, sm: 3, md: 4 }, py: { xs: 3, md: 4 } }}>
+    <Box sx={{ maxWidth: 1500, mx: "auto" }}>
 
       {/* ── Header ─────────────────────────────────────────────── */}
       <ModuleHeader
@@ -343,7 +343,7 @@ export default function EstoquePage() {
         rowsPerPageOptions={[5, 10, 20]}
         labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-        sx={{ mt: 1.5, borderRadius: 2, bgcolor: "background.paper" }}
+        sx={{ mt: 1.5, borderRadius: 1.5, bgcolor: "background.paper" }}
       />
 
       {/* ── Menu contextual ─────────────────────────────────────── */}
@@ -443,7 +443,7 @@ function MetricCard({
       variant="outlined"
       onClick={onClick}
       sx={{
-        px: 2.5, py: 1.5, borderRadius: 2, flex: 1, minWidth: 140,
+        px: 2.5, py: 1.5, borderRadius: 1.5, flex: 1, minWidth: 140,
         cursor: onClick ? "pointer" : "default",
         borderColor: ativo ? "primary.main" : destaque ? "warning.main" : "divider",
         bgcolor: ativo ? (t) => alpha(t.palette.primary.main, 0.04)

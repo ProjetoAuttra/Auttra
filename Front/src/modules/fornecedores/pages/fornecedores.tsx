@@ -110,7 +110,7 @@ export default function SuppliersPage() {
   if (loading) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 2, sm: 3, md: 4 }, py: { xs: 3, md: 4 } }}>
+    <Box sx={{ maxWidth: 1500, mx: "auto" }}>
       <ModuleHeader
         title="Fornecedores"
         subtitle="Parceiros, contatos e base de compras da oficina."
@@ -168,7 +168,7 @@ export default function SuppliersPage() {
         onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
         rowsPerPageOptions={[5, 10, 20]} labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
-        sx={{ mt: 1.5, borderRadius: 2, bgcolor: "background.paper" }}
+        sx={{ mt: 1.5, borderRadius: 1.5, bgcolor: "background.paper" }}
       />
 
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}

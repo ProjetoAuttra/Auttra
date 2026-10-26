@@ -10,6 +10,8 @@ import ArrowDownwardRoundedIcon from "@mui/icons-material/ArrowDownwardRounded";
 import CalendarTodayRoundedIcon from "@mui/icons-material/CalendarTodayRounded";
 import api from "../../../../api/api";
 import { useAuth } from "../../../../context/AuthContext";
+import ModuleHeader from "../../../../components/layout/ModuleHeader";
+import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 
 type Transacao = {
   id: number;
@@ -82,15 +84,12 @@ export default function ExtratoFinanceiro() {
   }
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2.5, md: 3 } }}>
-      <Stack spacing={0.5} mb={3}>
-        <Typography variant="h5" fontWeight={700}>
-          Extrato Financeiro
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Visão completa de todas as movimentações financeiras
-        </Typography>
-      </Stack>
+    <Box sx={{ maxWidth: 1500, mx: "auto" }}>
+      <ModuleHeader
+        title="Extrato Financeiro"
+        subtitle="Visão completa de todas as movimentações financeiras"
+        icon={<AccountBalanceWalletRoundedIcon />}
+      />
 
       {/* Filtros */}
       <Stack direction="row" spacing={1} mb={2.5} flexWrap="wrap" gap={1}>
@@ -131,7 +130,7 @@ export default function ExtratoFinanceiro() {
 
       {/* Tabela */}
       <Fade in timeout={500}>
-        <TableContainer component={Paper} sx={{ borderRadius: 3, border: (t) => `1px solid ${t.palette.divider}` }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 1.5, border: (t) => `1px solid ${t.palette.divider}` }}>
           <Table>
             <TableHead>
               <TableRow>

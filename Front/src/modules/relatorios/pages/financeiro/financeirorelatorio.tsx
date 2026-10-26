@@ -154,7 +154,7 @@ export default function RelatorioFinanceiro() {
       </Stack>
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
           <Typography fontWeight={800} mb={1}>Cobrar primeiro</Typography>
           {cobrarPrimeiro.length ? cobrarPrimeiro.map((p) => (
             <Stack key={p.id} direction="row" justifyContent="space-between" alignItems="center" py={0.75} gap={2}>
@@ -167,7 +167,7 @@ export default function RelatorioFinanceiro() {
           )) : <Typography variant="body2" color="text.secondary">Nenhuma conta vencida no periodo.</Typography>}
         </Paper>
 
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
           <Typography fontWeight={800} mb={1}>Recebido por forma de pagamento</Typography>
           {Object.entries(porMetodo).length ? Object.entries(porMetodo).map(([metodo, total]) => (
             <Stack key={metodo} direction="row" justifyContent="space-between" py={0.75}>
@@ -178,7 +178,7 @@ export default function RelatorioFinanceiro() {
         </Paper>
       </Stack>
 
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflowX: "auto" }}>
+      <Paper variant="outlined" sx={{ borderRadius: 1.5, overflowX: "auto" }}>
         {filtrados.length ? (
           <Table>
             <TableHead>

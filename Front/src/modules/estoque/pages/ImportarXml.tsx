@@ -186,7 +186,7 @@ export default function ImportarXmlPage() {
             variant="outlined"
             sx={{
               p: { xs: 4, md: 6 },
-              borderRadius: 2,
+              borderRadius: 1.5,
               borderStyle: "dashed",
               borderColor: arquivo ? "primary.main" : "divider",
               textAlign: "center",
@@ -256,7 +256,7 @@ export default function ImportarXmlPage() {
           )}
 
           {/* Resumo da nota */}
-          <Paper variant="outlined" sx={{ borderRadius: 2, p: 3 }}>
+          <Paper variant="outlined" sx={{ borderRadius: 1.5, p: 3 }}>
             <Typography variant="subtitle1" fontWeight={700} mb={2}>
               Resumo da nota
             </Typography>
@@ -276,7 +276,7 @@ export default function ImportarXmlPage() {
           </Paper>
 
           {/* Tabela de itens */}
-          <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+          <Paper variant="outlined" sx={{ borderRadius: 1.5, overflow: "hidden" }}>
             <Box sx={{ px: 3, py: 2, borderBottom: "1px solid", borderColor: "divider" }}>
               <Typography variant="subtitle1" fontWeight={700}>
                 Itens da nota
@@ -432,7 +432,7 @@ export default function ImportarXmlPage() {
             Estoque atualizado com sucesso!
           </Typography>
 
-          <Paper variant="outlined" sx={{ borderRadius: 2, p: 3, width: "100%", maxWidth: 480 }}>
+          <Paper variant="outlined" sx={{ borderRadius: 1.5, p: 3, width: "100%", maxWidth: 480 }}>
             <Stack spacing={1.5}>
               <ResumoLinha
                 label="Peças com estoque atualizado"

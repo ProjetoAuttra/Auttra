@@ -341,7 +341,7 @@ export default function Schedule() {
             <Button
               variant="outlined"
               startIcon={<FilterListRoundedIcon />}
-              sx={{ borderRadius: 2, height: 44, px: 2.5, bgcolor: '#fff' }}
+              sx={{ height: 44, px: 2.5, bgcolor: '#fff' }}
             >
               Filtros
             </Button>
@@ -355,7 +355,7 @@ export default function Schedule() {
         </Stack>
         <Divider sx={{ mb: 2 }} />
 
-        <Paper elevation={0} variant="outlined" sx={{ borderRadius: 3, p: { xs: 1.5, sm: 2 }, bgcolor: '#fff' }}>
+        <Paper elevation={0} variant="outlined" sx={{ borderRadius: 1.5, p: { xs: 1.5, sm: 2 }, bgcolor: '#fff' }}>
           <DateCalendar
             value={value}
             onChange={setValue}
@@ -372,7 +372,7 @@ export default function Schedule() {
                 '& button': {
                   bgcolor: 'primary.main',
                   color: '#fff',
-                  borderRadius: 2,
+                  borderRadius: 1.5,
                   width: 44,
                   height: 44,
                   '&:hover': { bgcolor: 'primary.main' },

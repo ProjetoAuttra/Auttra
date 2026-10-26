@@ -172,7 +172,7 @@ export default function ContasPagar() {
   if (loading) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 2, sm: 3, md: 4 }, py: { xs: 3, md: 4 } }}>
+    <Box sx={{ maxWidth: 1500, mx: "auto" }}>
       <ModuleHeader
         title="Contas a Pagar"
         subtitle="Gerencie pagamentos a fornecedores e despesas da oficina."
@@ -193,7 +193,7 @@ export default function ContasPagar() {
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mb={3}>
         {resumo.map((r) => (
           <Paper key={r.label} elevation={0} sx={{
-            flex: 1, p: 2, borderRadius: 2.5,
+            flex: 1, p: 2, borderRadius: 1.5,
             border: (t) => `1px solid ${t.palette.divider}`,
           }}>
             <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
@@ -327,7 +327,7 @@ export default function ContasPagar() {
         onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
         rowsPerPageOptions={[5, 10, 20]} labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
-        sx={{ mt: 1.5, borderRadius: 2, bgcolor: "background.paper" }}
+        sx={{ mt: 1.5, borderRadius: 1.5, bgcolor: "background.paper" }}
       />
 
       {/* Menu 3-pontos */}

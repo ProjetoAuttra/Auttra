@@ -122,7 +122,7 @@ export default function OrdensParadasRelatorio() {
         onExport={handleExportarCSV}
       />
 
-      <Paper variant="outlined" sx={{ p: 2, mb: 2.5, borderRadius: 2 }}>
+      <Paper variant="outlined" sx={{ p: 2, mb: 2.5, borderRadius: 1.5 }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }}>
           <Typography variant="body2" fontWeight={700}>Considerar parada a partir de</Typography>
           <Select size="small" value={diasMinimos} onChange={(e: SelectChangeEvent) => setDiasMinimos(e.target.value)} sx={{ minWidth: 150 }}>
@@ -143,7 +143,7 @@ export default function OrdensParadasRelatorio() {
       </Stack>
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
           <Typography fontWeight={800} mb={1}>Prioridade por valor</Typography>
           {maiorValorAberto ? (
             <Stack spacing={0.5}>
@@ -154,7 +154,7 @@ export default function OrdensParadasRelatorio() {
           ) : <Typography variant="body2" color="text.secondary">Nenhuma OS aberta.</Typography>}
         </Paper>
 
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
           <Typography fontWeight={800} mb={1}>Paradas por mecanico</Typography>
           {Object.entries(porMecanico).length ? Object.entries(porMecanico).map(([nome, item]) => (
             <Stack key={nome} direction="row" justifyContent="space-between" py={0.75}>
@@ -165,7 +165,7 @@ export default function OrdensParadasRelatorio() {
         </Paper>
       </Stack>
 
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflowX: "auto" }}>
+      <Paper variant="outlined" sx={{ borderRadius: 1.5, overflowX: "auto" }}>
         {paradas.length ? (
           <Table>
             <TableHead>
