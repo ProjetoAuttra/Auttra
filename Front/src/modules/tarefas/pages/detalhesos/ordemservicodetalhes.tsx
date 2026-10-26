@@ -306,7 +306,7 @@ export default function OrdemServicoDetalhes() {
         <Divider sx={{ my: 2 }} />
 
         <Stack direction="row" justifyContent="flex-end">
-          <Typography variant="h6" fontWeight={800}>
+          <Typography variant="h6" fontWeight={700}>
             Total: {money(ordem.valor_total)}
           </Typography>
         </Stack>

@@ -66,7 +66,7 @@ export default function ClienteOrdens({ ordens, onAdd }: { ordens: any[]; onAdd?
                       {o.veiculo ? `${o.veiculo.marca} ${o.veiculo.modelo}` : "-"}
                     </Typography>
                     {o.veiculo?.placa && (
-                      <Typography variant="caption" fontFamily="monospace" fontWeight={700}
+                      <Typography variant="caption" fontFamily="monospace" fontWeight={600}
                         sx={{ px: 0.5, borderRadius: 0.5, bgcolor: (t) => t.palette.action.hover }}>
                         {o.veiculo.placa}
                       </Typography>
@@ -82,7 +82,7 @@ export default function ClienteOrdens({ ordens, onAdd }: { ordens: any[]; onAdd?
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Chip label={st.label} size="small" color={st.color} sx={{ fontWeight: 700, fontSize: 11 }} />
+                    <Chip label={st.label} size="small" color={st.color} sx={{ fontWeight: 600, fontSize: 12 }} />
                   </TableCell>
                 </TableRow>
               );

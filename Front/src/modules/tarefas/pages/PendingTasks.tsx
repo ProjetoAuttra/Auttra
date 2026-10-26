@@ -263,14 +263,14 @@ export default function OrdensPage() {
             <Table stickyHeader>
               <TableHead>
                 <TableRow sx={{ bgcolor: (t) => alpha(t.palette.primary.main, 0.03) }}>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>OS</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Cliente</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Veículo</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Mecânico</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Valor</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Pagamento</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}></TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>OS</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Cliente</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Veículo</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Mecânico</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Valor</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Pagamento</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600, fontSize: 12 }}></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -300,16 +300,16 @@ export default function OrdensPage() {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Chip label={st.label} size="small" color={st.color} sx={{ fontWeight: 700, fontSize: 11 }} />
+                        <Chip label={st.label} size="small" color={st.color} sx={{ fontWeight: 600, fontSize: 12 }} />
                       </TableCell>
                       <TableCell>
                         {(() => {
                           const pags = r.pagamentos ?? [];
                           if (pags.length === 0) return <Typography variant="caption" color="text.disabled">—</Typography>;
-                          if (pags.some((p) => p.status === "pago")) return <Chip label="Pago" size="small" color="success" sx={{ fontWeight: 700, fontSize: 11 }} />;
-                          if (pags.some((p) => p.status === "parcial")) return <Chip label="Parcial" size="small" color="warning" sx={{ fontWeight: 700, fontSize: 11 }} />;
+                          if (pags.some((p) => p.status === "pago")) return <Chip label="Pago" size="small" color="success" sx={{ fontWeight: 600, fontSize: 12 }} />;
+                          if (pags.some((p) => p.status === "parcial")) return <Chip label="Parcial" size="small" color="warning" sx={{ fontWeight: 600, fontSize: 12 }} />;
                           if (pags.every((p) => p.status === "cancelado")) return <Typography variant="caption" color="text.disabled">Cancelado</Typography>;
-                          return <Chip label="Pendente" size="small" sx={{ fontWeight: 700, fontSize: 11, bgcolor: (t) => alpha(t.palette.warning.main, 0.12), color: "warning.dark" }} />;
+                          return <Chip label="Pendente" size="small" sx={{ fontWeight: 600, fontSize: 12, bgcolor: (t) => alpha(t.palette.warning.main, 0.12), color: "warning.dark" }} />;
                         })()}
                       </TableCell>
                       <TableCell align="right" onClick={(e) => e.stopPropagation()}>

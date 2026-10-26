@@ -156,7 +156,7 @@ export default function ExtratoFinanceiro() {
                           : (th) => alpha(th.palette.error.main, 0.1),
                         color: t.tipo === "entrada" ? "success.main" : "error.main",
                         fontWeight: 600,
-                        fontSize: 11,
+                        fontSize: 12,
                       }}
                     />
                   </TableCell>
@@ -201,7 +201,7 @@ export default function ExtratoFinanceiro() {
                   <Typography variant="body2" fontWeight={600} color="text.secondary">
                     Entradas:
                   </Typography>
-                  <Typography variant="body2" fontWeight={700} color="success.main">
+                  <Typography variant="body2" fontWeight={600} color="success.main">
                     + R$ {totalEntradas.toFixed(2)}
                   </Typography>
                 </Stack>
@@ -209,7 +209,7 @@ export default function ExtratoFinanceiro() {
                   <Typography variant="body2" fontWeight={600} color="text.secondary">
                     Saídas:
                   </Typography>
-                  <Typography variant="body2" fontWeight={700} color="error.main">
+                  <Typography variant="body2" fontWeight={600} color="error.main">
                     - R$ {totalSaidas.toFixed(2)}
                   </Typography>
                 </Stack>

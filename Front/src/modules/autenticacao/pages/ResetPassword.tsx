@@ -73,7 +73,7 @@ export default function ResetPassword() {
 
         <Box sx={{ bgcolor: brand.surface, border: `1px solid ${brand.line}`, borderRadius: 1.5, px: { xs: 3.5, sm: 5 }, py: 4.5, boxShadow: "0 24px 70px rgba(15, 23, 42, 0.12)" }}>
           <Stack spacing={0.75} mb={3}>
-            <Typography sx={{ fontSize: 22, fontWeight: 800, color: INK, lineHeight: 1.2 }}>
+            <Typography sx={{ fontSize: 22, fontWeight: 700, color: INK, lineHeight: 1.2 }}>
               Redefinir senha
             </Typography>
             <Typography sx={{ fontSize: 14, color: alpha(INK, 0.6) }}>
@@ -102,7 +102,7 @@ export default function ResetPassword() {
                 fullWidth
               />
 
-              <Button type="submit" variant="contained" disabled={loading} disableElevation sx={{ height: 48, fontWeight: 700, textTransform: "none", bgcolor: BLUE_MAIN }}>
+              <Button type="submit" variant="contained" disabled={loading} disableElevation sx={{ height: 48, fontWeight: 600, textTransform: "none", bgcolor: BLUE_MAIN }}>
                 {loading ? "Salvando..." : "Salvar nova senha"}
               </Button>
 

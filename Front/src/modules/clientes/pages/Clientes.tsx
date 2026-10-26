@@ -197,7 +197,7 @@ export default function ClientsPage() {
                 >
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={1.5}>
-                      <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main", fontSize: 14, fontWeight: 700 }}>
+                      <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main", fontSize: 14, fontWeight: 600 }}>
                         {c.nome[0].toUpperCase()}
                       </Avatar>
                       <Typography fontWeight={600}>{c.nome}</Typography>

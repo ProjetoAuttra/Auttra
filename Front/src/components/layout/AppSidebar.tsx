@@ -195,7 +195,7 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
               '&.Mui-selected:hover': { bgcolor: alpha(brand.primary, 0.14) },
             }}
           >
-            <ListItemIcon sx={{ minWidth: collapsed ? 0 : 38, justifyContent: 'center', color: 'inherit' }}>
+            <ListItemIcon sx={{ minWidth: collapsed ? 0 : 38, justifyContent: 'center', color: 'inherit', '& svg': { fontSize: 20 } }}>
               {icon}
             </ListItemIcon>
 
@@ -231,7 +231,7 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
                         onItemClick?.();
                       }}
                       sx={{
-                        pl: 6,
+                        pl: 5,
                         py: 0.75,
                         minHeight: 36,
                         borderRadius: 1.25,
@@ -247,7 +247,7 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
                         '&.Mui-selected:hover': { bgcolor: alpha(brand.primary, 0.12) },
                       }}
                     >
-                      <ListItemIcon sx={{ minWidth: 36, justifyContent: 'center', color: 'inherit' }}>
+                      <ListItemIcon sx={{ minWidth: 30, justifyContent: 'flex-start', color: 'inherit', '& svg': { fontSize: 18 } }}>
                         {sub.icon}
                       </ListItemIcon>
                       <ListItemText

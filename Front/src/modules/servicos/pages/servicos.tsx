@@ -198,14 +198,14 @@ export default function ServicosPage() {
                         label={CATEGORIA_LABEL[s.categoria] ?? s.categoria}
                         size="small"
                         variant="outlined"
-                        sx={{ fontSize: 11, fontWeight: 600 }}
+                        sx={{ fontSize: 12, fontWeight: 600 }}
                       />
                     ) : (
                       <Typography variant="body2" color="text.disabled">—</Typography>
                     )}
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" fontWeight={700} color="success.main">
+                    <Typography variant="body2" fontWeight={600} color="success.main">
                       {Number(s.preco).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                     </Typography>
                   </TableCell>

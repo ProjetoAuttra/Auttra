@@ -151,7 +151,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 
                         {/* Título */}
                         <Stack spacing={0.5} pt={0.5}>
-                            <Typography variant="subtitle1" fontWeight={800} lineHeight={1.2}>
+                            <Typography variant="subtitle1" fontWeight={700} lineHeight={1.2}>
                                 {options.title}
                             </Typography>
                             {options.message && (

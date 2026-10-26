@@ -16,7 +16,7 @@ export const HeaderIcon = styled(Box)(({ theme }) => ({
 }));
 
 export const SectionLabel = styled(Typography)(({ theme }) => ({
-  fontSize: 11,
+  fontSize: 12,
   fontWeight: 700,
   letterSpacing: "0.08em",
   textTransform: "uppercase",
@@ -36,7 +36,7 @@ export const PlacaDisplay = styled(Box)(({ theme }) => ({
   borderRadius: 8,
   padding: "6px 14px",
   fontFamily: "'Courier New', monospace",
-  fontWeight: 800,
+  fontWeight: 700,
   fontSize: 18,
   letterSpacing: "0.12em",
   color: theme.palette.primary.main,

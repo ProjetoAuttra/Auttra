@@ -24,7 +24,7 @@ export default function BrandLogoPlaceholder({
           bgcolor: brand.primary,
           color: "#FFFFFF",
           fontSize: 17,
-          fontWeight: 800,
+          fontWeight: 700,
         }}
       >
         A
@@ -33,7 +33,7 @@ export default function BrandLogoPlaceholder({
         <Typography
           sx={{
             fontSize: 19,
-            fontWeight: 800,
+            fontWeight: 700,
             letterSpacing: "-0.02em",
             color: onDark ? "#FFFFFF" : brand.ink,
           }}

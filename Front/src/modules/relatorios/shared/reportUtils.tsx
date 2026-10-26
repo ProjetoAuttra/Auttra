@@ -151,10 +151,10 @@ export function MetricCard({
         ...sx,
       }}
     >
-      <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: "uppercase", letterSpacing: 0 }}>
+      <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: "uppercase", letterSpacing: 0 }}>
         {label}
       </Typography>
-      <Typography variant="h6" fontWeight={800} color={tone === "default" ? "text.primary" : color}>
+      <Typography variant="h6" fontWeight={700} color={tone === "default" ? "text.primary" : color}>
         {value}
       </Typography>
       {helper && <Typography variant="caption" color="text.secondary">{helper}</Typography>}

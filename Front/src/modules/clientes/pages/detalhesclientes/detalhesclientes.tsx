@@ -182,14 +182,14 @@ export default function ClienteDetalhesPage() {
               {/* Avatar + info ── */}
               <Stack direction="row" spacing={2.5} alignItems="center">
                 <Avatar sx={{
-                  width: 72, height: 72, fontSize: 28, fontWeight: 800,
+                  width: 72, height: 72, fontSize: 28, fontWeight: 700,
                   background: (t) => `linear-gradient(135deg, ${t.palette.primary.main}, ${t.palette.primary.dark})`,
                 }}>
                   {inicial}
                 </Avatar>
                 <Stack spacing={0.5}>
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="h6" fontWeight={800} lineHeight={1.2}>{cliente.nome}</Typography>
+                    <Typography variant="h6" fontWeight={700} lineHeight={1.2}>{cliente.nome}</Typography>
                     <IconButton
                       size="small"
                       onClick={() => setOpenEdit(true)}
@@ -275,21 +275,21 @@ export default function ClienteDetalhesPage() {
               <Stack direction="row" spacing={0.75} alignItems="center">
                 <DirectionsCarRoundedIcon sx={{ fontSize: 16 }} />
                 <span>Veículos</span>
-                {countVeiculos > 0 && <Chip label={countVeiculos} size="small" sx={{ height: 18, fontSize: 10, fontWeight: 700 }} />}
+                {countVeiculos > 0 && <Chip label={countVeiculos} size="small" sx={{ height: 18, fontSize: 12, fontWeight: 600 }} />}
               </Stack>
             } />
             <Tab label={
               <Stack direction="row" spacing={0.75} alignItems="center">
                 <AssignmentRoundedIcon sx={{ fontSize: 16 }} />
                 <span>Ordens de Serviço</span>
-                {countOrdens > 0 && <Chip label={countOrdens} size="small" sx={{ height: 18, fontSize: 10, fontWeight: 700 }} />}
+                {countOrdens > 0 && <Chip label={countOrdens} size="small" sx={{ height: 18, fontSize: 12, fontWeight: 600 }} />}
               </Stack>
             } />
             <Tab label={
               <Stack direction="row" spacing={0.75} alignItems="center">
                 <AccountBalanceWalletOutlinedIcon sx={{ fontSize: 16 }} />
                 <span>Pagamentos</span>
-                {countPagamentos > 0 && <Chip label={countPagamentos} size="small" sx={{ height: 18, fontSize: 10, fontWeight: 700 }} />}
+                {countPagamentos > 0 && <Chip label={countPagamentos} size="small" sx={{ height: 18, fontSize: 12, fontWeight: 600 }} />}
               </Stack>
             } />
           </Tabs>
@@ -341,7 +341,7 @@ export default function ClienteDetalhesPage() {
         <AppDialogActions>
           <Button onClick={() => setOpenWhats(false)} variant="outlined">Cancelar</Button>
           <Button variant="contained" onClick={enviarWhats} disabled={!mensagem}
-            sx={{ bgcolor: "#25D366", "&:hover": { bgcolor: "#1CA653" }, textTransform: "none", fontWeight: 700 }}>
+            sx={{ bgcolor: "#25D366", "&:hover": { bgcolor: "#1CA653" }, textTransform: "none", fontWeight: 600 }}>
             Enviar
           </Button>
         </AppDialogActions>

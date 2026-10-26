@@ -291,7 +291,7 @@ export default function ServicoDialog({ open, mode, initial, onClose, onSubmit, 
                   variant={tempoEstimado === t.value ? "filled" : "outlined"}
                   color={tempoEstimado === t.value ? "primary" : "default"}
                   onClick={() => setTempoEstimado(tempoEstimado === t.value ? "" : t.value)}
-                  sx={{ fontSize: 10, height: 20, cursor: "pointer" }}
+                  sx={{ fontSize: 12, height: 20, cursor: "pointer" }}
                 />
               ))}
             </Stack>

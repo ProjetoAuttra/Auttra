@@ -411,7 +411,7 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
                       sx={{
                         ml: 1, px: 0.75, py: 0.1, borderRadius: 0.75,
                         bgcolor: (t) => alpha(t.palette.text.primary, 0.07),
-                        fontFamily: "monospace", fontWeight: 700, fontSize: 11,
+                        fontFamily: "monospace", fontWeight: 600, fontSize: 12,
                       }}
                     >
                       {v.placa}
@@ -500,7 +500,7 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
                       sx={{ p: 1.5 }}
                     >
                       <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="body2" fontWeight={700} noWrap>{item.nome}</Typography>
+                        <Typography variant="body2" fontWeight={600} noWrap>{item.nome}</Typography>
                         <Typography variant="caption" color="text.secondary">
                           {item.tipo_item === "servico" ? "Mão de obra" : "Peça"} • R$ {Number(item.preco_unitario).toFixed(2)}
                         </Typography>
@@ -514,7 +514,7 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
                         inputProps={{ min: 1 }}
                         sx={{ width: { xs: "100%", sm: 92 } }}
                       />
-                      <Typography variant="body2" fontWeight={800} color="success.main" sx={{ minWidth: 110, textAlign: { xs: "left", sm: "right" } }}>
+                      <Typography variant="body2" fontWeight={600} color="success.main" sx={{ minWidth: 110, textAlign: { xs: "left", sm: "right" } }}>
                         R$ {Number(item.subtotal).toFixed(2)}
                       </Typography>
                       <IconButton color="error" size="small" onClick={() => handleDeleteItem(item.id)}>
@@ -571,7 +571,7 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Typography variant="body2" color="text.secondary" fontWeight={700}>R$</Typography>
+                    <Typography variant="body2" color="text.secondary" fontWeight={600}>R$</Typography>
                   </InputAdornment>
                 ),
               }}

@@ -132,17 +132,17 @@ export default function EstoqueCriticoRelatorio() {
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
-          <Typography fontWeight={800} mb={1}>Maior dinheiro parado</Typography>
+          <Typography fontWeight={700} mb={1}>Maior dinheiro parado</Typography>
           {topCapital.length ? topCapital.map((p) => (
             <Stack key={p.id} direction="row" justifyContent="space-between" py={0.75} gap={2}>
               <Typography variant="body2" noWrap>{p.nome}</Typography>
-              <Typography variant="body2" fontWeight={800}>{brl(valorEstoque(p))}</Typography>
+              <Typography variant="body2" fontWeight={600}>{brl(valorEstoque(p))}</Typography>
             </Stack>
           )) : <Typography variant="body2" color="text.secondary">Nenhuma peca cadastrada.</Typography>}
         </Paper>
 
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
-          <Typography fontWeight={800} mb={1}>Filtro</Typography>
+          <Typography fontWeight={700} mb={1}>Filtro</Typography>
           <TextField
             size="small"
             fullWidth
@@ -174,13 +174,13 @@ export default function EstoqueCriticoRelatorio() {
                 return (
                   <TableRow key={p.id} hover>
                     <TableCell>
-                      <Typography variant="body2" fontWeight={700}>{p.nome}</Typography>
+                      <Typography variant="body2" fontWeight={600}>{p.nome}</Typography>
                       {p.descricao && <Typography variant="caption" color="text.secondary">{p.descricao}</Typography>}
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800 }}>{Number(p.estoque ?? 0)}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>{Number(p.estoque ?? 0)}</TableCell>
                     <TableCell align="right">{brl(Number(p.preco_custo ?? 0))}</TableCell>
                     <TableCell align="right">{brl(Number(p.preco_venda ?? 0))}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800 }}>{brl(valorEstoque(p))}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>{brl(valorEstoque(p))}</TableCell>
                     <TableCell align="right">{margem(p).toFixed(1)}%</TableCell>
                     <TableCell><Chip size="small" label={acao} color={tone} sx={{ fontWeight: 700 }} /></TableCell>
                   </TableRow>

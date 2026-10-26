@@ -155,24 +155,24 @@ export default function RelatorioFinanceiro() {
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
-          <Typography fontWeight={800} mb={1}>Cobrar primeiro</Typography>
+          <Typography fontWeight={700} mb={1}>Cobrar primeiro</Typography>
           {cobrarPrimeiro.length ? cobrarPrimeiro.map((p) => (
             <Stack key={p.id} direction="row" justifyContent="space-between" alignItems="center" py={0.75} gap={2}>
               <Stack minWidth={0}>
-                <Typography variant="body2" fontWeight={700} noWrap>{p.cliente?.nome ?? "Cliente nao informado"}</Typography>
+                <Typography variant="body2" fontWeight={600} noWrap>{p.cliente?.nome ?? "Cliente nao informado"}</Typography>
                 <Typography variant="caption" color="text.secondary">Venceu em {dateBr(p.data_vencimento)}</Typography>
               </Stack>
-              <Typography variant="body2" fontWeight={800} color="error.main">{brl(valorAberto(p))}</Typography>
+              <Typography variant="body2" fontWeight={600} color="error.main">{brl(valorAberto(p))}</Typography>
             </Stack>
           )) : <Typography variant="body2" color="text.secondary">Nenhuma conta vencida no periodo.</Typography>}
         </Paper>
 
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
-          <Typography fontWeight={800} mb={1}>Recebido por forma de pagamento</Typography>
+          <Typography fontWeight={700} mb={1}>Recebido por forma de pagamento</Typography>
           {Object.entries(porMetodo).length ? Object.entries(porMetodo).map(([metodo, total]) => (
             <Stack key={metodo} direction="row" justifyContent="space-between" py={0.75}>
               <Typography variant="body2" sx={{ textTransform: "capitalize" }}>{metodo.replace("_", " ")}</Typography>
-              <Typography variant="body2" fontWeight={800}>{brl(total)}</Typography>
+              <Typography variant="body2" fontWeight={600}>{brl(total)}</Typography>
             </Stack>
           )) : <Typography variant="body2" color="text.secondary">Nenhum recebimento pago no periodo.</Typography>}
         </Paper>
@@ -213,7 +213,7 @@ export default function RelatorioFinanceiro() {
                     </TableCell>
                     <TableCell>{p.cliente?.nome ?? p.fornecedor?.nome ?? "-"}</TableCell>
                     <TableCell>{p.descricao ?? p.categoria ?? "-"}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 800 }}>{brl(Number(p.valor ?? 0))}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>{brl(Number(p.valor ?? 0))}</TableCell>
                     <TableCell>{dateBr(p.data_vencimento)}</TableCell>
                     <TableCell>{dateBr(p.data_pagamento)}</TableCell>
                   </TableRow>

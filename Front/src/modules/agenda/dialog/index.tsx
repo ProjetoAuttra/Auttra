@@ -363,7 +363,7 @@ export default function Schedule() {
             sx={{
               width: '100%',
               '& .MuiPickersCalendarHeader-root': { px: 1 },
-              '& .MuiPickersCalendarHeader-label': { fontWeight: 800, fontSize: 16 },
+              '& .MuiPickersCalendarHeader-label': { fontWeight: 700, fontSize: 16 },
               '& .MuiDayCalendar-weekDayLabel': { color: 'text.secondary', fontWeight: 600 },
               '& .MuiDayCalendar-monthContainer': { pt: 1 },
               '& .MuiPickersSlideTransition-root': { minHeight: 320 },

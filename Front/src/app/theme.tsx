@@ -55,15 +55,24 @@ export const theme = createTheme({
     h6: { fontWeight: 650, fontSize: '1.125rem', lineHeight: 1.3, letterSpacing: '-0.01em' },
     subtitle1: { fontWeight: 600, fontSize: '1rem', letterSpacing: '-0.005em' },
     subtitle2: { fontWeight: 600, fontSize: '0.875rem' },
-    body1: { fontSize: '0.9375rem' },
-    body2: { fontSize: '0.875rem' },
-    caption: { fontSize: '0.75rem' },
+    body1: { fontSize: '0.9375rem', lineHeight: 1.5 },
+    body2: { fontSize: '0.875rem', lineHeight: 1.45 },
+    caption: { fontSize: '0.75rem', lineHeight: 1.4 },
+    overline: { fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em', lineHeight: 1.4 },
     button: { textTransform: 'none', fontWeight: 600, letterSpacing: 0 },
   },
   components: {
     MuiCssBaseline: {
       styleOverrides: {
         body: { fontFeatureSettings: '"cv11", "ss01"' },
+      },
+    },
+    // Escala de ícones: small 18, medium 22, large 28 (antes 20/24/35).
+    MuiSvgIcon: {
+      styleOverrides: {
+        fontSizeSmall: { fontSize: '1.125rem' },
+        fontSizeMedium: { fontSize: '1.375rem' },
+        fontSizeLarge: { fontSize: '1.75rem' },
       },
     },
     MuiButton: {

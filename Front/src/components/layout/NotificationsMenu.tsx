@@ -160,7 +160,7 @@ export default function NotificationsMenu() {
       >
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2, py: 1.5 }}>
           <Box>
-            <Typography variant="subtitle2" fontWeight={800}>
+            <Typography variant="subtitle2" fontWeight={700}>
               Notificacoes
             </Typography>
             <Typography variant="caption" color="text.secondary">
@@ -183,7 +183,7 @@ export default function NotificationsMenu() {
               startIcon={<DoneAllRoundedIcon sx={{ fontSize: "16px !important" }} />}
               onClick={markAllAsRead}
               disabled={notifications.length === 0 || unreadCount === 0}
-              sx={{ textTransform: "none", fontWeight: 700, borderRadius: 1 }}
+              sx={{ textTransform: "none", fontWeight: 600, borderRadius: 1 }}
             >
               Lidas
             </Button>
@@ -194,7 +194,7 @@ export default function NotificationsMenu() {
 
         {notifications.length === 0 ? (
           <Box sx={{ px: 3, py: 4, textAlign: "center" }}>
-            <Typography variant="body2" fontWeight={700}>
+            <Typography variant="body2" fontWeight={600}>
               Nenhum alerta agora
             </Typography>
             <Typography variant="caption" color="text.secondary">
@@ -237,7 +237,7 @@ export default function NotificationsMenu() {
                   <ListItemText
                     primary={
                       <Stack direction="row" spacing={1} alignItems="center">
-                        <Typography variant="body2" fontWeight={800} sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="body2" fontWeight={600} sx={{ flex: 1, minWidth: 0 }}>
                           {notification.titulo}
                         </Typography>
                         <Typography variant="caption" color="text.disabled" sx={{ flexShrink: 0 }}>

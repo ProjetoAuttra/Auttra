@@ -624,7 +624,7 @@ function AccessProfilesManager() {
     <Stack spacing={2}>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ xs: 'stretch', md: 'center' }} justifyContent="space-between">
         <Stack spacing={0.4}>
-          <Typography fontWeight={800}>Perfis cadastrados</Typography>
+          <Typography fontWeight={700}>Perfis cadastrados</Typography>
           <Typography variant="body2" color="text.secondary">
             Defina quais módulos e ações cada colaborador poderá acessar.
           </Typography>
@@ -673,7 +673,7 @@ function AccessProfilesManager() {
                 </Box>
                 <Stack minWidth={0}>
                   <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                    <Typography fontWeight={800}>{profile.nome}</Typography>
+                    <Typography fontWeight={700}>{profile.nome}</Typography>
                     {profile.padrao && <Chip label="Padrao" size="small" color="primary" variant="outlined" />}
                     {profile.sistema && <Chip label="Sistema" size="small" variant="outlined" />}
                   </Stack>
@@ -754,7 +754,7 @@ function AccessProfilesManager() {
                     >
                       <Stack direction="row" spacing={1.25} alignItems="center" color="text.secondary">
                         {moduleIcons[module]}
-                        <Typography fontWeight={800}>{moduleLabels[module]}</Typography>
+                        <Typography fontWeight={700}>{moduleLabels[module]}</Typography>
                       </Stack>
                       {isOpen ? <ExpandLessRoundedIcon /> : <ExpandMoreRoundedIcon />}
                     </Stack>
