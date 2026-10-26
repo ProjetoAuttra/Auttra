@@ -23,21 +23,19 @@ import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownR
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
-import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
-import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import BusinessRoundedIcon from "@mui/icons-material/BusinessRounded";
 import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
-import { useSidebar } from "../../context/SidebarContext";
 import api from "../../api/api";
 import { useNavigate } from "react-router-dom";
 import NotificationsMenu from "./NotificationsMenu";
 import EmpresaModal from "./EmpresaModal";
 import MeuPerfilModal from "./MeuPerfilModal";
 import BrandLogoPlaceholder from "./BrandLogoPlaceholder";
+import { brand } from "../../app/theme";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../common/AppDialog";
 
 const CARGO_LABEL: Record<string, string> = {
@@ -53,12 +51,13 @@ const CARGO_LABEL: Record<string, string> = {
 
 export default function AppTopbar({
   onMenuClick,
+  leftOffset = 0,
 }: {
   onMenuClick?: () => void;
+  leftOffset?: number;
 }) {
   const { user, signOut } = useAuth();
   const { success, error, warning } = useToast();
-  const { collapsed, toggleCollapsed } = useSidebar();
   const navigate = useNavigate();
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -161,14 +160,15 @@ export default function AppTopbar({
         elevation={0}
         sx={{
           top: 0,
-          left: 0,
           right: 0,
-          width: "100%",
+          left: { xs: 0, md: `${leftOffset}px` },
+          width: { xs: "100%", md: `calc(100% - ${leftOffset}px)` },
           zIndex: (t) => t.zIndex.drawer + 1,
-          bgcolor: "primary.main",
-          borderBottom: "none",
-          boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
-          color: "#FFFFFF",
+          bgcolor: "background.paper",
+          color: "text.primary",
+          borderBottom: `1px solid ${brand.line}`,
+          boxShadow: "none",
+          transition: "left 0.2s ease, width 0.2s ease",
         }}
       >
         <Toolbar sx={{ px: { xs: 1.5, sm: 2.5, md: 4 }, position: "relative", gap: 1.5 }}>
@@ -180,33 +180,17 @@ export default function AppTopbar({
               width: 38,
               height: 38,
               borderRadius: 1.5,
-              border: "1px solid rgba(255,255,255,0.35)",
-              color: "#FFFFFF",
-              "&:hover": { bgcolor: "rgba(255,255,255,0.12)" },
+              border: `1px solid ${brand.line}`,
+              color: "text.primary",
+              "&:hover": { bgcolor: brand.subtleStrong },
             }}
           >
             <MenuRoundedIcon />
           </IconButton>
 
-          <BrandLogoPlaceholder />
-
-          <IconButton
-            onClick={toggleCollapsed}
-            size="small"
-            sx={{
-              display: { xs: "none", md: "inline-flex" },
-              mr: 1.5,
-              width: 34,
-              height: 34,
-              borderRadius: 1.5,
-              border: "1px solid rgba(255,255,255,0.35)",
-              color: "#FFFFFF",
-              flexShrink: 0,
-              "&:hover": { bgcolor: "rgba(255,255,255,0.12)" },
-            }}
-          >
-            {collapsed ? <ChevronRightRoundedIcon fontSize="small" /> : <ChevronLeftRoundedIcon fontSize="small" />}
-          </IconButton>
+          <Box sx={{ display: { xs: "flex", md: "none" } }}>
+            <BrandLogoPlaceholder />
+          </Box>
 
           <Box
             sx={{
@@ -232,27 +216,27 @@ export default function AppTopbar({
                 alignItems: "center",
                 px: { xs: 1.5, sm: 2 },
                 py: { xs: 0.85, sm: 1.05 },
-                borderRadius: "12px",
+                borderRadius: "10px",
                 border: "1px solid transparent",
-                bgcolor: "rgba(255,255,255,0.16)",
+                bgcolor: brand.subtleStrong,
                 transition: "background 0.2s, border-color 0.2s, box-shadow 0.2s",
-                "&:hover": { bgcolor: "rgba(255,255,255,0.22)" },
+                "&:hover": { bgcolor: "#E9EEF5" },
                 "&:focus-within": {
-                  bgcolor: "rgba(255,255,255,0.22)",
-                  borderColor: "rgba(255,255,255,0.5)",
-                  boxShadow: "0 0 0 3px rgba(255,255,255,0.18)",
+                  bgcolor: "background.paper",
+                  borderColor: brand.primary,
+                  boxShadow: `0 0 0 3px ${brand.primaryTint}`,
                 },
               }}
             >
               {loadingSearch ? (
-                <CircularProgress size={18} sx={{ mr: 1.5, flexShrink: 0, color: "#FFFFFF" }} />
+                <CircularProgress size={18} sx={{ mr: 1.5, flexShrink: 0 }} />
               ) : (
                 <SearchRoundedIcon
                   sx={{
                     fontSize: 21,
                     mr: 1.5,
                     flexShrink: 0,
-                    color: "rgba(255,255,255,0.85)",
+                    color: "text.secondary",
                     transition: "color 0.2s",
                   }}
                 />
@@ -264,8 +248,8 @@ export default function AppTopbar({
                 sx={{
                   flex: 1,
                   fontSize: { xs: 14, sm: 15 },
-                  color: "#FFFFFF",
-                  "& input": { padding: 0, "&::placeholder": { color: "rgba(255,255,255,0.7)", opacity: 1 } },
+                  color: "text.primary",
+                  "& input": { padding: 0, "&::placeholder": { color: brand.muted, opacity: 1 } },
                 }}
                 onFocus={() => results.length > 0 && setSearchOpen(true)}
               />
@@ -275,7 +259,7 @@ export default function AppTopbar({
                   onClick={() => { setSearchTerm(""); setSearchOpen(false); }}
                   sx={{ ml: 0.5, p: 0.25 }}
                 >
-                  <Box sx={{ fontSize: 16, lineHeight: 1, color: "rgba(255,255,255,0.75)" }}>x</Box>
+                  <Box sx={{ fontSize: 16, lineHeight: 1, color: "text.secondary" }}>x</Box>
                 </IconButton>
               )}
             </Paper>
@@ -328,7 +312,7 @@ export default function AppTopbar({
           <Stack direction="row" alignItems="center" spacing={0.75}>
             <NotificationsMenu />
 
-            <Divider orientation="vertical" flexItem sx={{ mx: 0.5, height: 24, alignSelf: "center", borderColor: "rgba(255,255,255,0.3)" }} />
+            <Divider orientation="vertical" flexItem sx={{ mx: 0.5, height: 24, alignSelf: "center", borderColor: brand.line }} />
 
             <Box
               onClick={(e) => setAnchorEl(e.currentTarget)}
@@ -341,23 +325,23 @@ export default function AppTopbar({
                 gap: 1.25,
                 cursor: "pointer",
                 transition: "background 0.2s",
-                "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                "&:hover": { bgcolor: brand.subtleStrong },
               }}
             >
-              <Avatar src={empresaLogoUrl ?? undefined} sx={{ width: 30, height: 30, fontSize: 13, fontWeight: 800, bgcolor: "rgba(255,255,255,0.25)", color: "#FFFFFF" }}>
+              <Avatar src={empresaLogoUrl ?? undefined} sx={{ width: 30, height: 30, fontSize: 13, fontWeight: 800, bgcolor: brand.primarySoft, color: brand.primary }}>
                 {empresaLetter}
               </Avatar>
 
               <Box sx={{ lineHeight: 1, display: { xs: "none", sm: "block" } }}>
-                <Typography variant="body2" fontWeight={700} lineHeight={1.3} noWrap maxWidth={160} sx={{ color: "#FFFFFF" }}>
+                <Typography variant="body2" fontWeight={700} lineHeight={1.3} noWrap maxWidth={160} >
                   {empresaLabel}
                 </Typography>
-                <Typography variant="caption" lineHeight={1.2} noWrap maxWidth={160} component="div" sx={{ color: "rgba(255,255,255,0.75)" }}>
+                <Typography variant="caption" lineHeight={1.2} noWrap maxWidth={160} component="div" color="text.secondary">
                   {nomeUsuario}
                 </Typography>
               </Box>
 
-              <KeyboardArrowDownRoundedIcon sx={{ fontSize: 16, color: "rgba(255,255,255,0.75)", ml: 0.25 }} />
+              <KeyboardArrowDownRoundedIcon sx={{ fontSize: 16, color: "text.secondary", ml: 0.25 }} />
             </Box>
           </Stack>
 

@@ -10,6 +10,7 @@ import {
   Typography,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import { brand } from "../../../app/theme";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import AssignmentLateRoundedIcon from "@mui/icons-material/AssignmentLateRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
@@ -44,7 +45,6 @@ function RelatorioCard({
   titulo,
   descricao,
   icone,
-  cor,
   destino,
   children,
   loading,
@@ -52,7 +52,6 @@ function RelatorioCard({
   titulo: string;
   descricao: string;
   icone: React.ReactNode;
-  cor: string;
   destino: string;
   children: React.ReactNode;
   loading: boolean;
@@ -74,9 +73,9 @@ function RelatorioCard({
         "&:hover": { boxShadow: (t) => `0 8px 28px ${alpha(t.palette.common.black, 0.09)}`, transform: "translateY(-2px)" },
       }}
     >
-      <Box sx={{ p: 2.5, background: `linear-gradient(135deg, ${alpha(cor, 0.12)}, ${alpha(cor, 0.04)})`, borderBottom: `1px solid ${alpha(cor, 0.15)}` }}>
+      <Box sx={{ p: 2.5, bgcolor: brand.subtle, borderBottom: (t) => `1px solid ${t.palette.divider}` }}>
         <Stack direction="row" spacing={2} alignItems="center">
-          <Box sx={{ width: 46, height: 46, borderRadius: 1.5, display: "flex", alignItems: "center", justifyContent: "center", bgcolor: alpha(cor, 0.15), color: cor, "& svg": { fontSize: 25 } }}>
+          <Box sx={{ width: 46, height: 46, borderRadius: 1.5, display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}`, color: "text.secondary", "& svg": { fontSize: 25 } }}>
             {icone}
           </Box>
           <Stack flex={1} spacing={0.25} minWidth={0}>
@@ -105,7 +104,7 @@ function RelatorioCard({
           size="small"
           endIcon={<ArrowForwardRoundedIcon />}
           onClick={() => nav(destino)}
-          sx={{ textTransform: "none", fontWeight: 800, color: cor, p: 0, minWidth: 0, "&:hover": { bgcolor: "transparent", opacity: 0.82 } }}
+          sx={{ textTransform: "none", fontWeight: 800, color: "primary.main", p: 0, minWidth: 0, "&:hover": { bgcolor: "transparent", opacity: 0.82 } }}
         >
           Abrir relatorio
         </Button>
@@ -199,7 +198,7 @@ export default function Relatorios() {
 
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <RelatorioCard titulo="Caixa e Inadimplencia" descricao="Entradas, vencidos e pressao de caixa" icone={<AccountBalanceWalletRoundedIcon />} cor="#16a34a" destino={paths.financeiroRelatorio} loading={loading}>
+          <RelatorioCard titulo="Caixa e Inadimplencia" descricao="Entradas, vencidos e pressao de caixa" icone={<AccountBalanceWalletRoundedIcon />} destino={paths.financeiroRelatorio} loading={loading}>
             <PreviewRow label="Recebido" value={brl(p?.caixa.recebido ?? 0)} color="success.main" />
             <PreviewRow label="Vencido" value={brl(p?.caixa.vencido ?? 0)} color={(p?.caixa.vencido ?? 0) > 0 ? "error.main" : "text.primary"} />
             <PreviewRow label="A pagar" value={brl(p?.caixa.aPagar ?? 0)} color="warning.main" />
@@ -207,7 +206,7 @@ export default function Relatorios() {
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <RelatorioCard titulo="OS em Aberto e Paradas" descricao="Servicos travados e valor preso" icone={<AssignmentLateRoundedIcon />} cor="#0ea5e9" destino={paths.ordensParadasRelatorio} loading={loading}>
+          <RelatorioCard titulo="OS em Aberto e Paradas" descricao="Servicos travados e valor preso" icone={<AssignmentLateRoundedIcon />} destino={paths.ordensParadasRelatorio} loading={loading}>
             <PreviewRow label="OS abertas" value={p?.ordens.abertas ?? 0} />
             <PreviewRow label="Paradas ha 3+ dias" value={p?.ordens.paradas ?? 0} color={(p?.ordens.paradas ?? 0) > 0 ? "warning.main" : "text.primary"} />
             <PreviewRow label="Valor preso" value={brl(p?.ordens.valorPreso ?? 0)} color="warning.main" />
@@ -215,7 +214,7 @@ export default function Relatorios() {
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <RelatorioCard titulo="Estoque Critico" descricao="Compra urgente e dinheiro parado" icone={<Inventory2RoundedIcon />} cor="#7c3aed" destino={paths.estoqueCriticoRelatorio} loading={loading}>
+          <RelatorioCard titulo="Estoque Critico" descricao="Compra urgente e dinheiro parado" icone={<Inventory2RoundedIcon />} destino={paths.estoqueCriticoRelatorio} loading={loading}>
             <PreviewRow label="Pecas criticas" value={p?.estoque.criticas ?? 0} color={(p?.estoque.criticas ?? 0) > 0 ? "error.main" : "text.primary"} />
             <PreviewRow label="Capital em estoque" value={brl(p?.estoque.capital ?? 0)} color="warning.main" />
             <PreviewRow label="Margem baixa" value={p?.estoque.margemBaixa ?? 0} />
@@ -223,7 +222,7 @@ export default function Relatorios() {
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <RelatorioCard titulo="Orcamentos Perdidos" descricao="Receita nao convertida e follow-up" icone={<RequestQuoteRoundedIcon />} cor="#ef4444" destino={paths.orcamentosPerdidosRelatorio} loading={loading}>
+          <RelatorioCard titulo="Orcamentos Perdidos" descricao="Receita nao convertida e follow-up" icone={<RequestQuoteRoundedIcon />} destino={paths.orcamentosPerdidosRelatorio} loading={loading}>
             <PreviewRow label="Perdidos" value={p?.orcamentos.perdidos ?? 0} color="error.main" />
             <PreviewRow label="Valor perdido" value={brl(p?.orcamentos.valorPerdido ?? 0)} color="error.main" />
             <PreviewRow label="Pendentes" value={p?.orcamentos.pendentes ?? 0} color="warning.main" />
@@ -231,7 +230,7 @@ export default function Relatorios() {
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <RelatorioCard titulo="Rentabilidade por OS" descricao="Lucro bruto estimado e margem baixa" icone={<PriceCheckRoundedIcon />} cor="#0891b2" destino={paths.rentabilidadeRelatorio} loading={loading}>
+          <RelatorioCard titulo="Rentabilidade por OS" descricao="Lucro bruto estimado e margem baixa" icone={<PriceCheckRoundedIcon />} destino={paths.rentabilidadeRelatorio} loading={loading}>
             <PreviewRow label="Faturamento" value={brl(p?.rentabilidade.faturamento ?? 0)} color="primary.main" />
             <PreviewRow label="Lucro bruto" value={brl(p?.rentabilidade.lucro ?? 0)} color={(p?.rentabilidade.lucro ?? 0) >= 0 ? "success.main" : "error.main"} />
             <PreviewRow label="Margem" value={`${(p?.rentabilidade.margem ?? 0).toFixed(1)}%`} />

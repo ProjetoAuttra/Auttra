@@ -1,6 +1,6 @@
 import {
   Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText,
-  useTheme, Tooltip, Divider, Collapse, Toolbar
+  useTheme, Tooltip, Divider, Collapse, Toolbar, IconButton
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import HomeOutlineIcon from '@mui/icons-material/HomeOutlined';
@@ -23,6 +23,8 @@ import StoreIcon from '@mui/icons-material/Store';
 import MiscellaneousServicesIcon from '@mui/icons-material/MiscellaneousServices';
 import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
 import SecurityRoundedIcon from '@mui/icons-material/SecurityRounded';
+import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
+import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useState, type ReactNode } from 'react';
 import { paths } from '../../routes/paths';
@@ -30,6 +32,8 @@ import { useSidebar } from '../../context/SidebarContext';
 import { useAuth } from '../../context/AuthContext';
 import { useAdditionalResources } from '../../context/AdditionalResourcesContext';
 import type { AccessModule } from '../../permissions/accessProfiles';
+import { brand } from '../../app/theme';
+import BrandLogoPlaceholder from './BrandLogoPlaceholder';
 
 type Props = {
   drawerWidth: number;
@@ -116,7 +120,6 @@ const moduleResourceMap: Partial<Record<AccessModule, 'agenda' | 'estoque' | 'fo
 function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collapsed?: boolean }) {
   const { pathname, search } = useLocation();
   const nav = useNavigate();
-  const theme = useTheme();
   const { can } = useAuth();
   const { isEnabled } = useAdditionalResources();
 
@@ -180,16 +183,16 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
               borderRadius: 1.25,
               px: collapsed ? 0 : 2,
               justifyContent: collapsed ? 'center' : 'flex-start',
-              bgcolor: selected ? alpha(theme.palette.primary.main, 0.12) : 'transparent',
-              color: selected ? theme.palette.primary.main : theme.palette.text.secondary,
+              bgcolor: selected ? alpha(brand.primary, 0.1) : 'transparent',
+              color: selected ? brand.primary : brand.muted,
               transition: 'background 0.16s ease, color 0.16s ease',
               border: '1px solid transparent',
               '&:hover': {
-                bgcolor: selected ? alpha(theme.palette.primary.main, 0.18) : alpha(theme.palette.primary.main, 0.08),
-                color: theme.palette.primary.main,
+                bgcolor: selected ? alpha(brand.primary, 0.14) : brand.subtleStrong,
+                color: selected ? brand.primary : brand.ink,
               },
-              '&.Mui-selected': { bgcolor: alpha(theme.palette.primary.main, 0.12) },
-              '&.Mui-selected:hover': { bgcolor: alpha(theme.palette.primary.main, 0.18) },
+              '&.Mui-selected': { bgcolor: alpha(brand.primary, 0.1) },
+              '&.Mui-selected:hover': { bgcolor: alpha(brand.primary, 0.14) },
             }}
           >
             <ListItemIcon sx={{ minWidth: collapsed ? 0 : 38, justifyContent: 'center', color: 'inherit' }}>
@@ -232,14 +235,16 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
                         py: 0.75,
                         minHeight: 36,
                         borderRadius: 1.25,
-                        color: pathname === sub.to ? theme.palette.primary.main : theme.palette.text.secondary,
+                        color: brand.muted,
                         '&:hover': {
-                          bgcolor: alpha(theme.palette.text.primary, 0.045),
-                          color: theme.palette.text.primary,
+                          bgcolor: brand.subtleStrong,
+                          color: brand.ink,
                         },
                         '&.Mui-selected': {
-                          bgcolor: alpha(theme.palette.primary.main, 0.09),
+                          bgcolor: alpha(brand.primary, 0.08),
+                          color: brand.primary,
                         },
+                        '&.Mui-selected:hover': { bgcolor: alpha(brand.primary, 0.12) },
                       }}
                     >
                       <ListItemIcon sx={{ minWidth: 36, justifyContent: 'center', color: 'inherit' }}>
@@ -267,25 +272,62 @@ export default function AppSidebar({
   onCloseMobile,
 }: Props) {
   const theme = useTheme();
-  const { collapsed } = useSidebar();
+  const { collapsed, toggleCollapsed } = useSidebar();
   const collapsedWidth = 68;
   const currentWidth = collapsed ? collapsedWidth : drawerWidth;
 
-  const content = (
+  // No drawer mobile a sidebar nunca é recolhida.
+  const renderContent = (isCollapsed: boolean, showToggle: boolean) => (
     <Box
       sx={{
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        background: theme.palette.background.paper,
-        color: theme.palette.text.primary,
+        bgcolor: 'background.paper',
+        color: 'text.primary',
       }}
     >
-      <Toolbar sx={{ flexShrink: 0 }} />
+      <Toolbar
+        sx={{
+          flexShrink: 0,
+          px: isCollapsed ? 0 : 2.5,
+          justifyContent: isCollapsed ? 'center' : 'flex-start',
+        }}
+      >
+        <BrandLogoPlaceholder compact={isCollapsed} />
+      </Toolbar>
 
       <Divider sx={{ flexShrink: 0 }} />
-      <NavList onItemClick={onCloseMobile} collapsed={collapsed} />
+      <NavList onItemClick={onCloseMobile} collapsed={isCollapsed} />
+
+      {showToggle && (
+        <Box
+          sx={{
+            flexShrink: 0,
+            p: 1.5,
+            display: 'flex',
+            justifyContent: isCollapsed ? 'center' : 'flex-end',
+            borderTop: `1px solid ${brand.line}`,
+          }}
+        >
+          <Tooltip title={isCollapsed ? 'Expandir menu' : 'Recolher menu'} placement="right">
+            <IconButton
+              onClick={toggleCollapsed}
+              size="small"
+              sx={{
+                width: 32,
+                height: 32,
+                borderRadius: 1,
+                color: brand.muted,
+                '&:hover': { bgcolor: brand.subtleStrong, color: brand.ink },
+              }}
+            >
+              {isCollapsed ? <ChevronRightRoundedIcon fontSize="small" /> : <ChevronLeftRoundedIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
     </Box>
   );
 
@@ -303,11 +345,11 @@ export default function AppSidebar({
             width: drawerWidth,
             boxSizing: 'border-box',
             bgcolor: 'background.paper',
-            borderRight: (t) => `1px solid ${t.palette.divider}`,
+            borderRight: `1px solid ${brand.line}`,
           },
         }}
       >
-        {content}
+        {renderContent(false, false)}
       </Drawer>
       <Drawer
         variant="permanent"
@@ -321,7 +363,7 @@ export default function AppSidebar({
             top: 0,
             left: 0,
             height: '100dvh',
-            borderRight: (t) => `1px solid ${t.palette.divider}`,
+            borderRight: `1px solid ${brand.line}`,
             borderRadius: 0,
             bgcolor: 'background.paper',
             transition: theme.transitions.create('width', {
@@ -332,7 +374,7 @@ export default function AppSidebar({
           },
         }}
       >
-        {content}
+        {renderContent(collapsed, true)}
       </Drawer>
     </>
   );

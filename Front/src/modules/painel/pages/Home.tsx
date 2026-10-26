@@ -20,7 +20,7 @@ const INK      = brand.ink;
 const MUTED    = brand.muted;
 const SURFACE  = brand.surface;
 const LINE     = brand.line;
-const ICON_BG  = brand.primarySoft;
+const ICON_BG  = brand.subtleStrong;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -79,7 +79,7 @@ function ShortcutCard({ icon, title, subtitle, onClick }: ShortcutProps) {
           height: 40,
           borderRadius: 1.25,
           bgcolor: ICON_BG,
-          color: PRIMARY,
+          color: MUTED,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
