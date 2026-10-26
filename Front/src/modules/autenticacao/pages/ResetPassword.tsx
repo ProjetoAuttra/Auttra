@@ -1,15 +1,16 @@
 import { type FormEvent, useMemo, useState } from "react";
 import { Alert, Box, Button, Stack, TextField, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import { brand } from "../../../app/theme";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../../api/api";
 import { paths } from "../../../routes/paths";
 import logo from "../../../assets/logo.png";
 
-const BLUE_MAIN = "#2563EB";
-const BLUE_DARK = "#1E3A8A";
-const TEAL = "#0F766E";
-const INK = "#111827";
+const BLUE_MAIN = brand.primary;
+const BLUE_DARK = brand.primaryDark;
+const TEAL = brand.teal;
+const INK = brand.ink;
 
 export default function ResetPassword() {
   const [params] = useSearchParams();
@@ -58,7 +59,7 @@ export default function ResetPassword() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        bgcolor: "#F6F8FB",
+        bgcolor: brand.page,
         backgroundImage: `
           linear-gradient(135deg, ${alpha(BLUE_DARK, 0.08)} 0%, transparent 34%),
           linear-gradient(315deg, ${alpha(TEAL, 0.10)} 0%, transparent 38%)
@@ -70,7 +71,7 @@ export default function ResetPassword() {
           <Box component="img" src={logo} alt="Auttra" sx={{ height: 62, width: "auto", objectFit: "contain" }} />
         </Stack>
 
-        <Box sx={{ bgcolor: "#fff", border: "1px solid #D9E2EC", borderRadius: 2, px: { xs: 3.5, sm: 5 }, py: 4.5, boxShadow: "0 24px 70px rgba(15, 23, 42, 0.12)" }}>
+        <Box sx={{ bgcolor: brand.surface, border: `1px solid ${brand.line}`, borderRadius: 2, px: { xs: 3.5, sm: 5 }, py: 4.5, boxShadow: "0 24px 70px rgba(15, 23, 42, 0.12)" }}>
           <Stack spacing={0.75} mb={3}>
             <Typography sx={{ fontSize: 22, fontWeight: 800, color: INK, lineHeight: 1.2 }}>
               Redefinir senha
@@ -101,7 +102,7 @@ export default function ResetPassword() {
                 fullWidth
               />
 
-              <Button type="submit" variant="contained" disabled={loading} disableElevation sx={{ height: 48, borderRadius: 2, fontWeight: 700, textTransform: "none", bgcolor: BLUE_MAIN }}>
+              <Button type="submit" variant="contained" disabled={loading} disableElevation sx={{ height: 48, fontWeight: 700, textTransform: "none", bgcolor: BLUE_MAIN }}>
                 {loading ? "Salvando..." : "Salvar nova senha"}
               </Button>
 

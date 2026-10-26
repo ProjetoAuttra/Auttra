@@ -14,6 +14,7 @@ import {
   Typography,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
+import { brand, radius } from '../../../app/theme';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
@@ -344,7 +345,7 @@ function AppointmentCard({
         width: '100%',
         minWidth: 0,
         height: '100%',
-        borderRadius: 2.5,
+        borderRadius: 1.25,
         border: `1px solid ${alpha(theme.palette.primary.main, 0.14)}`,
         bgcolor: alpha(theme.palette.primary.main, 0.07),
         cursor: onOpen ? 'pointer' : 'default',
@@ -552,14 +553,14 @@ function AppointmentDetailsDialog({
               </Stack>
             )}
             {(appointment.clientName || appointment.vehicleLabel) && (
-              <Paper elevation={0} sx={{ p: 1.5, borderRadius: 2, bgcolor: '#F8FAFC', border: (t) => `1px solid ${t.palette.divider}` }}>
+              <Paper elevation={0} sx={{ p: 1.5, borderRadius: 1.25, bgcolor: brand.subtle, border: (t) => `1px solid ${t.palette.divider}` }}>
                 <Typography variant="caption" color="text.secondary" fontWeight={900}>Cliente e veículo</Typography>
                 <Typography fontWeight={800}>{appointment.clientName || 'Cliente não informado'}</Typography>
                 <Typography variant="body2" color="text.secondary">{appointment.vehicleLabel || 'Veículo não informado'}</Typography>
               </Paper>
             )}
             {appointment.ordemServicoId && (
-              <Paper elevation={0} sx={{ p: 1.5, borderRadius: 2, bgcolor: '#F8FAFC', border: (t) => `1px solid ${t.palette.divider}` }}>
+              <Paper elevation={0} sx={{ p: 1.5, borderRadius: 1.25, bgcolor: brand.subtle, border: (t) => `1px solid ${t.palette.divider}` }}>
                 <Typography variant="caption" color="text.secondary" fontWeight={900}>Ordem de Serviço vinculada</Typography>
                 <Typography fontWeight={800}>OS #{appointment.ordemServicoId}</Typography>
                 {appointment.ordemServicoStatus && (
@@ -806,7 +807,7 @@ export default function Schedule() {
           elevation={0}
           sx={{
             p: { xs: 2, md: 2.5 },
-            borderRadius: 3,
+            borderRadius: `${radius.card}px`,
             border: (t) => `1px solid ${t.palette.divider}`,
             minHeight: 'calc(100dvh - 250px)',
           }}
@@ -841,7 +842,7 @@ export default function Schedule() {
                 sx={{
                   p: 0.35,
                   borderRadius: 999,
-                  bgcolor: '#F1F5F9',
+                  bgcolor: brand.subtleStrong,
                   '& .MuiToggleButton-root': {
                     px: 2,
                     border: 0,
@@ -888,7 +889,7 @@ export default function Schedule() {
                       sx={(theme) => ({
                         minHeight: 132,
                         p: 1.1,
-                        borderRadius: 2,
+                        borderRadius: 1.25,
                         cursor: 'pointer',
                         border: `1px solid ${active ? alpha(theme.palette.primary.main, 0.38) : theme.palette.divider}`,
                         bgcolor: active ? alpha(theme.palette.primary.main, 0.055) : inMonth ? '#fff' : alpha(theme.palette.text.primary, 0.025),
@@ -924,19 +925,19 @@ export default function Schedule() {
                     key={day.format('YYYY-MM-DD')}
                     onClick={() => openCreateAt(day.hour(9))}
                     sx={(theme) => ({
-                      minHeight: 520,
+                      minHeight: 160,
                       p: 1.25,
-                      borderRadius: 2.5,
+                      borderRadius: 1.25,
                       border: `1px solid ${active ? alpha(theme.palette.primary.main, 0.42) : theme.palette.divider}`,
                       bgcolor: active ? alpha(theme.palette.primary.main, 0.055) : '#fff',
                     })}
                   >
                     <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5}>
                       <Box>
-                        <Typography variant="caption" color="text.secondary" fontWeight={900}>
+                        <Typography variant="caption" color="text.secondary" fontWeight={700}>
                           {day.format('ddd')}
                         </Typography>
-                        <Typography fontWeight={950} sx={{ fontSize: 24 }}>
+                        <Typography fontWeight={700} sx={{ fontSize: 24 }}>
                           {day.format('DD')}
                         </Typography>
                       </Box>
@@ -961,8 +962,8 @@ export default function Schedule() {
                           </Box>
                         ))
                       ) : (
-                        <Box sx={{ py: 8, textAlign: 'center', color: 'text.secondary' }}>
-                          <Typography variant="body2">Livre</Typography>
+                        <Box sx={{ py: 2, textAlign: 'center', color: 'text.disabled' }}>
+                          <Typography variant="caption" fontWeight={600}>Livre</Typography>
                         </Box>
                       )}
                     </Stack>

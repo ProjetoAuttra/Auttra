@@ -6,6 +6,7 @@ import {
   CircularProgress, Divider, ToggleButton, ToggleButtonGroup, Tooltip,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import { brand } from "../../../app/theme";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
@@ -55,9 +56,9 @@ type Orcamento = {
 // ─── Config de status ─────────────────────────────────────────────────────
 
 const STATUS_CONFIG = {
-  analise: { label: "Em análise", color: "#f59e0b", bg: alpha("#f59e0b", 0.1), chipColor: "warning" as const },
-  aprovado: { label: "Aprovado", color: "#10b981", bg: alpha("#10b981", 0.1), chipColor: "success" as const },
-  recusado: { label: "Recusado", color: "#ef4444", bg: alpha("#ef4444", 0.1), chipColor: "error" as const },
+  analise: { label: "Em análise", color: brand.amber, bg: alpha(brand.amber, 0.1), chipColor: "warning" as const },
+  aprovado: { label: "Aprovado", color: brand.success, bg: alpha(brand.success, 0.1), chipColor: "success" as const },
+  recusado: { label: "Recusado", color: brand.error, bg: alpha(brand.error, 0.1), chipColor: "error" as const },
 };
 
 // ─── Componente ────────────────────────────────────────────────────────────
@@ -343,9 +344,9 @@ export default function OrcamentosPage() {
           sx={{ "& .MuiToggleButton-root": { textTransform: "none", fontWeight: 600, px: 2, borderRadius: "999px !important", border: (t) => `1px solid ${t.palette.divider} !important`, mx: 0.25 } }}
         >
           <ToggleButton value="todos">Todos</ToggleButton>
-          <ToggleButton value="analise" sx={{ "&.Mui-selected": { bgcolor: alpha("#f59e0b", 0.1), color: "#f59e0b" } }}>Em análise</ToggleButton>
-          <ToggleButton value="aprovado" sx={{ "&.Mui-selected": { bgcolor: alpha("#10b981", 0.1), color: "#10b981" } }}>Aprovados</ToggleButton>
-          <ToggleButton value="recusado" sx={{ "&.Mui-selected": { bgcolor: alpha("#ef4444", 0.1), color: "#ef4444" } }}>Recusados</ToggleButton>
+          <ToggleButton value="analise" sx={{ "&.Mui-selected": { bgcolor: alpha(brand.amber, 0.1), color: brand.amber } }}>Em análise</ToggleButton>
+          <ToggleButton value="aprovado" sx={{ "&.Mui-selected": { bgcolor: alpha(brand.success, 0.1), color: brand.success } }}>Aprovados</ToggleButton>
+          <ToggleButton value="recusado" sx={{ "&.Mui-selected": { bgcolor: alpha(brand.error, 0.1), color: brand.error } }}>Recusados</ToggleButton>
         </ToggleButtonGroup>
       </Stack>
 
