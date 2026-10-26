@@ -490,7 +490,6 @@ export default function ClientDialog({
                   color="error"
                   startIcon={<DeleteOutlineRoundedIcon />}
                   onClick={() => setConfirmDelete(true)}
-                  sx={{ borderRadius: 999 }}
                 >
                   Excluir cliente
                 </Button>
@@ -505,11 +504,10 @@ export default function ClientDialog({
                     size="small"
                     disableElevation
                     onClick={() => onDelete(initial)}
-                    sx={{ borderRadius: 999 }}
                   >
                     Sim, excluir
                   </Button>
-                  <Button size="small" onClick={() => setConfirmDelete(false)} sx={{ borderRadius: 999 }}>
+                  <Button size="small" onClick={() => setConfirmDelete(false)}>
                     Cancelar
                   </Button>
                 </Stack>
@@ -519,14 +517,14 @@ export default function ClientDialog({
         </Box>
 
         <Stack direction="row" spacing={1.5}>
-          <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>
+          <Button onClick={onClose} variant="outlined">
             Cancelar
           </Button>
           <Button
             variant="contained"
             onClick={handleSubmit}
             disableElevation
-            sx={{ borderRadius: 999, fontWeight: 700 }}
+            sx={{ fontWeight: 700 }}
           >
             {isEdit ? "Salvar alterações" : "Cadastrar cliente"}
           </Button>

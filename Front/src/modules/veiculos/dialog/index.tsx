@@ -386,7 +386,6 @@ export default function VeiculoDialog({ open, mode, initial, defaultCliente, onC
         <Button
           onClick={onClose}
           variant="outlined"
-          sx={{ borderRadius: 999 }}
         >
           Cancelar
         </Button>
@@ -394,7 +393,7 @@ export default function VeiculoDialog({ open, mode, initial, defaultCliente, onC
           variant="contained"
           onClick={handleSubmit}
           disableElevation
-          sx={{ borderRadius: 999, fontWeight: 700 }}
+          sx={{ fontWeight: 700 }}
         >
           {isEdit ? "Salvar alterações" : "Cadastrar veículo"}
         </Button>

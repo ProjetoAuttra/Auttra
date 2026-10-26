@@ -89,7 +89,7 @@ export default function MeuPerfilModal({ open, onClose, onChangePassword }: Prop
       </AppDialogContent>
 
       <AppDialogActions>
-        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>
+        <Button onClick={onClose} variant="outlined">
           Cancelar
         </Button>
         <Button
@@ -97,7 +97,7 @@ export default function MeuPerfilModal({ open, onClose, onChangePassword }: Prop
           variant="contained"
           startIcon={<LockRoundedIcon />}
           disableElevation
-          sx={{ borderRadius: 999, fontWeight: 700 }}
+          sx={{ fontWeight: 700 }}
         >
           Trocar senha
         </Button>

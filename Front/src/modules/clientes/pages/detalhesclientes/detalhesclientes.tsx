@@ -237,7 +237,7 @@ export default function ClienteDetalhesPage() {
                     startIcon={<WhatsAppIcon />}
                     onClick={() => setOpenWhats(true)}
                     disableElevation
-                    sx={{ bgcolor: "#25D366", "&:hover": { bgcolor: "#1CA653" }, textTransform: "none", fontWeight: 600, borderRadius: 999 }}
+                    sx={{ bgcolor: "#25D366", "&:hover": { bgcolor: "#1CA653" }, textTransform: "none", fontWeight: 600 }}
                   >
                     WhatsApp
                   </Button>
@@ -339,9 +339,9 @@ export default function ClienteDetalhesPage() {
           </Stack>
         </AppDialogContent>
         <AppDialogActions>
-          <Button onClick={() => setOpenWhats(false)} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
+          <Button onClick={() => setOpenWhats(false)} variant="outlined">Cancelar</Button>
           <Button variant="contained" onClick={enviarWhats} disabled={!mensagem}
-            sx={{ bgcolor: "#25D366", "&:hover": { bgcolor: "#1CA653" }, textTransform: "none", fontWeight: 700, borderRadius: 999 }}>
+            sx={{ bgcolor: "#25D366", "&:hover": { bgcolor: "#1CA653" }, textTransform: "none", fontWeight: 700 }}>
             Enviar
           </Button>
         </AppDialogActions>

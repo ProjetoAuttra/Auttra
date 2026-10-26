@@ -11,15 +11,16 @@ import DialogCliente from "../../clientes/dialog/";
 import DialogOrcamento from "../../orcamentos/dialog/";
 import { useAuth } from "../../../context/AuthContext";
 import api from "../../../api/api";
+import { brand, shadows } from "../../../app/theme";
 
 // ─── Cores do sistema ─────────────────────────────────────────────────────────
 
-const PRIMARY  = "#1D4ED8";
-const INK      = "#18202F";
-const MUTED    = "#667085";
-const SURFACE  = "#FFFFFF";
-const LINE     = "#DDE3EA";
-const ICON_BG  = "#EEF2FF";
+const PRIMARY  = brand.primary;
+const INK      = brand.ink;
+const MUTED    = brand.muted;
+const SURFACE  = brand.surface;
+const LINE     = brand.line;
+const ICON_BG  = brand.primarySoft;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -57,14 +58,15 @@ function ShortcutCard({ icon, title, subtitle, onClick }: ShortcutProps) {
         textAlign: "left",
         cursor: "pointer",
         background: SURFACE,
-        border: `0.5px solid ${LINE}`,
-        borderRadius: "16px",
+        border: `1px solid ${LINE}`,
+        borderRadius: 3,
         p: "1.75rem 1.5rem",
         display: "flex",
         gap: 2,
         alignItems: "flex-start",
-        transition: "border-color 0.15s",
-        "&:hover": { borderColor: PRIMARY },
+        transition: "border-color 0.15s, box-shadow 0.15s",
+        "&:hover": { borderColor: PRIMARY, boxShadow: shadows.raised },
+        "&:focus-visible": { borderColor: PRIMARY, boxShadow: `0 0 0 3px ${brand.primaryTint}` },
         fontFamily: "inherit",
         outline: "none",
         appearance: "none",
@@ -75,7 +77,7 @@ function ShortcutCard({ icon, title, subtitle, onClick }: ShortcutProps) {
         sx={{
           width: 40,
           height: 40,
-          borderRadius: "10px",
+          borderRadius: 1.25,
           bgcolor: ICON_BG,
           color: PRIMARY,
           display: "flex",
@@ -87,7 +89,7 @@ function ShortcutCard({ icon, title, subtitle, onClick }: ShortcutProps) {
         {icon}
       </Box>
       <Stack spacing={0.25} sx={{ pt: 0.25 }}>
-        <Typography sx={{ fontSize: 15, fontWeight: 500, color: INK, lineHeight: 1.3 }}>
+        <Typography sx={{ fontSize: 15, fontWeight: 600, color: INK, lineHeight: 1.3 }}>
           {title}
         </Typography>
         <Typography sx={{ fontSize: 12, color: MUTED, lineHeight: 1.4 }}>
@@ -148,7 +150,7 @@ export default function Home() {
 
         {/* Saudação */}
         <Stack spacing={0.5} alignItems="center" sx={{ textAlign: "center" }}>
-          <Typography sx={{ fontSize: 28, fontWeight: 500, color: INK, lineHeight: 1.2 }}>
+          <Typography sx={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", color: INK, lineHeight: 1.2 }}>
             {saudacao(user?.nome ?? "Usuário")}
           </Typography>
           <Typography sx={{ fontSize: 15, color: MUTED }}>

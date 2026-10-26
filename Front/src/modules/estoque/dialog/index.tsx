@@ -184,7 +184,6 @@ export default function EstoqueDialog({ open, mode, initial, onClose, onSubmit, 
                   color="error"
                   startIcon={<DeleteOutlineRoundedIcon />}
                   onClick={() => setConfirmDelete(true)}
-                  sx={{ borderRadius: 999 }}
                 >
                   Excluir peça
                 </Button>
@@ -194,11 +193,10 @@ export default function EstoqueDialog({ open, mode, initial, onClose, onSubmit, 
                   <Button
                     color="error" variant="contained" size="small" disableElevation
                     onClick={() => { onDelete(initial); onClose(); }}
-                    sx={{ borderRadius: 999 }}
                   >
                     Sim, excluir
                   </Button>
-                  <Button size="small" onClick={() => setConfirmDelete(false)} sx={{ borderRadius: 999 }}>
+                  <Button size="small" onClick={() => setConfirmDelete(false)}>
                     Cancelar
                   </Button>
                 </Stack>
@@ -208,7 +206,7 @@ export default function EstoqueDialog({ open, mode, initial, onClose, onSubmit, 
         </Box>
 
         <Stack direction="row" spacing={1.5}>
-          <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>
+          <Button onClick={onClose} variant="outlined">
             Cancelar
           </Button>
           <Button
@@ -216,7 +214,7 @@ export default function EstoqueDialog({ open, mode, initial, onClose, onSubmit, 
             variant="contained"
             disableElevation
             disabled={saving}
-            sx={{ borderRadius: 999, fontWeight: 700 }}
+            sx={{ fontWeight: 700 }}
           >
             {saving ? <CircularProgress size={18} /> : (isEdit ? "Salvar alterações" : "Cadastrar peça")}
           </Button>

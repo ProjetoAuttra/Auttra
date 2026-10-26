@@ -787,8 +787,8 @@ function AccessProfilesManager() {
             </Button>
           )}
           <Box sx={{ flex: 1 }} />
-          <Button onClick={() => setDialogOpen(false)} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
-          <Button variant="contained" onClick={save} disabled={saving} disableElevation sx={{ borderRadius: 999 }}>
+          <Button onClick={() => setDialogOpen(false)} variant="outlined">Cancelar</Button>
+          <Button variant="contained" onClick={save} disabled={saving} disableElevation>
             Salvar
           </Button>
         </AppDialogActions>

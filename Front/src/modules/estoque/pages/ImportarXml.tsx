@@ -236,7 +236,7 @@ export default function ImportarXmlPage() {
               size="large"
               disabled={!arquivo || loading}
               onClick={handleGerarPreview}
-              sx={{ borderRadius: 999, px: 4 }}
+              sx={{ px: 4 }}
               startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
             >
               {loading ? "Lendo nota..." : "Ver prévia da nota"}
@@ -407,7 +407,6 @@ export default function ImportarXmlPage() {
             <Button
               startIcon={<ArrowBackRoundedIcon />}
               onClick={() => setEtapa("upload")}
-              sx={{ borderRadius: 999 }}
             >
               Voltar
             </Button>
@@ -416,7 +415,7 @@ export default function ImportarXmlPage() {
               size="large"
               disabled={loading || preview.ja_importada}
               onClick={handleConfirmar}
-              sx={{ borderRadius: 999, px: 4 }}
+              sx={{ px: 4 }}
               startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
             >
               {loading ? "Atualizando estoque..." : "Confirmar entrada no estoque"}
@@ -469,14 +468,12 @@ export default function ImportarXmlPage() {
                 setItens([]);
                 setResultado(null);
               }}
-              sx={{ borderRadius: 999 }}
             >
               Importar outra nota
             </Button>
             <Button
               variant="contained"
               onClick={() => navigate(paths.estoque)}
-              sx={{ borderRadius: 999 }}
             >
               Ir para o estoque
             </Button>

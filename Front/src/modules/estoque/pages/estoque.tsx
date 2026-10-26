@@ -406,7 +406,7 @@ export default function EstoquePage() {
         </AppDialogContent>
 
         <AppDialogActions>
-          <Button onClick={() => setOpenAjuste(false)} variant="outlined" sx={{ borderRadius: 999 }}>
+          <Button onClick={() => setOpenAjuste(false)} variant="outlined">
             Cancelar
           </Button>
           <Button
@@ -414,7 +414,6 @@ export default function EstoquePage() {
             variant="contained"
             disabled={loadingAjuste}
             color={tipoAjuste === "entrada" ? "success" : "error"}
-            sx={{ borderRadius: 999 }}
           >
             {loadingAjuste ? "Salvando..." : "Confirmar"}
           </Button>

@@ -314,8 +314,8 @@ function NewAppointmentDialog({
         </Stack>
       </AppDialogContent>
       <AppDialogActions>
-        <Button onClick={handleClose} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
-        <Button onClick={handleSubmit(onSubmit)} variant="contained" disabled={!isValid || isSubmitting} disableElevation sx={{ borderRadius: 999 }}>
+        <Button onClick={handleClose} variant="outlined">Cancelar</Button>
+        <Button onClick={handleSubmit(onSubmit)} variant="contained" disabled={!isValid || isSubmitting} disableElevation>
           Salvar
         </Button>
       </AppDialogActions>
@@ -581,11 +581,11 @@ function AppointmentDetailsDialog({
           Excluir
         </Button>
         <Stack direction="row" spacing={1}>
-          <Button onClick={editing ? () => setEditing(false) : onClose} variant="outlined" sx={{ borderRadius: 999 }}>{editing ? 'Cancelar' : 'Fechar'}</Button>
+          <Button onClick={editing ? () => setEditing(false) : onClose} variant="outlined">{editing ? 'Cancelar' : 'Fechar'}</Button>
           {editing ? (
-            <Button variant="contained" onClick={handleSubmit(submit)} disabled={!isValid || isSubmitting} disableElevation sx={{ borderRadius: 999 }}>Salvar</Button>
+            <Button variant="contained" onClick={handleSubmit(submit)} disabled={!isValid || isSubmitting} disableElevation>Salvar</Button>
           ) : (
-            <Button variant="contained" startIcon={<EditRoundedIcon />} onClick={() => setEditing(true)} disableElevation sx={{ borderRadius: 999 }}>Editar</Button>
+            <Button variant="contained" startIcon={<EditRoundedIcon />} onClick={() => setEditing(true)} disableElevation>Editar</Button>
           )}
         </Stack>
       </AppDialogActions>
@@ -830,7 +830,7 @@ export default function Schedule() {
             </Stack>
 
             <Stack direction="row" spacing={1} alignItems="center" justifyContent="flex-end">
-              <Button startIcon={<TodayRoundedIcon />} onClick={() => setSelectedDate(dayjs())} sx={{ borderRadius: 999 }}>
+              <Button startIcon={<TodayRoundedIcon />} onClick={() => setSelectedDate(dayjs())}>
                 Hoje
               </Button>
               <ToggleButtonGroup

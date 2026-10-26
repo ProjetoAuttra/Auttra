@@ -470,7 +470,6 @@ export default function AppTopbar({
           <Button
             onClick={() => { setTrocaSenhaOpen(false); setSenhaForm({ senha_atual: "", nova_senha: "", confirmar: "" }); }}
             variant="outlined"
-            sx={{ borderRadius: 999 }}
           >
             Cancelar
           </Button>
@@ -479,7 +478,7 @@ export default function AppTopbar({
             variant="contained"
             disableElevation
             disabled={savingSenha}
-            sx={{ borderRadius: 999, fontWeight: 700 }}
+            sx={{ fontWeight: 700 }}
           >
             {savingSenha ? <CircularProgress size={18} /> : "Salvar"}
           </Button>
@@ -507,7 +506,6 @@ export default function AppTopbar({
           <Button
             onClick={() => setLogoutConfirmOpen(false)}
             variant="outlined"
-            sx={{ borderRadius: 999 }}
           >
             Cancelar
           </Button>
@@ -516,7 +514,7 @@ export default function AppTopbar({
             variant="contained"
             color="error"
             disableElevation
-            sx={{ borderRadius: 999, fontWeight: 700 }}
+            sx={{ fontWeight: 700 }}
           >
             Sair
           </Button>

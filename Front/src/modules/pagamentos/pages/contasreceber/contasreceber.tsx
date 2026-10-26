@@ -444,8 +444,8 @@ function EditarDialog({ open, conta, onClose, onConfirm }: {
         </Stack>
       </AppDialogContent>
       <AppDialogActions>
-        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
-        <Button variant="contained" disableElevation sx={{ textTransform: "none", borderRadius: 999 }}
+        <Button onClick={onClose} variant="outlined">Cancelar</Button>
+        <Button variant="contained" disableElevation sx={{ textTransform: "none" }}
           onClick={() => onConfirm({ descricao, categoria, observacao })}>
           Salvar
         </Button>
@@ -488,8 +488,8 @@ function NovaContaReceberDialog({ open, onClose, clientes, onConfirm }: {
         </Stack>
       </AppDialogContent>
       <AppDialogActions>
-        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
-        <Button variant="contained" disableElevation disabled={!valido} sx={{ textTransform: "none", borderRadius: 999 }}
+        <Button onClick={onClose} variant="outlined">Cancelar</Button>
+        <Button variant="contained" disableElevation disabled={!valido} sx={{ textTransform: "none" }}
           onClick={() => onConfirm({ ...form, valor: parseFloat(form.valor), cliente_id: form.cliente_id ? Number(form.cliente_id) : null, status: "pendente" })}>
           Salvar
         </Button>

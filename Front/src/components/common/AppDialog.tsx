@@ -55,9 +55,7 @@ export function AppDialog({
       PaperProps={{
         ...PaperProps,
         sx: {
-          borderRadius: 2,
           overflow: "hidden",
-          boxShadow: "0 18px 45px rgba(15, 23, 42, 0.18)",
           ...((PaperProps?.sx as object) ?? {}),
         },
       }}
@@ -80,12 +78,12 @@ export function AppDialog({
               sx={{
                 width: 48,
                 height: 48,
-                borderRadius: 2,
+                borderRadius: 1.5,
                 display: "grid",
                 placeItems: "center",
                 bgcolor: "primary.main",
                 color: "#fff",
-                boxShadow: (t) => `0 8px 18px ${alpha(t.palette.primary.main, 0.28)}`,
+                boxShadow: (t) => `0 4px 12px ${alpha(t.palette.primary.main, 0.24)}`,
                 flexShrink: 0,
                 "& svg": { fontSize: 24 },
               }}
@@ -93,7 +91,7 @@ export function AppDialog({
               {icon}
             </Box>
           )}
-          <Typography variant="subtitle1" fontWeight={800} lineHeight={1.3} noWrap>
+          <Typography variant="subtitle1" fontWeight={700} lineHeight={1.3} noWrap>
             {title}
           </Typography>
         </Box>

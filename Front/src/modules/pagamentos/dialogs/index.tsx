@@ -60,12 +60,12 @@ export function PagarDialog({ open, onClose, onConfirm }: {
         </Stack>
       </AppDialogContent>
       <AppDialogActions>
-        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
+        <Button onClick={onClose} variant="outlined">Cancelar</Button>
         <Button
           variant="contained"
           disableElevation
           onClick={() => onConfirm({ metodo, data_pagamento: dataPagamento || undefined })}
-          sx={{ borderRadius: 999, fontWeight: 700 }}
+          sx={{ fontWeight: 700 }}
         >
           Confirmar pagamento
         </Button>
@@ -137,13 +137,13 @@ export function PagamentoParcialDialog({ open, onClose, onConfirm, saldoRestante
         </Stack>
       </AppDialogContent>
       <AppDialogActions>
-        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
+        <Button onClick={onClose} variant="outlined">Cancelar</Button>
         <Button
           variant="contained"
           disableElevation
           disabled={invalido}
           onClick={() => onConfirm({ valor_entrada: valor, metodo })}
-          sx={{ borderRadius: 999, fontWeight: 700 }}
+          sx={{ fontWeight: 700 }}
         >
           Registrar entrada
         </Button>
@@ -212,13 +212,13 @@ export function DescontoDialog({ open, onClose, onConfirm, valorOriginal }: {
         </Stack>
       </AppDialogContent>
       <AppDialogActions>
-        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
+        <Button onClick={onClose} variant="outlined">Cancelar</Button>
         <Button
           variant="contained"
           disableElevation
           disabled={invalido}
           onClick={() => onConfirm({ desconto: valor, motivo_desconto: motivo.trim() })}
-          sx={{ borderRadius: 999, fontWeight: 700 }}
+          sx={{ fontWeight: 700 }}
         >
           Aplicar desconto
         </Button>
@@ -265,13 +265,13 @@ export function RenegociarDialog({ open, onClose, onConfirm }: {
         />
       </AppDialogContent>
       <AppDialogActions>
-        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
+        <Button onClick={onClose} variant="outlined">Cancelar</Button>
         <Button
           variant="contained"
           disableElevation
           disabled={!novaData}
           onClick={() => onConfirm({ nova_data_vencimento: novaData })}
-          sx={{ borderRadius: 999, fontWeight: 700 }}
+          sx={{ fontWeight: 700 }}
         >
           Salvar nova data
         </Button>
@@ -349,13 +349,13 @@ export function ParcelarDialog({ open, onClose, onConfirm, valorOriginal }: {
         </Stack>
       </AppDialogContent>
       <AppDialogActions>
-        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
+        <Button onClick={onClose} variant="outlined">Cancelar</Button>
         <Button
           variant="contained"
           disableElevation
           disabled={invalido}
           onClick={() => onConfirm({ total_parcelas: n, data_primeira_parcela: dataPrimeira, metodo: metodo || undefined })}
-          sx={{ borderRadius: 999, fontWeight: 700 }}
+          sx={{ fontWeight: 700 }}
         >
           Confirmar parcelamento
         </Button>

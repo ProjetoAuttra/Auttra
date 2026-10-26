@@ -182,7 +182,6 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                         variant="outlined"
                         sx={{
                             textTransform: "none",
-                            borderRadius: 999,
                             fontWeight: 600,
                             borderColor: "divider",
                             color: "text.secondary",
@@ -198,7 +197,6 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                         disableElevation
                         sx={{
                             textTransform: "none",
-                            borderRadius: 999,
                             fontWeight: 700,
                             px: 2.5,
                         }}

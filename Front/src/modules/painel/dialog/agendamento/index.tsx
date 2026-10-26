@@ -133,7 +133,7 @@ export default function DialogAgendamento({
           </Stack>
         </AppDialogContent>
         <AppDialogActions>
-          <Button onClick={handleClose} variant="outlined" sx={{ borderRadius: 999 }}>
+          <Button onClick={handleClose} variant="outlined">
             Cancelar
           </Button>
           <Button
@@ -141,7 +141,6 @@ export default function DialogAgendamento({
             variant="contained"
             disabled={!isValid || isSubmitting}
             disableElevation
-            sx={{ borderRadius: 999 }}
           >
             Salvar
           </Button>

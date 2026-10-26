@@ -253,7 +253,7 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
       </AppDialogContent>
 
       <AppDialogActions>
-        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>
+        <Button onClick={onClose} variant="outlined">
           Cancelar
         </Button>
         <Button
@@ -261,7 +261,7 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
           variant="contained"
           disableElevation
           disabled={saving}
-          sx={{ borderRadius: 999, fontWeight: 700 }}
+          sx={{ fontWeight: 700 }}
         >
           {saving ? <CircularProgress size={18} /> : (isEdit ? "Salvar alterações" : "Cadastrar funcionário")}
         </Button>
