@@ -176,8 +176,8 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
             }}
             sx={{
               my: 0.25,
-              minHeight: 52,
-              borderRadius: 2,
+              minHeight: 44,
+              borderRadius: 1.25,
               px: collapsed ? 0 : 2,
               justifyContent: collapsed ? 'center' : 'flex-start',
               bgcolor: selected ? alpha(theme.palette.primary.main, 0.12) : 'transparent',
@@ -199,7 +199,7 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
             {!collapsed && (
               <ListItemText
                 primary={displayLabel}
-                primaryTypographyProps={{ fontSize: 14, fontWeight: selected ? 750 : 650 }}
+                primaryTypographyProps={{ fontSize: 14, fontWeight: selected ? 700 : 600 }}
               />
             )}
             {!collapsed && allowedSubItems.length > 0 && (isOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />)}
@@ -231,7 +231,7 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
                         pl: 6,
                         py: 0.75,
                         minHeight: 36,
-                        borderRadius: 1.5,
+                        borderRadius: 1.25,
                         color: pathname === sub.to ? theme.palette.primary.main : theme.palette.text.secondary,
                         '&:hover': {
                           bgcolor: alpha(theme.palette.text.primary, 0.045),

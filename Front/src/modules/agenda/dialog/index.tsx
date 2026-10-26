@@ -206,7 +206,7 @@ function NewAppointmentDialog({
       </AppDialogContent>
 
       <AppDialogActions>
-        <Button onClick={handleClose} variant="outlined" sx={{ borderRadius: 999 }}>
+        <Button onClick={handleClose} variant="outlined">
           Cancelar
         </Button>
         <Button
@@ -214,7 +214,7 @@ function NewAppointmentDialog({
           variant="contained"
           disableElevation
           disabled={!isValid || isSubmitting}
-          sx={{ borderRadius: 999, fontWeight: 700 }}
+          sx={{ fontWeight: 700 }}
         >
           Salvar
         </Button>
@@ -333,7 +333,7 @@ export default function Schedule() {
             <Button
               variant="contained"
               startIcon={<AddRoundedIcon />}
-              sx={{ borderRadius: 999, height: 44, px: 2.5 }}
+              sx={{ height: 44, px: 2.5 }}
               onClick={() => setDialogOpen(true)}
             >
               Novo Agendamento

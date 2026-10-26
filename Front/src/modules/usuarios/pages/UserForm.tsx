@@ -120,11 +120,11 @@ export default function FuncionariosPage() {
         </Stack>
         <Stack direction="row" spacing={1.5}>
           <TextField value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Pesquisar funcionário" size="small"
-            sx={{ minWidth: 300, "& .MuiOutlinedInput-root": { borderRadius: 999, bgcolor: "background.paper", px: 1 } }}
+            sx={{ minWidth: 300, "& .MuiOutlinedInput-root": { borderRadius: 2, bgcolor: "background.paper", px: 1 } }}
             InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment> }}
           />
           {can("funcionarios", "create") && <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openCreate}
-            sx={{ borderRadius: 999, textTransform: "none", px: 2.5 }}>
+            sx={{ textTransform: "none", px: 2.5 }}>
             Novo Funcionário
           </Button>}
         </Stack>

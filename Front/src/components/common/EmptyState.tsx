@@ -27,24 +27,26 @@ export default function EmptyState({
     return (
         <Box sx={{ py: 8, textAlign: "center" }}>
             <Stack alignItems="center" spacing={2}>
-                {!isFiltered && illustration && (
+                {!isFiltered && illustration && !icon && (
                     <Box sx={{ opacity: 0.9 }}>{illustration}</Box>
                 )}
-                <Box
-                    sx={{
-                        width: 72,
-                        height: 72,
-                        borderRadius: 4,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        bgcolor: (t) => alpha(t.palette.text.primary, 0.05),
-                        color: "text.disabled",
-                        "& svg": { fontSize: 36 },
-                    }}
-                >
-                    {isFiltered ? <SearchOffRoundedIcon sx={{ fontSize: 36 }} /> : icon}
-                </Box>
+                {(isFiltered || icon || !illustration) && (
+                    <Box
+                        sx={{
+                            width: 72,
+                            height: 72,
+                            borderRadius: 4,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            bgcolor: (t) => alpha(t.palette.text.primary, 0.05),
+                            color: "text.disabled",
+                            "& svg": { fontSize: 36 },
+                        }}
+                    >
+                        {isFiltered ? <SearchOffRoundedIcon sx={{ fontSize: 36 }} /> : icon}
+                    </Box>
+                )}
 
                 <Stack spacing={0.5} alignItems="center">
                     <Typography variant="subtitle1" fontWeight={700} color="text.secondary">
@@ -63,7 +65,7 @@ export default function EmptyState({
                             size="small"
                             variant="outlined"
                             onClick={onClearFilter}
-                            sx={{ textTransform: "none", borderRadius: 999 }}
+                            sx={{ textTransform: "none" }}
                         >
                             Limpar filtros
                         </Button>
@@ -75,13 +77,6 @@ export default function EmptyState({
                             disableElevation
                             startIcon={<AddRoundedIcon />}
                             onClick={onAction}
-                            sx={{
-                                textTransform: "none",
-                                borderRadius: 999,
-                                fontWeight: 700,
-                                background: (t) =>
-                                    `linear-gradient(135deg, ${t.palette.primary.main}, ${t.palette.primary.dark})`,
-                            }}
                         >
                             {actionLabel}
                         </Button>

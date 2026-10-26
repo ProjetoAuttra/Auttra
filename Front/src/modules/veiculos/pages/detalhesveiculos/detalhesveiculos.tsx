@@ -67,7 +67,7 @@ function VeiculoOrdens({ ordens, onAdd }: { ordens: any[]; onAdd?: () => void })
             startIcon={<AddRoundedIcon />}
             variant="contained"
             disableElevation
-            sx={{ mt: 2, borderRadius: 999, fontWeight: 700 }}
+            sx={{ mt: 2, fontWeight: 700 }}
           >
             Nova OS
           </Button>
@@ -80,7 +80,7 @@ function VeiculoOrdens({ ordens, onAdd }: { ordens: any[]; onAdd?: () => void })
     <Stack spacing={1.5}>
       {onAdd && (
         <Stack direction="row" justifyContent="flex-end">
-          <Button onClick={onAdd} startIcon={<AddRoundedIcon />} variant="contained" disableElevation sx={{ borderRadius: 999, fontWeight: 700 }}>
+          <Button onClick={onAdd} startIcon={<AddRoundedIcon />} variant="contained" disableElevation sx={{ fontWeight: 700 }}>
             Nova OS
           </Button>
         </Stack>

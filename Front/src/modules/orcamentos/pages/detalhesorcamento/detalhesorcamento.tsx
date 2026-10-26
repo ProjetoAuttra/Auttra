@@ -158,7 +158,7 @@ export default function OrcamentoDetalhes() {
             onClick={handlePrint}
             disabled={printing}
             disableElevation
-            sx={{ borderRadius: 999, fontWeight: 700 }}
+            sx={{ fontWeight: 700 }}
           >
             Imprimir
           </Button>

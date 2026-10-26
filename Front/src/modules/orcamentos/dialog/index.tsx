@@ -634,17 +634,16 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
                   color="error"
                   startIcon={<DeleteOutlineRoundedIcon />}
                   onClick={() => setConfirmDelete(true)}
-                  sx={{ borderRadius: 999 }}
                 >
                   Excluir orçamento
                 </Button>
               ) : (
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Typography variant="body2" color="error" fontWeight={600}>Confirmar exclusão?</Typography>
-                  <Button color="error" variant="contained" size="small" disableElevation onClick={() => onDelete(initial)} sx={{ borderRadius: 999 }}>
+                  <Button color="error" variant="contained" size="small" disableElevation onClick={() => onDelete(initial)}>
                     Sim, excluir
                   </Button>
-                  <Button size="small" onClick={() => setConfirmDelete(false)} sx={{ borderRadius: 999 }}>Cancelar</Button>
+                  <Button size="small" onClick={() => setConfirmDelete(false)}>Cancelar</Button>
                 </Stack>
               )}
             </>
@@ -652,8 +651,8 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
         </Box>
 
         <Stack direction="row" spacing={1.5}>
-          <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
-          <Button variant="contained" onClick={handleSubmit} disableElevation sx={{ borderRadius: 999, fontWeight: 700 }}>
+          <Button onClick={onClose} variant="outlined">Cancelar</Button>
+          <Button variant="contained" onClick={handleSubmit} disableElevation sx={{ fontWeight: 700 }}>
             {isEdit ? "Salvar alterações" : "Criar orçamento"}
           </Button>
         </Stack>

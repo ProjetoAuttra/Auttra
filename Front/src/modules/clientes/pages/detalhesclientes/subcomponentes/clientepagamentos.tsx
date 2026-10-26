@@ -149,7 +149,7 @@ export default function ClientePagamentos({
           startIcon={<AddRoundedIcon />}
           variant="contained"
           disableElevation
-          sx={{ mt: 2, borderRadius: 999, fontWeight: 700 }}
+          sx={{ mt: 2, fontWeight: 700 }}
         >
           Novo pagamento
         </Button>
@@ -189,7 +189,7 @@ export default function ClientePagamentos({
           startIcon={<AddRoundedIcon />}
           variant="contained"
           disableElevation
-          sx={{ borderRadius: 999, fontWeight: 700 }}
+          sx={{ fontWeight: 700 }}
         >
           Novo pagamento
         </Button>
@@ -434,12 +434,12 @@ function NovoPagamentoClienteDialog({
         </Stack>
       </AppDialogContent>
       <AppDialogActions>
-        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>Cancelar</Button>
+        <Button onClick={onClose} variant="outlined">Cancelar</Button>
         <Button
           variant="contained"
           disableElevation
           disabled={!valido}
-          sx={{ borderRadius: 999, fontWeight: 700 }}
+          sx={{ fontWeight: 700 }}
           onClick={() => onConfirm({
             ...form,
             valor: Number(form.valor),

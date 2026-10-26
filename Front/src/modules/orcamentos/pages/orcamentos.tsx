@@ -325,7 +325,7 @@ export default function OrcamentosPage() {
           onClick={() => setDialogOpen(true)}
           disableElevation
           sx={{
-            borderRadius: 999, textTransform: "none", fontWeight: 700, px: 2.5,
+            textTransform: "none", fontWeight: 700, px: 2.5,
             background: (t) => `linear-gradient(135deg, ${t.palette.primary.main}, ${t.palette.primary.dark})`,
           }}
         >

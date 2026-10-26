@@ -462,7 +462,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
       </AppDialogContent>
 
       <AppDialogActions>
-        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>
+        <Button onClick={onClose} variant="outlined">
           Cancelar
         </Button>
         <Button
@@ -470,7 +470,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
           variant="contained"
           disableElevation
           disabled={saving || loading}
-          sx={{ borderRadius: 999, fontWeight: 700, minWidth: 100 }}
+          sx={{ fontWeight: 700, minWidth: 100 }}
         >
           {saving ? <CircularProgress size={18} /> : "Salvar"}
         </Button>

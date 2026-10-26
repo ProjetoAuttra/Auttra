@@ -55,7 +55,7 @@ export default function ModuleHeader({
           <Stack direction="row" spacing={1.25} alignItems="center" minWidth={0}>
             {icon && <Box sx={{ color: "primary.main", display: "flex", "& svg": { fontSize: 24 } }}>{icon}</Box>}
             <Box minWidth={0}>
-              <Typography variant="h5" sx={{ fontSize: { xs: 22, md: 24 }, lineHeight: 1.15, fontWeight: 850 }}>
+              <Typography variant="h5" sx={{ fontSize: { xs: 22, md: 24 }, lineHeight: 1.15, fontWeight: 700 }}>
                 {title}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.35 }}>
@@ -73,13 +73,13 @@ export default function ModuleHeader({
                 variant="outlined"
                 startIcon={secondaryActionIcon ?? <FileUploadRoundedIcon />}
                 onClick={onSecondaryAction}
-                sx={{ borderRadius: 999, px: 2.5, whiteSpace: "nowrap" }}
+                sx={{ px: 2.5, whiteSpace: "nowrap" }}
               >
                 {secondaryActionLabel}
               </Button>
             )}
             {onAction && (
-              <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={onAction} sx={{ borderRadius: 999, px: 2.5 }}>
+              <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={onAction} sx={{ px: 2.5 }}>
                 {actionLabel}
               </Button>
             )}

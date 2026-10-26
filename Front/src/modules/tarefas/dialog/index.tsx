@@ -464,7 +464,7 @@ export default function OrdemServicoDialog({ open, mode = "create", initial, onC
       </AppDialogContent>
 
       <AppDialogActions>
-        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 999 }}>
+        <Button onClick={onClose} variant="outlined">
           Cancelar
         </Button>
         <Button
@@ -472,7 +472,7 @@ export default function OrdemServicoDialog({ open, mode = "create", initial, onC
           variant="contained"
           disableElevation
           disabled={!clienteId || !veiculoId || !funcionarioId}
-          sx={{ borderRadius: 999, px: 5, fontWeight: 800 }}
+          sx={{ px: 5, fontWeight: 800 }}
         >
           {isEdit ? "Salvar Alterações" : "Gerar Ordem de Serviço"}
         </Button>
