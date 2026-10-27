@@ -108,6 +108,7 @@ model oficina {
   telefone          String?
   email             String? @unique
   logo_url          String?
+  cor_principal     String?
   status_admin      status_oficina_admin @default(ativa)
   notas_internas    String?
   implantacao_checklist Json @default("{\"dados_completos\":false,\"gestor_criado\":false,\"perfis_criados\":false,\"primeiro_acesso\":false,\"logo_cadastrada\":false,\"usuarios_convidados\":false}")

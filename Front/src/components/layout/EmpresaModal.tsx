@@ -21,6 +21,7 @@ import { useCep } from "../../hooks/useCep";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
 import { maskCnpj, maskTelefone, maskCep } from "../../utils/masks";
+import SeletorCor from "../common/SeletorCor";
 import { AppDialog, AppDialogActions, AppDialogContent, SectionLabel } from "../common/AppDialog";
 
 type Props = { open: boolean; onClose: () => void };
@@ -31,6 +32,7 @@ type Form = {
   email: string;
   telefone: string;
   logo_url: string | null;
+  cor_principal: string | null;
   cep: string;
   logradouro: string;
   numero: string;
@@ -47,6 +49,7 @@ function empresaToForm(e: EmpresaData): Form {
     email: e.email ?? "",
     telefone: maskTelefone(e.telefone ?? ""),
     logo_url: e.logo_url ?? null,
+    cor_principal: e.cor_principal ?? null,
     cep: maskCep(e.cep ?? ""),
     logradouro: e.logradouro ?? "",
     numero: e.numero ?? "",
@@ -59,6 +62,7 @@ function empresaToForm(e: EmpresaData): Form {
 const EMPTY_FORM: Form = {
   nome: "", cnpj: "", email: "", telefone: "",
   logo_url: null,
+  cor_principal: null,
   cep: "", logradouro: "", numero: "", complemento: "", cidade: "", uf: "",
 };
 
@@ -160,6 +164,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
         email: form.email,
         telefone: form.telefone,
         logo_url: form.logo_url,
+        cor_principal: form.cor_principal,
         cep: form.cep,
         logradouro: form.logradouro,
         numero: form.numero,
@@ -365,6 +370,17 @@ export default function EmpresaModal({ open, onClose }: Props) {
                   />
                 </Grid>
               </Grid>
+            </Box>
+
+            <Divider />
+
+            {/* ── Aparência ───────────────────────────────────── */}
+            <Box>
+              <SectionLabel>Aparência</SectionLabel>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                Cor principal da sua oficina. Ela é usada como base nos PDFs de orçamento e ordem de serviço.
+              </Typography>
+              <SeletorCor value={form.cor_principal} onChange={(cor) => setForm((prev) => ({ ...prev, cor_principal: cor }))} />
             </Box>
 
             <Divider />

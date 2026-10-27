@@ -26,6 +26,7 @@ const oficinaSelect = {
   telefone: true,
   email: true,
   logo_url: true,
+  cor_principal: true,
   financeiro_config: true,
   cidade: { select: { nome: true, uf: true } },
 } as const;

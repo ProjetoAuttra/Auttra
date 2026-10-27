@@ -27,6 +27,7 @@ export type OficinaPdf = {
   telefone?: string | null;
   email?: string | null;
   logo_url?: string | null;
+  cor_principal?: string | null;
   cidade?: { nome: string; uf: string } | null;
   financeiro_config?: unknown;
 };
@@ -41,25 +42,68 @@ export function formasPagamento(oficina: OficinaPdf): string | null {
   return typeof cfg?.formasPagamento === "string" && cfg.formasPagamento.trim() ? cfg.formasPagamento.trim() : null;
 }
 
-const CSS = `
+export const COR_PADRAO = "#1e3a8a";
+
+/** Só aceita #RRGGBB; qualquer outra coisa cai na cor padrão (o valor entra direto no CSS). */
+export function corValida(cor?: string | null) {
+  return cor && /^#[0-9a-fA-F]{6}$/.test(cor) ? cor.toLowerCase() : COR_PADRAO;
+}
+
+function rgb(hex: string): [number, number, number] {
+  return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
+}
+
+const toHex = (c: number[]) => "#" + c.map((v) => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, "0")).join("");
+
+/** Luminância relativa (WCAG), de 0 (preto) a 1 (branco). */
+function luminancia(hex: string) {
+  const [r, g, b] = rgb(hex).map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/**
+ * Deriva a paleta do documento a partir da cor da oficina: a cor principal em faixas e totais,
+ * uma versão escurecida para textos (sempre legível sobre branco) e texto claro/escuro sobre a cor.
+ */
+export function paleta(corPrincipal?: string | null) {
+  const principal = corValida(corPrincipal);
+  const base = rgb(principal);
+  // Cores claras demais perdem contraste como texto sobre branco: escurece até ter contraste mínimo.
+  let escura = principal;
+  for (let f = 0.9; luminancia(escura) > 0.18 && f > 0.2; f -= 0.1) escura = toHex(base.map((v) => v * f));
+  return {
+    principal,
+    escura,
+    sobrePrincipal: luminancia(principal) > 0.45 ? "#111827" : "#ffffff",
+    suave: toHex(base.map((v) => 255 - (255 - v) * 0.12)),
+  };
+}
+
+const css = (cor?: string | null) => {
+  const p = paleta(cor);
+  return `
+  :root { --cor: ${p.principal}; --cor-escura: ${p.escura}; --sobre-cor: ${p.sobrePrincipal}; --cor-suave: ${p.suave}; }
   @page { size: A4; }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: "Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif; font-size: 12px; line-height: 1.45; color: #1f2937; }
   h1, h2, h3, p { margin: 0; }
-  .topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; padding-bottom: 14px; border-bottom: 2px solid #1e3a8a; }
+  .topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; padding-bottom: 14px; border-bottom: 2px solid var(--cor); }
   .oficina { display: flex; gap: 12px; align-items: flex-start; max-width: 60%; }
   .oficina img { width: 56px; height: 56px; object-fit: contain; }
   .oficina .nome { font-size: 16px; font-weight: 700; color: #111827; }
   .oficina .linha { color: #6b7280; font-size: 11px; }
   .doc { text-align: right; }
   .doc .tipo { font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: #6b7280; }
-  .doc .numero { font-size: 24px; font-weight: 700; color: #1e3a8a; line-height: 1.15; }
+  .doc .numero { font-size: 24px; font-weight: 700; color: var(--cor-escura); line-height: 1.15; }
   .doc .meta { color: #6b7280; font-size: 11px; margin-top: 2px; }
   .status { display: inline-block; margin-top: 6px; padding: 2px 9px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; background: #e5e7eb; color: #374151; }
   .status.ok { background: #dcfce7; color: #166534; }
   .status.aviso { background: #fef3c7; color: #92400e; }
   .status.erro { background: #fee2e2; color: #991b1b; }
-  .status.info { background: #dbeafe; color: #1e40af; }
+  .status.info { background: var(--cor-suave); color: var(--cor-escura); }
   .colunas { display: grid; gap: 28px; margin-top: 18px; }
   .colunas.c2 { grid-template-columns: 1fr 1fr; }
   .colunas.c3 { grid-template-columns: 1fr 1fr 1fr; }
@@ -69,7 +113,7 @@ const CSS = `
   .secao { margin-top: 20px; break-inside: avoid; }
   .secao > h3 { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #6b7280; margin-bottom: 6px; }
   table { width: 100%; border-collapse: collapse; }
-  thead th { text-align: left; font-size: 10px; letter-spacing: .8px; text-transform: uppercase; color: #6b7280; padding: 6px 8px; border-bottom: 1.5px solid #1e3a8a; }
+  thead th { text-align: left; font-size: 10px; letter-spacing: .8px; text-transform: uppercase; color: #6b7280; padding: 6px 8px; border-bottom: 1.5px solid var(--cor); }
   tbody td { padding: 8px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
   tr { break-inside: avoid; }
   .num { text-align: right; white-space: nowrap; }
@@ -77,7 +121,7 @@ const CSS = `
   .vazio { text-align: center; color: #9ca3af; padding: 14px 8px; }
   .totais { margin-top: 10px; margin-left: auto; width: 260px; break-inside: avoid; }
   .totais .linha { display: flex; justify-content: space-between; padding: 3px 8px; color: #4b5563; }
-  .totais .total { margin-top: 4px; padding: 9px 8px; background: #1e3a8a; color: #fff; border-radius: 4px; font-size: 15px; font-weight: 700; }
+  .totais .total { margin-top: 4px; padding: 9px 8px; background: var(--cor); color: var(--sobre-cor); border-radius: 4px; font-size: 15px; font-weight: 700; }
   .caixa { border: 1px solid #e5e7eb; border-radius: 4px; padding: 10px 12px; background: #f9fafb; white-space: pre-wrap; }
   .condicoes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .condicoes .item .rotulo { font-size: 10px; letter-spacing: .8px; text-transform: uppercase; color: #6b7280; }
@@ -86,6 +130,7 @@ const CSS = `
   .assinaturas .linha-ass { border-top: 1px solid #6b7280; padding-top: 4px; text-align: center; font-size: 10px; color: #6b7280; }
   footer { margin-top: 28px; padding-top: 8px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 10px; color: #9ca3af; }
 `;
+};
 
 function enderecoOficina(o: OficinaPdf) {
   const rua = [o.logradouro, o.numero].filter(Boolean).join(", ");
@@ -185,7 +230,7 @@ export function assinaturas(esquerda: string, direita: string) {
 export function documento(oficina: OficinaPdf, corpo: string, rodape: string) {
   return `<!DOCTYPE html>
 <html lang="pt-BR">
-  <head><meta charset="UTF-8" /><style>${CSS}</style></head>
+  <head><meta charset="UTF-8" /><style>${css(oficina.cor_principal)}</style></head>
   <body>
     ${corpo}
     <footer>${esc(rodape)} · Emitido em ${esc(new Date().toLocaleDateString("pt-BR"))} por ${esc(oficina.nome)} via Auttra. Este documento não tem validade fiscal.</footer>
