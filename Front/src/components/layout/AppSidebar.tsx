@@ -1,6 +1,6 @@
 import {
   Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText,
-  useTheme, Tooltip, Divider, Collapse, Toolbar, IconButton
+  useTheme, Tooltip, Collapse, Toolbar, IconButton
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import HomeOutlineIcon from '@mui/icons-material/HomeOutlined';
@@ -284,7 +284,7 @@ export default function AppSidebar({
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        bgcolor: 'background.paper',
+        bgcolor: brand.subtle,
         color: 'text.primary',
       }}
     >
@@ -298,7 +298,6 @@ export default function AppSidebar({
         <BrandLogoPlaceholder compact={isCollapsed} />
       </Toolbar>
 
-      <Divider sx={{ flexShrink: 0 }} />
       <NavList onItemClick={onCloseMobile} collapsed={isCollapsed} />
 
       {showToggle && (
@@ -308,7 +307,6 @@ export default function AppSidebar({
             p: 1.5,
             display: 'flex',
             justifyContent: isCollapsed ? 'center' : 'flex-end',
-            borderTop: `1px solid ${brand.line}`,
           }}
         >
           <Tooltip title={isCollapsed ? 'Expandir menu' : 'Recolher menu'} placement="right">
@@ -344,8 +342,8 @@ export default function AppSidebar({
           '& .MuiDrawer-paper': {
             width: drawerWidth,
             boxSizing: 'border-box',
-            bgcolor: 'background.paper',
-            borderRight: `1px solid ${brand.line}`,
+            bgcolor: brand.subtle,
+            border: 'none',
           },
         }}
       >
@@ -363,9 +361,9 @@ export default function AppSidebar({
             top: 0,
             left: 0,
             height: '100dvh',
-            borderRight: `1px solid ${brand.line}`,
+            border: 'none',
             borderRadius: 0,
-            bgcolor: 'background.paper',
+            bgcolor: brand.subtle,
             transition: theme.transitions.create('width', {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.enteringScreen,

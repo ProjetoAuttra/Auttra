@@ -43,7 +43,9 @@ export const theme = createTheme({
     success: { main: brand.success },
     error: { main: brand.error },
     info: { main: brand.info },
-    background: { default: brand.page, paper: brand.surface },
+    background: { default: '#FFFFFF', paper: brand.surface },
+    // Hover/fundo suave também usado em painéis sem borda ("soltos").
+    action: { hover: '#F4F6FA' },
     text: { primary: brand.ink, secondary: brand.muted },
     divider: brand.line,
   },
@@ -116,6 +118,10 @@ export const theme = createTheme({
         },
         rounded: { borderRadius: radius.card },
       },
+      // Painéis `outlined` não têm contorno: viram um bloco de fundo suave.
+      variants: [
+        { props: { variant: 'outlined' }, style: { border: 0, backgroundColor: '#F4F6FA' } },
+      ],
     },
     MuiCard: {
       styleOverrides: {
@@ -148,7 +154,7 @@ export const theme = createTheme({
           fontSize: 12,
           fontWeight: 700,
           textTransform: 'uppercase',
-          backgroundColor: brand.subtle,
+          backgroundColor: 'transparent',
           letterSpacing: '0.04em',
         },
         root: {

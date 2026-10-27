@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Box, Paper, Stack, Typography, type SxProps, type Theme } from "@mui/material";
+import { Box, Stack, Typography, type SxProps, type Theme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 
 export type StatTone = "default" | "primary" | "success" | "warning" | "error" | "info";
@@ -10,33 +10,30 @@ type Props = {
   helper?: string;
   icon?: ReactNode;
   tone?: StatTone;
-  /** Torna o card clicável (ex.: filtro rápido). */
+  /** Torna o KPI clicável (ex.: filtro rápido). */
   onClick?: () => void;
-  /** Marca o card clicável como selecionado. */
+  /** Marca o KPI clicável como selecionado. */
   active?: boolean;
   sx?: SxProps<Theme>;
 };
 
-/** KPI padrão do sistema: rótulo, valor em destaque e apoio opcional. */
+/** KPI padrão do sistema: rótulo, valor em destaque e apoio opcional, sem caixa nem borda. */
 export default function StatCard({ label, value, helper, icon, tone = "default", onClick, active = false, sx }: Props) {
   const valueColor = tone === "default" ? "text.primary" : `${tone}.main`;
 
   return (
-    <Paper
-      variant="outlined"
+    <Box
       onClick={onClick}
       sx={[
         {
-          px: 2.25,
-          py: 1.75,
-          borderRadius: 2,
-          flex: 1,
-          minWidth: 160,
+          px: onClick ? 1.5 : 0,
+          py: 0.5,
+          borderRadius: 1.5,
+          minWidth: 140,
           cursor: onClick ? "pointer" : "default",
-          borderColor: active ? "primary.main" : "divider",
-          bgcolor: active ? (t: Theme) => alpha(t.palette.primary.main, 0.05) : "background.paper",
-          transition: "border-color 0.2s, background-color 0.2s",
-          "&:hover": onClick ? { borderColor: "primary.main" } : undefined,
+          bgcolor: active ? (t: Theme) => alpha(t.palette.primary.main, 0.08) : "transparent",
+          transition: "background-color 0.2s",
+          "&:hover": onClick ? { bgcolor: active ? undefined : "action.hover" } : undefined,
         },
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
       ]}
@@ -47,7 +44,7 @@ export default function StatCard({ label, value, helper, icon, tone = "default",
           {label}
         </Typography>
       </Stack>
-      <Typography variant="h6" fontWeight={700} color={valueColor}>
+      <Typography fontSize="1.5rem" lineHeight={1.3} fontWeight={700} color={valueColor}>
         {value}
       </Typography>
       {helper && (
@@ -55,33 +52,25 @@ export default function StatCard({ label, value, helper, icon, tone = "default",
           {helper}
         </Typography>
       )}
-    </Paper>
+    </Box>
   );
 }
 
-/** Agrupa KPIs numa única superfície, separados por divisórias verticais (em vez de várias caixas). */
+/** Agrupa KPIs numa linha solta, separados por espaço (sem caixas nem divisórias). */
 export function StatGroup({ children, sx }: { children: ReactNode; sx?: SxProps<Theme> }) {
   return (
-    <Paper
-      variant="outlined"
+    <Box
       sx={[
         {
           display: "flex",
           flexWrap: "wrap",
-          overflow: "hidden",
-          mb: 2.5,
-          "& > .MuiPaper-root": {
-            border: 0,
-            borderRadius: 0,
-            borderRight: (t: Theme) => `1px solid ${t.palette.divider}`,
-            flex: "1 1 170px",
-          },
-          "& > .MuiPaper-root:last-child": { borderRight: 0 },
+          gap: { xs: 3, md: 6 },
+          mb: 3,
         },
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
       ]}
     >
       {children}
-    </Paper>
+    </Box>
   );
 }

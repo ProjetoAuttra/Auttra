@@ -242,15 +242,15 @@ export default function Configuracoes() {
     >
       <Paper
         elevation={0}
-        sx={(t) => ({
+        sx={{
           width: '100%',
           maxWidth: 900,
-          borderRadius: 1.5,
-          p: { xs: 3, md: 4 },
-          border: `1px solid ${t.palette.divider}`,
-          bgcolor: 'background.paper',
+          borderRadius: 0,
+          p: 0,
+          border: 0,
+          bgcolor: 'transparent',
           alignSelf: 'flex-start',
-        })}
+        }}
       >
         <Stack direction="row" alignItems="center" spacing={1.5} mb={4}>
           <SettingsRoundedIcon color="primary" />
@@ -817,7 +817,7 @@ function SectionCard({ title, icon, open, onToggle, onEdit, editing, onCancel, o
           px: 2.5,
           py: 1.75,
           cursor: 'pointer',
-          bgcolor: open ? brand.subtle : 'transparent',
+          bgcolor: 'transparent',
         }}
         onClick={onToggle}
       >

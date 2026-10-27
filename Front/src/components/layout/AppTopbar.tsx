@@ -166,7 +166,7 @@ export default function AppTopbar({
           zIndex: (t) => t.zIndex.drawer + 1,
           bgcolor: "background.paper",
           color: "text.primary",
-          borderBottom: `1px solid ${brand.line}`,
+          borderBottom: 0,
           boxShadow: "none",
           transition: "left 0.2s ease, width 0.2s ease",
         }}

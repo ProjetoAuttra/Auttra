@@ -204,7 +204,7 @@ export default function OrdemServicoDetalhes() {
           p: 3,
           mb: 3,
           borderRadius: 2,
-          border: (t) => `1px solid ${t.palette.divider}`,
+          border: 0, bgcolor: "action.hover",
         }}
       >
         <Grid container spacing={2.5}>
@@ -264,7 +264,7 @@ export default function OrdemServicoDetalhes() {
           p: 3,
           mb: 3,
           borderRadius: 2,
-          border: (t) => `1px solid ${t.palette.divider}`,
+          border: 0, bgcolor: "action.hover",
         }}
       >
         <Typography variant="h6" fontWeight={700} mb={2}>

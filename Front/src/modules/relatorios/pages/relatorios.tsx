@@ -65,15 +65,15 @@ function RelatorioCard({
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        border: (t) => `1px solid ${t.palette.divider}`,
+        border: 0,
         overflow: "hidden",
         transition: "border-color 0.2s",
         "&:hover": { borderColor: "primary.main" },
       }}
     >
-      <Box sx={{ p: 2.5, bgcolor: "transparent", borderBottom: (t) => `1px solid ${t.palette.divider}` }}>
+      <Box sx={{ px: 0, py: 2.5 }}>
         <Stack direction="row" spacing={2} alignItems="center">
-          <Box sx={{ width: 46, height: 46, borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}`, color: "text.secondary", "& svg": { fontSize: 25 } }}>
+          <Box sx={{ width: 46, height: 46, borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "action.hover", color: "text.secondary", "& svg": { fontSize: 25 } }}>
             {icone}
           </Box>
           <Stack flex={1} spacing={0.25} minWidth={0}>
@@ -83,7 +83,7 @@ function RelatorioCard({
         </Stack>
       </Box>
 
-      <Box sx={{ px: 2.5, py: 2, flex: 1 }}>
+      <Box sx={{ px: 0, py: 1, flex: 1 }}>
         {loading ? (
           <Stack spacing={1}>
             {[1, 2, 3].map((i) => (
@@ -97,7 +97,7 @@ function RelatorioCard({
       </Box>
 
       <Divider />
-      <Stack direction="row" justifyContent="flex-end" sx={{ px: 2.5, py: 1.5 }}>
+      <Stack direction="row" justifyContent="flex-end" sx={{ px: 0, py: 1.5 }}>
         <Button
           size="small"
           endIcon={<ArrowForwardRoundedIcon />}

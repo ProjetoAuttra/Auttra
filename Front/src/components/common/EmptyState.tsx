@@ -1,5 +1,4 @@
 import { Box, Typography, Button, Stack } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import SearchOffRoundedIcon from "@mui/icons-material/SearchOffRounded";
 
@@ -33,15 +32,14 @@ export default function EmptyState({
                 {(isFiltered || icon || !illustration) && (
                     <Box
                         sx={{
-                            width: 72,
-                            height: 72,
+                            width: 56,
+                            height: 56,
                             borderRadius: 2,
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            bgcolor: (t) => alpha(t.palette.text.primary, 0.05),
                             color: "text.disabled",
-                            "& svg": { fontSize: 36 },
+                            "& svg": { fontSize: 44 },
                         }}
                     >
                         {isFiltered ? <SearchOffRoundedIcon sx={{ fontSize: 36 }} /> : icon}

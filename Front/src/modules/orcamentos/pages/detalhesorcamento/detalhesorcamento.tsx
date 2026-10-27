@@ -165,7 +165,7 @@ export default function OrcamentoDetalhes() {
         </Stack>
       </Stack>
 
-      <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 2, border: (t) => `1px solid ${t.palette.divider}` }}>
+      <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 2, border: 0, bgcolor: "action.hover" }}>
         <Grid container spacing={2.5}>
           <Grid size={{ xs: 12, md: 4 }}>
             <Stack direction="row" spacing={1.5} alignItems="center" mb={1}>
@@ -209,7 +209,7 @@ export default function OrcamentoDetalhes() {
         </Typography>
       </Paper>
 
-      <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: (t) => `1px solid ${t.palette.divider}` }}>
+      <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: 0, bgcolor: "action.hover" }}>
         <Typography variant="h6" fontWeight={700} mb={2}>Itens</Typography>
 
         {itens.length ? (

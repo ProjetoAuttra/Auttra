@@ -24,7 +24,6 @@ import DialogOrcamento from "../dialog";
 import OrdemServicoDialog from "../../tarefas/dialog";
 import api from "../../../api/api";
 import ListTableContainer from "../../../components/common/ListTableContainer";
-import { radius } from "../../../app/theme";
 import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationOrcamentos } from "../../../components/common/Illustrations";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
@@ -471,7 +470,7 @@ export default function OrcamentosPage() {
         rowsPerPageOptions={[5, 10, 20]}
         labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
-        sx={{ bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}`, borderTop: 0, borderRadius: `0 0 ${radius.card}px ${radius.card}px` }}
+        sx={{ bgcolor: "transparent", borderTop: (t) => `1px solid ${t.palette.divider}` }}
       />
 
       {/* ── Menu contextual ── */}

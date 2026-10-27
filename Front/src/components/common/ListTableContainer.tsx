@@ -1,5 +1,4 @@
 import { Paper, TableContainer, type TableContainerProps } from "@mui/material";
-import { radius } from "../../app/theme";
 
 const TABLE_HEADER_HEIGHT = 56;
 const TABLE_ROW_HEIGHT = 56;
@@ -11,8 +10,9 @@ export default function ListTableContainer({ sx, ...props }: TableContainerProps
     <TableContainer
       component={Paper}
       sx={{
-        borderRadius: `${radius.card}px ${radius.card}px 0 0`,
-        border: (theme) => `1px solid ${theme.palette.divider}`,
+        borderRadius: 0,
+        border: 0,
+        bgcolor: 'transparent',
         height: TABLE_CONTAINER_HEIGHT,
         overflowY: "auto",
         "& .MuiTableBody-root .MuiTableRow-root:only-child .MuiTableCell-root[colspan]": {

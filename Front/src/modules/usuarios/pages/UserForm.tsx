@@ -17,7 +17,6 @@ import { useConfirm } from "../../../context/ConfirmContext";
 import FuncionarioDialog, { type FuncionarioForm } from "../dialog";
 import { listarFuncionarios, criarFuncionario, atualizarFuncionario, deletarFuncionario } from "../api/api";
 import ListTableContainer from "../../../components/common/ListTableContainer";
-import { radius } from "../../../app/theme";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
 
@@ -183,7 +182,7 @@ export default function FuncionariosPage() {
         onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
         rowsPerPageOptions={[5, 10, 20]} labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
-        sx={{ bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}`, borderTop: 0, borderRadius: `0 0 ${radius.card}px ${radius.card}px` }}
+        sx={{ bgcolor: "transparent", borderTop: (t) => `1px solid ${t.palette.divider}` }}
       />
 
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}
