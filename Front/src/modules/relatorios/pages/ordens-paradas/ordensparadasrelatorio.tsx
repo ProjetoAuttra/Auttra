@@ -26,8 +26,7 @@ import {
   MetricCard,
   StatGroup,
   ReportHeader,
-  ReportPage,
-} from "../../shared/reportUtils";
+  ReportPage, TituloSecao } from "../../shared/reportUtils";
 
 type Ordem = {
   id: number;
@@ -144,7 +143,7 @@ export default function OrdensParadasRelatorio() {
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
         <Box sx={{ flex: 1 }}>
-          <Typography fontWeight={700} mb={1}>Prioridade por valor</Typography>
+          <TituloSecao>Prioridade por valor</TituloSecao>
           {maiorValorAberto ? (
             <Stack spacing={0.5}>
               <Typography variant="body2" fontWeight={600}>OS #{maiorValorAberto.id} - {maiorValorAberto.cliente?.nome ?? "Cliente não informado"}</Typography>
@@ -155,7 +154,7 @@ export default function OrdensParadasRelatorio() {
         </Box>
 
         <Box sx={{ flex: 1 }}>
-          <Typography fontWeight={700} mb={1}>Paradas por mecânico</Typography>
+          <TituloSecao>Paradas por mecânico</TituloSecao>
           {Object.entries(porMecanico).length ? Object.entries(porMecanico).map(([nome, item]) => (
             <Stack key={nome} direction="row" justifyContent="space-between" py={0.75}>
               <Typography variant="body2">{nome}</Typography>
@@ -165,6 +164,7 @@ export default function OrdensParadasRelatorio() {
         </Box>
       </Stack>
 
+      <TituloSecao>OS paradas</TituloSecao>
       <Box sx={{ overflowX: "auto" }}>
         {paradas.length ? (
           <Table>

@@ -31,8 +31,7 @@ import {
   PeriodFilter,
   ReportHeader,
   ReportPage,
-  todayISO,
-} from "../../shared/reportUtils";
+  todayISO, TituloSecao } from "../../shared/reportUtils";
 
 type Orcamento = {
   id: number;
@@ -162,7 +161,7 @@ export default function OrcamentosPerdidosRelatorio() {
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
         <Box sx={{ flex: 1 }}>
-          <Typography fontWeight={700} mb={1}>Principais perdas por item</Typography>
+          <TituloSecao>Principais perdas por item</TituloSecao>
           {Object.entries(servicosPerdidos).length ? Object.entries(servicosPerdidos)
             .sort((a, b) => b[1].valor - a[1].valor)
             .slice(0, 8)
@@ -175,7 +174,7 @@ export default function OrcamentosPerdidosRelatorio() {
         </Box>
 
         <Box sx={{ flex: 1 }}>
-          <Typography fontWeight={700} mb={1}>Follow-up prioritário</Typography>
+          <TituloSecao>Follow-up prioritário</TituloSecao>
           {pendentes.length ? [...pendentes]
             .sort((a, b) => daysBetween(b.data) - daysBetween(a.data) || Number(b.valor ?? 0) - Number(a.valor ?? 0))
             .slice(0, 8)
@@ -191,6 +190,7 @@ export default function OrcamentosPerdidosRelatorio() {
         </Box>
       </Stack>
 
+      <TituloSecao>Orçamentos perdidos</TituloSecao>
       <Box sx={{ overflowX: "auto" }}>
         {linhas.length ? (
           <Table>

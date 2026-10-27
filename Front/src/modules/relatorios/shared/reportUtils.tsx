@@ -121,7 +121,28 @@ export function MetricCard(props: {
   tone?: "default" | "success" | "warning" | "error" | "info";
   sx?: SxProps<Theme>;
 }) {
-  return <StatCard {...props} />;
+  // Os KPIs dos relatórios ficam em preto padrão: a cor fica reservada para status, não para números.
+  const { tone: _tone, ...resto } = props;
+  return <StatCard {...resto} />;
+}
+
+/** Linha de lista de um painel: rótulo (e apoio) à esquerda, valor à direita, separada da próxima por uma linha fina. */
+export function LinhaLista({ titulo, apoio, valor }: { titulo: React.ReactNode; apoio?: React.ReactNode; valor: React.ReactNode }) {
+  return (
+    <Stack
+      direction="row"
+      justifyContent="space-between"
+      alignItems="center"
+      gap={2}
+      sx={{ py: 1.25, borderBottom: (t) => `1px solid ${t.palette.divider}`, "&:last-of-type": { borderBottom: 0 } }}
+    >
+      <Stack minWidth={0}>
+        <Typography variant="body2" noWrap>{titulo}</Typography>
+        {apoio && <Typography variant="caption" color="text.secondary">{apoio}</Typography>}
+      </Stack>
+      <Typography variant="body2" fontWeight={600} sx={{ whiteSpace: "nowrap" }}>{valor}</Typography>
+    </Stack>
+  );
 }
 
 export function ReportPage({ children }: { children: React.ReactNode }) {
@@ -137,5 +158,15 @@ export function EmptyReport({ message }: { message: string }) {
     <Box sx={{ textAlign: "center", py: 6 }}>
       <Typography color="text.secondary">{message}</Typography>
     </Box>
+  );
+}
+
+
+/** Título de seção: texto em negrito com uma linha fina embaixo, no lugar da caixa em volta do painel. */
+export function TituloSecao({ children }: { children: React.ReactNode }) {
+  return (
+    <Typography fontWeight={700} sx={{ pb: 1, mb: 1.5, borderBottom: (t) => `1px solid ${t.palette.divider}` }}>
+      {children}
+    </Typography>
   );
 }
