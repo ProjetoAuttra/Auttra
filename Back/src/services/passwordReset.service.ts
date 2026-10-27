@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import bcrypt from "bcrypt";
 import { prisma } from "../prisma/client.js";
 import { EmailDeliveryError, sendEmail } from "./email.service.js";
+import { invalidarTokens, limparCacheSessao } from "./sessao.service.js";
 
 const TOKEN_BYTES = 32;
 const TOKEN_TTL_MINUTES = 60;
@@ -141,12 +142,13 @@ export const PasswordResetService = {
     await prisma.$transaction([
       prisma.usuario.update({
         where: { id: resetToken.usuario_id },
-        data: { senha: senhaHash },
+        data: { senha: senhaHash, ...invalidarTokens },
       }),
       prisma.password_reset_token.update({
         where: { id: resetToken.id },
         data: { used_at: new Date() },
       }),
     ]);
+    limparCacheSessao(resetToken.usuario_id);
   },
 };

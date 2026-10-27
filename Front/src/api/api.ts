@@ -33,4 +33,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Sessão revogada no servidor (senha trocada, acesso removido): limpa o login local e volta para a tela de entrada.
+api.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    if (error?.response?.status === 401 && error.response.data?.message?.startsWith("Sessão encerrada")) {
+      for (const storage of [localStorage, sessionStorage]) {
+        storage.removeItem("driveon:token");
+        storage.removeItem("driveon:user");
+      }
+      if (window.location.pathname !== "/login") window.location.assign("/login");
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

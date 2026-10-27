@@ -15,7 +15,7 @@ export const AuthService = {
     if (!senhaValida) throw new Error("E-mail ou senha inválidos");
 
     const token = jwt.sign(
-      { id: user.id, tipo: user.tipo },
+      { id: user.id, tipo: user.tipo, tv: user.token_version },
       getJwtSecret(),
       { expiresIn: "8h" }
     );

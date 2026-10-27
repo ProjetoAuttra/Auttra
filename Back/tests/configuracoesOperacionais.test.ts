@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { app } from "../src/app.js";
 import { getJwtSecret } from "../src/config/env.js";
 import { prisma } from "../src/prisma/client.js";
+import { criarUsuarioComAcesso, removerUsuario } from "./sessao.js";
 import type { PermissionsMap } from "../src/permissions/accessProfiles.js";
 
 const suffix = Date.now();
@@ -11,6 +12,7 @@ const suffix = Date.now();
 describe("configuracoes operacionais (agenda/financeiro)", () => {
   let oficinaId: number;
   let token: string;
+  let usuarioId: number;
 
   beforeAll(async () => {
     const cidade = await prisma.cidade.create({
@@ -27,11 +29,12 @@ describe("configuracoes operacionais (agenda/financeiro)", () => {
       },
     });
     oficinaId = oficina.id;
+    usuarioId = await criarUsuarioComAcesso([oficinaId], "config");
 
     const permissoes: PermissionsMap = { configuracoes: ["read", "update"] };
     token = jwt.sign(
       {
-        id: 1,
+        id: usuarioId,
         email: "gestor@example.com",
         nome: "Gestor",
         tipo: "gestoroficina",
@@ -44,6 +47,7 @@ describe("configuracoes operacionais (agenda/financeiro)", () => {
   });
 
   afterAll(async () => {
+    await removerUsuario(usuarioId);
     if (oficinaId) {
       await prisma.oficina.delete({ where: { id: oficinaId } }).catch(() => {});
     }
@@ -111,7 +115,7 @@ describe("configuracoes operacionais (agenda/financeiro)", () => {
   it("blocks agenda/financeiro config without the configuracoes permission", async () => {
     const readOnlyToken = jwt.sign(
       {
-        id: 2,
+        id: usuarioId,
         email: "mecanico@example.com",
         nome: "Mecanico",
         tipo: "funcionario",

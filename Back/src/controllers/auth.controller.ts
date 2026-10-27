@@ -6,6 +6,7 @@ import { normalizePermissions, type PermissionsMap } from "../permissions/access
 import { PerfisAcessoService } from "../services/perfisAcesso.service.js";
 import { getJwtSecret, getTurnstileSecret } from "../config/env.js";
 import { PasswordResetService } from "../services/passwordReset.service.js";
+import { invalidarTokens, limparCacheSessao } from "../services/sessao.service.js";
 
 function normalizeEmail(raw: unknown): string {
   return String(raw ?? "").trim().toLowerCase();
@@ -16,6 +17,7 @@ type AuthUsuario = {
   email: string;
   nome: string;
   tipo: string;
+  token_version?: number;
 };
 
 type AuthOficina = {
@@ -68,11 +70,13 @@ function signFinalToken(usuario: AuthUsuario & { foto_url?: string | null }, ofi
     oficina_id: oficina.id,
     perfilAcessoId: perfil.id ?? null,
     permissoes: perfil.permissoes ?? {},
+    tv: usuario.token_version ?? 0,
   };
 
   // Payload completo para o body da resposta (pode conter base64).
+  const { tv: _tv, ...jwtSemVersao } = jwtPayload;
   const usuarioPayload = {
-    ...jwtPayload,
+    ...jwtSemVersao,
     oficina_nome: oficina.nome ?? null,
     oficina_logo_url: oficina.logo_url ?? null,
     perfilAcessoNome: perfil.nome ?? null,
@@ -129,9 +133,18 @@ export async function changePassword(req: Request, res: Response) {
     if (!match) return res.status(400).json({ message: "Senha atual incorreta." });
 
     const novoHash = await bcrypt.hash(novaSenha, 10);
-    await prisma.usuario.update({ where: { id: userId }, data: { senha: novoHash } });
+    const atualizado = await prisma.usuario.update({
+      where: { id: userId },
+      data: { senha: novoHash, ...invalidarTokens },
+      select: { token_version: true },
+    });
+    limparCacheSessao(userId);
 
-    return res.json({ message: "Senha alterada com sucesso." });
+    // Os tokens antigos deixam de valer (inclusive em outros dispositivos); devolve um novo para esta sessão continuar.
+    const { iat: _iat, exp: _exp, ...claims } = (req as any).user;
+    const token = jwt.sign({ ...claims, tv: atualizado.token_version }, getJwtSecret(), { expiresIn: "8h" });
+
+    return res.json({ message: "Senha alterada com sucesso.", token });
   } catch (err) {
     console.error("Erro ao alterar senha:", err);
     return res.status(500).json({ message: "Erro interno ao alterar senha." });

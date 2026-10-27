@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import type { AccessAction, AccessModule, PermissionsMap } from "../permissions/accessProfiles.js";
 import { canAccess } from "../permissions/accessProfiles.js";
 import { getJwtSecret } from "../config/env.js";
+import { sessaoValida } from "../services/sessao.service.js";
 
 export type UserPayload = {
   id: number;
@@ -14,9 +15,11 @@ export type UserPayload = {
   perfilAcessoId?: number | null;
   perfilAcessoNome?: string | null;
   permissoes?: PermissionsMap;
+  /** Versão do token do usuário no momento do login; trocar a senha invalida os anteriores. */
+  tv?: number;
 };
 
-export const authMiddleware = (
+export const authMiddleware = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -34,13 +37,29 @@ export const authMiddleware = (
     return res.status(401).json({ message: "Token não informado" });
   }
 
+  let decoded: UserPayload;
   try {
-    const decoded = jwt.verify(token, getJwtSecret()) as UserPayload;
-    req.user = decoded;
-    next();
+    decoded = jwt.verify(token, getJwtSecret()) as UserPayload;
   } catch {
     return res.status(401).json({ message: "Token inválido" });
   }
+
+  // Tokens de uso único (seleção de oficina, 2FA pendente, e-mail verificado) não autenticam requisições.
+  if (typeof decoded.id !== "number" || (decoded as { purpose?: string }).purpose) {
+    return res.status(401).json({ message: "Token inválido" });
+  }
+
+  try {
+    if (!(await sessaoValida(decoded))) {
+      return res.status(401).json({ message: "Sessão encerrada. Faça login novamente." });
+    }
+  } catch (err) {
+    console.error("Erro ao validar sessão:", err);
+    return res.status(500).json({ message: "Erro interno ao validar a sessão." });
+  }
+
+  req.user = decoded;
+  next();
 };
 
 export const officeScopeMiddleware = (

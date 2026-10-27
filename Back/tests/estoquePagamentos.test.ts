@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { app } from "../src/app.js";
 import { getJwtSecret } from "../src/config/env.js";
 import { prisma } from "../src/prisma/client.js";
+import { criarUsuarioComAcesso, removerUsuario } from "./sessao.js";
 
 const suffix = Date.now();
 const todas = ["read", "create", "update", "delete"];
@@ -60,9 +61,7 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
     funcionarioId = (
       await prisma.funcionario.create({ data: { nome: "Mecanico", cargo: "mecanico", data_contratacao: new Date(), oficina_id: oficinaId } })
     ).id;
-    usuarioId = (
-      await prisma.usuario.create({ data: { email: `estorno-${suffix}@example.com`, senha: "x", nome: "Gestor Estorno", tipo: "funcionario" } })
-    ).id;
+    usuarioId = await criarUsuarioComAcesso([oficinaId], "estorno", "Gestor Estorno");
     const tokenCom = (permissoes: object) =>
       "Bearer " +
       jwt.sign(
@@ -85,8 +84,8 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
     await prisma.funcionario.deleteMany({ where: { oficina_id: oficinaId } });
     await prisma.veiculo.deleteMany({ where: { oficina_id: oficinaId } });
     await prisma.cliente.deleteMany({ where: { oficina_id: oficinaId } });
+    await removerUsuario(usuarioId);
     await prisma.oficina.deleteMany({ where: { id: oficinaId } });
-    await prisma.usuario.deleteMany({ where: { id: usuarioId } });
     await prisma.cidade.deleteMany({ where: { id: cidadeId } });
   });
 
@@ -495,6 +494,7 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
       const outra = await prisma.oficina.create({
         data: { nome: `Outra ${suffix}`, logradouro: "R", numero: "1", cep: "00000000", cidade_id: cidadeId },
       });
+      await prisma.usuario_oficina.create({ data: { usuario_id: usuarioId, oficina_id: outra.id, perfil: "gestoroficina", status: "ativo" } });
       try {
         const token = "Bearer " + jwt.sign({ id: usuarioId, tipo: "gestoroficina", oficinaId: outra.id, permissoes: { financeiro: todas } }, getJwtSecret(), { expiresIn: "5m" });
         const id = await novoPagamento(100);
@@ -503,6 +503,7 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
         expect((await post(`/api/pagamentos/${id}/estornar`, { motivo: "x" }, token)).status).toBe(404);
         expect((await request(app).get(`/api/pagamentos/${id}/movimentos`).set("Authorization", token)).status).toBe(404);
       } finally {
+        await prisma.usuario_oficina.deleteMany({ where: { oficina_id: outra.id } });
         await prisma.oficina.delete({ where: { id: outra.id } });
       }
     });
