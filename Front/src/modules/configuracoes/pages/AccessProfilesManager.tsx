@@ -231,7 +231,6 @@ export default function AccessProfilesManager() {
         onClose={() => setDialogOpen(false)}
         onCloseClick={() => setDialogOpen(false)}
         closeOnBackdrop={false}
-        closeOnEscape={false}
         maxWidth="md"
         title={selectedId ? 'Editar perfil' : 'Novo perfil'}
         icon={<SecurityRoundedIcon />}

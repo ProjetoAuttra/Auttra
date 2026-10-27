@@ -10,6 +10,7 @@ import {
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { alpha } from "@mui/material/styles";
 import type { DialogProps, DialogActionsProps, DialogContentProps } from "@mui/material";
+import { useConfirm } from "../../context/ConfirmContext";
 
 type AppDialogProps = Omit<DialogProps, "title"> & {
   title: React.ReactNode;
@@ -18,7 +19,12 @@ type AppDialogProps = Omit<DialogProps, "title"> & {
   closeOnBackdrop?: boolean;
   closeOnEscape?: boolean;
   onCloseClick?: () => void;
+  /** Pede confirmação ao fechar quando o usuário alterou algo no formulário. Padrão: ligado. */
+  confirmDiscard?: boolean;
 };
+
+// Cliques que alteram valor sem disparar input/change no DOM (Select, menus, calendário).
+const VALUE_PICKER_SELECTOR = '[role="option"], [role="menuitem"], [role="gridcell"] button, .MuiPickersDay-root';
 
 export function AppDialog({
   title,
@@ -30,21 +36,47 @@ export function AppDialog({
   closeOnEscape = true,
   onClose,
   onCloseClick,
+  confirmDiscard = true,
   ...props
 }: AppDialogProps) {
+  const confirm = useConfirm();
+  const dirtyRef = React.useRef(false);
+
+  // Cada abertura começa limpa; salvar fecha o modal pelo pai (open=false) e zera também.
+  React.useEffect(() => {
+    if (!props.open) dirtyRef.current = false;
+  }, [props.open]);
+
+  const markDirty = () => {
+    dirtyRef.current = true;
+  };
+
+  const requestClose = async (close: () => void) => {
+    if (confirmDiscard && dirtyRef.current) {
+      const discard = await confirm({
+        title: "Descartar alterações?",
+        message: "O que você preencheu neste formulário será perdido.",
+        confirmLabel: "Descartar",
+        cancelLabel: "Continuar editando",
+        variant: "warning",
+      });
+      if (!discard) return;
+    }
+    dirtyRef.current = false;
+    close();
+  };
 
   const handleClose: DialogProps["onClose"] = (event, reason) => {
     if (reason === "backdropClick" && !closeOnBackdrop) return;
     if (reason === "escapeKeyDown" && !closeOnEscape) return;
-    onClose?.(event, reason);
+    void requestClose(() => onClose?.(event, reason));
   };
 
   const handleCloseButton = () => {
-    if (onCloseClick) {
-      onCloseClick();
-      return;
-    }
-    onClose?.({} as React.SyntheticEvent, "escapeKeyDown");
+    void requestClose(() => {
+      if (onCloseClick) onCloseClick();
+      else onClose?.({} as React.SyntheticEvent, "escapeKeyDown");
+    });
   };
 
   return (
@@ -53,6 +85,11 @@ export function AppDialog({
       onClose={handleClose}
       PaperProps={{
         ...PaperProps,
+        onInputCapture: markDirty,
+        onChangeCapture: markDirty,
+        onClickCapture: (event: React.MouseEvent<HTMLElement>) => {
+          if ((event.target as HTMLElement).closest?.(VALUE_PICKER_SELECTOR)) markDirty();
+        },
         sx: {
           overflow: "hidden",
           ...((PaperProps?.sx as object) ?? {}),

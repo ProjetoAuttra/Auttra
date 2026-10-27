@@ -275,7 +275,6 @@ export default function OrdemServicoDialog({ open, mode = "create", initial, onC
       onClose={onClose}
       onCloseClick={onClose}
       closeOnBackdrop={false}
-      closeOnEscape={false}
       maxWidth="lg"
       title={isEdit ? "Editar Ordem de Serviço" : "Nova Ordem de Serviço"}
       icon={<AssignmentRoundedIcon />}

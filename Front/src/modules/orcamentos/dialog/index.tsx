@@ -303,7 +303,6 @@ export default function DialogOrcamento({ open, mode, initial, onClose, onSubmit
       onClose={onClose}
       onCloseClick={onClose}
       closeOnBackdrop={false}
-      closeOnEscape={false}
       maxWidth="md"
       title={isEdit ? "Editar orçamento" : "Novo orçamento"}
       icon={<RequestQuoteRoundedIcon />}

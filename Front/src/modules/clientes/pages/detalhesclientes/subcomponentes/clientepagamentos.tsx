@@ -399,7 +399,6 @@ function NovoPagamentoClienteDialog({
       onClose={onClose}
       onCloseClick={onClose}
       closeOnBackdrop={false}
-      closeOnEscape={false}
       maxWidth="sm"
       title="Novo pagamento"
       icon={<TrendingUpRoundedIcon />}

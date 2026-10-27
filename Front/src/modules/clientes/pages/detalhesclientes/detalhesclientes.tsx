@@ -316,7 +316,6 @@ export default function ClienteDetalhesPage() {
         onClose={() => setOpenWhats(false)}
         onCloseClick={() => setOpenWhats(false)}
         closeOnBackdrop={false}
-        closeOnEscape={false}
         maxWidth="sm"
         title="Enviar mensagem no WhatsApp"
         icon={<WhatsAppIcon />}

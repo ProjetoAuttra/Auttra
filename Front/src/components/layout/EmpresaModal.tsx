@@ -183,7 +183,6 @@ export default function EmpresaModal({ open, onClose }: Props) {
       onClose={onClose}
       onCloseClick={onClose}
       closeOnBackdrop={false}
-      closeOnEscape={false}
       maxWidth="md"
       title="Dados da Empresa"
     >

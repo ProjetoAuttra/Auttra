@@ -105,7 +105,6 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
       onClose={onClose}
       onCloseClick={onClose}
       closeOnBackdrop={false}
-      closeOnEscape={false}
       maxWidth="sm"
       title={isEdit ? "Editar funcionário" : "Novo funcionário"}
       icon={<PersonRoundedIcon />}
