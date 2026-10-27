@@ -35,6 +35,32 @@ async function lockPagamento(tx: Prisma.TransactionClient, id: number, oficinaId
   return pagamento;
 }
 
+async function registrarMovimento(
+  tx: Prisma.TransactionClient,
+  pagamento: { id: number; oficina_id: number },
+  dados: {
+    tipo: "pagamento" | "estorno";
+    valor: Prisma.Decimal;
+    metodo?: string | null;
+    usuarioId?: number | null;
+    motivo?: string | null;
+    estornoDeId?: number | null;
+  }
+) {
+  return tx.pagamento_movimento.create({
+    data: {
+      pagamento_id: pagamento.id,
+      oficina_id: pagamento.oficina_id,
+      tipo: dados.tipo,
+      valor: dados.valor,
+      metodo: (dados.metodo ?? null) as any,
+      usuario_id: dados.usuarioId ?? null,
+      motivo: dados.motivo ?? null,
+      estorno_de_id: dados.estornoDeId ?? null,
+    },
+  });
+}
+
 const valorLiquido = (p: { valor_original: Prisma.Decimal.Value; desconto: Prisma.Decimal.Value }) =>
   D(p.valor_original).minus(D(p.desconto));
 
@@ -236,20 +262,26 @@ export const PagamentosService = {
 
   // ── Ações financeiras (cada uma roda em transacao com a linha travada) ─────────
 
-  async pagar(id: number, data: { metodo: string; data_pagamento?: string }, oficinaId: number) {
+  async pagar(id: number, data: { metodo: string; data_pagamento?: string }, oficinaId: number, usuarioId?: number | null) {
     return prisma.$transaction(async (tx) => {
       const existing = await lockPagamento(tx, id, oficinaId);
       if (existing.status === "pago") throw new Error("Este pagamento já foi registrado como pago.");
       if (existing.status === "cancelado") throw new Error("Não é possível pagar um título cancelado.");
-      return tx.pagamento.update({
+      const liquido = valorLiquido(existing);
+      const restante = liquido.minus(D(existing.valor_pago));
+      const atualizado = await tx.pagamento.update({
         where: { id },
         data: {
           status:         "pago",
-          valor_pago:     valorLiquido(existing),
+          valor_pago:     liquido,
           metodo:         data.metodo as any,
           data_pagamento: data.data_pagamento ? toDate(data.data_pagamento, "data_pagamento") : new Date(),
         },
       });
+      if (restante.greaterThan(0)) {
+        await registrarMovimento(tx, existing, { tipo: "pagamento", valor: restante, metodo: data.metodo, usuarioId });
+      }
+      return atualizado;
     });
   },
 
@@ -290,7 +322,7 @@ export const PagamentosService = {
     });
   },
 
-  async pagamentoParcial(id: number, data: { valor_entrada: number; metodo: string }, oficinaId: number) {
+  async pagamentoParcial(id: number, data: { valor_entrada: number; metodo: string }, oficinaId: number, usuarioId?: number | null) {
     const entrada = toPositiveDecimal(data.valor_entrada, "Valor de entrada");
     return prisma.$transaction(async (tx) => {
       const existing = await lockPagamento(tx, id, oficinaId);
@@ -301,7 +333,7 @@ export const PagamentosService = {
       if (novoValorPago.greaterThan(liquido))
         throw new Error(`Valor excede o saldo restante (${liquido.minus(D(existing.valor_pago)).toFixed(2)}).`);
       const quitado = novoValorPago.greaterThanOrEqualTo(liquido);
-      return tx.pagamento.update({
+      const atualizado = await tx.pagamento.update({
         where: { id },
         data: {
           valor_pago:     novoValorPago,
@@ -310,6 +342,60 @@ export const PagamentosService = {
           data_pagamento: quitado ? new Date() : existing.data_pagamento,
         },
       });
+      await registrarMovimento(tx, existing, { tipo: "pagamento", valor: entrada, metodo: data.metodo, usuarioId });
+      return atualizado;
+    });
+  },
+
+  /**
+   * Estorna tudo o que foi pago no titulo: grava um movimento "estorno" para cada entrada ativa
+   * (preservando o historico) e devolve o titulo para pendente. Cada parcela eh um titulo independente.
+   */
+  async estornar(id: number, data: { motivo?: string }, oficinaId: number, usuarioId?: number | null) {
+    const motivo = String(data?.motivo ?? "").trim();
+    if (!motivo) throw new Error("Motivo do estorno é obrigatório.");
+
+    return prisma.$transaction(async (tx) => {
+      const existing = await lockPagamento(tx, id, oficinaId);
+      if (existing.status === "cancelado") throw new Error("Não é possível estornar um título cancelado.");
+
+      const movimentos = await tx.pagamento_movimento.findMany({
+        where: { pagamento_id: id },
+        orderBy: { id: "asc" },
+      });
+      const jaEstornados = new Set(movimentos.filter((m) => m.tipo === "estorno" && m.estorno_de_id).map((m) => m.estorno_de_id));
+      const ativos = movimentos.filter((m) => m.tipo === "pagamento" && !jaEstornados.has(m.id));
+
+      const somaAtivos = ativos.reduce((acc, m) => acc.plus(D(m.valor)), D(0));
+      const residual = D(existing.valor_pago).minus(somaAtivos); // so se houver valor_pago sem movimento correspondente
+      if (D(existing.valor_pago).isZero()) {
+        throw new HttpError("Este título não possui pagamento para estornar.", 409, "NADA_A_ESTORNAR");
+      }
+
+      for (const mov of ativos) {
+        await registrarMovimento(tx, existing, {
+          tipo: "estorno", valor: D(mov.valor), metodo: mov.metodo, usuarioId, motivo, estornoDeId: mov.id,
+        });
+      }
+      if (residual.greaterThan(0)) {
+        await registrarMovimento(tx, existing, { tipo: "estorno", valor: residual, metodo: existing.metodo, usuarioId, motivo });
+      }
+
+      return tx.pagamento.update({
+        where: { id },
+        data: { status: "pendente", valor_pago: 0, data_pagamento: null },
+      });
+    });
+  },
+
+  async listarMovimentos(id: number, oficinaId: number) {
+    // inclui titulos ja cancelados: o historico continua consultavel
+    const pagamento = await prisma.pagamento.findFirst({ where: { id, oficina_id: oficinaId }, select: { id: true } });
+    if (!pagamento) throw new Error("Pagamento não encontrado.");
+    return prisma.pagamento_movimento.findMany({
+      where: { pagamento_id: id, oficina_id: oficinaId },
+      orderBy: { id: "asc" },
+      include: { usuario: { select: { id: true, nome: true } } },
     });
   },
 

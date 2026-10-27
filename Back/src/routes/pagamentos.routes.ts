@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { PagamentosService } from "../services/pagamentos.service.js";
-import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
+import { getRequiredOfficeId, requirePermission } from "../middlewares/ensureAuth.js";
 import { sendServiceError } from "../utils/httpError.js";
 
 const router = Router();
@@ -60,7 +60,7 @@ router.post("/", async (req, res) => {
 router.post("/:id/pagar", async (req, res) => {
   try {
     const result = await PagamentosService.pagar(
-      Number(req.params.id), req.body, getRequiredOfficeId(req)
+      Number(req.params.id), req.body, getRequiredOfficeId(req), req.user?.id
     );
     res.json(result);
   } catch (err) {
@@ -93,11 +93,31 @@ router.post("/:id/renegociar", async (req, res) => {
 router.post("/:id/pagamento-parcial", async (req, res) => {
   try {
     const result = await PagamentosService.pagamentoParcial(
-      Number(req.params.id), req.body, getRequiredOfficeId(req)
+      Number(req.params.id), req.body, getRequiredOfficeId(req), req.user?.id
     );
     res.json(result);
   } catch (err) {
     sendServiceError(res, err, "pagamentos");
+  }
+});
+
+// Estorno eh mais sensivel que uma baixa: exige permissao de exclusao no financeiro (e nao so "create" do POST)
+router.post("/:id/estornar", requirePermission("financeiro", "delete"), async (req, res) => {
+  try {
+    const result = await PagamentosService.estornar(
+      Number(req.params.id), req.body, getRequiredOfficeId(req), req.user?.id
+    );
+    res.json(result);
+  } catch (err) {
+    sendServiceError(res, err, "pagamentos/estornar");
+  }
+});
+
+router.get("/:id/movimentos", async (req, res) => {
+  try {
+    res.json(await PagamentosService.listarMovimentos(Number(req.params.id), getRequiredOfficeId(req)));
+  } catch (err) {
+    sendServiceError(res, err, "pagamentos/movimentos");
   }
 });
 
