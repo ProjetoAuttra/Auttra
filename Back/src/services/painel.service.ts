@@ -52,16 +52,16 @@ async function financeiro(oficinaId: number, hoje: string) {
     `,
     prisma.$queryRaw<Array<{ hoje: unknown; vencido: unknown; qtd_vencidas: bigint }>>`
       SELECT
-        COALESCE(SUM(valor_original - desconto - valor_pago) FILTER (WHERE data_vencimento::date = ${hoje}::date), 0) AS hoje,
-        COALESCE(SUM(valor_original - desconto - valor_pago) FILTER (WHERE data_vencimento::date < ${hoje}::date), 0) AS vencido,
+        COALESCE(SUM(valor_original - desconto + multa - valor_pago) FILTER (WHERE data_vencimento::date = ${hoje}::date), 0) AS hoje,
+        COALESCE(SUM(valor_original - desconto + multa - valor_pago) FILTER (WHERE data_vencimento::date < ${hoje}::date), 0) AS vencido,
         COUNT(*) FILTER (WHERE data_vencimento::date < ${hoje}::date) AS qtd_vencidas
       FROM pagamento
       WHERE oficina_id = ${oficinaId} AND deleted_at IS NULL AND tipo = 'receber' AND status IN ('pendente', 'parcial')
     `,
     prisma.$queryRaw<Array<{ semana: unknown; amanha: unknown; qtd_amanha: bigint }>>`
       SELECT
-        COALESCE(SUM(valor_original - desconto - valor_pago) FILTER (WHERE data_vencimento::date BETWEEN ${hoje}::date AND ${somaDias(hoje, 6)}::date), 0) AS semana,
-        COALESCE(SUM(valor_original - desconto - valor_pago) FILTER (WHERE data_vencimento::date = ${somaDias(hoje, 1)}::date), 0) AS amanha,
+        COALESCE(SUM(valor_original - desconto + multa - valor_pago) FILTER (WHERE data_vencimento::date BETWEEN ${hoje}::date AND ${somaDias(hoje, 6)}::date), 0) AS semana,
+        COALESCE(SUM(valor_original - desconto + multa - valor_pago) FILTER (WHERE data_vencimento::date = ${somaDias(hoje, 1)}::date), 0) AS amanha,
         COUNT(*) FILTER (WHERE data_vencimento::date = ${somaDias(hoje, 1)}::date) AS qtd_amanha
       FROM pagamento
       WHERE oficina_id = ${oficinaId} AND deleted_at IS NULL AND tipo = 'pagar' AND status IN ('pendente', 'parcial')

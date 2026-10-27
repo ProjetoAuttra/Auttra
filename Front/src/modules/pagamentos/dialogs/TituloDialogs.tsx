@@ -23,10 +23,10 @@ const Titulo = ({ children }: { children: React.ReactNode }) => (
 );
 
 /** Resumo do título ao lado do formulário; `desconto` simula o desconto digitado, sem alterar o título. */
-function Resumo({ conta, receber, desconto, linhas }: { conta: Conta; receber: boolean; desconto: number; linhas?: React.ReactNode }) {
+function Resumo({ conta, receber, desconto, multa, linhas }: { conta: Conta; receber: boolean; desconto: number; multa: number; linhas?: React.ReactNode }) {
   const original = Number(conta.valor_original);
   const jaPago = Number(conta.valor_pago);
-  const saldo = original - desconto - jaPago;
+  const saldo = original - desconto + multa - jaPago;
   const pessoa = receber ? conta.cliente?.nome : conta.fornecedor?.nome;
 
   return (
@@ -42,6 +42,7 @@ function Resumo({ conta, receber, desconto, linhas }: { conta: Conta; receber: b
         <Titulo>Valores</Titulo>
         <LinhaResumo rotulo="Valor original" valor={brl(original)} />
         <LinhaResumo rotulo="Desconto" valor={desconto > 0 ? `− ${brl(desconto)}` : "-"} />
+        <LinhaResumo rotulo="Multa" valor={multa > 0 ? `+ ${brl(multa)}` : "-"} />
         <LinhaResumo rotulo={receber ? "Já recebido" : "Já pago"} valor={jaPago > 0 ? brl(jaPago) : "-"} />
         <Divider />
         <LinhaResumo rotulo={receber ? "Saldo a receber" : "Saldo a pagar"} valor={brl(Math.max(saldo, 0))} forte />
@@ -66,19 +67,24 @@ export type DadosReceber = {
   data_pagamento?: string;
   desconto?: number;
   motivo_desconto?: string;
+  multa?: number;
 };
 
 function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; receber: boolean; onConfirm: (d: DadosReceber) => void; onCancel: () => void }) {
   const original = Number(conta.valor_original);
   const jaPago = Number(conta.valor_pago);
   const descontoAtual = Number(conta.desconto);
+  const multaAtual = Number(conta.multa ?? 0);
 
   // O desconto só aparece quando ligado; um título que já tem desconto abre com ele ligado.
   const [comDesconto, setComDesconto] = React.useState(descontoAtual > 0);
   const [descontoStr, setDescontoStr] = React.useState(descontoAtual > 0 ? descontoAtual.toFixed(2) : "");
   const [motivo, setMotivo] = React.useState(conta.motivo_desconto ?? "");
+  // A multa funciona como o desconto, só que soma ao valor e não pede motivo.
+  const [comMulta, setComMulta] = React.useState(multaAtual > 0);
+  const [multaStr, setMultaStr] = React.useState(multaAtual > 0 ? multaAtual.toFixed(2) : "");
   const [valorStr, setValorStr] = React.useState(() => {
-    const inicial = original - descontoAtual - jaPago;
+    const inicial = original - descontoAtual + multaAtual - jaPago;
     return inicial > 0 ? inicial.toFixed(2) : "";
   });
   const [valorEditado, setValorEditado] = React.useState(false);
@@ -86,10 +92,12 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
   const [data, setData] = React.useState(hojeInput);
 
   const desconto = comDesconto ? parseFloat(descontoStr) || 0 : 0; // desligado = sem desconto (remove o atual)
-  const descontoInvalido = desconto < 0 || toCents(desconto) > toCents(original) || toCents(original - desconto) < toCents(jaPago);
+  const multa = comMulta ? parseFloat(multaStr) || 0 : 0; // desligada = sem multa (remove a atual)
+  const multaVazia = comMulta && multa <= 0; // ligou a multa mas não informou o valor
+  const descontoInvalido = desconto < 0 || toCents(desconto) > toCents(original) || toCents(original - desconto + multa) < toCents(jaPago);
   const precisaMotivo = comDesconto && desconto > 0 && !motivo.trim();
   const descontoVazio = comDesconto && desconto <= 0; // ligou o desconto mas não informou o valor
-  const saldo = original - (descontoInvalido ? descontoAtual : desconto) - jaPago;
+  const saldo = original - (descontoInvalido ? descontoAtual : desconto) + multa - jaPago;
   const semSaldo = toCents(saldo) <= 0; // ex.: desconto de 100%: só confirma a baixa
 
   // Enquanto o usuário não digitou o valor, ele acompanha o saldo (que muda com o desconto).
@@ -101,8 +109,9 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
   const excede = toCents(valor) > toCents(saldo);
   const valorInvalido = !semSaldo && (valor <= 0 || excede);
   const parcial = !semSaldo && !valorInvalido && toCents(valor) < toCents(saldo);
-  const invalido = descontoInvalido || precisaMotivo || descontoVazio || valorInvalido || !metodo || !data;
+  const invalido = descontoInvalido || precisaMotivo || descontoVazio || multaVazia || valorInvalido || !metodo || !data;
   const mudouDesconto = toCents(desconto) !== toCents(descontoAtual);
+  const mudouMulta = toCents(multa) !== toCents(multaAtual);
 
   return (
     <>
@@ -186,9 +195,33 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
               </Stack>
             </Collapse>
           </Stack>
+
+          <Stack spacing={1}>
+            <FormControlLabel
+              sx={{ ml: 0 }}
+              control={<Switch checked={comMulta} onChange={(e) => setComMulta(e.target.checked)} />}
+              label={<Typography variant="body2" fontWeight={600}>Aplicar multa</Typography>}
+            />
+            <Collapse in={comMulta} unmountOnExit>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ pt: 1 }}>
+                <TextField
+                  label="Valor da multa *"
+                  type="number"
+                  value={multaStr}
+                  onChange={(e) => setMultaStr(e.target.value)}
+                  size="small"
+                  fullWidth
+                  autoFocus
+                  helperText=" "
+                  InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }}
+                  inputProps={{ min: 0, step: "0.01" }}
+                />
+              </Stack>
+            </Collapse>
+          </Stack>
         </Stack>
       }
-      resumo={<Resumo conta={conta} receber={receber} desconto={descontoInvalido ? descontoAtual : desconto} />}
+      resumo={<Resumo conta={conta} receber={receber} desconto={descontoInvalido ? descontoAtual : desconto} multa={multa} />}
     />
     </AppDialogContent>
     <AppDialogActions>
@@ -205,6 +238,8 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
               data_pagamento: data,
               // O desconto só viaja quando mudou; 0 remove o desconto anterior.
               ...(mudouDesconto ? { desconto, motivo_desconto: desconto > 0 ? motivo.trim() : undefined } : {}),
+              // A multa também só viaja quando mudou; 0 remove a anterior.
+              ...(mudouMulta ? { multa } : {}),
             })
           }
         >
@@ -236,7 +271,7 @@ export function ReceberTituloDialog({ open, onClose, conta, tipo, onConfirm }: R
 export type DadosParcelar = { total_parcelas: number; data_primeira_parcela: string; metodo?: string };
 
 function FormRenegociar({ conta, receber, onConfirm, onCancel }: { conta: Conta; receber: boolean; onConfirm: (d: DadosParcelar) => void; onCancel: () => void }) {
-  const saldo = Number(conta.valor_original) - Number(conta.desconto) - Number(conta.valor_pago);
+  const saldo = Number(conta.valor_original) - Number(conta.desconto) + Number(conta.multa ?? 0) - Number(conta.valor_pago);
   const [totalStr, setTotalStr] = React.useState("2");
   const [dataPrimeira, setDataPrimeira] = React.useState("");
   const [metodo, setMetodo] = React.useState("");
@@ -278,6 +313,7 @@ function FormRenegociar({ conta, receber, onConfirm, onCancel }: { conta: Conta;
           conta={conta}
           receber={receber}
           desconto={Number(conta.desconto)}
+          multa={Number(conta.multa ?? 0)}
           linhas={n >= 2 && n <= 60 ? <LinhaResumo rotulo="Parcelamento" valor={`${n} × ${brl(saldo / n)}`} /> : null}
         />
       }

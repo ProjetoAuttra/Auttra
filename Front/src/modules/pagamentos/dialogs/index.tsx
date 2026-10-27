@@ -397,6 +397,7 @@ export function DetalhesDialog({ open, onClose, conta, tipo }: {
               <Box sx={GRADE}>
                 <Campo rotulo="Valor original">{brl(Number(conta.valor_original))}</Campo>
                 <Campo rotulo="Desconto">{Number(conta.desconto) > 0 ? brl(Number(conta.desconto)) : "—"}</Campo>
+                <Campo rotulo="Multa">{Number(conta.multa) > 0 ? brl(Number(conta.multa)) : "—"}</Campo>
                 <Campo rotulo={receber ? "Valor a receber" : "Valor a pagar"}>{brl(liquido)}</Campo>
                 <Campo rotulo={receber ? "Recebido" : "Pago"}>{brl(Number(conta.valor_pago))}</Campo>
                 {conta.status !== "pago" && conta.status !== "cancelado" && <Campo rotulo="Saldo restante">{brl(restante)}</Campo>}

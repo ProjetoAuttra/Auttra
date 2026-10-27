@@ -107,6 +107,17 @@ router.post("/:id/desconto", async (req, res) => {
   }
 });
 
+router.post("/:id/multa", async (req, res) => {
+  try {
+    const result = await PagamentosService.aplicarMulta(
+      Number(req.params.id), req.body, getRequiredOfficeId(req)
+    );
+    res.json(result);
+  } catch (err) {
+    sendServiceError(res, err, "pagamentos");
+  }
+});
+
 router.post("/:id/renegociar", async (req, res) => {
   try {
     const result = await PagamentosService.renegociar(

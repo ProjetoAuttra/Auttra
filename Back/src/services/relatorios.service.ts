@@ -53,7 +53,7 @@ export const RelatoriosService = {
           ELSE '90+'
         END AS faixa,
         COUNT(*) AS quantidade,
-        SUM(p.valor_original - p.desconto - p.valor_pago) AS valor
+        SUM(p.valor_original - p.desconto + p.multa - p.valor_pago) AS valor
       FROM pagamento p
       WHERE p.oficina_id = ${oficinaId} AND p.deleted_at IS NULL AND p.tipo = 'receber'
         AND p.status IN ('pendente', 'parcial') AND p.data_vencimento::date < ${hoje}::date
@@ -62,7 +62,7 @@ export const RelatoriosService = {
 
     const clientes = await prisma.$queryRaw<Array<{ cliente_id: number | null; nome: string | null; titulos: bigint; valor: unknown; dias_max: number }>>`
       SELECT p.cliente_id, c.nome, COUNT(*) AS titulos,
-             SUM(p.valor_original - p.desconto - p.valor_pago) AS valor,
+             SUM(p.valor_original - p.desconto + p.multa - p.valor_pago) AS valor,
              MAX(${hoje}::date - p.data_vencimento::date) AS dias_max
       FROM pagamento p
       LEFT JOIN cliente c ON c.id = p.cliente_id
@@ -74,7 +74,7 @@ export const RelatoriosService = {
     `;
 
     const [carteira] = await prisma.$queryRaw<Array<{ total: unknown; clientes: bigint }>>`
-      SELECT SUM(p.valor_original - p.desconto - p.valor_pago) AS total,
+      SELECT SUM(p.valor_original - p.desconto + p.multa - p.valor_pago) AS total,
              COUNT(DISTINCT p.cliente_id) FILTER (WHERE p.data_vencimento::date < ${hoje}::date) AS clientes
       FROM pagamento p
       WHERE p.oficina_id = ${oficinaId} AND p.deleted_at IS NULL AND p.tipo = 'receber' AND p.status IN ('pendente', 'parcial')
