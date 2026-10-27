@@ -56,8 +56,8 @@ export default function StatCard({ label, value, helper, icon, tone = "default",
   );
 }
 
-/** Agrupa KPIs numa linha solta, separados por espaço (sem caixas nem divisórias). */
-export function StatGroup({ children, sx }: { children: ReactNode; sx?: SxProps<Theme> }) {
+/** Agrupa KPIs numa linha solta, separados por espaço (sem caixas nem divisórias). Com `espalhar`, ocupam a largura toda. */
+export function StatGroup({ children, sx, espalhar = false }: { children: ReactNode; sx?: SxProps<Theme>; espalhar?: boolean }) {
   return (
     <Box
       sx={[
@@ -66,6 +66,8 @@ export function StatGroup({ children, sx }: { children: ReactNode; sx?: SxProps<
           flexWrap: "wrap",
           gap: { xs: 3, md: 6 },
           mb: 3,
+          // Em telas largas, o primeiro KPI fica na borda esquerda e o último na direita.
+          ...(espalhar ? { justifyContent: { md: "space-between" } } : {}),
         },
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
       ]}
