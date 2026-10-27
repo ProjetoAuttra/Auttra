@@ -110,7 +110,7 @@ export default function Relatorios() {
         </Typography>
       </Stack>
 
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2, mb: 4 }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mb: 4 }}>
         {CATEGORIAS.map((c) => (
           <CardCategoria
             key={c.id}
