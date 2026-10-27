@@ -65,6 +65,24 @@ describe("security baseline", () => {
     process.env.JWT_SECRET = previousSecret;
   });
 
+  it("rate limits password recovery per client IP behind the proxy", async () => {
+    const statuses: number[] = [];
+    for (let i = 0; i < 6; i++) {
+      const response = await request(app)
+        .post("/api/auth/forgot-password")
+        .set("X-Forwarded-For", "203.0.113.7")
+        .send({});
+      statuses.push(response.status);
+    }
+    expect(statuses[5]).toBe(429);
+
+    const other = await request(app)
+      .post("/api/auth/forgot-password")
+      .set("X-Forwarded-For", "203.0.113.8")
+      .send({});
+    expect(other.status).not.toBe(429);
+  });
+
   it("does not accept the JWT via query string", async () => {
     const token = jwt.sign({ id: 1, tipo: "funcionario", oficinaId: 1 }, getJwtSecret());
     const response = await request(app).get(`/api/notificacoes?token=${token}`);
