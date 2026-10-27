@@ -162,8 +162,23 @@ export default function SeletorCor({ value, onChange }: Props) {
   return (
     <>
       <Tooltip title="Configurar cor">
-        <IconButton aria-label="Configurar cor principal" size="small" onClick={() => setAberto(true)} sx={{ color: "action.active" }}>
-          <SettingsRoundedIcon fontSize="small" />
+        <IconButton
+          aria-label="Configurar cor principal"
+          onClick={() => setAberto(true)}
+          sx={{
+            width: 44,
+            height: 44,
+            flexShrink: 0,
+            color: "action.active",
+            bgcolor: "background.paper",
+            border: (t) => `1px solid ${t.palette.divider}`,
+            borderRadius: 2,
+            boxShadow: "0 1px 2px rgba(16,24,40,0.06)",
+            transition: "background-color .15s, border-color .15s, box-shadow .15s",
+            "&:hover": { bgcolor: "action.hover", borderColor: "text.secondary", boxShadow: "0 2px 6px rgba(16,24,40,0.12)" },
+          }}
+        >
+          <SettingsRoundedIcon />
         </IconButton>
       </Tooltip>
 

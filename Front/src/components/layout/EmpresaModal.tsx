@@ -377,7 +377,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
             {/* ── Aparência ───────────────────────────────────── */}
             <Box>
               <SectionLabel>Aparência</SectionLabel>
-              <Stack direction="row" alignItems="center" spacing={0.5}>
+              <Stack direction="row" alignItems="center" spacing={3}>
                 <Typography variant="body2" color="text.secondary">
                   Cor principal da sua oficina. Ela é usada como base nos PDFs de orçamento e ordem de serviço.
                 </Typography>
