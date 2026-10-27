@@ -1,7 +1,6 @@
 import * as React from "react";
-import { Box, Button, ButtonBase, Stack, Typography } from "@mui/material";
-import ColorLensRoundedIcon from "@mui/icons-material/ColorLensRounded";
-import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import { Box, Button, Stack, Typography } from "@mui/material";
+import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import { HexColorInput, HexColorPicker } from "react-colorful";
 import { AppDialog, AppDialogActions, AppDialogContent } from "./AppDialog";
 
@@ -155,60 +154,16 @@ type Props = {
   onChange: (cor: string | null) => void;
 };
 
-/** Card clicável com a cor atual e a prévia do PDF; a escolha (seletor e hex) acontece no modal. */
+/** Botão "Configurar" que abre o modal de escolha da cor (seletor, hex e prévia do PDF). */
 export default function SeletorCor({ value, onChange }: Props) {
   const [aberto, setAberto] = React.useState(false);
   const atual = value && HEX.test(value) ? value.toLowerCase() : COR_PADRAO;
 
   return (
     <>
-      <ButtonBase
-        onClick={() => setAberto(true)}
-        aria-label="Alterar cor principal"
-        sx={{
-          display: "block",
-          width: "100%",
-          textAlign: "left",
-          borderRadius: 2,
-          border: (t) => `1px solid ${t.palette.divider}`,
-          p: 2,
-          transition: "border-color .15s, box-shadow .15s",
-          "&:hover, &:focus-visible": { borderColor: "primary.main", boxShadow: (t) => `0 0 0 3px ${t.palette.primary.main}1f` },
-        }}
-      >
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={3} alignItems={{ xs: "stretch", sm: "center" }}>
-          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: { sm: 240 }, flexShrink: 0 }}>
-            <Box
-              sx={{
-                width: 48,
-                height: 48,
-                borderRadius: 2,
-                bgcolor: atual,
-                color: textoSobreCor(atual),
-                display: "grid",
-                placeItems: "center",
-                boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.12)",
-                flexShrink: 0,
-              }}
-            >
-              <ColorLensRoundedIcon fontSize="small" />
-            </Box>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography variant="body2" color="text.secondary">
-                Cor principal
-              </Typography>
-              <Typography fontWeight={700}>{atual.toUpperCase()}</Typography>
-              <Typography variant="caption" color="primary" sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
-                <EditRoundedIcon sx={{ fontSize: 13 }} /> {value ? "Alterar" : "Padrão · alterar"}
-              </Typography>
-            </Box>
-          </Stack>
-
-          <Box sx={{ flex: 1, minWidth: 0, maxWidth: 360 }}>
-            <PreviaPdf cor={atual} />
-          </Box>
-        </Stack>
-      </ButtonBase>
+      <Button variant="outlined" color="inherit" startIcon={<SettingsRoundedIcon />} onClick={() => setAberto(true)} sx={{ fontWeight: 600 }}>
+        Configurar
+      </Button>
 
       <DialogCor
         open={aberto}
