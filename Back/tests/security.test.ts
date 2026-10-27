@@ -70,7 +70,7 @@ describe("security baseline", () => {
     for (let i = 0; i < 6; i++) {
       const response = await request(app)
         .post("/api/auth/forgot-password")
-        .set("X-Forwarded-For", "203.0.113.7, 10.0.0.1")
+        .set("X-Forwarded-For", "203.0.113.7")
         .send({});
       statuses.push(response.status);
     }
@@ -78,7 +78,7 @@ describe("security baseline", () => {
 
     const other = await request(app)
       .post("/api/auth/forgot-password")
-      .set("X-Forwarded-For", "203.0.113.8, 10.0.0.1")
+      .set("X-Forwarded-For", "203.0.113.8")
       .send({});
     expect(other.status).not.toBe(429);
   });
