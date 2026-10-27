@@ -17,6 +17,7 @@ import { useConfirm } from "../../../context/ConfirmContext";
 import FuncionarioDialog, { type FuncionarioForm } from "../dialog";
 import { listarFuncionarios, criarFuncionario, atualizarFuncionario, deletarFuncionario } from "../api/api";
 import ListTableContainer from "../../../components/common/ListTableContainer";
+import { radius } from "../../../app/theme";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
 
@@ -125,7 +126,7 @@ export default function FuncionariosPage() {
         actions={
           <Stack direction="row" spacing={1.5}>
             <TextField value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Pesquisar funcionário" size="small"
-              sx={{ minWidth: 300, "& .MuiOutlinedInput-root": { borderRadius: 1.5, bgcolor: "background.paper", px: 1 } }}
+              sx={{ minWidth: 300, "& .MuiOutlinedInput-root": { borderRadius: 2, bgcolor: "background.paper", px: 1 } }}
               InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment> }}
             />
             {can("funcionarios", "create") && <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openCreate}>
@@ -182,7 +183,7 @@ export default function FuncionariosPage() {
         onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
         rowsPerPageOptions={[5, 10, 20]} labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
-        sx={{ mt: 1.5, borderRadius: 1.5, bgcolor: "background.paper" }}
+        sx={{ bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}`, borderTop: 0, borderRadius: `0 0 ${radius.card}px ${radius.card}px` }}
       />
 
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}

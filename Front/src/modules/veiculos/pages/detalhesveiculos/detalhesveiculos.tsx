@@ -86,7 +86,7 @@ function VeiculoOrdens({ ordens, onAdd }: { ordens: any[]; onAdd?: () => void })
         </Stack>
       )}
       <TableContainer component={Paper} elevation={0}
-      sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 1.5 }}>
+      sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 2 }}>
       <Table size="small">
         <TableHead>
           <TableRow>
@@ -130,7 +130,7 @@ function VeiculoOrdens({ ordens, onAdd }: { ordens: any[]; onAdd?: () => void })
 
 function HeaderSkeleton() {
   return (
-    <Paper elevation={0} sx={{ p: 3, borderRadius: 1.5, border: (t) => `1px solid ${t.palette.divider}`, mb: 3 }}>
+    <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: (t) => `1px solid ${t.palette.divider}`, mb: 3 }}>
       <Stack direction="row" spacing={2.5} alignItems="center">
         <Skeleton variant="circular" width={72} height={72} />
         <Stack spacing={1} flex={1}>
@@ -207,7 +207,7 @@ export default function VeiculoDetalhesPage() {
         {/* ── Breadcrumb ── */}
         <Stack direction="row" alignItems="center" spacing={1.5} mb={3}>
           <IconButton onClick={() => nav(-1)} size="small"
-            sx={{ bgcolor: "action.hover", borderRadius: 1.5 }}>
+            sx={{ bgcolor: "action.hover", borderRadius: 2 }}>
             <ArrowBackRoundedIcon fontSize="small" />
           </IconButton>
           <Typography variant="body2" color="text.secondary">Veículos</Typography>
@@ -222,7 +222,7 @@ export default function VeiculoDetalhesPage() {
         {/* ── Header card ── */}
         {loading ? <HeaderSkeleton /> : veiculo && (
           <Paper elevation={0}
-            sx={{ p: 3, borderRadius: 1.5, border: (t) => `1px solid ${t.palette.divider}`, mb: 3 }}>
+            sx={{ p: 3, borderRadius: 2, border: (t) => `1px solid ${t.palette.divider}`, mb: 3 }}>
             <Stack
               direction={{ xs: "column", sm: "row" }}
               spacing={3}
@@ -247,7 +247,7 @@ export default function VeiculoDetalhesPage() {
                     <IconButton
                       size="small"
                       onClick={() => setOpenEdit(true)}
-                      sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 1.5 }}
+                      sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 2 }}
                     >
                       <EditRoundedIcon fontSize="small" />
                     </IconButton>
@@ -256,7 +256,7 @@ export default function VeiculoDetalhesPage() {
                   {/* Placa estilo visual */}
                   <Box sx={{
                     display: "inline-flex", alignSelf: "flex-start",
-                    px: 1.5, py: 0.25, borderRadius: 1,
+                    px: 1.5, py: 0.25, borderRadius: 1.5,
                     border: (t) => `2px solid ${t.palette.text.primary}`,
                     bgcolor: (t) => alpha(t.palette.text.primary, 0.04),
                   }}>
@@ -319,7 +319,7 @@ export default function VeiculoDetalhesPage() {
 
         {/* ── Abas ── */}
         <Paper elevation={0}
-          sx={{ borderRadius: 1.5, border: (t) => `1px solid ${t.palette.divider}`, overflow: "hidden" }}>
+          sx={{ borderRadius: 2, border: (t) => `1px solid ${t.palette.divider}`, overflow: "hidden" }}>
           <Tabs
             value={tab}
             onChange={(_, v) => setTab(v)}
@@ -346,7 +346,7 @@ export default function VeiculoDetalhesPage() {
             {loading ? (
               <Stack spacing={1.5}>
                 {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} variant="rounded" height={52} sx={{ borderRadius: 1.5 }} />
+                  <Skeleton key={i} variant="rounded" height={52} sx={{ borderRadius: 2 }} />
                 ))}
               </Stack>
             ) : (

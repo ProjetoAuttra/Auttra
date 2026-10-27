@@ -27,6 +27,7 @@ import {
   firstDayOfMonthISO,
   inDateRange,
   MetricCard,
+  StatGroup,
   percent,
   PeriodFilter,
   ReportHeader,
@@ -152,16 +153,16 @@ export default function OrcamentosPerdidosRelatorio() {
         </Select>
       </PeriodFilter>
 
-      <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} mb={2.5}>
+      <StatGroup>
         <MetricCard label="Orçamentos" value={noPeriodo.length} />
         <MetricCard label="Valor perdido" value={brl(valorPerdido)} tone={valorPerdido ? "error" : "default"} />
         <MetricCard label="Pendente para recuperar" value={brl(valorPendente)} tone={valorPendente ? "warning" : "default"} />
         <MetricCard label="Conversão" value={percent(taxaConversao)} tone={taxaConversao >= 50 ? "success" : "warning"} helper={`${aprovados.length} aprovado(s)`} />
         <MetricCard label="Potencial total" value={brl(potencialTotal)} tone="info" />
-      </Stack>
+      </StatGroup>
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
           <Typography fontWeight={700} mb={1}>Principais perdas por item</Typography>
           {Object.entries(servicosPerdidos).length ? Object.entries(servicosPerdidos)
             .sort((a, b) => b[1].valor - a[1].valor)
@@ -174,7 +175,7 @@ export default function OrcamentosPerdidosRelatorio() {
             )) : <Typography variant="body2" color="text.secondary">Nenhum orçamento perdido no período.</Typography>}
         </Paper>
 
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
           <Typography fontWeight={700} mb={1}>Follow-up prioritário</Typography>
           {pendentes.length ? [...pendentes]
             .sort((a, b) => daysBetween(b.data) - daysBetween(a.data) || Number(b.valor ?? 0) - Number(a.valor ?? 0))
@@ -191,7 +192,7 @@ export default function OrcamentosPerdidosRelatorio() {
         </Paper>
       </Stack>
 
-      <Paper variant="outlined" sx={{ borderRadius: 1.5, overflowX: "auto" }}>
+      <Paper variant="outlined" sx={{ borderRadius: 2, overflowX: "auto" }}>
         {linhas.length ? (
           <Table>
             <TableHead>

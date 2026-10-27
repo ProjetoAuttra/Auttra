@@ -23,8 +23,9 @@ import {
   listarEstoque, criarEstoque, atualizarEstoque, excluirEstoque, ajustarEstoque,
 } from "../api/api";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
-import StatCard from "../../../components/common/StatCard";
+import StatCard, { StatGroup } from "../../../components/common/StatCard";
 import ListTableContainer from "../../../components/common/ListTableContainer";
+import { radius } from "../../../app/theme";
 import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationEstoque } from "../../../components/common/Illustrations";
 import { paths } from "../../../routes/paths";
@@ -196,7 +197,7 @@ export default function EstoquePage() {
       />
 
       {/* ── Métricas ───────────────────────────────────────────── */}
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mb: 2 }}>
+      <StatGroup>
         <StatCard label="Total de peças" value={rows.length} />
         <StatCard
           label="Baixo estoque"
@@ -205,7 +206,7 @@ export default function EstoquePage() {
           onClick={() => { setFiltroBaixo((v) => !v); setPage(0); }}
           active={filtroBaixo}
         />
-      </Stack>
+      </StatGroup>
 
       {/* ── Barra de busca ─────────────────────────────────────── */}
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
@@ -344,7 +345,7 @@ export default function EstoquePage() {
         rowsPerPageOptions={[5, 10, 20]}
         labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-        sx={{ mt: 1.5, borderRadius: 1.5, bgcolor: "background.paper" }}
+        sx={{ bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}`, borderTop: 0, borderRadius: `0 0 ${radius.card}px ${radius.card}px` }}
       />
 
       {/* ── Menu contextual ─────────────────────────────────────── */}

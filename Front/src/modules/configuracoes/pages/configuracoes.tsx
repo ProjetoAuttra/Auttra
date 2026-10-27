@@ -15,7 +15,6 @@ import {
   CircularProgress,
   MenuItem,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
 import { brand } from '../../../app/theme';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
@@ -246,7 +245,7 @@ export default function Configuracoes() {
         sx={(t) => ({
           width: '100%',
           maxWidth: 900,
-          borderRadius: 1,
+          borderRadius: 1.5,
           p: { xs: 3, md: 4 },
           border: `1px solid ${t.palette.divider}`,
           bgcolor: 'background.paper',
@@ -629,12 +628,12 @@ function AccessProfilesManager() {
             Defina quais módulos e ações cada colaborador poderá acessar.
           </Typography>
         </Stack>
-        <Button startIcon={<AddRoundedIcon />} variant="outlined" onClick={startNew} sx={{ borderRadius: 1, textTransform: 'none' }}>
+        <Button startIcon={<AddRoundedIcon />} variant="outlined" onClick={startNew} sx={{ borderRadius: 1.5, textTransform: 'none' }}>
           Novo perfil
         </Button>
       </Stack>
 
-      <Stack spacing={1}>
+      <Stack spacing={0}>
         {profiles.map((profile) => {
           const permissionsCount = accessModules.reduce(
             (total, module) => total + (profile.permissoes?.[module]?.length ?? 0),
@@ -642,18 +641,16 @@ function AccessProfilesManager() {
           );
 
           return (
-            <Paper
+            <Box
               key={profile.id}
-              variant="outlined"
               sx={{
-                borderRadius: 1,
+                borderTop: (t) => `1px solid ${t.palette.divider}`,
                 px: 2,
                 py: 1.5,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 gap: 2,
-                bgcolor: 'background.paper',
               }}
             >
               <Stack direction="row" alignItems="center" spacing={1.5} minWidth={0}>
@@ -661,11 +658,11 @@ function AccessProfilesManager() {
                   sx={(t) => ({
                     width: 38,
                     height: 38,
-                    borderRadius: '50%',
+                    borderRadius: 1.5,
                     display: 'grid',
                     placeItems: 'center',
-                    color: t.palette.primary.main,
-                    bgcolor: alpha(t.palette.primary.main, 0.1),
+                    color: t.palette.text.secondary,
+                    bgcolor: brand.subtleStrong,
                     flexShrink: 0,
                   })}
                 >
@@ -684,13 +681,13 @@ function AccessProfilesManager() {
               </Stack>
               <Stack direction="row" spacing={1} alignItems="center">
                 <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
-                  {profile.usuarios_vinculados ?? 0} usuario(s)
+                  {profile.usuarios_vinculados ?? 0} usuário(s)
                 </Typography>
-                <Button variant="outlined" startIcon={<EditRoundedIcon />} onClick={() => startEdit(profile)} sx={{ borderRadius: 1 }}>
+                <Button variant="outlined" startIcon={<EditRoundedIcon />} onClick={() => startEdit(profile)} sx={{ borderRadius: 1.5 }}>
                   Editar
                 </Button>
               </Stack>
-            </Paper>
+            </Box>
           );
         })}
       </Stack>
@@ -744,7 +741,7 @@ function AccessProfilesManager() {
               {accessModules.map((module) => {
                 const isOpen = Boolean(openModules[module]);
                 return (
-                  <Paper key={module} elevation={0} sx={{ borderRadius: 1, overflow: 'hidden', bgcolor: brand.subtle }}>
+                  <Paper key={module} elevation={0} sx={{ borderRadius: 1.5, overflow: 'hidden', bgcolor: brand.subtle }}>
                     <Stack
                       direction="row"
                       alignItems="center"
@@ -804,11 +801,11 @@ function SectionCard({ title, icon, open, onToggle, onEdit, editing, onCancel, o
       elevation={0}
       data-testid={sectionKey ? `section-${sectionKey}` : undefined}
       sx={(t) => ({
-        borderRadius: 1,
-        border: `1px solid ${t.palette.divider}`,
-        mb: 2.5,
+        borderRadius: 0,
+        border: 0,
+        borderTop: `1px solid ${t.palette.divider}`,
         overflow: 'hidden',
-        bgcolor: 'background.default',
+        bgcolor: 'transparent',
       })}
     >
       <Stack
@@ -820,7 +817,7 @@ function SectionCard({ title, icon, open, onToggle, onEdit, editing, onCancel, o
           px: 2.5,
           py: 1.75,
           cursor: 'pointer',
-          bgcolor: open ? (t) => alpha(t.palette.primary.main, 0.06) : 'background.paper',
+          bgcolor: open ? brand.subtle : 'transparent',
         }}
         onClick={onToggle}
       >
@@ -839,7 +836,7 @@ function SectionCard({ title, icon, open, onToggle, onEdit, editing, onCancel, o
                 e.stopPropagation();
                 onEdit();
               }}
-              sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 600, px: 1.5 }}
+              sx={{ borderRadius: 1.5, textTransform: 'none', fontWeight: 600, px: 1.5 }}
             >
               Editar
             </Button>

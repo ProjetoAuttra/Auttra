@@ -119,14 +119,14 @@ export default function RelatorioGeral() {
         <Button
           variant="contained"
           startIcon={<FileDownloadRoundedIcon />}
-          sx={{ borderRadius: 1.5 }}
+          sx={{ borderRadius: 2 }}
           onClick={handleExportarCSV}
         >
           Exportar CSV
         </Button>
       </Stack>
 
-      <Paper variant="outlined" sx={{ borderRadius: 1 }}>
+      <Paper variant="outlined" sx={{ borderRadius: 1.5 }}>
         {dados.length ? (
           <Table>
             <TableHead>

@@ -243,7 +243,7 @@ function EventDay(props: PickersDayProps & { highlights?: HighlightMap }) {
         lineHeight: 1,
         fontWeight: 600,
         mx: 0,
-        borderRadius: 8,
+        borderRadius: 1.5,
         position: 'relative',
         '&:hover': { backgroundColor: 'action.hover' },
         ...(day.isSame(dayjs(), 'day') && {
@@ -355,7 +355,7 @@ export default function Schedule() {
         </Stack>
         <Divider sx={{ mb: 2 }} />
 
-        <Paper elevation={0} variant="outlined" sx={{ borderRadius: 1.5, p: { xs: 1.5, sm: 2 }, bgcolor: '#fff' }}>
+        <Paper elevation={0} variant="outlined" sx={{ borderRadius: 2, p: { xs: 1.5, sm: 2 }, bgcolor: '#fff' }}>
           <DateCalendar
             value={value}
             onChange={setValue}
@@ -372,7 +372,7 @@ export default function Schedule() {
                 '& button': {
                   bgcolor: 'primary.main',
                   color: '#fff',
-                  borderRadius: 1.5,
+                  borderRadius: 2,
                   width: 44,
                   height: 44,
                   '&:hover': { bgcolor: 'primary.main' },

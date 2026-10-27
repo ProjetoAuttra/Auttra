@@ -18,7 +18,7 @@ export default function BrandLogoPlaceholder({
         sx={{
           width: 32,
           height: 32,
-          borderRadius: 1,
+          borderRadius: 1.5,
           display: "grid",
           placeItems: "center",
           bgcolor: brand.primary,

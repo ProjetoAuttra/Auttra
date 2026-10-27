@@ -20,6 +20,7 @@ import TableSkeleton from "../../../components/common/TableSkeleton";
 import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationOS } from "../../../components/common/Illustrations";
 import ListTableContainer from "../../../components/common/ListTableContainer";
+import { radius } from "../../../app/theme";
 import { STATUS_CONFIG, STATUS_VALIDOS, VALID_TRANSITIONS, type OrdemStatus } from "../statusConfig";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import ChecklistRoundedIcon from "@mui/icons-material/ChecklistRounded";
@@ -218,7 +219,7 @@ export default function OrdensPage() {
       {/* ── Painel de filtros avançados ── */}
       {showFilters && (
         <Fade in timeout={250}>
-          <Paper elevation={0} sx={{ p: 2.5, mb: 2.5, borderRadius: 1.5, border: (t) => `1px solid ${t.palette.divider}`, bgcolor: (t) => alpha(t.palette.primary.main, 0.02) }}>
+          <Paper elevation={0} sx={{ p: 2.5, mb: 2.5, borderRadius: 2, border: (t) => `1px solid ${t.palette.divider}`, bgcolor: (t) => alpha(t.palette.primary.main, 0.02) }}>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <FormControl size="small" sx={{ minWidth: 160 }}>
                 <InputLabel>Status</InputLabel>
@@ -259,7 +260,7 @@ export default function OrdensPage() {
         <TableSkeleton rows={6} columns={6} />
       ) : (
         <Fade in timeout={400}>
-          <ListTableContainer sx={{ borderRadius: 1.5 }}>
+          <ListTableContainer>
             <Table stickyHeader>
               <TableHead>
                 <TableRow sx={{ bgcolor: (t) => alpha(t.palette.primary.main, 0.03) }}>
@@ -349,7 +350,7 @@ export default function OrdensPage() {
           onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
           rowsPerPageOptions={[5, 10, 20]} labelRowsPerPage="Linhas por página:"
           labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
-          sx={{ mt: 1.5, borderRadius: 1.5, bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}` }}
+          sx={{ bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}`, borderTop: 0, borderRadius: `0 0 ${radius.card}px ${radius.card}px` }}
         />
       )}
 

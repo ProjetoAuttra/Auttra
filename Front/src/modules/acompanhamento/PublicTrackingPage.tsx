@@ -176,7 +176,7 @@ export default function PublicTrackingPage() {
 
               <Box>
                 <Typography variant="subtitle1" gutterBottom>Itens</Typography>
-                <Stack divider={<Divider flexItem />} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, overflow: "hidden" }}>
+                <Stack divider={<Divider flexItem />} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1.5, overflow: "hidden" }}>
                   {data.itens.length ? data.itens.map((item) => (
                     <Stack key={item.id} direction="row" justifyContent="space-between" gap={2} sx={{ p: 1.5, bgcolor: "background.paper" }}>
                       <Box>
@@ -213,7 +213,7 @@ export default function PublicTrackingPage() {
 
 function InfoBlock({ label, value, strong, icon }: { label: string; value: string; strong?: boolean; icon?: React.ReactNode }) {
   return (
-    <Box sx={{ flex: 1, p: 2, bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
+    <Box sx={{ flex: 1, p: 2, bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
       <Stack direction="row" spacing={1} alignItems="center">
         {icon}
         <Box>

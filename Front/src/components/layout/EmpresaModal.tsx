@@ -243,7 +243,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
                           sx={{
                             width: 64,
                             height: 64,
-                            borderRadius: 1.5,
+                            borderRadius: 2,
                             fontSize: 24,
                             fontWeight: 700,
                             bgcolor: "primary.main",
@@ -260,7 +260,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
                         sx={{
                           position: "absolute",
                           inset: 0,
-                          borderRadius: 1.5,
+                          borderRadius: 2,
                           display: "grid",
                           placeItems: "center",
                           color: "#fff",

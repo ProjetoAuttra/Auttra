@@ -9,8 +9,6 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
-import { brand } from "../../../app/theme";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import AssignmentLateRoundedIcon from "@mui/icons-material/AssignmentLateRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
@@ -63,19 +61,19 @@ function RelatorioCard({
       elevation={0}
       sx={{
         p: 0,
-        borderRadius: 1.5,
+        borderRadius: 2,
         height: "100%",
         display: "flex",
         flexDirection: "column",
         border: (t) => `1px solid ${t.palette.divider}`,
         overflow: "hidden",
-        transition: "box-shadow 0.2s, transform 0.2s",
-        "&:hover": { boxShadow: (t) => `0 8px 28px ${alpha(t.palette.common.black, 0.09)}`, transform: "translateY(-2px)" },
+        transition: "border-color 0.2s",
+        "&:hover": { borderColor: "primary.main" },
       }}
     >
-      <Box sx={{ p: 2.5, bgcolor: brand.subtle, borderBottom: (t) => `1px solid ${t.palette.divider}` }}>
+      <Box sx={{ p: 2.5, bgcolor: "transparent", borderBottom: (t) => `1px solid ${t.palette.divider}` }}>
         <Stack direction="row" spacing={2} alignItems="center">
-          <Box sx={{ width: 46, height: 46, borderRadius: 1.5, display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}`, color: "text.secondary", "& svg": { fontSize: 25 } }}>
+          <Box sx={{ width: 46, height: 46, borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}`, color: "text.secondary", "& svg": { fontSize: 25 } }}>
             {icone}
           </Box>
           <Stack flex={1} spacing={0.25} minWidth={0}>

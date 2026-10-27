@@ -78,7 +78,7 @@ export function AppDialog({
               sx={{
                 width: 48,
                 height: 48,
-                borderRadius: 1.5,
+                borderRadius: 2,
                 display: "grid",
                 placeItems: "center",
                 bgcolor: "primary.main",

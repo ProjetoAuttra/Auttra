@@ -136,7 +136,7 @@ export default function RecursosAdicionais() {
             sx={{ mb: 2 }}
           />
 
-          <Paper elevation={0} sx={{ borderRadius: 1, border: (t) => `1px solid ${t.palette.divider}`, overflow: "hidden" }}>
+          <Paper elevation={0} sx={{ borderRadius: 1.5, border: (t) => `1px solid ${t.palette.divider}`, overflow: "hidden" }}>
             <List disablePadding>
               {filtered.map((item) => {
                 const selectedItem = item.id === selectedId;
@@ -179,7 +179,7 @@ export default function RecursosAdicionais() {
           sx={{
             flex: 1,
             minHeight: 430,
-            borderRadius: 1,
+            borderRadius: 1.5,
             border: (t) => `1px solid ${t.palette.divider}`,
             bgcolor: "background.paper",
             p: { xs: 2, md: 3 },
@@ -256,7 +256,7 @@ export default function RecursosAdicionais() {
                   startIcon={<SaveRoundedIcon />}
                   onClick={handleSave}
                   disabled={!canUpdate || saving || !hasChanges}
-                  sx={{ borderRadius: 1, textTransform: "none", fontWeight: 600 }}
+                  sx={{ borderRadius: 1.5, textTransform: "none", fontWeight: 600 }}
                 >
                   Salvar alteracoes
                 </Button>

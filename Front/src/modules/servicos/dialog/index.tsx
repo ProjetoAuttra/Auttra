@@ -325,7 +325,7 @@ export default function ServicoDialog({ open, mode, initial, onClose, onSubmit, 
         </Grid>
 
         <Collapse in={submitAttempted && Object.keys(errors).length > 0}>
-          <Alert severity="error" sx={{ mt: 0.5, borderRadius: 1.25 }}>
+          <Alert severity="error" sx={{ mt: 0.5, borderRadius: 1.5 }}>
             Corrija os campos destacados antes de salvar.
           </Alert>
         </Collapse>

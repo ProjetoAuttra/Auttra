@@ -78,7 +78,7 @@ export default function RelatorioClientes() {
         <Button
           variant="contained"
           startIcon={<FileDownloadRoundedIcon />}
-          sx={{ borderRadius: 1.5 }}
+          sx={{ borderRadius: 2 }}
           onClick={handleExportarCSV}
         >
           Exportar CSV
@@ -88,7 +88,7 @@ export default function RelatorioClientes() {
       <Paper
         variant="outlined"
         sx={{
-          borderRadius: 1,
+          borderRadius: 1.5,
         }}
       >
         {clientes.length ? (

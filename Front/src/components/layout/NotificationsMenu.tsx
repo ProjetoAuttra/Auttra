@@ -126,7 +126,7 @@ export default function NotificationsMenu() {
           sx={{
             width: 36,
             height: 36,
-            borderRadius: 1.5,
+            borderRadius: 2,
             color: "text.secondary",
             "&:hover": {
               bgcolor: brand.subtleStrong,
@@ -151,7 +151,7 @@ export default function NotificationsMenu() {
             mt: 1,
             width: { xs: "calc(100vw - 24px)", sm: 390 },
             maxWidth: 390,
-            borderRadius: 1.5,
+            borderRadius: 2,
             border: (t) => `1px solid ${t.palette.divider}`,
             boxShadow: "0 16px 40px rgba(15,23,42,0.14)",
             overflow: "hidden",
@@ -183,7 +183,7 @@ export default function NotificationsMenu() {
               startIcon={<DoneAllRoundedIcon sx={{ fontSize: "16px !important" }} />}
               onClick={markAllAsRead}
               disabled={notifications.length === 0 || unreadCount === 0}
-              sx={{ textTransform: "none", fontWeight: 600, borderRadius: 1 }}
+              sx={{ textTransform: "none", fontWeight: 600, borderRadius: 1.5 }}
             >
               Lidas
             </Button>
@@ -225,7 +225,7 @@ export default function NotificationsMenu() {
                       sx={{
                         width: 34,
                         height: 34,
-                        borderRadius: 1.25,
+                        borderRadius: 1.5,
                         bgcolor: alpha(color, 0.12),
                         color,
                         "& svg": { fontSize: 18 },

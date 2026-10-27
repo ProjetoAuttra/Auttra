@@ -20,9 +20,10 @@ import { useAuth } from "../../../../context/AuthContext";
 import { useToast } from "../../../../context/ToastContext";
 import { useConfirm } from "../../../../context/ConfirmContext";
 import ModuleHeader from "../../../../components/layout/ModuleHeader";
-import StatCard from "../../../../components/common/StatCard";
+import StatCard, { StatGroup } from "../../../../components/common/StatCard";
 import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
+import { radius } from "../../../../app/theme";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../components/common/AppDialog";
 import api from "../../../../api/api";
 import {
@@ -192,11 +193,11 @@ export default function ContasPagar() {
       />
 
       {/* Cards */}
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mb={3}>
+      <StatGroup>
         {resumo.map((r) => (
           <StatCard key={r.label} label={r.label} value={r.value} icon={r.icon} tone={r.tone} />
         ))}
-      </Stack>
+      </StatGroup>
 
       {/* Tabela */}
       <Fade in timeout={400}>
@@ -328,7 +329,7 @@ export default function ContasPagar() {
         onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
         rowsPerPageOptions={[5, 10, 20]} labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
-        sx={{ mt: 1.5, borderRadius: 1.5, bgcolor: "background.paper" }}
+        sx={{ bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}`, borderTop: 0, borderRadius: `0 0 ${radius.card}px ${radius.card}px` }}
       />
 
       {/* Menu 3-pontos */}

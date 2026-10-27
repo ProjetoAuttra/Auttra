@@ -11,7 +11,7 @@ export default function ListTableContainer({ sx, ...props }: TableContainerProps
     <TableContainer
       component={Paper}
       sx={{
-        borderRadius: `${radius.card}px`,
+        borderRadius: `${radius.card}px ${radius.card}px 0 0`,
         border: (theme) => `1px solid ${theme.palette.divider}`,
         height: TABLE_CONTAINER_HEIGHT,
         overflowY: "auto",
