@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { PecasService } from "../services/pecas.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 import { Prisma } from "@prisma/client";
+import { parsePaginacao, responderLista, textoQuery } from "../utils/paginacao.js";
 
 function isNotFound(err: any): boolean {
   const msg = (err?.message ?? "").toLowerCase();
@@ -11,9 +12,19 @@ function isNotFound(err: any): boolean {
 export const PecasController = {
   async list(req: Request, res: Response) {
     try {
-      const search = req.query.search ? String(req.query.search) : "";
-      const pecas = await PecasService.list(getRequiredOfficeId(req), search);
-      return res.json(pecas);
+      const estoqueMaximo = req.query.estoque_maximo !== undefined ? Number(req.query.estoque_maximo) : undefined;
+      const ordenarPor = req.query.ordenar_por === "nome" || req.query.ordenar_por === "estoque" ? req.query.ordenar_por : undefined;
+      const pecas = await PecasService.list(
+        getRequiredOfficeId(req),
+        textoQuery(req.query.search),
+        parsePaginacao(req.query),
+        {
+          estoqueMaximo: Number.isFinite(estoqueMaximo) ? estoqueMaximo : undefined,
+          ordenarPor,
+          direcao: req.query.direcao === "desc" ? "desc" : "asc",
+        }
+      );
+      return responderLista(res, pecas);
     } catch (err: any) {
       console.error("Erro ao listar pecas:", err);
       return res.status(500).json({ error: "Erro interno ao listar pecas" });

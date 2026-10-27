@@ -2,11 +2,24 @@ import { Request, Response } from "express";
 import { OrdensService } from "../services/ordens.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 import { sendServiceError } from "../utils/httpError.js";
+import { parsePaginacao, responderLista, textoQuery } from "../utils/paginacao.js";
 
 export const OrdensController = {
   async list(req: Request, res: Response) {
     try {
-      res.json(await OrdensService.list(getRequiredOfficeId(req)));
+      const funcionarioId = Number(req.query.funcionario_id);
+      responderLista(
+        res,
+        await OrdensService.list(
+          getRequiredOfficeId(req),
+          {
+            status: textoQuery(req.query.status) || undefined,
+            funcionarioId: funcionarioId > 0 ? funcionarioId : undefined,
+            data: textoQuery(req.query.data) || undefined,
+          },
+          parsePaginacao(req.query)
+        )
+      );
     } catch (err) {
       sendServiceError(res, err, "ordens/list");
     }

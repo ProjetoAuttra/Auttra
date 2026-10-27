@@ -2,6 +2,7 @@ import { Router } from "express";
 import { PagamentosService } from "../services/pagamentos.service.js";
 import { getRequiredOfficeId, requirePermission } from "../middlewares/ensureAuth.js";
 import { sendServiceError } from "../utils/httpError.js";
+import { parsePaginacao, responderLista, textoQuery } from "../utils/paginacao.js";
 
 const router = Router();
 
@@ -9,8 +10,17 @@ router.get("/", async (req, res) => {
   try {
     const oficina_id = getRequiredOfficeId(req);
     const cliente_id = req.query.clienteId ?? req.query.cliente_id;
-    const data = await PagamentosService.list(oficina_id, cliente_id ? Number(cliente_id) : undefined);
-    res.json(data);
+    const data = await PagamentosService.list(
+      oficina_id,
+      {
+        cliente_id: cliente_id ? Number(cliente_id) : undefined,
+        tipo: textoQuery(req.query.tipo) || undefined,
+        status: textoQuery(req.query.status) || undefined,
+        search: textoQuery(req.query.search) || undefined,
+      },
+      parsePaginacao(req.query)
+    );
+    responderLista(res, data);
   } catch (err) {
     sendServiceError(res, err, "pagamentos");
   }

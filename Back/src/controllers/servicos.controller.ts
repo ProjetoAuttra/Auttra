@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { ServicosService } from "../services/servicos.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 import { Prisma } from "@prisma/client";
+import { parsePaginacao, responderLista, textoQuery } from "../utils/paginacao.js";
 
 function isNotFound(err: any): boolean {
   const msg = (err?.message ?? "").toLowerCase();
@@ -11,8 +12,15 @@ function isNotFound(err: any): boolean {
 export const ServicosController = {
   async list(req: Request, res: Response) {
     try {
-      const search = req.query.search ? String(req.query.search) : "";
-      return res.json(await ServicosService.list(getRequiredOfficeId(req), search));
+      return responderLista(
+        res,
+        await ServicosService.list(
+          getRequiredOfficeId(req),
+          textoQuery(req.query.search),
+          parsePaginacao(req.query),
+          textoQuery(req.query.categoria)
+        )
+      );
     } catch (err: any) {
       console.error("Erro ao listar servicos:", err);
       return res.status(500).json({ error: err.message });

@@ -1,17 +1,29 @@
 import { prisma } from "../prisma/client.js";
 import { LIMITE_LISTAGEM } from "../utils/limites.js";
+import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
 
 export const PecasService = {
-  list: async (oficinaId: number, search: string = "") => {
+  list: async (
+    oficinaId: number,
+    search: string = "",
+    pag: Paginacao | null = null,
+    opts: { estoqueMaximo?: number; ordenarPor?: "nome" | "estoque"; direcao?: "asc" | "desc" } = {}
+  ) => {
     const where: any = { deleted_at: null, oficina_id: oficinaId };
     if (search.trim().length > 0) {
-      where.nome = { contains: search.trim(), mode: "insensitive" };
+      const contains = { contains: search.trim(), mode: "insensitive" };
+      where.OR = [{ nome: contains }, { descricao: contains }];
     }
-    return prisma.peca.findMany({
-      where,
-      orderBy: { id: "desc" },
-      take: search.trim().length > 0 ? 20 : LIMITE_LISTAGEM,
-    });
+    if (opts.estoqueMaximo !== undefined) where.estoque = { lte: opts.estoqueMaximo };
+    const orderBy = opts.ordenarPor ? { [opts.ordenarPor]: opts.direcao ?? "asc" } : { id: "desc" as const };
+    return listarPaginado(
+      pag,
+      {
+        find: ({ skip, take }) => prisma.peca.findMany({ where, orderBy, skip, take }),
+        count: () => prisma.peca.count({ where }),
+      },
+      search.trim().length > 0 ? 20 : undefined
+    );
   },
 
   getById: async (id: number, oficinaId: number) => {

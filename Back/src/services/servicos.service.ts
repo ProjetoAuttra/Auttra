@@ -1,16 +1,23 @@
 import { prisma } from "../prisma/client.js";
 import { LIMITE_LISTAGEM } from "../utils/limites.js";
+import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
 
 export const ServicosService = {
-  list: (oficinaId: number, search: string = "") => {
+  list: async (oficinaId: number, search: string = "", pag: Paginacao | null = null, categoria: string = "") => {
     const where: any = { deleted_at: null, oficina_id: oficinaId };
     if (search.trim().length > 0) {
-      where.nome = { contains: search.trim(), mode: "insensitive" };
+      const contains = { contains: search.trim(), mode: "insensitive" };
+      where.OR = [{ nome: contains }, { categoria: contains }];
     }
-    return prisma.servico.findMany({
-      where,
-      take: search.trim().length > 0 ? 20 : LIMITE_LISTAGEM,
-    });
+    if (categoria) where.categoria = categoria;
+    return listarPaginado(
+      pag,
+      {
+        find: ({ skip, take }) => prisma.servico.findMany({ where, skip, take }),
+        count: () => prisma.servico.count({ where }),
+      },
+      search.trim().length > 0 ? 20 : undefined
+    );
   },
 
   getById: (id: number, oficinaId: number) =>

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { PagamentosService } from "../services/pagamentos.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
+import { parsePaginacao, responderLista, textoQuery } from "../utils/paginacao.js";
 
 function isNotFound(err: any): boolean {
   const msg = (err?.message ?? "").toLowerCase();
@@ -13,7 +14,7 @@ export const pagamentosController = {
       const oficina_id = getRequiredOfficeId(req);
 
       const pagamentos = await PagamentosService.list(oficina_id);
-      res.json(pagamentos);
+      responderLista(res, pagamentos);
     } catch (err: any) {
       console.error("Erro ao listar pagamentos:", err);
       res.status(500).json({ error: err.message });
