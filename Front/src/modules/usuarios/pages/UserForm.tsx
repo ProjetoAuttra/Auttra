@@ -125,7 +125,7 @@ export default function FuncionariosPage() {
         actions={
           <Stack direction="row" spacing={1.5}>
             <TextField value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Pesquisar funcionário" size="small"
-              sx={{ minWidth: 300, "& .MuiOutlinedInput-root": { borderRadius: 2, bgcolor: "background.paper", px: 1 } }}
+              sx={{ minWidth: 300 }}
               InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment> }}
             />
             {can("funcionarios", "create") && <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openCreate}>
@@ -136,7 +136,7 @@ export default function FuncionariosPage() {
       />
 
       <Fade in timeout={400}>
-        <ListTableContainer>
+        <ListTableContainer sx={{ height: "auto" }}>
           <Table stickyHeader>
             <TableHead>
               <TableRow>

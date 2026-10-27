@@ -9,7 +9,6 @@ import PeopleOutlineIcon from '@mui/icons-material/PeopleOutlined';
 import ChecklistOutlineIcon from '@mui/icons-material/ChecklistOutlined';
 import PaymentsOutlineIcon from '@mui/icons-material/PaymentsOutlined';
 import RequestQuoteOutlineIcon from '@mui/icons-material/RequestQuoteOutlined';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutlined';
 import BarChartOutlineIcon from '@mui/icons-material/BarChartOutlined';
 import SettingsOutlineIcon from '@mui/icons-material/SettingsOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -20,9 +19,6 @@ import ArrowDownwardRoundedIcon from '@mui/icons-material/ArrowDownwardRounded';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import StoreIcon from '@mui/icons-material/Store';
-import MiscellaneousServicesIcon from '@mui/icons-material/MiscellaneousServices';
-import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
-import SecurityRoundedIcon from '@mui/icons-material/SecurityRounded';
 import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -34,6 +30,7 @@ import { useAdditionalResources } from '../../context/AdditionalResourcesContext
 import type { AccessModule } from '../../permissions/accessProfiles';
 import { brand } from '../../app/theme';
 import BrandLogoPlaceholder from './BrandLogoPlaceholder';
+import { settingsModules, settingsPaths } from './SettingsLayout';
 
 type Props = {
   drawerWidth: number;
@@ -78,18 +75,7 @@ const navItems: NavItem[] = [
     ],
   },
   { label: 'Relatórios', icon: <BarChartOutlineIcon />, to: paths.reports, module: 'relatorios' },
-  {
-    label: 'Configurações',
-    icon: <SettingsOutlineIcon />,
-    to: '#configuracoes',
-    subItems: [
-      { label: 'Configurações gerais', icon: <SettingsOutlineIcon />, to: paths.settings, module: 'configuracoes' },
-      { label: 'Funcionários', icon: <PersonOutlineIcon />, to: paths.users, module: 'funcionarios' },
-      { label: 'Perfis de acesso', icon: <SecurityRoundedIcon />, to: `${paths.settings}?section=perfis`, module: 'configuracoes' },
-      { label: 'Serviços', icon: <MiscellaneousServicesIcon />, to: paths.servicos, module: 'servicos' },
-      { label: 'Recursos adicionais', icon: <WidgetsOutlinedIcon />, to: paths.recursosAdicionais, module: 'recursos_adicionais' },
-    ],
-  },
+  { label: 'Configurações', icon: <SettingsOutlineIcon />, to: paths.settings, module: 'configuracoes' },
 ];
 
 const navLabels: Record<string, string> = {
@@ -105,7 +91,7 @@ const navLabels: Record<string, string> = {
   [paths.quotes]: 'Orçamentos',
   [paths.users]: 'Funcionários',
   [paths.reports]: 'Relatórios',
-  [paths.settings]: 'Configurações gerais',
+  [paths.settings]: 'Configurações',
   [paths.recursosAdicionais]: 'Recursos adicionais',
   [paths.contasReceber]: 'Recebimentos',
   [paths.contasPagar]: 'Pagamentos',
@@ -129,6 +115,8 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
     if (!queryString) return !search; // sem query no subitem → só ativo quando URL também não tem query
     return search === `?${queryString}`;
   };
+
+  const isSettingsVisible = settingsModules.some((module) => can(module));
 
   const isItemVisible = (module: AccessModule) => {
     const resource = moduleResourceMap[module];
@@ -156,6 +144,7 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
     <List sx={{ px: collapsed ? 1 : 1.5, py: 0.5, flex: 1, overflow: 'auto' }}>
       {navItems.filter((item) => {
         if (item.subItems) return getAllowedSubItems(item.subItems).length > 0;
+        if (item.to === paths.settings) return isSettingsVisible;
         return item.module ? isItemVisible(item.module) : false;
       }).map(({ label, icon, to, subItems }) => {
         const allowedSubItems = getAllowedSubItems(subItems);
@@ -163,6 +152,7 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
         const selected =
           (to === paths.root && pathname === '/') ||
           (to === pathname && !to.startsWith('#')) ||
+          (to === paths.settings && settingsPaths.includes(pathname)) ||
           allowedSubItems.some((s) => pathname === s.to.split('?')[0]);
         const isOpen = !!openMenus[label];
 

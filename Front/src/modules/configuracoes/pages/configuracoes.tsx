@@ -3,51 +3,20 @@ import {
   Box,
   Stack,
   Typography,
-  Paper,
   Divider,
-  IconButton,
   TextField,
   Button,
-  Collapse,
   Switch,
-  Chip,
-  Checkbox,
   CircularProgress,
-  MenuItem,
+  FormControlLabel,
 } from '@mui/material';
-import { brand } from '../../../app/theme';
-import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
+import ModuleHeader from '../../../components/layout/ModuleHeader';
+import { DEFAULT_SETTINGS_SECTION } from '../../../components/layout/SettingsLayout';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
-import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
-import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import PaymentsRoundedIcon from '@mui/icons-material/PaymentsRounded';
 import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded';
-import SecurityRoundedIcon from '@mui/icons-material/SecurityRounded';
-import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
-import PeopleOutlineIcon from '@mui/icons-material/PeopleOutlined';
-import EventOutlineIcon from '@mui/icons-material/EventOutlined';
-import PaymentsOutlineIcon from '@mui/icons-material/PaymentsOutlined';
-import InventoryIcon from '@mui/icons-material/Inventory';
-import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import StoreIcon from '@mui/icons-material/Store';
-import ChecklistOutlineIcon from '@mui/icons-material/ChecklistOutlined';
-import RequestQuoteOutlineIcon from '@mui/icons-material/RequestQuoteOutlined';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutlined';
-import BarChartOutlineIcon from '@mui/icons-material/BarChartOutlined';
-import HomeOutlineIcon from '@mui/icons-material/HomeOutlined';
-import MiscellaneousServicesIcon from '@mui/icons-material/MiscellaneousServices';
-import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
-import {
-  atualizarPerfilAcesso,
-  criarPerfilAcesso,
-  excluirPerfilAcesso,
-  listarPerfisAcesso,
-  type PerfilAcesso,
-} from '../api/perfisAcesso';
 import {
   buscarConfigNotificacoes,
   defaultNotificationsConfig,
@@ -64,29 +33,19 @@ import {
   type AgendaConfig,
   type FinanceiroConfig,
 } from '../api/configuracoesOperacionais';
-import {
-  accessActions,
-  accessModules,
-  moduleLabels,
-  type AccessAction,
-  type AccessModule,
-  type PermissionsMap,
-} from '../../../permissions/accessProfiles';
 import { useSearchParams } from 'react-router-dom';
 import { useToast } from '../../../context/ToastContext';
-import { useConfirm } from '../../../context/ConfirmContext';
-import { AppDialog, AppDialogActions, AppDialogContent } from '../../../components/common/AppDialog';
+import AccessProfilesManager from './AccessProfilesManager';
 
 type Section = 'perfis' | 'agenda' | 'financeiro' | 'notificacoes';
+
+const validSections: Section[] = ['perfis', 'agenda', 'financeiro', 'notificacoes'];
 
 export default function Configuracoes() {
   const { success, error } = useToast();
   const [searchParams] = useSearchParams();
-  const validSections: Section[] = ['perfis', 'agenda', 'financeiro', 'notificacoes'];
   const paramSection = searchParams.get('section') as Section | null;
-  const [openSection, setOpenSection] = React.useState<Section | null>(
-    paramSection && validSections.includes(paramSection) ? paramSection : 'perfis'
-  );
+  const openSection: Section = paramSection && validSections.includes(paramSection) ? paramSection : DEFAULT_SETTINGS_SECTION;
   const [editing, setEditing] = React.useState<Section | null>(null);
 
   const [agenda, setAgenda] = React.useState<AgendaConfig>(defaultAgendaConfig);
@@ -170,14 +129,11 @@ export default function Configuracoes() {
     };
   }, [error]);
 
-  const handleToggle = (section: Section) => {
-    setOpenSection(openSection === section ? null : section);
-  };
+  React.useEffect(() => {
+    setEditing(null);
+  }, [openSection]);
 
-  const handleEdit = (section: Section) => {
-    setEditing(section);
-    setOpenSection(section);
-  };
+  const handleEdit = (section: Section) => setEditing(section);
 
   const handleCancel = () => setEditing(null);
   const handleSave = async (section?: Section) => {
@@ -229,667 +185,257 @@ export default function Configuracoes() {
     }
   };
 
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        py: 6,
-        px: 2,
-        bgcolor: 'background.default',
-        minHeight: '80vh',
-      }}
+  const loadingBySection: Record<Exclude<Section, 'perfis'>, boolean> = {
+    agenda: loadingAgenda,
+    financeiro: loadingFinanceiro,
+    notificacoes: loadingNotificacoes,
+  };
+  const loadErrorBySection: Record<Exclude<Section, 'perfis'>, boolean> = {
+    agenda: loadErrorAgenda,
+    financeiro: loadErrorFinanceiro,
+    notificacoes: loadErrorNotificacoes,
+  };
+  const savingBySection: Record<Exclude<Section, 'perfis'>, boolean> = {
+    agenda: savingAgenda,
+    financeiro: savingFinanceiro,
+    notificacoes: savingNotificacoes,
+  };
+
+  const renderSection = (key: Exclude<Section, 'perfis'>, title: string, description: string, icon: React.ReactNode, view: React.ReactNode, form: React.ReactNode) => (
+    <SettingsSection
+      sectionKey={key}
+      title={title}
+      description={description}
+      icon={icon}
+      loading={loadingBySection[key]}
+      canEdit={!loadErrorBySection[key]}
+      editing={editing === key}
+      saving={savingBySection[key]}
+      onEdit={() => handleEdit(key)}
+      onCancel={handleCancel}
+      onSave={() => handleSave(key)}
     >
-      <Paper
-        elevation={0}
-        sx={{
-          width: '100%',
-          maxWidth: 900,
-          borderRadius: 0,
-          p: 0,
-          border: 0,
-          bgcolor: 'transparent',
-          alignSelf: 'flex-start',
-        }}
-      >
-        <Stack direction="row" alignItems="center" spacing={1.5} mb={4}>
-          <SettingsRoundedIcon color="primary" />
-          <Typography variant="h5" fontWeight={700}>
-            Configurações do Sistema
-          </Typography>
-        </Stack>
+      {editing === key ? form : view}
+    </SettingsSection>
+  );
 
-        <SectionCard
-          title="Perfis de acesso"
-          icon={<SecurityRoundedIcon color="primary" />}
-          open={openSection === 'perfis'}
-          onToggle={() => handleToggle('perfis')}
-          editing={false}
-          sectionKey="perfis"
-        >
+  return (
+    <Box>
+      {openSection === 'perfis' && (
+        <Box data-testid="section-perfis">
           <AccessProfilesManager />
-        </SectionCard>
+        </Box>
+      )}
 
-        <SectionCard
-          title="Agenda"
-          icon={<CalendarMonthRoundedIcon color="primary" />}
-          open={openSection === 'agenda'}
-          onToggle={() => handleToggle('agenda')}
-          onEdit={loadingAgenda || loadErrorAgenda ? undefined : () => handleEdit('agenda')}
-          editing={editing === 'agenda'}
-          onCancel={handleCancel}
-          onSave={() => handleSave('agenda')}
-          sectionKey="agenda"
-        >
-          {loadingAgenda ? (
-            <Box sx={{ display: 'grid', placeItems: 'center', py: 3 }}>
-              <CircularProgress size={28} />
-            </Box>
-          ) : editing === 'agenda' ? (
-            <Stack spacing={2}>
-              <TextField label="Horário de Início" value={agenda.horarioInicio} onChange={(e) => setAgenda((p) => ({ ...p, horarioInicio: e.target.value }))} />
-              <TextField label="Horário de Término" value={agenda.horarioFim} onChange={(e) => setAgenda((p) => ({ ...p, horarioFim: e.target.value }))} />
-              <TextField label="Dias de atendimento" value={agenda.dias} onChange={(e) => setAgenda((p) => ({ ...p, dias: e.target.value }))} />
-              <TextField label="Tempo médio por serviço" value={agenda.tempoMedio} onChange={(e) => setAgenda((p) => ({ ...p, tempoMedio: e.target.value }))} />
-              {savingAgenda && <CircularProgress size={20} />}
-            </Stack>
-          ) : (
-            <DisplayList
-              items={[
-                ['Horário de funcionamento', `${agenda.horarioInicio} às ${agenda.horarioFim}`],
-                ['Dias de atendimento', agenda.dias],
-                ['Tempo médio por serviço', agenda.tempoMedio],
-              ]}
+      {openSection === 'agenda' &&
+        renderSection(
+          'agenda',
+          'Agenda',
+          'Horário de funcionamento e duração padrão dos atendimentos.',
+          <CalendarMonthRoundedIcon />,
+          <DisplayList
+            items={[
+              ['Horário de funcionamento', `${agenda.horarioInicio} às ${agenda.horarioFim}`],
+              ['Dias de atendimento', agenda.dias],
+              ['Tempo médio por serviço', agenda.tempoMedio],
+            ]}
+          />,
+          <FieldGrid>
+            <TextField label="Horário de início" value={agenda.horarioInicio} onChange={(e) => setAgenda((p) => ({ ...p, horarioInicio: e.target.value }))} />
+            <TextField label="Horário de término" value={agenda.horarioFim} onChange={(e) => setAgenda((p) => ({ ...p, horarioFim: e.target.value }))} />
+            <TextField label="Dias de atendimento" value={agenda.dias} onChange={(e) => setAgenda((p) => ({ ...p, dias: e.target.value }))} />
+            <TextField label="Tempo médio por serviço" value={agenda.tempoMedio} onChange={(e) => setAgenda((p) => ({ ...p, tempoMedio: e.target.value }))} />
+          </FieldGrid>
+        )}
+
+      {openSection === 'financeiro' &&
+        renderSection(
+          'financeiro',
+          'Financeiro',
+          'Formas de pagamento, juros e emissão de recibos.',
+          <PaymentsRoundedIcon />,
+          <DisplayList
+            items={[
+              ['Formas de pagamento', financeiro.formasPagamento],
+              ['Juros por atraso', financeiro.jurosAtraso],
+              ['Emissão automática de recibos', financeiro.emitirRecibos ? 'Ativada' : 'Desativada'],
+            ]}
+          />,
+          <Stack spacing={2.5}>
+            <FieldGrid>
+              <TextField label="Formas de pagamento" value={financeiro.formasPagamento} onChange={(e) => setFinanceiro((p) => ({ ...p, formasPagamento: e.target.value }))} />
+              <TextField label="Juros por atraso" value={financeiro.jurosAtraso} onChange={(e) => setFinanceiro((p) => ({ ...p, jurosAtraso: e.target.value }))} />
+            </FieldGrid>
+            <FormControlLabel
+              control={<Switch checked={financeiro.emitirRecibos} onChange={(e) => setFinanceiro((p) => ({ ...p, emitirRecibos: e.target.checked }))} />}
+              label="Emissão automática de recibos"
             />
-          )}
-        </SectionCard>
+          </Stack>
+        )}
 
-        <SectionCard
-          title="Financeiro"
-          icon={<PaymentsRoundedIcon color="primary" />}
-          open={openSection === 'financeiro'}
-          onToggle={() => handleToggle('financeiro')}
-          onEdit={loadingFinanceiro || loadErrorFinanceiro ? undefined : () => handleEdit('financeiro')}
-          editing={editing === 'financeiro'}
-          onCancel={handleCancel}
-          onSave={() => handleSave('financeiro')}
-          sectionKey="financeiro"
-        >
-          {loadingFinanceiro ? (
-            <Box sx={{ display: 'grid', placeItems: 'center', py: 3 }}>
-              <CircularProgress size={28} />
-            </Box>
-          ) : editing === 'financeiro' ? (
-            <Stack spacing={2}>
-              <TextField
-                label="Formas de pagamento"
-                value={financeiro.formasPagamento}
-                onChange={(e) => setFinanceiro((p) => ({ ...p, formasPagamento: e.target.value }))}
-              />
-              <TextField
-                label="Juros por atraso"
-                value={financeiro.jurosAtraso}
-                onChange={(e) => setFinanceiro((p) => ({ ...p, jurosAtraso: e.target.value }))}
-              />
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <Switch
-                  checked={financeiro.emitirRecibos}
-                  onChange={(e) => setFinanceiro((p) => ({ ...p, emitirRecibos: e.target.checked }))}
-                />
-                <Typography variant="body2">Emissão automática de recibos</Typography>
-              </Stack>
-              {savingFinanceiro && <CircularProgress size={20} />}
-            </Stack>
-          ) : (
-            <DisplayList
-              items={[
-                ['Formas de pagamento', financeiro.formasPagamento],
-                ['Juros por atraso', financeiro.jurosAtraso],
-                ['Emissão automática de recibos', financeiro.emitirRecibos ? 'Ativada' : 'Desativada'],
-              ]}
-            />
-          )}
-        </SectionCard>
-
-        <SectionCard
-          title="Notificações"
-          icon={<NotificationsRoundedIcon color="primary" />}
-          open={openSection === 'notificacoes'}
-          onToggle={() => handleToggle('notificacoes')}
-          onEdit={loadingNotificacoes || loadErrorNotificacoes ? undefined : () => handleEdit('notificacoes')}
-          editing={editing === 'notificacoes'}
-          onCancel={handleCancel}
-          onSave={() => handleSave('notificacoes')}
-          sectionKey="notificacoes"
-        >
-          {loadingNotificacoes ? (
-            <Box sx={{ display: 'grid', placeItems: 'center', py: 3 }}>
-              <CircularProgress size={28} />
-            </Box>
-          ) : editing === 'notificacoes' ? (
-            <Stack spacing={2}>
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <Switch
-                  checked={notificacoes.agenda.ativo}
-                  onChange={(e) => setNotificacoes((p) => ({ ...p, agenda: { ...p.agenda, ativo: e.target.checked } }))}
-                />
-                <Typography variant="body2">Avisar agendamentos próximos</Typography>
-              </Stack>
-
-              <TextField
-                label="Agendamentos: dias de antecedência"
-                type="number"
-                value={notificacoes.agenda.diasAntecedencia}
-                onChange={(e) => setNotificacoes((p) => ({ ...p, agenda: { ...p.agenda, diasAntecedencia: Number(e.target.value) } }))}
-              />
-
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <Switch
-                  checked={notificacoes.financeiro.ativo}
-                  onChange={(e) => setNotificacoes((p) => ({ ...p, financeiro: { ...p.financeiro, ativo: e.target.checked } }))}
-                />
-                <Typography variant="body2">Avisar pagamentos vencendo ou vencidos</Typography>
-              </Stack>
-
-              <TextField
-                label="Financeiro: dias antes do vencimento"
-                type="number"
-                value={notificacoes.financeiro.diasVencimento}
-                onChange={(e) => setNotificacoes((p) => ({ ...p, financeiro: { ...p.financeiro, diasVencimento: Number(e.target.value) } }))}
-              />
-
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <Switch
-                  checked={notificacoes.estoque.ativo}
-                  onChange={(e) => setNotificacoes((p) => ({ ...p, estoque: { ...p.estoque, ativo: e.target.checked } }))}
-                />
-                <Typography variant="body2">Avisar estoque baixo</Typography>
-              </Stack>
-
-              <TextField
-                label="Estoque: quantidade mínima"
-                type="number"
-                value={notificacoes.estoque.limiteBaixo}
-                onChange={(e) => setNotificacoes((p) => ({ ...p, estoque: { ...p.estoque, limiteBaixo: Number(e.target.value) } }))}
-              />
-
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <Switch
-                  checked={notificacoes.ordens.ativo}
-                  onChange={(e) => setNotificacoes((p) => ({ ...p, ordens: { ...p.ordens, ativo: e.target.checked } }))}
-                />
-                <Typography variant="body2">Avisar O.S paradas</Typography>
-              </Stack>
-
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <TextField
-                  label="O.S: dias parada"
-                  type="number"
-                  fullWidth
-                  value={notificacoes.ordens.diasParada}
-                  onChange={(e) => setNotificacoes((p) => ({ ...p, ordens: { ...p.ordens, diasParada: Number(e.target.value) } }))}
-                />
-                <TextField
-                  label="O.S: dias crítica"
-                  type="number"
-                  fullWidth
-                  value={notificacoes.ordens.diasCritico}
-                  onChange={(e) => setNotificacoes((p) => ({ ...p, ordens: { ...p.ordens, diasCritico: Number(e.target.value) } }))}
-                />
-              </Stack>
-
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <Switch
-                  checked={notificacoes.orcamentos.ativo}
-                  onChange={(e) => setNotificacoes((p) => ({ ...p, orcamentos: { ...p.orcamentos, ativo: e.target.checked } }))}
-                />
-                <Typography variant="body2">Avisar orçamentos pendentes</Typography>
-              </Stack>
-
-              <TextField
-                label="Orçamentos: dias em análise"
-                type="number"
-                value={notificacoes.orcamentos.diasPendente}
-                onChange={(e) => setNotificacoes((p) => ({ ...p, orcamentos: { ...p.orcamentos, diasPendente: Number(e.target.value) } }))}
-              />
-
-              {savingNotificacoes && <CircularProgress size={20} />}
-            </Stack>
-          ) : (
-            <DisplayList
-              items={[
-                ['Agenda', notificacoes.agenda.ativo ? `Ativa - ${notificacoes.agenda.diasAntecedencia} dia(s) antes` : 'Inativa'],
-                ['Financeiro', notificacoes.financeiro.ativo ? `Ativo - ${notificacoes.financeiro.diasVencimento} dia(s) antes` : 'Inativo'],
-                ['Estoque', notificacoes.estoque.ativo ? `Ativo - limite ${notificacoes.estoque.limiteBaixo} un.` : 'Inativo'],
-                ['O.S paradas', notificacoes.ordens.ativo ? `Ativa - ${notificacoes.ordens.diasParada}d / crítica ${notificacoes.ordens.diasCritico}d` : 'Inativa'],
-                ['Orçamentos', notificacoes.orcamentos.ativo ? `Ativo - ${notificacoes.orcamentos.diasPendente} dia(s) em análise` : 'Inativo'],
-              ]}
-            />
-          )}
-        </SectionCard>
-      </Paper>
+      {openSection === 'notificacoes' &&
+        renderSection(
+          'notificacoes',
+          'Notificações',
+          'Defina quando o sistema deve avisar sobre cada área.',
+          <NotificationsRoundedIcon />,
+          <DisplayList
+            items={[
+              ['Agenda', notificacoes.agenda.ativo ? `Ativa · ${notificacoes.agenda.diasAntecedencia} dia(s) antes` : 'Inativa'],
+              ['Financeiro', notificacoes.financeiro.ativo ? `Ativo · ${notificacoes.financeiro.diasVencimento} dia(s) antes` : 'Inativo'],
+              ['Estoque', notificacoes.estoque.ativo ? `Ativo · limite ${notificacoes.estoque.limiteBaixo} un.` : 'Inativo'],
+              ['O.S paradas', notificacoes.ordens.ativo ? `Ativa · ${notificacoes.ordens.diasParada}d / crítica ${notificacoes.ordens.diasCritico}d` : 'Inativa'],
+              ['Orçamentos', notificacoes.orcamentos.ativo ? `Ativo · ${notificacoes.orcamentos.diasPendente} dia(s) em análise` : 'Inativo'],
+            ]}
+          />,
+          <Stack divider={<Divider flexItem />} spacing={2.5}>
+            <NotificationRule
+              label="Avisar agendamentos próximos"
+              checked={notificacoes.agenda.ativo}
+              onToggle={(ativo) => setNotificacoes((p) => ({ ...p, agenda: { ...p.agenda, ativo } }))}
+            >
+              <NumberField label="Dias de antecedência" value={notificacoes.agenda.diasAntecedencia} onChange={(v) => setNotificacoes((p) => ({ ...p, agenda: { ...p.agenda, diasAntecedencia: v } }))} />
+            </NotificationRule>
+            <NotificationRule
+              label="Avisar pagamentos vencendo ou vencidos"
+              checked={notificacoes.financeiro.ativo}
+              onToggle={(ativo) => setNotificacoes((p) => ({ ...p, financeiro: { ...p.financeiro, ativo } }))}
+            >
+              <NumberField label="Dias antes do vencimento" value={notificacoes.financeiro.diasVencimento} onChange={(v) => setNotificacoes((p) => ({ ...p, financeiro: { ...p.financeiro, diasVencimento: v } }))} />
+            </NotificationRule>
+            <NotificationRule
+              label="Avisar estoque baixo"
+              checked={notificacoes.estoque.ativo}
+              onToggle={(ativo) => setNotificacoes((p) => ({ ...p, estoque: { ...p.estoque, ativo } }))}
+            >
+              <NumberField label="Quantidade mínima" value={notificacoes.estoque.limiteBaixo} onChange={(v) => setNotificacoes((p) => ({ ...p, estoque: { ...p.estoque, limiteBaixo: v } }))} />
+            </NotificationRule>
+            <NotificationRule
+              label="Avisar O.S paradas"
+              checked={notificacoes.ordens.ativo}
+              onToggle={(ativo) => setNotificacoes((p) => ({ ...p, ordens: { ...p.ordens, ativo } }))}
+            >
+              <NumberField label="Dias parada" value={notificacoes.ordens.diasParada} onChange={(v) => setNotificacoes((p) => ({ ...p, ordens: { ...p.ordens, diasParada: v } }))} />
+              <NumberField label="Dias crítica" value={notificacoes.ordens.diasCritico} onChange={(v) => setNotificacoes((p) => ({ ...p, ordens: { ...p.ordens, diasCritico: v } }))} />
+            </NotificationRule>
+            <NotificationRule
+              label="Avisar orçamentos pendentes"
+              checked={notificacoes.orcamentos.ativo}
+              onToggle={(ativo) => setNotificacoes((p) => ({ ...p, orcamentos: { ...p.orcamentos, ativo } }))}
+            >
+              <NumberField label="Dias em análise" value={notificacoes.orcamentos.diasPendente} onChange={(v) => setNotificacoes((p) => ({ ...p, orcamentos: { ...p.orcamentos, diasPendente: v } }))} />
+            </NotificationRule>
+          </Stack>
+        )}
     </Box>
   );
 }
 
-const emptyPermissions = (): PermissionsMap =>
-  Object.fromEntries(accessModules.map((module) => [module, []])) as PermissionsMap;
 
-const moduleIcons: Record<AccessModule, React.ReactNode> = {
-  painel: <HomeOutlineIcon />,
-  agenda: <EventOutlineIcon />,
-  clientes: <PeopleOutlineIcon />,
-  veiculos: <DirectionsCarIcon />,
-  estoque: <InventoryIcon />,
-  servicos: <MiscellaneousServicesIcon />,
-  ordens: <ChecklistOutlineIcon />,
-  financeiro: <PaymentsOutlineIcon />,
-  fornecedores: <StoreIcon />,
-  orcamentos: <RequestQuoteOutlineIcon />,
-  funcionarios: <PersonOutlineIcon />,
-  relatorios: <BarChartOutlineIcon />,
-  configuracoes: <SettingsRoundedIcon />,
-  recursos_adicionais: <WidgetsOutlinedIcon />,
-};
-
-const actionText = (module: AccessModule, action: AccessAction) => {
-  const label = moduleLabels[module].toLowerCase();
-  const plural = moduleLabels[module];
-
-  if (action === 'read') return `Visualizar ${plural}`;
-  if (action === 'create') return `Cadastrar ${label}`;
-  if (action === 'update') return `Editar ${label}`;
-  return `Remover ${label}`;
-};
-
-function AccessProfilesManager() {
-  const { success, error } = useToast();
-  const confirm = useConfirm();
-  const [profiles, setProfiles] = React.useState<PerfilAcesso[]>([]);
-  const [selectedId, setSelectedId] = React.useState<number | null>(null);
-  const [form, setForm] = React.useState<Partial<PerfilAcesso>>({
-    nome: '',
-    descricao: '',
-    padrao: false,
-    permissoes: emptyPermissions(),
-  });
-  const [loading, setLoading] = React.useState(true);
-  const [saving, setSaving] = React.useState(false);
-  const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [openModules, setOpenModules] = React.useState<Record<string, boolean>>({ clientes: true });
-
-  const selected = profiles.find((profile) => profile.id === selectedId) ?? null;
-
-  const load = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await listarPerfisAcesso();
-      setProfiles(data);
-      const first = data[0];
-      if (first) {
-        setSelectedId((current) => current ?? first.id);
-        setForm(first);
-      }
-    } catch {
-      error('Não foi possível carregar os perfis de acesso.');
-    } finally {
-      setLoading(false);
-    }
-  }, [error]);
-
-  React.useEffect(() => {
-    load();
-  }, [load]);
-
-  React.useEffect(() => {
-    if (selected) setForm(selected);
-  }, [selectedId, selected]);
-
-  const startNew = () => {
-    setSelectedId(null);
-    setForm({ nome: '', descricao: '', padrao: false, permissoes: emptyPermissions() });
-    setOpenModules({ clientes: true });
-    setDialogOpen(true);
-  };
-
-  const startEdit = (profile: PerfilAcesso) => {
-    setSelectedId(profile.id);
-    setForm(profile);
-    setOpenModules({ [accessModules.find((module) => profile.permissoes?.[module]?.length) ?? 'clientes']: true });
-    setDialogOpen(true);
-  };
-
-  const togglePermission = (module: AccessModule, action: AccessAction) => {
-    setForm((prev) => {
-      const permissoes = { ...(prev.permissoes ?? {}) };
-      const actions = new Set(permissoes[module] ?? []);
-      if (actions.has(action)) actions.delete(action);
-      else actions.add(action);
-      permissoes[module] = Array.from(actions);
-      return { ...prev, permissoes };
-    });
-  };
-
-  const save = async () => {
-    if (!String(form.nome ?? '').trim()) {
-      error('Informe o nome do perfil.');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      if (selectedId) {
-        await atualizarPerfilAcesso(selectedId, form);
-        success('Perfil atualizado com sucesso.');
-      } else {
-        await criarPerfilAcesso(form);
-        success('Perfil criado com sucesso.');
-      }
-      await load();
-      setDialogOpen(false);
-    } catch (err: any) {
-      error(err?.response?.data?.message ?? 'Não foi possível salvar o perfil.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const remove = async () => {
-    if (!selectedId) return;
-    const ok = await confirm({
-      title: 'Excluir perfil?',
-      message: 'Perfis vinculados a usuários ou definidos como padrão não podem ser excluídos.',
-      confirmLabel: 'Excluir',
-      variant: 'danger',
-    });
-    if (!ok) return;
-
-    try {
-      await excluirPerfilAcesso(selectedId);
-      success('Perfil excluído com sucesso.');
-      setSelectedId(null);
-      setDialogOpen(false);
-      await load();
-    } catch (err: any) {
-      error(err?.response?.data?.message ?? 'Não foi possível excluir o perfil.');
-    }
-  };
-
-  if (loading) {
-    return <Box sx={{ display: 'grid', placeItems: 'center', py: 4 }}><CircularProgress size={28} /></Box>;
-  }
-
+function SettingsSection({
+  sectionKey,
+  title,
+  description,
+  icon,
+  loading,
+  canEdit,
+  editing,
+  saving,
+  onEdit,
+  onCancel,
+  onSave,
+  children,
+}: {
+  sectionKey: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  loading: boolean;
+  canEdit: boolean;
+  editing: boolean;
+  saving: boolean;
+  onEdit: () => void;
+  onCancel: () => void;
+  onSave: () => void;
+  children: React.ReactNode;
+}) {
   return (
-    <Stack spacing={2}>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ xs: 'stretch', md: 'center' }} justifyContent="space-between">
-        <Stack spacing={0.4}>
-          <Typography fontWeight={700}>Perfis cadastrados</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Defina quais módulos e ações cada colaborador poderá acessar.
-          </Typography>
-        </Stack>
-        <Button startIcon={<AddRoundedIcon />} variant="outlined" onClick={startNew} sx={{ borderRadius: 1.5, textTransform: 'none' }}>
-          Novo perfil
-        </Button>
-      </Stack>
-
-      <Stack spacing={0}>
-        {profiles.map((profile) => {
-          const permissionsCount = accessModules.reduce(
-            (total, module) => total + (profile.permissoes?.[module]?.length ?? 0),
-            0
-          );
-
-          return (
-            <Box
-              key={profile.id}
-              sx={{
-                borderTop: (t) => `1px solid ${t.palette.divider}`,
-                px: 2,
-                py: 1.5,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 2,
-              }}
-            >
-              <Stack direction="row" alignItems="center" spacing={1.5} minWidth={0}>
-                <Box
-                  sx={(t) => ({
-                    width: 38,
-                    height: 38,
-                    borderRadius: 1.5,
-                    display: 'grid',
-                    placeItems: 'center',
-                    color: t.palette.text.secondary,
-                    bgcolor: brand.subtleStrong,
-                    flexShrink: 0,
-                  })}
-                >
-                  <SecurityRoundedIcon fontSize="small" />
-                </Box>
-                <Stack minWidth={0}>
-                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                    <Typography fontWeight={700}>{profile.nome}</Typography>
-                    {profile.padrao && <Chip label="Padrão" size="small" color="primary" variant="outlined" />}
-                    {profile.sistema && <Chip label="Sistema" size="small" variant="outlined" />}
-                  </Stack>
-                  <Typography variant="body2" color="text.secondary" noWrap>
-                    {profile.descricao || `${permissionsCount} permissão(ões) configurada(s)`}
-                  </Typography>
-                </Stack>
-              </Stack>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
-                  {profile.usuarios_vinculados ?? 0} usuário(s)
-                </Typography>
-                <Button variant="outlined" startIcon={<EditRoundedIcon />} onClick={() => startEdit(profile)} sx={{ borderRadius: 1.5 }}>
-                  Editar
-                </Button>
-              </Stack>
-            </Box>
-          );
-        })}
-      </Stack>
-
-      <AppDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        onCloseClick={() => setDialogOpen(false)}
-        closeOnBackdrop={false}
-        closeOnEscape={false}
-        maxWidth="md"
-        title={selectedId ? 'Editar perfil' : 'Novo perfil'}
-        icon={<SecurityRoundedIcon />}
-        variant="entity"
-      >
-        <AppDialogContent>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} mb={2.5}>
-            <TextField
-              label="Nome"
-              value={form.nome ?? ''}
-              onChange={(event) => setForm((prev) => ({ ...prev, nome: event.target.value }))}
-              fullWidth
-              required
-              variant="standard"
-            />
-            <TextField
-              select
-              label="Grupo de acesso"
-              value={form.padrao ? 'padrao' : 'personalizado'}
-              onChange={(event) => setForm((prev) => ({ ...prev, padrao: event.target.value === 'padrao' }))}
-              fullWidth
-              required
-              variant="standard"
-            >
-              <MenuItem value="personalizado">Personalizado</MenuItem>
-              <MenuItem value="padrao">Padrão</MenuItem>
-            </TextField>
-          </Stack>
-
-          <TextField
-            label="Descrição"
-            value={form.descricao ?? ''}
-            onChange={(event) => setForm((prev) => ({ ...prev, descricao: event.target.value }))}
-            fullWidth
-            variant="standard"
-            sx={{ mb: 2 }}
-          />
-
-          <Box sx={{ maxHeight: '52vh', overflowY: 'auto', pr: 0.5, pb: 1 }}>
-            <Stack spacing={1}>
-              {accessModules.map((module) => {
-                const isOpen = Boolean(openModules[module]);
-                return (
-                  <Paper key={module} elevation={0} sx={{ borderRadius: 1.5, overflow: 'hidden', bgcolor: brand.subtle }}>
-                    <Stack
-                      direction="row"
-                      alignItems="center"
-                      justifyContent="space-between"
-                      onClick={() => setOpenModules((prev) => ({ ...prev, [module]: !prev[module] }))}
-                      sx={{ px: 2, py: 1.6, cursor: 'pointer' }}
-                    >
-                      <Stack direction="row" spacing={1.25} alignItems="center" color="text.secondary">
-                        {moduleIcons[module]}
-                        <Typography fontWeight={700}>{moduleLabels[module]}</Typography>
-                      </Stack>
-                      {isOpen ? <ExpandLessRoundedIcon /> : <ExpandMoreRoundedIcon />}
-                    </Stack>
-
-                    <Collapse in={isOpen}>
-                      <Box sx={{ px: 1.2, pb: 1.5, bgcolor: 'background.paper' }}>
-                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, columnGap: 3, rowGap: 1 }}>
-                          {accessActions.map((action) => (
-                            <Stack key={action} direction="row" alignItems="center" spacing={0.8}>
-                              <Checkbox
-                                checked={Boolean(form.permissoes?.[module]?.includes(action))}
-                                onChange={() => togglePermission(module, action)}
-                              />
-                              <Typography color="text.secondary">{actionText(module, action)}</Typography>
-                            </Stack>
-                          ))}
-                        </Box>
-                      </Box>
-                    </Collapse>
-                  </Paper>
-                );
-              })}
-            </Stack>
-          </Box>
-        </AppDialogContent>
-
-        <AppDialogActions>
-          {selectedId && (
-            <Button startIcon={<DeleteRoundedIcon />} color="error" onClick={remove}>
-              Excluir
+    <Box data-testid={`section-${sectionKey}`}>
+      <ModuleHeader
+        title={title}
+        subtitle={description}
+        icon={icon}
+        actions={
+          !editing && canEdit && !loading ? (
+            <Button variant="outlined" startIcon={<EditRoundedIcon />} data-testid={`edit-${sectionKey}`} onClick={onEdit}>
+              Editar
             </Button>
-          )}
-          <Box sx={{ flex: 1 }} />
-          <Button onClick={() => setDialogOpen(false)} variant="outlined">Cancelar</Button>
-          <Button variant="contained" onClick={save} disabled={saving} disableElevation>
+          ) : undefined
+        }
+      />
+
+      {loading ? (
+        <Box sx={{ textAlign: 'center', py: 6 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Box data-testid={`content-${sectionKey}`} sx={{ mt: 3 }}>{children}</Box>
+      )}
+
+      {editing && (
+        <Stack direction="row" spacing={1} justifyContent="flex-end" mt={3}>
+          <Button variant="outlined" data-testid={`cancel-${sectionKey}`} onClick={onCancel} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button variant="contained" startIcon={<SaveRoundedIcon />} data-testid={`save-${sectionKey}`} onClick={onSave} disabled={saving}>
             Salvar
           </Button>
-        </AppDialogActions>
-      </AppDialog>
-    </Stack>
+        </Stack>
+      )}
+    </Box>
   );
 }
 
-function SectionCard({ title, icon, open, onToggle, onEdit, editing, onCancel, onSave, sectionKey, children }: any) {
+function FieldGrid({ children }: { children: React.ReactNode }) {
   return (
-    <Paper
-      elevation={0}
-      data-testid={sectionKey ? `section-${sectionKey}` : undefined}
-      sx={(t) => ({
-        borderRadius: 0,
-        border: 0,
-        borderTop: `1px solid ${t.palette.divider}`,
-        overflow: 'hidden',
-        bgcolor: 'transparent',
-      })}
-    >
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        data-testid={sectionKey ? `header-${sectionKey}` : undefined}
-        sx={{
-          px: 2.5,
-          py: 1.75,
-          cursor: 'pointer',
-          bgcolor: 'transparent',
-        }}
-        onClick={onToggle}
-      >
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          {icon}
-          <Typography fontWeight={700}>{title}</Typography>
-        </Stack>
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, maxWidth: 720 }}>{children}</Box>
+  );
+}
 
-        <Stack direction="row" spacing={1}>
-          {!editing && onEdit ? (
-            <Button
-              size="small"
-              startIcon={<EditRoundedIcon />}
-              data-testid={sectionKey ? `edit-${sectionKey}` : undefined}
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit();
-              }}
-              sx={{ borderRadius: 1.5, textTransform: 'none', fontWeight: 600, px: 1.5 }}
-            >
-              Editar
-            </Button>
-          ) : editing ? (
-            <>
-              <IconButton
-                size="small"
-                data-testid={sectionKey ? `save-${sectionKey}` : undefined}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSave();
-                }}
-                color="primary"
-              >
-                <SaveRoundedIcon />
-              </IconButton>
-              <IconButton
-                size="small"
-                data-testid={sectionKey ? `cancel-${sectionKey}` : undefined}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCancel();
-                }}
-              >
-                <CancelRoundedIcon />
-              </IconButton>
-            </>
-          ) : null}
-          <IconButton size="small" onClick={(e) => {
-            e.stopPropagation();
-            onToggle();
-          }}>
-            {open ? <ExpandLessRoundedIcon /> : <ExpandMoreRoundedIcon />}
-          </IconButton>
-        </Stack>
-      </Stack>
+function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+  return <TextField label={label} type="number" value={value} onChange={(e) => onChange(Number(e.target.value))} />;
+}
 
-      <Collapse in={open}>
-        <Divider />
-        <Box data-testid={sectionKey ? `content-${sectionKey}` : undefined} sx={{ p: 2.5, bgcolor: 'background.paper' }}>{children}</Box>
-      </Collapse>
-    </Paper>
+function NotificationRule({
+  label,
+  checked,
+  onToggle,
+  children,
+}: {
+  label: string;
+  checked: boolean;
+  onToggle: (checked: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '320px 1fr' }, gap: 2, alignItems: 'center' }}>
+      <FormControlLabel control={<Switch checked={checked} onChange={(e) => onToggle(e.target.checked)} />} label={label} />
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, maxWidth: 480 }}>{children}</Box>
+    </Box>
   );
 }
 
 function DisplayList({ items }: { items: [string, string][] }) {
   return (
-    <Stack spacing={0.5}>
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))' }, gap: 3 }}>
       {items.map(([label, value]) => (
-        <Typography key={label} variant="body2">
-          <b>{label}:</b> {value}
-        </Typography>
+        <Box key={label}>
+          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+            {label}
+          </Typography>
+          <Typography>{value || '—'}</Typography>
+        </Box>
       ))}
-    </Stack>
+    </Box>
   );
 }

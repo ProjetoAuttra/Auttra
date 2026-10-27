@@ -34,9 +34,9 @@ async function criarOficinaCompleta(input) {
     const allPermissions = Object.fromEntries(ACCESS_MODULES.map((m) => [m, ALL_ACTIONS]));
 
     const DEFAULT_PROFILES = [
-      { nome: "Proprietario", descricao: "Acesso total a todos os modulos e acoes.", chave: "proprietario", padrao: true, permissoes: allPermissions },
-      { nome: "Mecanico", descricao: "Acesso operacional para execucao de servicos e consulta de cadastros.", chave: "mecanico", padrao: false, permissoes: { painel:["read"],agenda:["read","update"],clientes:["read"],veiculos:["read"],estoque:["read"],servicos:["read"],ordens:["read","create","update"],orcamentos:["read","create","update"] } },
-      { nome: "Recepcao", descricao: "Acesso para atendimento, agenda, clientes e abertura de ordens.", chave: "recepcao", padrao: false, permissoes: { painel:["read"],agenda:ALL_ACTIONS,clientes:["read","create","update"],veiculos:["read","create","update"],estoque:["read"],servicos:["read"],ordens:["read","create","update"],financeiro:["read","create","update"],fornecedores:["read"],orcamentos:["read","create","update"],funcionarios:["read"],relatorios:["read"] } },
+      { nome: "Proprietário", descricao: "Acesso total a todos os módulos e ações.", chave: "proprietario", padrao: true, permissoes: allPermissions },
+      { nome: "Mecânico", descricao: "Acesso operacional para execução de serviços e consulta de cadastros.", chave: "mecanico", padrao: false, permissoes: { painel:["read"],agenda:["read","update"],clientes:["read"],veiculos:["read"],estoque:["read"],servicos:["read"],ordens:["read","create","update"],orcamentos:["read","create","update"] } },
+      { nome: "Recepção", descricao: "Acesso para atendimento, agenda, clientes e abertura de ordens.", chave: "recepcao", padrao: false, permissoes: { painel:["read"],agenda:ALL_ACTIONS,clientes:["read","create","update"],veiculos:["read","create","update"],estoque:["read"],servicos:["read"],ordens:["read","create","update"],financeiro:["read","create","update"],fornecedores:["read"],orcamentos:["read","create","update"],funcionarios:["read"],relatorios:["read"] } },
     ];
 
     return prisma.$transaction(async (tx) => {

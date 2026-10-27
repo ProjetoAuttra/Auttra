@@ -1,29 +1,11 @@
 import * as React from "react";
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Divider,
-  InputAdornment,
-  List,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Paper,
-  Stack,
-  Switch,
-  TextField,
-  Typography,
-} from "@mui/material";
-import { alpha } from "@mui/material/styles";
+import { Box, Button, CircularProgress, Stack, Switch, Typography } from "@mui/material";
 import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import WidgetsOutlinedIcon from "@mui/icons-material/WidgetsOutlined";
+import ModuleHeader from "../../../components/layout/ModuleHeader";
 import { useAdditionalResources } from "../../../context/AdditionalResourcesContext";
 import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../context/ToastContext";
@@ -37,7 +19,6 @@ type ResourceConfig = {
   id: AdditionalResourceKey;
   label: string;
   description: string;
-  details: string[];
   icon: React.ReactNode;
 };
 
@@ -45,22 +26,19 @@ const resourceConfigs: ResourceConfig[] = [
   {
     id: "agenda",
     label: "Agenda",
-    description: "Organize agendamentos, acompanhe compromissos e mantenha a rotina da oficina previsível.",
-    details: ["Calendário de serviços", "Vínculo com clientes e veículos", "Status de atendimento"],
+    description: "Calendário de serviços, vínculo com clientes e veículos e status de atendimento.",
     icon: <EventOutlinedIcon />,
   },
   {
     id: "estoque",
     label: "Estoque",
-    description: "Controle peças e itens disponíveis para venda ou uso em ordens de serviço.",
-    details: ["Cadastro de itens", "Quantidade disponível", "Preços de custo e venda"],
+    description: "Cadastro de itens, quantidade disponível e preços de custo e venda.",
     icon: <Inventory2OutlinedIcon />,
   },
   {
     id: "fornecedores",
     label: "Fornecedores",
-    description: "Mantenha contatos, compras e parceiros da oficina reunidos em um único lugar.",
-    details: ["Cadastro de parceiros", "Dados de contato", "Base para contas a pagar"],
+    description: "Cadastro de parceiros e dados de contato, base para contas a pagar.",
     icon: <StorefrontOutlinedIcon />,
   },
 ];
@@ -72,8 +50,6 @@ export default function RecursosAdicionais() {
   const { resources, loading, save } = useAdditionalResources();
   const { can } = useAuth();
   const { success, error } = useToast();
-  const [selectedId, setSelectedId] = React.useState<AdditionalResourceKey>("agenda");
-  const [query, setQuery] = React.useState("");
   const [form, setForm] = React.useState<AdditionalResourcesMap>(emptyResources);
   const [saving, setSaving] = React.useState(false);
 
@@ -82,11 +58,6 @@ export default function RecursosAdicionais() {
   }, [resources]);
 
   const canUpdate = can("recursos_adicionais", "update");
-  const selected = resourceConfigs.find((item) => item.id === selectedId) ?? resourceConfigs[0];
-  const filtered = resourceConfigs.filter((item) =>
-    item.label.toLowerCase().includes(query.trim().toLowerCase())
-  );
-
   const activeCount = additionalResourceKeys.filter((key) => form[key]).length;
   const hasChanges = additionalResourceKeys.some((key) => form[key] !== resources[key]);
 
@@ -108,163 +79,63 @@ export default function RecursosAdicionais() {
   };
 
   return (
-    <Box sx={{ py: { xs: 2, md: 4 } }}>
-      <Stack spacing={0.75} mb={3}>
-        <Typography variant="h5" fontWeight={700}>
-          Recursos adicionais
-        </Typography>
-        <Typography color="text.secondary">
-          Escolha quais recursos adicionais ficarão disponíveis para os usuários desta oficina.
-        </Typography>
-      </Stack>
+    <Box>
+      <ModuleHeader
+        title="Recursos adicionais"
+        subtitle="Escolha quais recursos ficam disponíveis para os usuários desta oficina."
+        icon={<WidgetsOutlinedIcon />}
+        actions={
+          <Button
+            variant="contained"
+            startIcon={<SaveRoundedIcon />}
+            onClick={handleSave}
+            disabled={!canUpdate || saving || !hasChanges}
+          >
+            Salvar alterações
+          </Button>
+        }
+      />
 
-      <Stack direction={{ xs: "column", md: "row" }} spacing={2.5} alignItems="stretch">
-        <Box sx={{ width: { xs: "100%", md: 420 }, flexShrink: 0 }}>
-          <TextField
-            fullWidth
-            variant="standard"
-            placeholder="Pesquisar"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <SearchRoundedIcon color="action" />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ mb: 2 }}
-          />
-
-          <Paper elevation={0} sx={{ borderRadius: 1.5, border: 0, bgcolor: "action.hover", overflow: "hidden" }}>
-            <List disablePadding>
-              {filtered.map((item) => {
-                const selectedItem = item.id === selectedId;
-                const active = form[item.id];
-                return (
-                  <ListItemButton
-                    key={item.id}
-                    selected={selectedItem}
-                    onClick={() => setSelectedId(item.id)}
-                    sx={(t) => ({
-                      minHeight: 72,
-                      borderLeft: selectedItem ? `4px solid ${t.palette.primary.main}` : "4px solid transparent",
-                      bgcolor: selectedItem ? alpha(t.palette.primary.main, 0.06) : "background.paper",
-                      "&.Mui-selected": { bgcolor: alpha(t.palette.primary.main, 0.08) },
-                    })}
-                  >
-                    <ListItemIcon sx={{ color: selectedItem ? "primary.main" : "text.secondary", minWidth: 42 }}>
-                      {item.icon}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={<Typography fontWeight={700}>{item.label}</Typography>}
-                      secondary={active ? "Ativo" : "Inativo"}
-                      secondaryTypographyProps={{ color: active ? "success.main" : "text.secondary", fontWeight: 700 }}
-                    />
-                    <Chip
-                      label={active ? "Ativo" : "Inativo"}
-                      size="small"
-                      color={active ? "success" : "default"}
-                      variant={active ? "filled" : "outlined"}
-                    />
-                  </ListItemButton>
-                );
-              })}
-            </List>
-          </Paper>
+      {loading ? (
+        <Box sx={{ textAlign: "center", mt: 8 }}>
+          <CircularProgress />
         </Box>
-
-        <Paper
-          elevation={0}
-          sx={{
-            flex: 1,
-            minHeight: 430,
-            borderRadius: 1.5,
-            border: 0,
-            bgcolor: "background.paper",
-            p: { xs: 2, md: 3 },
-          }}
-        >
-          {loading ? (
-            <Box sx={{ minHeight: 360, display: "grid", placeItems: "center" }}>
-              <CircularProgress size={30} />
-            </Box>
-          ) : (
-            <Stack spacing={3}>
-              <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={2}>
-                <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box
-                    sx={(t) => ({
-                      width: 54,
-                      height: 54,
-                      borderRadius: "50%",
-                      display: "grid",
-                      placeItems: "center",
-                      color: t.palette.primary.main,
-                      bgcolor: alpha(t.palette.primary.main, 0.12),
-                    })}
-                  >
-                    {selected.icon}
-                  </Box>
-                  <Stack>
-                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                      <Typography variant="h6" fontWeight={700}>
-                        {selected.label}
-                      </Typography>
-                      <Chip label={form[selected.id] ? "Ativo" : "Inativo"} size="small" color={form[selected.id] ? "success" : "default"} />
-                    </Stack>
-                    <Typography color="text.secondary">{selected.description}</Typography>
-                  </Stack>
-                </Stack>
-
+      ) : (
+        <>
+          <Box>
+            {resourceConfigs.map((item) => (
+              <Stack
+                key={item.id}
+                direction="row"
+                alignItems="center"
+                spacing={2}
+                sx={{ py: 2, borderTop: (t) => `1px solid ${t.palette.divider}` }}
+              >
+                <Box sx={{ display: "flex", color: "text.secondary", "& svg": { fontSize: 24 } }}>{item.icon}</Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography fontWeight={700}>{item.label}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {item.description}
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color={form[item.id] ? "success.main" : "text.secondary"} fontWeight={600} sx={{ minWidth: 52, textAlign: "right" }}>
+                  {form[item.id] ? "Ativo" : "Inativo"}
+                </Typography>
                 <Switch
-                  checked={form[selected.id]}
-                  onChange={() => toggle(selected.id)}
+                  checked={form[item.id]}
+                  onChange={() => toggle(item.id)}
                   disabled={!canUpdate || saving}
-                  color="primary"
+                  inputProps={{ "aria-label": `Ativar ${item.label}` }}
                 />
               </Stack>
+            ))}
+          </Box>
 
-              <Divider />
-
-              <Stack spacing={1.25}>
-                <Typography fontWeight={700}>Itens incluídos</Typography>
-                {selected.details.map((detail) => (
-                  <Stack
-                    key={detail}
-                    direction="row"
-                    alignItems="center"
-                    justifyContent="space-between"
-                    sx={{ py: 1.2, borderBottom: (t) => `1px solid ${t.palette.divider}` }}
-                  >
-                    <Typography color="text.secondary">{detail}</Typography>
-                    <Switch checked={form[selected.id]} disabled size="small" />
-                  </Stack>
-                ))}
-              </Stack>
-
-              <Alert severity="info" icon={<InfoOutlinedIcon />}>
-                Os recursos desativados deixam de aparecer no menu lateral. O acesso a esta tela também depende da permissão no perfil de acesso.
-              </Alert>
-
-              <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ xs: "stretch", sm: "center" }} justifyContent="space-between" spacing={2}>
-                <Typography variant="body2" color="text.secondary">
-                  {activeCount} de {additionalResourceKeys.length} recurso(s) ativo(s)
-                </Typography>
-                <Button
-                  variant="contained"
-                  startIcon={<SaveRoundedIcon />}
-                  onClick={handleSave}
-                  disabled={!canUpdate || saving || !hasChanges}
-                  sx={{ borderRadius: 1.5, textTransform: "none", fontWeight: 600 }}
-                >
-                  Salvar alteracoes
-                </Button>
-              </Stack>
-            </Stack>
-          )}
-        </Paper>
-      </Stack>
+          <Typography variant="body2" color="text.secondary" sx={{ pt: 2, borderTop: (t) => `1px solid ${t.palette.divider}` }}>
+            {activeCount} de {additionalResourceKeys.length} recurso(s) ativo(s). Os desativados deixam de aparecer no menu lateral.
+          </Typography>
+        </>
+      )}
     </Box>
   );
 }
