@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { PagamentosService } from "../services/pagamentos.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
+import { sendServiceError } from "../utils/httpError.js";
 
 const router = Router();
 
@@ -10,8 +11,8 @@ router.get("/", async (req, res) => {
     const cliente_id = req.query.clienteId ?? req.query.cliente_id;
     const data = await PagamentosService.list(oficina_id, cliente_id ? Number(cliente_id) : undefined);
     res.json(data);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    sendServiceError(res, err, "pagamentos");
   }
 });
 
@@ -20,8 +21,8 @@ router.get("/cliente/:cliente_id", async (req, res) => {
     const cliente_id = Number(req.params.cliente_id);
     const data = await PagamentosService.listByCliente(cliente_id, getRequiredOfficeId(req));
     res.json(data);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    sendServiceError(res, err, "pagamentos");
   }
 });
 
@@ -31,8 +32,8 @@ router.get("/extrato/oficina/:oficina_id", async (req, res) => {
     const { from, to } = req.query as any;
     const data = await PagamentosService.extrato(oficina_id, from, to);
     res.json(data);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    sendServiceError(res, err, "pagamentos");
   }
 });
 
@@ -40,8 +41,8 @@ router.get("/:id", async (req, res) => {
   try {
     const p = await PagamentosService.getById(Number(req.params.id), getRequiredOfficeId(req));
     res.json(p);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    sendServiceError(res, err, "pagamentos");
   }
 });
 
@@ -49,8 +50,8 @@ router.post("/", async (req, res) => {
   try {
     const novo = await PagamentosService.create({ ...req.body, oficina_id: getRequiredOfficeId(req) });
     res.status(201).json(novo);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+  } catch (err) {
+    sendServiceError(res, err, "pagamentos");
   }
 });
 
@@ -62,8 +63,8 @@ router.post("/:id/pagar", async (req, res) => {
       Number(req.params.id), req.body, getRequiredOfficeId(req)
     );
     res.json(result);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+  } catch (err) {
+    sendServiceError(res, err, "pagamentos");
   }
 });
 
@@ -73,8 +74,8 @@ router.post("/:id/desconto", async (req, res) => {
       Number(req.params.id), req.body, getRequiredOfficeId(req)
     );
     res.json(result);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+  } catch (err) {
+    sendServiceError(res, err, "pagamentos");
   }
 });
 
@@ -84,8 +85,8 @@ router.post("/:id/renegociar", async (req, res) => {
       Number(req.params.id), req.body, getRequiredOfficeId(req)
     );
     res.json(result);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+  } catch (err) {
+    sendServiceError(res, err, "pagamentos");
   }
 });
 
@@ -95,8 +96,8 @@ router.post("/:id/pagamento-parcial", async (req, res) => {
       Number(req.params.id), req.body, getRequiredOfficeId(req)
     );
     res.json(result);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+  } catch (err) {
+    sendServiceError(res, err, "pagamentos");
   }
 });
 
@@ -106,8 +107,8 @@ router.post("/:id/parcelar", async (req, res) => {
       Number(req.params.id), req.body, getRequiredOfficeId(req)
     );
     res.status(201).json(result);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+  } catch (err) {
+    sendServiceError(res, err, "pagamentos");
   }
 });
 
@@ -117,8 +118,8 @@ router.put("/:id", async (req, res) => {
   try {
     const upd = await PagamentosService.update(Number(req.params.id), req.body, getRequiredOfficeId(req));
     res.json(upd);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
+  } catch (err) {
+    sendServiceError(res, err, "pagamentos");
   }
 });
 
@@ -126,8 +127,8 @@ router.delete("/:id", async (req, res) => {
   try {
     await PagamentosService.delete(Number(req.params.id), getRequiredOfficeId(req));
     res.status(204).send();
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  } catch (err) {
+    sendServiceError(res, err, "pagamentos");
   }
 });
 

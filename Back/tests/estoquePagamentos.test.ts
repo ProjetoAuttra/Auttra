@@ -61,7 +61,7 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
     auth =
       "Bearer " +
       jwt.sign(
-        { id: 1, email: "g@example.com", nome: "Gestor", tipo: "gestoroficina", oficinaId, permissoes: { ordens: todas, financeiro: todas } },
+        { id: 1, email: "g@example.com", nome: "Gestor", tipo: "gestoroficina", oficinaId, permissoes: { ordens: todas, financeiro: todas, orcamentos: todas } },
         getJwtSecret(),
         { expiresIn: "5m" }
       );
@@ -69,6 +69,8 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
 
   afterAll(async () => {
     await prisma.pagamento.deleteMany({ where: { oficina_id: oficinaId } });
+    await prisma.item_orcamento.deleteMany({ where: { orcamento: { cliente_id: clienteId } } });
+    await prisma.orcamento.deleteMany({ where: { cliente_id: clienteId } });
     await prisma.item_ordem_servico.deleteMany({ where: { ordem_servico: { oficina_id: oficinaId } } });
     await prisma.ordem_servico.deleteMany({ where: { oficina_id: oficinaId } });
     await prisma.peca.deleteMany({ where: { oficina_id: oficinaId } });
@@ -172,7 +174,7 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
     it("nao paga titulo cancelado/excluido", async () => {
       const id = await novoPagamento(50);
       await request(app).delete(`/api/pagamentos/${id}`).set("Authorization", auth).expect(204);
-      expect((await request(app).post(`/api/pagamentos/${id}/pagar`).set("Authorization", auth).send({ metodo: "pix" })).status).toBe(400);
+      expect((await request(app).post(`/api/pagamentos/${id}/pagar`).set("Authorization", auth).send({ metodo: "pix" })).status).toBe(404);
     });
 
     it("PUT ignora status/valor_pago/desconto e alterar valor atualiza valor_original", async () => {
@@ -247,6 +249,135 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
       expect(so_from.body.pagamentos.length).toBeGreaterThan(0);
       expect(so_from.body.pagamentos.every((p: any) => new Date(p.data_vencimento) >= new Date("2030-01-01"))).toBe(true);
       expect(so_to.body.pagamentos).toEqual([]);
+    });
+  });
+
+  describe("excluir titulo pago exige estorno", () => {
+    it("titulo pago: 409 com codigo e pedido de estorno; continua existindo", async () => {
+      const id = await novoPagamento(100);
+      await request(app).post(`/api/pagamentos/${id}/pagar`).set("Authorization", auth).send({ metodo: "pix" }).expect(200);
+
+      const res = await request(app).delete(`/api/pagamentos/${id}`).set("Authorization", auth);
+
+      expect(res.status).toBe(409);
+      expect(res.body.code).toBe("PAGAMENTO_REQUER_ESTORNO");
+      expect(res.body.message).toMatch(/estorne/i);
+      const p = await prisma.pagamento.findUniqueOrThrow({ where: { id } });
+      expect(p.status).toBe("pago");
+      expect(p.deleted_at).toBeNull();
+    });
+
+    it("titulo com pagamento parcial tambem exige estorno", async () => {
+      const id = await novoPagamento(100);
+      await request(app).post(`/api/pagamentos/${id}/pagamento-parcial`).set("Authorization", auth).send({ valor_entrada: 10, metodo: "pix" }).expect(200);
+
+      expect((await request(app).delete(`/api/pagamentos/${id}`).set("Authorization", auth)).status).toBe(409);
+    });
+
+    it("titulo pendente pode ser excluido (204) e depois nao existe mais (404)", async () => {
+      const id = await novoPagamento(100);
+      await request(app).delete(`/api/pagamentos/${id}`).set("Authorization", auth).expect(204);
+      expect((await request(app).get(`/api/pagamentos/${id}`).set("Authorization", auth)).status).toBe(404);
+    });
+
+    it("excluir OS com pagamento registrado: 409 pedindo estorno", async () => {
+      const pecaId = await novaPeca(5);
+      const os = (await criarOs(pecaId)).body;
+      const pg = (
+        await request(app)
+          .post("/api/pagamentos")
+          .set("Authorization", auth)
+          .send({ tipo: "receber", valor: 20, ordem_servico_id: os.id, data_vencimento: "2026-05-01" })
+      ).body.id;
+      await request(app).post(`/api/pagamentos/${pg}/pagar`).set("Authorization", auth).send({ metodo: "pix" }).expect(200);
+
+      const res = await request(app).delete(`/api/ordens/${os.id}`).set("Authorization", auth);
+
+      expect(res.status).toBe(409);
+      expect(res.body.code).toBe("PAGAMENTO_REQUER_ESTORNO");
+      expect(await estoqueDe(pecaId)).toBe(4);
+    });
+  });
+
+  describe("subtotal e valor_total sao calculados no servidor", () => {
+    const item = (pecaId: number, quantidade: number, preco: number, mentira: number) => ({
+      tipo_item: "peca",
+      peca_id: pecaId,
+      quantidade,
+      preco_unitario: preco,
+      subtotal: mentira,
+    });
+
+    it("criar OS ignora subtotal e valor_total enviados", async () => {
+      const pecaId = await novaPeca(10);
+      const res = await request(app)
+        .post("/api/ordens")
+        .set("Authorization", auth)
+        .send({ cliente_id: clienteId, veiculo_id: veiculoId, funcionario_id: funcionarioId, valor_total: 1, itens: [item(pecaId, 3, 19.99, 0.01)] });
+
+      expect(res.status).toBe(201);
+      expect(Number(res.body.valor_total)).toBe(59.97);
+      expect(Number(res.body.itens[0].subtotal)).toBe(59.97);
+    });
+
+    it("editar itens recalcula o total; editar sem itens ignora valor_total enviado", async () => {
+      const pecaId = await novaPeca(10);
+      const os = (await criarOs(pecaId, 1)).body;
+
+      const atualizada = await request(app)
+        .put(`/api/ordens/${os.id}`)
+        .set("Authorization", auth)
+        .send({ valor_total: 5, itens: [item(pecaId, 2, 50, 1), item(pecaId, 1, 10.5, 1)] });
+      expect(atualizada.status).toBe(200);
+      expect(Number(atualizada.body.valor_total)).toBe(110.5);
+
+      const semItens = await request(app).put(`/api/ordens/${os.id}`).set("Authorization", auth).send({ valor_total: 999, observacoes: "x" });
+      expect(semItens.status).toBe(200);
+      expect(Number(semItens.body.valor_total)).toBe(110.5);
+    });
+
+    it("rejeita item com preco negativo ou quantidade invalida (400)", async () => {
+      const pecaId = await novaPeca(10);
+      const base = { cliente_id: clienteId, veiculo_id: veiculoId, funcionario_id: funcionarioId };
+      const preco = await request(app).post("/api/ordens").set("Authorization", auth).send({ ...base, itens: [item(pecaId, 1, -5, 0)] });
+      const qtd = await request(app).post("/api/ordens").set("Authorization", auth).send({ ...base, itens: [item(pecaId, 1.5, 5, 0)] });
+
+      expect(preco.status).toBe(400);
+      expect(qtd.status).toBe(400);
+      expect(await estoqueDe(pecaId)).toBe(10);
+    });
+
+    it("orcamento: subtotal e valor sao recalculados", async () => {
+      const res = await request(app)
+        .post("/api/orcamentos")
+        .set("Authorization", auth)
+        .send({
+          clienteId,
+          veiculoId,
+          descricao: "Teste",
+          valor: 1,
+          data: "2026-05-01",
+          itens: [{ tipo_item: "servico", nome: "Revisao", quantidade: 2, preco_unitario: 150.25, subtotal: 1 }],
+        });
+
+      expect(res.status).toBe(201);
+      expect(Number(res.body.valor)).toBe(300.5);
+      expect(Number(res.body.itens[0].subtotal)).toBe(300.5);
+    });
+  });
+
+  describe("codigos de resposta", () => {
+    it("404 quando nao existe", async () => {
+      expect((await request(app).get("/api/pagamentos/99999999").set("Authorization", auth)).status).toBe(404);
+      expect((await request(app).get("/api/ordens/99999999").set("Authorization", auth)).status).toBe(404);
+      expect((await request(app).post("/api/pagamentos/99999999/pagar").set("Authorization", auth).send({ metodo: "pix" })).status).toBe(404);
+    });
+
+    it("400 com { message } para validacao", async () => {
+      const res = await request(app).post("/api/pagamentos").set("Authorization", auth).send({ tipo: "pagar", valor: -1, data_vencimento: "2026-01-01" });
+
+      expect(res.status).toBe(400);
+      expect(typeof res.body.message).toBe("string");
     });
   });
 });

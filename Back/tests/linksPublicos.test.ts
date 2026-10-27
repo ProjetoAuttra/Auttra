@@ -97,7 +97,7 @@ describe.skipIf(!process.env.DATABASE_URL)("links publicos (UUID, status e soft 
   it("nao compartilha documento de outra oficina", async () => {
     const response = await request(app).post(`/api/ordens/${osId}/share`).set("Authorization", `Bearer ${tokenOutraOficina}`);
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(404);
   });
 
   it("cancelar faz soft delete e o link deixa de funcionar", async () => {
