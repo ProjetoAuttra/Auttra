@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COR_PADRAO, cabecalho, corValida, dataBr, dinheiro, documento, paleta, tabelaItens } from "../src/services/pdfTemplates.js";
+import { COR_PADRAO, assinaturas, cabecalho, corValida, dataBr, dinheiro, documento, paleta, tabelaItens } from "../src/services/pdfTemplates.js";
 
 const oficina = { nome: `Oficina <img src=x onerror=alert(1)>`, cnpj: "12.345.678/0001-90", logradouro: "Rua A", numero: "10", cep: "01001000" };
 const status = { label: "Em análise", classe: "info" };
@@ -51,5 +51,10 @@ describe("pdfTemplates", () => {
     expect(html).toContain("--cor: #e11d48");
     const padrao = documento({ ...oficina, nome: "X" }, "<p>corpo</p>", "Doc");
     expect(padrao).toContain(`--cor: ${COR_PADRAO}`);
+  });
+
+  it("assinaturas quebra linhas com <br> e escapa o texto", () => {
+    const html = assinaturas("Cliente", "Ana <b>\nOficina & Cia");
+    expect(html).toContain("Ana &lt;b&gt;<br>Oficina &amp; Cia");
   });
 });

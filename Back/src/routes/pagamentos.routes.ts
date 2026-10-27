@@ -59,7 +59,7 @@ router.get("/extrato/oficina/:oficina_id", async (req, res) => {
 
 router.get("/:id/recibo", async (req, res) => {
   try {
-    await PdfHtmlService.gerarReciboPDF(Number(req.params.id), res, getRequiredOfficeId(req));
+    await PdfHtmlService.gerarReciboPDF(Number(req.params.id), res, getRequiredOfficeId(req), req.user?.id);
   } catch (err) {
     sendServiceError(res, err, "pagamentos/recibo");
   }

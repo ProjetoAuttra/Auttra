@@ -260,11 +260,13 @@ export function condicoes(itens: Array<{ rotulo: string; valor: string }>, titul
     </div>`;
 }
 
+/** Cada lado aceita mais de uma linha, separadas por "\n" (ex.: nome da pessoa e, embaixo, a empresa). */
 export function assinaturas(esquerda: string, direita: string) {
+  const linhas = (texto: string) => texto.split("\n").map(esc).join("<br>");
   return `
     <div class="assinaturas">
-      <div class="linha-ass">${esc(esquerda)}</div>
-      <div class="linha-ass">${esc(direita)}</div>
+      <div class="linha-ass">${linhas(esquerda)}</div>
+      <div class="linha-ass">${linhas(direita)}</div>
     </div>`;
 }
 

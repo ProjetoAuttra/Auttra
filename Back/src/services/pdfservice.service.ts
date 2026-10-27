@@ -162,7 +162,7 @@ export const PdfHtmlService = {
     res.end(pdfBuffer);
   },
 
-  async gerarReciboPDF(id: number, res: Response, oficinaId: number) {
+  async gerarReciboPDF(id: number, res: Response, oficinaId: number, usuarioId?: number | null) {
     const pag = await prisma.pagamento.findFirst({
       where: { id, deleted_at: null, oficina_id: oficinaId },
       include: {
@@ -183,6 +183,7 @@ export const PdfHtmlService = {
       : [{ data: pag.data_pagamento ?? pag.updated_at, metodo: pag.metodo ? METODO_LABEL[pag.metodo] ?? pag.metodo : "—", valor: pag.valor_pago }]);
     const total = recebidos.length ? recebidos.reduce((acc, m) => acc + Number(m.valor), 0) : pag.valor_pago;
 
+    const emissor = usuarioId ? await prisma.usuario.findUnique({ where: { id: usuarioId }, select: { nome: true } }) : null;
     const totalNumero = Number(total);
     const corpo = [
       cabecalho(pag.oficina, {
@@ -197,7 +198,7 @@ export const PdfHtmlService = {
         pag.cliente?.cpf ? `CPF/CNPJ do cliente: ${pag.cliente.cpf}` : null,
       ])}</div>`,
       formaPagamentoRecibo(linhas),
-      assinaturas("Cliente", "Oficina"),
+      assinaturas("Cliente", emissor?.nome ? `${emissor.nome}\n${pag.oficina.nome}` : pag.oficina.nome),
     ].join("");
 
     const pdfBuffer = await renderPdf(documento(pag.oficina, corpo, `Recibo Nº ${pag.id}`, { rodapeSimples: true }));
