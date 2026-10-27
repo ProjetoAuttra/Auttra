@@ -25,6 +25,7 @@ import type { AccessModule, AccessAction } from "../permissions/accessProfiles.j
 import adminRouter from "./admin/index.js";
 
 import { shortLinks } from "../services/shortLinks.js";
+import { PdfHtmlService } from "../services/pdfservice.service.js";
 import { PublicTrackingService } from "../services/publicTracking.service.js";
 
 export const router = Router();
@@ -47,16 +48,23 @@ router.get("/s/:code", (req, res) => {
   return res.redirect(`${getFrontendUrl(req)}/acompanhamento/${code}`);
 });
 
-router.get("/s/:code/pdf", (req, res) => {
-  const { code } = req.params;
-  const data = shortLinks.get(code);
-  if (!data) {
+router.get("/s/:code/pdf", async (req, res) => {
+  const data = shortLinks.get(req.params.code);
+  if (!data?.oficinaId) {
     return res.status(404).send("<h1>Link expirado ou inválido.</h1>");
   }
-  if (data.orcamentoId) {
-    return res.redirect(`/api/orcamentos/${data.orcamentoId}/pdf?token=${data.token}`);
+  try {
+    if (data.orcamentoId) {
+      return await PdfHtmlService.gerarOrcamentoPDF(data.orcamentoId, res, data.oficinaId);
+    }
+    if (data.osId) {
+      return await PdfHtmlService.gerarOrdemServicoPDF(data.osId, res, data.oficinaId);
+    }
+    return res.status(404).send("<h1>Link expirado ou inválido.</h1>");
+  } catch (err) {
+    console.error("Erro ao gerar PDF publico:", err);
+    return res.status(404).send("<h1>Documento indisponível.</h1>");
   }
-  res.redirect(`/api/ordens/${data.osId}/pdf?token=${data.token}`);
 });
 
 router.get("/public/acompanhamento/:code", async (req, res) => {
