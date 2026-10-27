@@ -154,8 +154,8 @@ function CardRelatorio({ relatorio, cor, onClick }: { relatorio: Relatorio; cor:
 
 export default function Relatorios() {
   const nav = useNavigate();
-  const [aberta, setAberta] = React.useState(CATEGORIAS[0].id);
-  const categoria = CATEGORIAS.find((c) => c.id === aberta) ?? CATEGORIAS[0];
+  const [aberta, setAberta] = React.useState<string | null>(null);
+  const categoria = CATEGORIAS.find((c) => c.id === aberta);
 
   return (
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
@@ -173,11 +173,17 @@ export default function Relatorios() {
           ))}
         </Stack>
 
-        <Box key={categoria.id} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", xl: "repeat(3, 1fr)" }, gap: 2 }}>
-          {categoria.relatorios.map((r) => (
-            <CardRelatorio key={r.destino} relatorio={r} cor={categoria.cor} onClick={() => nav(r.destino)} />
-          ))}
-        </Box>
+        {categoria ? (
+          <Box key={categoria.id} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", xl: "repeat(3, 1fr)" }, gap: 2 }}>
+            {categoria.relatorios.map((r) => (
+              <CardRelatorio key={r.destino} relatorio={r} cor={categoria.cor} onClick={() => nav(r.destino)} />
+            ))}
+          </Box>
+        ) : (
+          <Typography variant="body2" color="text.secondary" sx={{ display: { xs: "none", md: "block" }, pt: 1 }}>
+            Escolha uma categoria para ver os relatórios.
+          </Typography>
+        )}
       </Box>
     </Box>
   );
