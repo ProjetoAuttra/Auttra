@@ -3,7 +3,6 @@ import {
   Box,
   Chip,
   CircularProgress,
-  Paper,
   Stack,
   Table,
   TableBody,
@@ -156,7 +155,7 @@ export default function RentabilidadeRelatorio() {
       </StatGroup>
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
+        <Box sx={{ flex: 1 }}>
           <Typography fontWeight={700} mb={1}>Clientes mais rentáveis</Typography>
           {Object.entries(porCliente).length ? Object.entries(porCliente)
             .sort((a, b) => b[1].lucro - a[1].lucro)
@@ -167,9 +166,9 @@ export default function RentabilidadeRelatorio() {
                 <Typography variant="body2" fontWeight={600}>{item.qtd} OS - {brl(item.lucro)}</Typography>
               </Stack>
             )) : <Typography variant="body2" color="text.secondary">Nenhuma OS concluída no período.</Typography>}
-        </Paper>
+        </Box>
 
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
+        <Box sx={{ flex: 1 }}>
           <Typography fontWeight={700} mb={1}>Rentabilidade por mecânico</Typography>
           {Object.entries(porMecanico).length ? Object.entries(porMecanico)
             .sort((a, b) => b[1].lucro - a[1].lucro)
@@ -180,10 +179,10 @@ export default function RentabilidadeRelatorio() {
                 <Typography variant="body2" fontWeight={600}>{item.qtd} OS - {brl(item.lucro)}</Typography>
               </Stack>
             )) : <Typography variant="body2" color="text.secondary">Nenhuma OS concluída no período.</Typography>}
-        </Paper>
+        </Box>
       </Stack>
 
-      <Paper variant="outlined" sx={{ p: 2, mb: 2.5, borderRadius: 2 }}>
+      <Box sx={{ mb: 2.5 }}>
         <Typography fontWeight={700} mb={1}>OS que pedem revisão de preço</Typography>
         {margemBaixa.length ? (
           <Stack direction="row" gap={1} flexWrap="wrap">
@@ -192,9 +191,9 @@ export default function RentabilidadeRelatorio() {
             ))}
           </Stack>
         ) : <Typography variant="body2" color="text.secondary">Nenhuma OS concluída com margem abaixo de 30%.</Typography>}
-      </Paper>
+      </Box>
 
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflowX: "auto" }}>
+      <Box sx={{ overflowX: "auto" }}>
         {concluidas.length ? (
           <Table>
             <TableHead>
@@ -232,7 +231,7 @@ export default function RentabilidadeRelatorio() {
             </TableBody>
           </Table>
         ) : <EmptyReport message="Nenhuma OS concluída no período." />}
-      </Paper>
+      </Box>
     </ReportPage>
   );
 }

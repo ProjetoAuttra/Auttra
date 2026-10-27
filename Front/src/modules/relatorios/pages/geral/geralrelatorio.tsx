@@ -3,7 +3,6 @@ import {
   Box,
   Stack,
   Typography,
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -126,7 +125,7 @@ export default function RelatorioGeral() {
         </Button>
       </Stack>
 
-      <Paper variant="outlined" sx={{ borderRadius: 1.5 }}>
+      <Box>
         {dados.length ? (
           <Table>
             <TableHead>
@@ -157,7 +156,7 @@ export default function RelatorioGeral() {
             </Typography>
           </Box>
         )}
-      </Paper>
+      </Box>
     </Box>
   );
 }

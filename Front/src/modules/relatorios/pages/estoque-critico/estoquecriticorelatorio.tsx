@@ -3,7 +3,6 @@ import {
   Box,
   Chip,
   CircularProgress,
-  Paper,
   Stack,
   Table,
   TableBody,
@@ -132,7 +131,7 @@ export default function EstoqueCriticoRelatorio() {
       </StatGroup>
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
+        <Box sx={{ flex: 1 }}>
           <Typography fontWeight={700} mb={1}>Maior dinheiro parado</Typography>
           {topCapital.length ? topCapital.map((p) => (
             <Stack key={p.id} direction="row" justifyContent="space-between" py={0.75} gap={2}>
@@ -140,9 +139,9 @@ export default function EstoqueCriticoRelatorio() {
               <Typography variant="body2" fontWeight={600}>{brl(valorEstoque(p))}</Typography>
             </Stack>
           )) : <Typography variant="body2" color="text.secondary">Nenhuma peça cadastrada.</Typography>}
-        </Paper>
+        </Box>
 
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
+        <Box sx={{ flex: 1 }}>
           <Typography fontWeight={700} mb={1}>Filtro</Typography>
           <TextField
             size="small"
@@ -151,10 +150,10 @@ export default function EstoqueCriticoRelatorio() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-        </Paper>
+        </Box>
       </Stack>
 
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflowX: "auto" }}>
+      <Box sx={{ overflowX: "auto" }}>
         {filtradas.length ? (
           <Table>
             <TableHead>
@@ -190,7 +189,7 @@ export default function EstoqueCriticoRelatorio() {
             </TableBody>
           </Table>
         ) : <EmptyReport message="Nenhuma peça encontrada." />}
-      </Paper>
+      </Box>
     </ReportPage>
   );
 }

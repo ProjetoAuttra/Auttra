@@ -4,7 +4,6 @@ export { StatGroup };
 import {
   Box,
   Button,
-  Paper,
   Stack,
   TextField,
   Typography,
@@ -105,13 +104,13 @@ export function PeriodFilter({
   children?: React.ReactNode;
 }) {
   return (
-    <Paper variant="outlined" sx={{ p: 2, mb: 2.5, borderRadius: 2 }}>
+    <Box sx={{ mb: 2.5 }}>
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }} flexWrap="wrap">
         <TextField type="date" label="De" size="small" value={dataInicio} onChange={(e) => onDataInicio(e.target.value)} InputLabelProps={{ shrink: true }} />
         <TextField type="date" label="Até" size="small" value={dataFim} onChange={(e) => onDataFim(e.target.value)} InputLabelProps={{ shrink: true }} />
         {children}
       </Stack>
-    </Paper>
+    </Box>
   );
 }
 

@@ -3,7 +3,6 @@ import {
   Box,
   Chip,
   CircularProgress,
-  Paper,
   Stack,
   Table,
   TableBody,
@@ -155,7 +154,7 @@ export default function RelatorioFinanceiro() {
       </StatGroup>
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
+        <Box sx={{ flex: 1 }}>
           <Typography fontWeight={700} mb={1}>Cobrar primeiro</Typography>
           {cobrarPrimeiro.length ? cobrarPrimeiro.map((p) => (
             <Stack key={p.id} direction="row" justifyContent="space-between" alignItems="center" py={0.75} gap={2}>
@@ -166,9 +165,9 @@ export default function RelatorioFinanceiro() {
               <Typography variant="body2" fontWeight={600} color="error.main">{brl(valorAberto(p))}</Typography>
             </Stack>
           )) : <Typography variant="body2" color="text.secondary">Nenhuma conta vencida no período.</Typography>}
-        </Paper>
+        </Box>
 
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
+        <Box sx={{ flex: 1 }}>
           <Typography fontWeight={700} mb={1}>Recebido por forma de pagamento</Typography>
           {Object.entries(porMetodo).length ? Object.entries(porMetodo).map(([metodo, total]) => (
             <Stack key={metodo} direction="row" justifyContent="space-between" py={0.75}>
@@ -176,10 +175,10 @@ export default function RelatorioFinanceiro() {
               <Typography variant="body2" fontWeight={600}>{brl(total)}</Typography>
             </Stack>
           )) : <Typography variant="body2" color="text.secondary">Nenhum recebimento pago no período.</Typography>}
-        </Paper>
+        </Box>
       </Stack>
 
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflowX: "auto" }}>
+      <Box sx={{ overflowX: "auto" }}>
         {filtrados.length ? (
           <Table>
             <TableHead>
@@ -223,7 +222,7 @@ export default function RelatorioFinanceiro() {
             </TableBody>
           </Table>
         ) : <EmptyReport message="Nenhum movimento financeiro encontrado no período." />}
-      </Paper>
+      </Box>
     </ReportPage>
   );
 }
