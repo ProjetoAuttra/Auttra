@@ -201,6 +201,17 @@ describe("DetalhesDialog", () => {
     expect(screen.getByText("Transferência")).toBeInTheDocument();
   });
 
+  it("título pendente mostra o método como previsto, não como recebimento", async () => {
+    renderWithProviders(
+      <DetalhesDialog open onClose={() => {}} tipo="receber" conta={{ ...conta, status: "pendente", valor_pago: 0, data_pagamento: undefined, metodo: "boleto" }} />
+    );
+    await aba("Recebimento");
+
+    expect(screen.getByText("Método previsto")).toBeInTheDocument();
+    expect(screen.queryByText("Método de recebimento")).toBeNull();
+    expect(screen.getByText("Boleto")).toBeInTheDocument();
+  });
+
   it("aba Histórico carrega os recebimentos e estornos só quando aberta", async () => {
     renderWithProviders(<DetalhesDialog open onClose={() => {}} conta={conta} tipo="receber" />);
     await aba("Histórico");

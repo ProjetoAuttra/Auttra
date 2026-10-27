@@ -414,7 +414,8 @@ export function DetalhesDialog({ open, onClose, conta, tipo }: {
               <Box sx={GRADE}>
                 <Campo rotulo="Data de vencimento">{dataBr(conta.data_vencimento)}</Campo>
                 <Campo rotulo={receber ? "Data de recebimento" : "Data de pagamento"}>{dataBr(conta.data_pagamento)}</Campo>
-                <Campo rotulo={receber ? "Método de recebimento" : "Método de pagamento"}>
+                {/* Em título ainda não recebido, o método é só o que foi combinado ao cadastrar (ou o do último recebimento estornado). */}
+                <Campo rotulo={conta.status === "pendente" ? "Método previsto" : receber ? "Método de recebimento" : "Método de pagamento"}>
                   {conta.metodo ? METODO_LABEL[conta.metodo] ?? conta.metodo : "—"}
                 </Campo>
                 {conta.vezes_renegociado > 0 && (
