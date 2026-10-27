@@ -3,6 +3,15 @@ import bcrypt from "bcryptjs";
 import type { tipo_usuario, status_usuario } from "@prisma/client";
 import { PerfisAcessoService } from "./perfisAcesso.service.js";
 
+const TIPOS_PERMITIDOS: tipo_usuario[] = ["gestoroficina", "funcionario"];
+const STATUS_PERMITIDOS: status_usuario[] = ["ativo", "inativo"];
+
+function assertTipoPermitido(tipo: unknown): asserts tipo is tipo_usuario {
+  if (!TIPOS_PERMITIDOS.includes(tipo as tipo_usuario)) {
+    throw new Error("Tipo de usuario invalido.");
+  }
+}
+
 export const UsuarioService = {
   async create(data: {
     email: string;
@@ -19,6 +28,8 @@ export const UsuarioService = {
     if (!email || !senha || !nome || !oficina_id) {
       throw new Error("E-mail, senha, nome e oficina_id sao obrigatorios.");
     }
+    assertTipoPermitido(tipo);
+    if (!STATUS_PERMITIDOS.includes(status)) throw new Error("Status invalido.");
 
     const oficina = await prisma.oficina.findUnique({ where: { id: oficina_id } });
     if (!oficina) throw new Error("Oficina nao encontrada.");
@@ -38,7 +49,8 @@ export const UsuarioService = {
     const usuario = existing
       ? await prisma.usuario.update({
           where: { id: existing.id },
-          data: { nome, status, deleted_at: null },
+          // usuario eh global (multi-oficina): nao sobrescreve nome/status de outra oficina
+          data: { deleted_at: null },
           include: {
             acessos: { include: { oficina: { select: { id: true, nome: true } } } },
           },
@@ -136,10 +148,30 @@ export const UsuarioService = {
     });
     if (!usuario) throw new Error("Usuario nao encontrado.");
 
-    const patch: any = { ...data };
-    delete patch.oficina_id;
+    if (usuario.tipo === "sistema") throw new Error("Usuario nao encontrado.");
+
+    const patch: { nome?: string; email?: string; senha?: string; status?: status_usuario; tipo?: tipo_usuario } = {};
+    if (data.nome !== undefined) patch.nome = String(data.nome).trim();
+    if (data.tipo !== undefined) {
+      assertTipoPermitido(data.tipo);
+      patch.tipo = data.tipo;
+    }
+    if (data.status !== undefined) {
+      if (!STATUS_PERMITIDOS.includes(data.status)) throw new Error("Status invalido.");
+      patch.status = data.status;
+    }
     if (data.email) patch.email = data.email.trim().toLowerCase();
     if (data.senha) patch.senha = await bcrypt.hash(data.senha, 10);
+
+    // email, senha e status sao globais: so podem mudar se o usuario pertence apenas a esta oficina
+    if (patch.email || patch.senha || patch.status) {
+      const outrosAcessos = await prisma.usuario_oficina.count({
+        where: { usuario_id: id, oficina_id: { not: oficinaId }, deleted_at: null },
+      });
+      if (outrosAcessos > 0) {
+        throw new Error("Este usuario tambem pertence a outra oficina; e-mail, senha e status nao podem ser alterados aqui.");
+      }
+    }
 
     return prisma.usuario.update({ where: { id }, data: patch });
   },

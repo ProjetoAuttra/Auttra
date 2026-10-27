@@ -14,7 +14,8 @@ export const requireSistema = (req: Request, res: Response, next: NextFunction) 
   try {
     const decoded = jwt.verify(token, getJwtSecret()) as UserPayload;
 
-    if (decoded.tipo !== "sistema") {
+    // token de oficina (login normal) nunca vale como token do painel admin, mesmo com tipo "sistema"
+    if (decoded.tipo !== "sistema" || decoded.oficinaId || decoded.oficina_id) {
       return res.status(403).json({ message: "Acesso restrito ao painel admin." });
     }
 

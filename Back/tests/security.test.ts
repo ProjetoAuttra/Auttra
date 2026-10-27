@@ -82,4 +82,24 @@ describe("security baseline", () => {
       .send({});
     expect(other.status).not.toBe(429);
   });
+
+  it("does not accept the JWT via query string", async () => {
+    const token = jwt.sign({ id: 1, tipo: "funcionario", oficinaId: 1 }, getJwtSecret());
+    const response = await request(app).get(`/api/notificacoes?token=${token}`);
+
+    expect(response.status).toBe(401);
+  });
+
+  it("rejects office tokens with tipo sistema on admin routes", async () => {
+    const token = jwt.sign({ id: 1, tipo: "sistema", oficinaId: 1 }, getJwtSecret());
+    const response = await request(app).get("/api/admin/oficinas").set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(403);
+  });
+
+  it("returns 404 for the public PDF of an unknown short link", async () => {
+    const response = await request(app).get("/api/s/NAOEXISTE/pdf");
+
+    expect(response.status).toBe(404);
+  });
 });
