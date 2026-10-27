@@ -7,11 +7,9 @@ import {
   Divider,
   Grid,
   IconButton,
-  Paper,
   Stack,
   Typography,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import DirectionsCarRoundedIcon from "@mui/icons-material/DirectionsCarRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
@@ -165,7 +163,7 @@ export default function OrcamentoDetalhes() {
         </Stack>
       </Stack>
 
-      <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 2, border: 0, bgcolor: "action.hover" }}>
+      <Box sx={{ pb: 3, mb: 3, borderBottom: (t) => `1px solid ${t.palette.divider}` }}>
         <Grid container spacing={2.5}>
           <Grid size={{ xs: 12, md: 4 }}>
             <Stack direction="row" spacing={1.5} alignItems="center" mb={1}>
@@ -207,20 +205,20 @@ export default function OrcamentoDetalhes() {
         <Typography variant="body2">
           {orcamento.descricao?.trim() ? orcamento.descricao : "Sem descrição informada."}
         </Typography>
-      </Paper>
+      </Box>
 
-      <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: 0, bgcolor: "action.hover" }}>
+      <Box>
         <Typography variant="h6" fontWeight={700} mb={2}>Itens</Typography>
 
         {itens.length ? (
-          <Stack spacing={1}>
+          <Stack>
             {itens.map((item) => (
               <Stack
                 key={item.id}
                 direction={{ xs: "column", sm: "row" }}
                 justifyContent="space-between"
                 alignItems={{ xs: "flex-start", sm: "center" }}
-                sx={{ p: 1.5, borderRadius: 2, bgcolor: (t) => alpha(t.palette.primary.main, 0.03) }}
+                sx={{ py: 1.5, borderBottom: (t) => `1px solid ${t.palette.divider}` }}
               >
                 <Stack spacing={0.25}>
                   <Typography fontWeight={700}>{itemName(item)}</Typography>
@@ -242,7 +240,7 @@ export default function OrcamentoDetalhes() {
             Total: {money(orcamento.valor)}
           </Typography>
         </Stack>
-      </Paper>
+      </Box>
     </Box>
   );
 }
