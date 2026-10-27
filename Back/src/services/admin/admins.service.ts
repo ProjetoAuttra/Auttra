@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import { prisma } from "../../prisma/client.js";
+import { limparCacheSessao } from "../sessao.service.js";
 
 const MAX_ACTIVE_ADMINS = 2;
 
@@ -45,7 +46,9 @@ export const AdminsService = {
     const total = await prisma.usuario.count({ where: { tipo: "sistema", status: "ativo", deleted_at: null } });
     if (total <= 1) throw new Error("Não é possível desativar o único administrador ativo.");
 
-    return prisma.usuario.update({ where: { id }, data: { status: "inativo" } });
+    const desativado = await prisma.usuario.update({ where: { id }, data: { status: "inativo" } });
+    limparCacheSessao(id);
+    return desativado;
   },
 
   async reativar(id: number) {

@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import crypto from "node:crypto";
 import { PerfisAcessoService } from "./perfisAcesso.service.js";
 import { PasswordResetService } from "./passwordReset.service.js";
+import { invalidarTokens, limparCacheSessao } from "./sessao.service.js";
 
 function normTelefone(t?: string) {
   return (t || "").replace(/\D/g, "");
@@ -254,7 +255,10 @@ export const FuncionariosService = {
       const usuarioPatch: any = {};
       if (data?.nome != null) usuarioPatch.nome = String(data.nome).trim();
       if (data?.email != null) usuarioPatch.email = String(data.email).trim();
-      if (data?.senha) usuarioPatch.senha = await bcrypt.hash(data.senha, 10);
+      if (data?.senha) {
+        usuarioPatch.senha = await bcrypt.hash(data.senha, 10);
+        Object.assign(usuarioPatch, invalidarTokens);
+      }
 
       if (Object.keys(usuarioPatch).length > 0) {
         patch.usuario = { update: usuarioPatch };
@@ -292,6 +296,8 @@ export const FuncionariosService = {
         });
       }
     }
+
+    if (existing.usuario_id) limparCacheSessao(existing.usuario_id);
 
     return prisma.funcionario.update({
       where: { id },
@@ -340,6 +346,8 @@ export const FuncionariosService = {
           const remaining = await tx.usuario_oficina.count({
             where: { usuario_id: funcionario.usuario_id, deleted_at: null, status: "ativo" },
           });
+
+          limparCacheSessao(funcionario.usuario_id!);
 
           if (remaining === 0) {
             await tx.usuario.update({

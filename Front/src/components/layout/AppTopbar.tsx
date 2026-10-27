@@ -129,10 +129,15 @@ export default function AppTopbar({
     }
     setSavingSenha(true);
     try {
-      await api.post("/auth/change-password", {
+      const { data } = await api.post("/auth/change-password", {
         senha_atual: senhaForm.senha_atual,
         nova_senha: senhaForm.nova_senha,
       });
+      // A troca de senha invalida os tokens antigos; o servidor devolve um novo para esta sessão.
+      if (data?.token) {
+        const storage = localStorage.getItem("driveon:token") ? localStorage : sessionStorage;
+        storage.setItem("driveon:token", data.token);
+      }
       success("Senha alterada com sucesso.");
       setTrocaSenhaOpen(false);
       setSenhaForm({ senha_atual: "", nova_senha: "", confirmar: "" });

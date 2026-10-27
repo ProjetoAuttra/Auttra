@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { app } from "../src/app.js";
 import { getJwtSecret } from "../src/config/env.js";
 import { prisma } from "../src/prisma/client.js";
+import { criarUsuarioComAcesso, removerUsuario } from "./sessao.js";
 
 const suffix = Date.now();
 const todas = ["read", "create", "update", "delete"];
@@ -23,7 +24,7 @@ describe.skipIf(!process.env.DATABASE_URL)("paginação das listagens", () => {
         data: { nome: `Oficina Pag ${suffix}`, logradouro: "Rua", numero: "1", cep: "00000000", cidade_id: cidadeId },
       })
     ).id;
-    usuarioId = (await prisma.usuario.create({ data: { email: `pag-${suffix}@example.com`, senha: "x", nome: "Gestor" } })).id;
+    usuarioId = await criarUsuarioComAcesso([oficinaId], "pag");
     auth =
       "Bearer " +
       jwt.sign(
@@ -55,8 +56,8 @@ describe.skipIf(!process.env.DATABASE_URL)("paginação das listagens", () => {
     await prisma.pagamento.deleteMany({ where: { oficina_id: oficinaId } });
     await prisma.peca.deleteMany({ where: { oficina_id: oficinaId } });
     await prisma.cliente.deleteMany({ where: { oficina_id: oficinaId } });
+    await removerUsuario(usuarioId);
     await prisma.oficina.deleteMany({ where: { id: oficinaId } });
-    await prisma.usuario.deleteMany({ where: { id: usuarioId } });
     await prisma.cidade.deleteMany({ where: { id: cidadeId } });
   });
 

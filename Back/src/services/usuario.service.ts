@@ -2,6 +2,7 @@ import { prisma } from "../prisma/client.js";
 import bcrypt from "bcryptjs";
 import type { tipo_usuario, status_usuario } from "@prisma/client";
 import { PerfisAcessoService } from "./perfisAcesso.service.js";
+import { invalidarTokens, limparCacheSessao } from "./sessao.service.js";
 
 const TIPOS_PERMITIDOS: tipo_usuario[] = ["gestoroficina", "funcionario"];
 const STATUS_PERMITIDOS: status_usuario[] = ["ativo", "inativo"];
@@ -173,7 +174,10 @@ export const UsuarioService = {
       }
     }
 
-    return prisma.usuario.update({ where: { id }, data: patch });
+    if (patch.senha) Object.assign(patch, invalidarTokens);
+    const atualizado = await prisma.usuario.update({ where: { id }, data: patch });
+    limparCacheSessao(id);
+    return atualizado;
   },
 
   async delete(id: number, oficinaId: number) {
@@ -195,9 +199,11 @@ export const UsuarioService = {
         where: { usuario_id_oficina_id: { usuario_id: id, oficina_id: oficinaId } },
         data: { deleted_at: new Date(), status: "inativo" },
       });
+      limparCacheSessao(id);
       return this.getById(id, oficinaId).catch(() => ({ id, removedFromOffice: true }));
     }
 
+    limparCacheSessao(id);
     return prisma.usuario.update({
       where: { id },
       data: {

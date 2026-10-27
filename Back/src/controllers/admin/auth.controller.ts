@@ -10,7 +10,7 @@ const APP_NAME = "Auttra Admin";
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_MINUTES = 15;
 
-function signAdminToken(usuario: { id: number; email: string; nome: string; tipo: string; last_login_at?: Date | null }) {
+function signAdminToken(usuario: { id: number; email: string; nome: string; tipo: string; last_login_at?: Date | null; token_version?: number }) {
   const payload = {
     id: usuario.id,
     email: usuario.email,
@@ -18,7 +18,7 @@ function signAdminToken(usuario: { id: number; email: string; nome: string; tipo
     tipo: usuario.tipo,
     last_login_at: usuario.last_login_at ?? null,
   };
-  const token = jwt.sign(payload, getJwtSecret(), { expiresIn: "2h" });
+  const token = jwt.sign({ ...payload, tv: usuario.token_version ?? 0 }, getJwtSecret(), { expiresIn: "2h" });
   return { token, usuario: payload };
 }
 
@@ -50,7 +50,7 @@ async function completeAdminLogin(req: Request, usuario: { id: number; email: st
       last_login_ip: requestIp(req),
       last_login_user_agent: req.get("user-agent") ?? null,
     } as any,
-    select: { id: true, email: true, nome: true, tipo: true, last_login_at: true } as any,
+    select: { id: true, email: true, nome: true, tipo: true, last_login_at: true, token_version: true } as any,
   });
 
   await AdminAuditService.log({

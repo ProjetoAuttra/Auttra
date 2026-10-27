@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { app } from "../src/app.js";
 import { getJwtSecret } from "../src/config/env.js";
 import { prisma } from "../src/prisma/client.js";
+import { criarUsuarioComAcesso, removerUsuario } from "./sessao.js";
 
 const suffix = Date.now();
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -19,11 +20,12 @@ describe.skipIf(!process.env.DATABASE_URL)("links publicos (UUID, status e soft 
   let orcamentoId: number;
   let token: string;
   let tokenOutraOficina: string;
+  let usuarioId: number;
 
   const tokenDe = (oficina: number) =>
     jwt.sign(
       {
-        id: 1,
+        id: usuarioId,
         email: "gestor@example.com",
         nome: "Gestor",
         tipo: "gestoroficina",
@@ -62,11 +64,13 @@ describe.skipIf(!process.env.DATABASE_URL)("links publicos (UUID, status e soft 
       })
     ).id;
 
+    usuarioId = await criarUsuarioComAcesso([oficinaId, outraOficinaId], "link");
     token = tokenDe(oficinaId);
     tokenOutraOficina = tokenDe(outraOficinaId);
   });
 
   afterAll(async () => {
+    await removerUsuario(usuarioId);
     await prisma.link_publico.deleteMany({ where: { oficina_id: { in: [oficinaId, outraOficinaId] } } });
     await prisma.orcamento.deleteMany({ where: { id: orcamentoId } });
     await prisma.ordem_servico.deleteMany({ where: { id: osId } });
