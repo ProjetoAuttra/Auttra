@@ -128,6 +128,10 @@ const css = (cor?: string | null) => {
   .condicoes .item .valor { font-weight: 600; }
   .assinaturas { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 56px; break-inside: avoid; }
   .assinaturas .linha-ass { border-top: 1px solid #6b7280; padding-top: 4px; text-align: center; font-size: 10px; color: #6b7280; }
+  .destaque { margin-top: 22px; padding: 16px 18px; border-left: 4px solid var(--cor); background: var(--cor-suave); border-radius: 0 4px 4px 0; break-inside: avoid; }
+  .destaque .frase { font-size: 13px; color: #374151; }
+  .destaque .valor { font-size: 28px; font-weight: 700; color: var(--cor-escura); line-height: 1.2; margin-top: 2px; }
+  .destaque .extenso { font-size: 11px; color: #6b7280; margin-top: 2px; }
   footer { margin-top: 28px; padding-top: 8px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 10px; color: #9ca3af; }
 `;
 };
@@ -139,7 +143,7 @@ function enderecoOficina(o: OficinaPdf) {
   return [rua + compl, cidade, o.cep ? `CEP ${o.cep}` : ""].filter((p) => p.trim()).join(" · ");
 }
 
-export function cabecalho(oficina: OficinaPdf, doc: { tipo: string; numero: number; status: { label: string; classe?: string }; meta?: string[] }) {
+export function cabecalho(oficina: OficinaPdf, doc: { tipo: string; numero: number; status?: { label: string; classe?: string }; meta?: string[] }) {
   const logo = logoSegura(oficina.logo_url);
   const contato = [oficina.telefone, oficina.email].filter(Boolean).join(" · ");
   return `
@@ -156,7 +160,7 @@ export function cabecalho(oficina: OficinaPdf, doc: { tipo: string; numero: numb
       <div class="doc">
         <div class="tipo">${esc(doc.tipo)}</div>
         <div class="numero">Nº ${esc(String(doc.numero).padStart(4, "0"))}</div>
-        <span class="status ${esc(doc.status.classe ?? "")}">${esc(doc.status.label)}</span>
+        ${doc.status ? `<span class="status ${esc(doc.status.classe ?? "")}">${esc(doc.status.label)}</span>` : ""}
         ${(doc.meta ?? []).map((m) => `<div class="meta">${esc(m)}</div>`).join("")}
       </div>
     </div>`;
@@ -205,35 +209,78 @@ export function tabelaItens(itens: ItemPdf[], total: Num, titulo = "Itens") {
     </div>`;
 }
 
+export type RecebimentoPdf = { data: Date | string; metodo: string; valor: Num };
+
+/** Faixa de destaque do recibo: quem pagou e o valor, com o extenso (único lugar onde o total aparece). */
+export function destaqueRecibo(cliente: string, valor: Num, extenso: string) {
+  return `
+    <div class="destaque">
+      <div class="frase">Recebemos de <strong>${esc(cliente || "—")}</strong> a quantia de</div>
+      <div class="valor">${dinheiro(valor)}</div>
+      <div class="extenso">${esc(extenso)}</div>
+    </div>`;
+}
+
+/** Forma de pagamento: uma linha quando há um só recebimento, tabela quando o pagamento foi dividido. */
+export function formaPagamentoRecibo(linhas: RecebimentoPdf[]) {
+  if (linhas.length === 1) {
+    const [l] = linhas;
+    return condicoes([
+      { rotulo: "Forma de pagamento", valor: l.metodo },
+      { rotulo: "Data do recebimento", valor: dataBr(l.data, true) },
+    ], "Pagamento");
+  }
+  return `
+    <div class="secao">
+      <h3>Forma de pagamento</h3>
+      <table>
+        <thead>
+          <tr><th>Data</th><th>Forma</th><th class="num">Valor</th></tr>
+        </thead>
+        <tbody>
+          ${linhas
+            .map((l) => `<tr><td>${esc(dataBr(l.data, true))}</td><td>${esc(l.metodo)}</td><td class="num">${dinheiro(l.valor)}</td></tr>`)
+            .join("")}
+        </tbody>
+      </table>
+    </div>`;
+}
+
 export function caixaTexto(titulo: string, texto: string) {
   return `<div class="secao"><h3>${esc(titulo)}</h3><div class="caixa">${esc(texto)}</div></div>`;
 }
 
-export function condicoes(itens: Array<{ rotulo: string; valor: string }>) {
+export function condicoes(itens: Array<{ rotulo: string; valor: string }>, titulo = "Condições") {
   return `
     <div class="secao">
-      <h3>Condições</h3>
+      <h3>${esc(titulo)}</h3>
       <div class="condicoes">
         ${itens.map((i) => `<div class="item"><div class="rotulo">${esc(i.rotulo)}</div><div class="valor">${esc(i.valor)}</div></div>`).join("")}
       </div>
     </div>`;
 }
 
+/** Cada lado aceita mais de uma linha, separadas por "\n" (ex.: nome da pessoa e, embaixo, a empresa). */
 export function assinaturas(esquerda: string, direita: string) {
+  const linhas = (texto: string) => texto.split("\n").map(esc).join("<br>");
   return `
     <div class="assinaturas">
-      <div class="linha-ass">${esc(esquerda)}</div>
-      <div class="linha-ass">${esc(direita)}</div>
+      <div class="linha-ass">${linhas(esquerda)}</div>
+      <div class="linha-ass">${linhas(direita)}</div>
     </div>`;
 }
 
-export function documento(oficina: OficinaPdf, corpo: string, rodape: string) {
+export function documento(oficina: OficinaPdf, corpo: string, rodape: string, opts: { rodapeSimples?: boolean } = {}) {
   return `<!DOCTYPE html>
 <html lang="pt-BR">
   <head><meta charset="UTF-8" /><style>${css(oficina.cor_principal)}</style></head>
   <body>
     ${corpo}
-    <footer>${esc(rodape)} · Emitido em ${esc(new Date().toLocaleDateString("pt-BR"))} por ${esc(oficina.nome)} via Auttra. Este documento não tem validade fiscal.</footer>
+    <footer>${
+      opts.rodapeSimples
+        ? "Emitido via Auttra. Este documento não tem validade fiscal."
+        : `${esc(rodape)} · Emitido em ${esc(new Date().toLocaleDateString("pt-BR"))} por ${esc(oficina.nome)} via Auttra. Este documento não tem validade fiscal.`
+    }</footer>
   </body>
 </html>`;
 }

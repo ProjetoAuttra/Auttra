@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { PagamentosService } from "../services/pagamentos.service.js";
 import { getRequiredOfficeId, requirePermission } from "../middlewares/ensureAuth.js";
+import { PdfHtmlService } from "../services/pdfservice.service.js";
 import { sendServiceError } from "../utils/httpError.js";
 import { parsePaginacao, responderLista, textoQuery } from "../utils/paginacao.js";
 
@@ -53,6 +54,14 @@ router.get("/extrato/oficina/:oficina_id", async (req, res) => {
     res.json(data);
   } catch (err) {
     sendServiceError(res, err, "pagamentos");
+  }
+});
+
+router.get("/:id/recibo", async (req, res) => {
+  try {
+    await PdfHtmlService.gerarReciboPDF(Number(req.params.id), res, getRequiredOfficeId(req), req.user?.id);
+  } catch (err) {
+    sendServiceError(res, err, "pagamentos/recibo");
   }
 });
 

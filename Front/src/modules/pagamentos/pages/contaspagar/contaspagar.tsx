@@ -288,8 +288,8 @@ export default function ContasPagar() {
           <VisibilityRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "text.secondary" }} />Detalhes
         </MenuItem>
         <Divider />
-        {can("financeiro", "delete") && (
-          <MenuItem onClick={() => openAcao("estornar")} disabled={selected?.status !== "pago" && selected?.status !== "parcial"}>
+        {selected?.status === "pago" && can("financeiro", "delete") && (
+          <MenuItem onClick={() => openAcao("estornar")}>
             <UndoRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "warning.main" }} />Estornar pagamento
           </MenuItem>
         )}

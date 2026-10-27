@@ -1,5 +1,7 @@
 import request from "supertest";
 import jwt from "jsonwebtoken";
+import fs from "node:fs";
+import puppeteer from "puppeteer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { app } from "../src/app.js";
 import { getJwtSecret } from "../src/config/env.js";
@@ -7,6 +9,13 @@ import { prisma } from "../src/prisma/client.js";
 import { criarUsuarioComAcesso, removerUsuario } from "./sessao.js";
 
 const suffix = Date.now();
+const chromeDisponivel = (() => {
+  try {
+    return fs.existsSync(puppeteer.executablePath());
+  } catch {
+    return false;
+  }
+})();
 const todas = ["read", "create", "update", "delete"];
 
 describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)", () => {
@@ -483,6 +492,30 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
       expect((await post(`/api/pagamentos/${pago}/estornar`, { motivo: "   " })).status).toBe(400);
       expect((await movimentos(pago)).filter((m) => m.tipo === "estorno")).toHaveLength(0);
     });
+
+    it("recibo: so existe para recebimento ja recebido (409 antes disso e depois do estorno)", async () => {
+      const aPagar = await novoPagamento(100);
+      await post(`/api/pagamentos/${aPagar}/pagar`, { metodo: "pix" }).expect(200);
+      expect((await request(app).get(`/api/pagamentos/${aPagar}/recibo`).set("Authorization", auth)).status).toBe(409); // conta a pagar
+
+      const id = await novoPagamento(100, { tipo: "receber", cliente_id: clienteId });
+      expect((await request(app).get(`/api/pagamentos/${id}/recibo`).set("Authorization", auth)).status).toBe(409);
+
+      await post(`/api/pagamentos/${id}/pagar`, { metodo: "pix" }).expect(200);
+      if (chromeDisponivel) {
+        const pdf = await request(app).get(`/api/pagamentos/${id}/recibo`).set("Authorization", auth).buffer(true).parse((res, cb) => {
+          const partes: Buffer[] = [];
+          res.on("data", (c: Buffer) => partes.push(c));
+          res.on("end", () => cb(null, Buffer.concat(partes)));
+        });
+        expect(pdf.status).toBe(200);
+        expect(pdf.headers["content-type"]).toContain("application/pdf");
+        expect((pdf.body as Buffer).subarray(0, 4).toString()).toBe("%PDF");
+      }
+
+      await post(`/api/pagamentos/${id}/estornar`, { motivo: "erro" }).expect(200);
+      expect((await request(app).get(`/api/pagamentos/${id}/recibo`).set("Authorization", auth)).status).toBe(409);
+    }, 30_000);
 
     it("dois estornos simultaneos: so um acontece", async () => {
       const id = await novoPagamento(100);

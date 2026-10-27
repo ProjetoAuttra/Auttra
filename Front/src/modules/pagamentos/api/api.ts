@@ -145,6 +145,14 @@ export async function estornarPagamento(id: number, payload: { motivo: string })
   return data as Conta;
 }
 
+/** Abre o recibo do recebimento (PDF) em uma nova aba. */
+export async function abrirRecibo(id: number) {
+  const { data } = await api.get(`/pagamentos/${id}/recibo`, { responseType: "blob" });
+  const url = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
+  window.open(url, "_blank", "noopener");
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
 export async function listarMovimentos(id: number) {
   const { data } = await api.get(`/pagamentos/${id}/movimentos`);
   return data as Movimento[];
