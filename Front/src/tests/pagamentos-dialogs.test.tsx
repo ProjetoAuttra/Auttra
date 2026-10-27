@@ -365,6 +365,60 @@ describe("ReceberTituloDialog (receber + desconto na mesma tela)", () => {
     expect(onConfirm).toHaveBeenCalledWith({ metodo: "pix", valor: 250, data_pagamento: hojeInput(), desconto: 50, motivo_desconto: "Cliente antigo" });
   });
 
+  it("a multa soma ao saldo, não pede motivo e viaja junto com o recebimento", async () => {
+    const { onConfirm, user } = setup();
+    expect(screen.queryByLabelText(/valor da multa/i)).toBeNull();
+
+    await user.click(screen.getByRole("switch", { name: /aplicar multa/i }));
+    expect((screen.getByRole("button", { name: /confirmar recebimento/i }) as HTMLButtonElement).disabled).toBe(true); // ligou sem valor
+    await user.type(screen.getByLabelText(/valor da multa/i), "20");
+
+    expect(parseFloat(valor().value)).toBe(320);
+    expect(norm(screen.getByText("Multa").nextElementSibling?.textContent)).toBe(`+ ${brl(20)}`);
+    expect(norm(screen.getByText("Saldo a receber").nextElementSibling?.textContent)).toBe(brl(320));
+
+    await escolherMetodo(user);
+    await user.click(screen.getByRole("button", { name: /confirmar recebimento/i }));
+    expect(onConfirm).toHaveBeenCalledWith({ metodo: "pix", valor: 320, data_pagamento: hojeInput(), multa: 20 });
+  });
+
+  it("multa e desconto juntos: saldo = original - desconto + multa", async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole("switch", { name: /aplicar desconto/i }));
+    await user.type(screen.getByLabelText(/valor do desconto/i), "50");
+    await user.click(screen.getByRole("switch", { name: /aplicar multa/i }));
+    await user.type(screen.getByLabelText(/valor da multa/i), "30");
+    expect(norm(screen.getByText("Saldo a receber").nextElementSibling?.textContent)).toBe(brl(280));
+  });
+
+  it("desconto e multa aceitam percentual do valor original e viajam em reais", async () => {
+    const { onConfirm, user } = setup(); // original 300
+    const emPorcentagem = (grupo: RegExp) => user.click(within(screen.getByRole("group", { name: grupo })).getByRole("button", { name: /porcentagem/i }));
+
+    await ligarDesconto(user);
+    await emPorcentagem(/unidade do desconto/i);
+    await user.type(screen.getByLabelText(/valor do desconto/i), "10");
+    await user.type(screen.getByLabelText(/motivo do desconto/i), "Cliente antigo");
+    expect(norm(screen.getByText(/^= R\$/).textContent)).toBe(`= ${brl(30)}`);
+
+    await user.click(screen.getByRole("switch", { name: /aplicar multa/i }));
+    await emPorcentagem(/unidade da multa/i);
+    await user.type(screen.getByLabelText(/valor da multa/i), "5");
+
+    expect(norm(screen.getByText("Saldo a receber").nextElementSibling?.textContent)).toBe(brl(285)); // 300 - 30 + 15
+    await escolherMetodo(user);
+    await user.click(screen.getByRole("button", { name: /confirmar recebimento/i }));
+    expect(onConfirm).toHaveBeenCalledWith({ metodo: "pix", valor: 285, data_pagamento: hojeInput(), desconto: 30, motivo_desconto: "Cliente antigo", multa: 15 });
+  });
+
+  it("desconto acima de 100% é bloqueado", async () => {
+    const { user } = setup();
+    await ligarDesconto(user);
+    await user.click(within(screen.getByRole("group", { name: /unidade do desconto/i })).getByRole("button", { name: /porcentagem/i }));
+    await user.type(screen.getByLabelText(/valor do desconto/i), "101");
+    expect(screen.getByText("Máximo: 100%")).toBeInTheDocument();
+  });
+
   it("valor digitado não é sobrescrito pelo desconto; parcial avisa o saldo", async () => {
     const { onConfirm, user } = setup();
     await user.clear(valor());

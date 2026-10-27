@@ -19,6 +19,7 @@ export type Conta = {
   valor: number;
   valor_original: number;
   desconto: number;
+  multa?: number;
   motivo_desconto?: string;
   valor_pago: number;
   data_vencimento: string;
@@ -80,7 +81,7 @@ export function isVencido(c: Conta): boolean {
 }
 
 export function valorLiquido(c: Conta): number {
-  return Number(c.valor_original ?? c.valor) - Number(c.desconto ?? 0);
+  return Number(c.valor_original ?? c.valor) - Number(c.desconto ?? 0) + Number(c.multa ?? 0);
 }
 
 export function valorRestante(c: Conta): number {
@@ -123,7 +124,7 @@ export async function atualizarPagamento(id: number, payload: any) {
 /** Baixa do titulo. Com `valor` menor que o saldo vira recebimento parcial; sem `valor` quita o saldo. */
 export async function marcarComoPago(
   id: number,
-  payload: { metodo: string; valor?: number; data_pagamento?: string; desconto?: number; motivo_desconto?: string }
+  payload: { metodo: string; valor?: number; data_pagamento?: string; desconto?: number; motivo_desconto?: string; multa?: number }
 ) {
   const { data } = await api.post(`/pagamentos/${id}/pagar`, payload);
   return data as Conta;

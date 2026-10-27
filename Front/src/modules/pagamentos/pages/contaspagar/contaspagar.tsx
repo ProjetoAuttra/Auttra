@@ -8,6 +8,7 @@ import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
+import GavelRoundedIcon from "@mui/icons-material/GavelRounded";
 import SellRoundedIcon from "@mui/icons-material/SellRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
@@ -210,6 +211,11 @@ export default function ContasPagar() {
                         {conta.desconto > 0 && (
                           <Tooltip title={`Desconto de ${brl(Number(conta.desconto))}: ${conta.motivo_desconto ?? ""}`}>
                             <SellRoundedIcon sx={{ fontSize: 13, color: "success.main" }} />
+                          </Tooltip>
+                        )}
+                        {Number(conta.multa) > 0 && (
+                          <Tooltip title={`Multa de ${brl(Number(conta.multa))}`}>
+                            <GavelRoundedIcon sx={{ fontSize: 13, color: "error.main" }} />
                           </Tooltip>
                         )}
                       </Stack>
