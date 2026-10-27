@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Box, Button, Collapse, Divider, FormControlLabel, InputAdornment, MenuItem, Stack, Switch, TextField, Typography } from "@mui/material";
+import { Box, Button, Collapse, Divider, FormControlLabel, InputAdornment, MenuItem, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import PaymentsRoundedIcon from "@mui/icons-material/PaymentsRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../components/common/AppDialog";
@@ -17,6 +17,31 @@ function LinhaResumo({ rotulo, valor, forte = false }: { rotulo: string; valor: 
     </Stack>
   );
 }
+
+type Unidade = "valor" | "percentual";
+
+/** Alterna o campo entre valor em reais e percentual (do valor original do título). */
+function SeletorUnidade({ valor, onChange, rotulo }: { valor: Unidade; onChange: (u: Unidade) => void; rotulo: string }) {
+  return (
+    <ToggleButtonGroup
+      exclusive
+      size="small"
+      value={valor}
+      onChange={(_, u: Unidade | null) => u && onChange(u)}
+      aria-label={rotulo}
+      sx={{ "& .MuiToggleButton-root": { px: 1, py: 0.25, fontSize: 12, fontWeight: 700, lineHeight: 1.4 } }}
+    >
+      <ToggleButton value="valor" aria-label="Em reais">R$</ToggleButton>
+      <ToggleButton value="percentual" aria-label="Em porcentagem">%</ToggleButton>
+    </ToggleButtonGroup>
+  );
+}
+
+/** Converte o que foi digitado em reais; percentual é calculado sobre o valor original e arredondado ao centavo. */
+const emReais = (texto: string, unidade: Unidade, base: number) => {
+  const n = parseFloat(texto) || 0;
+  return unidade === "percentual" ? Math.round(base * n) / 100 : n;
+};
 
 const Titulo = ({ children }: { children: React.ReactNode }) => (
   <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.4, letterSpacing: 1 }}>{children}</Typography>
@@ -83,6 +108,11 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
   // A multa funciona como o desconto, só que soma ao valor e não pede motivo.
   const [comMulta, setComMulta] = React.useState(multaAtual > 0);
   const [multaStr, setMultaStr] = React.useState(multaAtual > 0 ? multaAtual.toFixed(2) : "");
+  // Desconto e multa podem ser digitados em reais ou em % do valor original; sempre viajam em reais.
+  const [descontoUnidade, setDescontoUnidade] = React.useState<Unidade>("valor");
+  const [multaUnidade, setMultaUnidade] = React.useState<Unidade>("valor");
+  const descontoRef = React.useRef<HTMLInputElement>(null);
+  const multaRef = React.useRef<HTMLInputElement>(null);
   const [valorStr, setValorStr] = React.useState(() => {
     const inicial = original - descontoAtual + multaAtual - jaPago;
     return inicial > 0 ? inicial.toFixed(2) : "";
@@ -91,8 +121,8 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
   const [metodo, setMetodo] = React.useState("");
   const [data, setData] = React.useState(hojeInput);
 
-  const desconto = comDesconto ? parseFloat(descontoStr) || 0 : 0; // desligado = sem desconto (remove o atual)
-  const multa = comMulta ? parseFloat(multaStr) || 0 : 0; // desligada = sem multa (remove a atual)
+  const desconto = comDesconto ? emReais(descontoStr, descontoUnidade, original) : 0; // desligado = sem desconto (remove o atual)
+  const multa = comMulta ? emReais(multaStr, multaUnidade, original) : 0; // desligada = sem multa (remove a atual)
   const multaVazia = comMulta && multa <= 0; // ligou a multa mas não informou o valor
   const descontoInvalido = desconto < 0 || toCents(desconto) > toCents(original) || toCents(original - desconto + multa) < toCents(jaPago);
   const precisaMotivo = comDesconto && desconto > 0 && !motivo.trim();
@@ -174,13 +204,23 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
                   size="small"
                   fullWidth
                   autoFocus
+                  inputRef={descontoRef}
                   error={descontoStr !== "" && descontoInvalido}
                   helperText={
                     descontoInvalido
-                      ? toCents(desconto) > toCents(original) ? `Máximo: ${brl(original)}` : "Deixaria o valor abaixo do que já foi recebido"
-                      : " "
+                      ? toCents(desconto) > toCents(original)
+                        ? descontoUnidade === "percentual" ? "Máximo: 100%" : `Máximo: ${brl(original)}`
+                        : "Deixaria o valor abaixo do que já foi recebido"
+                      : descontoUnidade === "percentual" && desconto > 0 ? `= ${brl(desconto)}` : " "
                   }
-                  InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">{descontoUnidade === "percentual" ? "%" : "R$"}</InputAdornment>,
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <SeletorUnidade valor={descontoUnidade} rotulo="Unidade do desconto" onChange={(u) => { setDescontoUnidade(u); setDescontoStr(""); setTimeout(() => descontoRef.current?.focus()); }} />
+                      </InputAdornment>
+                    ),
+                  }}
                   inputProps={{ min: 0, step: "0.01" }}
                 />
                 <TextField
@@ -212,8 +252,16 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
                   size="small"
                   fullWidth
                   autoFocus
-                  helperText=" "
-                  InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }}
+                  inputRef={multaRef}
+                  helperText={multaUnidade === "percentual" && multa > 0 ? `= ${brl(multa)}` : " "}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">{multaUnidade === "percentual" ? "%" : "R$"}</InputAdornment>,
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <SeletorUnidade valor={multaUnidade} rotulo="Unidade da multa" onChange={(u) => { setMultaUnidade(u); setMultaStr(""); setTimeout(() => multaRef.current?.focus()); }} />
+                      </InputAdornment>
+                    ),
+                  }}
                   inputProps={{ min: 0, step: "0.01" }}
                 />
               </Stack>
