@@ -1,4 +1,5 @@
 import { prisma } from "../prisma/client.js";
+import { LIMITE_LISTAGEM } from "../utils/limites.js";
 
 type OrcamentoItemInput = {
   tipo_item?: "servico" | "peca";
@@ -42,6 +43,7 @@ export class OrcamentoService {
     return prisma.orcamento.findMany({
       where: { deleted_at: null, cliente: { oficina_id: oficinaId } },
       orderBy: { id: "desc" },
+      take: LIMITE_LISTAGEM,
       include: orcamentoInclude,
     });
   }

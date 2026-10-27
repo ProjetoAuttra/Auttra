@@ -1,4 +1,5 @@
 import { prisma } from "../prisma/client.js";
+import { LIMITE_LISTAGEM } from "../utils/limites.js";
 
 function toAgendamentoData(data: any, partial = false) {
   const payload: any = {};
@@ -79,7 +80,7 @@ async function validateAgendamentoRelations(data: any, oficinaId: number) {
 
 export const AgendamentoService = {
   async list(oficina_id: number) {
-    return prisma.agendamento.findMany({ where: { oficina_id, deleted_at: null }, include: includeRelations });
+    return prisma.agendamento.findMany({ where: { oficina_id, deleted_at: null }, include: includeRelations, orderBy: { id: "desc" }, take: LIMITE_LISTAGEM });
   },
 
   async getById(id: number, oficina_id: number) {
@@ -87,7 +88,7 @@ export const AgendamentoService = {
   },
 
   async listByOficina(oficina_id: number) {
-    return prisma.agendamento.findMany({ where: { oficina_id, deleted_at: null }, include: includeRelations });
+    return prisma.agendamento.findMany({ where: { oficina_id, deleted_at: null }, include: includeRelations, orderBy: { id: "desc" }, take: LIMITE_LISTAGEM });
   },
 
   async create(data: any) {

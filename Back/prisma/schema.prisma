@@ -91,6 +91,7 @@ model cliente {
   @@index([status])
   @@index([deleted_at])
   @@index([cidade_id])
+  @@index([oficina_id, deleted_at, nome])
 }
 
 model oficina {
@@ -229,6 +230,7 @@ model ordem_servico {
   @@index([status])
   @@index([data_abertura])
   @@index([deleted_at])
+  @@index([oficina_id, deleted_at, created_at])
 }
 
 model item_ordem_servico {
@@ -422,6 +424,7 @@ model pagamento {
   @@index([data_vencimento])
   @@index([deleted_at])
   @@index([pagamento_pai_id])
+  @@index([oficina_id, deleted_at, data_vencimento])
 }
 
 model usuario_oficina {
@@ -555,6 +558,7 @@ model orcamento {
   @@index([cliente_id])
   @@index([status])
   @@index([deleted_at])
+  @@index([cliente_id, deleted_at, id])
 }
 
 model item_orcamento {
@@ -644,6 +648,7 @@ model agendamento {
   @@index([status])
   @@index([deleted_at])
   @@index([ordem_servico_id])
+  @@index([oficina_id, deleted_at, data_inicio])
 }
 
 model admin_audit_log {
