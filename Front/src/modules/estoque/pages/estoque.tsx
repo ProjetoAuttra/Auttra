@@ -361,7 +361,7 @@ export default function EstoquePage() {
       </Menu>
 
       {/* ── Dialog de Ajuste (Entrada / Saída) ─────────────────── */}
-      <AppDialog open={openAjuste} onClose={() => setOpenAjuste(false)} onCloseClick={() => setOpenAjuste(false)} closeOnBackdrop={false} closeOnEscape={false} maxWidth="xs" title={tipoAjuste === "entrada" ? "Entrada de peças" : "Saída de peças"} icon={tipoAjuste === "entrada" ? <AddRoundedIcon /> : <RemoveRoundedIcon />} variant="entity">
+      <AppDialog open={openAjuste} onClose={() => setOpenAjuste(false)} onCloseClick={() => setOpenAjuste(false)} closeOnBackdrop={false} maxWidth="xs" title={tipoAjuste === "entrada" ? "Entrada de peças" : "Saída de peças"} icon={tipoAjuste === "entrada" ? <AddRoundedIcon /> : <RemoveRoundedIcon />} variant="entity">
         <Box sx={{ display: "none" }}>
           <Stack direction="row" spacing={1.25} alignItems="center">
             <Stack sx={{

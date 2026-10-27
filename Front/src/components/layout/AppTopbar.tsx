@@ -416,7 +416,6 @@ export default function AppTopbar({
         onClose={() => { setTrocaSenhaOpen(false); setSenhaForm({ senha_atual: "", nova_senha: "", confirmar: "" }); }}
         onCloseClick={() => { setTrocaSenhaOpen(false); setSenhaForm({ senha_atual: "", nova_senha: "", confirmar: "" }); }}
         closeOnBackdrop={false}
-        closeOnEscape={false}
         maxWidth="xs"
         title="Trocar senha"
       >
@@ -474,7 +473,6 @@ export default function AppTopbar({
         onClose={() => setLogoutConfirmOpen(false)}
         onCloseClick={() => setLogoutConfirmOpen(false)}
         closeOnBackdrop={false}
-        closeOnEscape={false}
         maxWidth="xs"
         title="Sair do sistema"
         icon={<LogoutRoundedIcon />}

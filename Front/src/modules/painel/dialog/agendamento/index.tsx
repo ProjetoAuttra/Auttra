@@ -67,7 +67,6 @@ export default function DialogAgendamento({
         onClose={handleClose}
         onCloseClick={handleClose}
         closeOnBackdrop={false}
-        closeOnEscape={false}
         maxWidth="sm"
         title="Nova tarefa"
         icon={<CalendarMonthRoundedIcon />}

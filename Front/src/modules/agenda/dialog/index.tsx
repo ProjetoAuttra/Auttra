@@ -85,7 +85,6 @@ function NewAppointmentDialog({
       onClose={handleClose}
       onCloseClick={handleClose}
       closeOnBackdrop={false}
-      closeOnEscape={false}
       maxWidth="sm"
       title="Novo agendamento"
       icon={<EventNoteRoundedIcon />}

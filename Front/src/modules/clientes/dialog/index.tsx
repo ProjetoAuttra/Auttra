@@ -227,7 +227,6 @@ export default function ClientDialog({
       onClose={onClose}
       onCloseClick={onClose}
       closeOnBackdrop={false}
-      closeOnEscape={false}
       maxWidth="md"
       title={isEdit ? "Editar cliente" : "Novo cliente"}
       icon={<PersonRoundedIcon />}

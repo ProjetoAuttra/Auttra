@@ -29,7 +29,6 @@ export function PagarDialog({ open, onClose, onConfirm }: {
       onClose={onClose}
       onCloseClick={onClose}
       closeOnBackdrop={false}
-      closeOnEscape={false}
       maxWidth="xs"
       title="Marcar como pago"
       icon={<CheckRoundedIcon />}
@@ -96,7 +95,6 @@ export function PagamentoParcialDialog({ open, onClose, onConfirm, saldoRestante
       onClose={onClose}
       onCloseClick={onClose}
       closeOnBackdrop={false}
-      closeOnEscape={false}
       maxWidth="xs"
       title="Pagamento parcial"
       icon={<PaymentsRoundedIcon />}
@@ -174,7 +172,6 @@ export function DescontoDialog({ open, onClose, onConfirm, valorOriginal }: {
       onClose={onClose}
       onCloseClick={onClose}
       closeOnBackdrop={false}
-      closeOnEscape={false}
       maxWidth="xs"
       title="Aplicar desconto"
       icon={<SellRoundedIcon />}
@@ -244,7 +241,6 @@ export function RenegociarDialog({ open, onClose, onConfirm }: {
       onClose={onClose}
       onCloseClick={onClose}
       closeOnBackdrop={false}
-      closeOnEscape={false}
       maxWidth="xs"
       title="Renegociar prazo"
       icon={<EventRepeatRoundedIcon />}
@@ -304,7 +300,6 @@ export function ParcelarDialog({ open, onClose, onConfirm, valorOriginal }: {
       onClose={onClose}
       onCloseClick={onClose}
       closeOnBackdrop={false}
-      closeOnEscape={false}
       maxWidth="xs"
       title="Parcelar título"
       icon={<AccountTreeRoundedIcon />}

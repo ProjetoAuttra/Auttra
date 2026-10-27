@@ -181,7 +181,6 @@ export default function VeiculoDialog({ open, mode, initial, defaultCliente, onC
       onClose={onClose}
       onCloseClick={onClose}
       closeOnBackdrop={false}
-      closeOnEscape={false}
       maxWidth="sm"
       title={isEdit ? "Editar veículo" : "Novo veículo"}
       icon={<DirectionsCarRoundedIcon />}

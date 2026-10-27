@@ -70,7 +70,6 @@ export default function DialogCarro({
       onClose={handleClose}
       onCloseClick={handleClose}
       closeOnBackdrop={false}
-      closeOnEscape={false}
       maxWidth="sm"
       title="Adicionar carro"
       icon={<DirectionsCarRoundedIcon />}
