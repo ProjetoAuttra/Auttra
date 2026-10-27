@@ -9,6 +9,7 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
+import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
 import SellRoundedIcon from "@mui/icons-material/SellRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
@@ -29,7 +30,7 @@ import {
   type Conta, brl, isVencido, valorLiquido, valorRestante, formatarData,
   METODO_OPTIONS,
   criarPagamento, atualizarPagamento,
-  marcarComoPago, estornarPagamento, parcelar, cancelarPagamento,
+  marcarComoPago, estornarPagamento, abrirRecibo, parcelar, cancelarPagamento,
 } from "../../../../pagamentos/api/api";
 import { EstornarDialog, DetalhesDialog } from "../../../../pagamentos/dialogs/index";
 import { ReceberTituloDialog, RenegociarTituloDialog } from "../../../../pagamentos/dialogs/TituloDialogs";
@@ -77,6 +78,16 @@ export default function ClientePagamentos({
     setAnchorEl(e.currentTarget); setSelected(conta);
   };
   const handleMenuClose = () => { setAnchorEl(null); };
+  const handleRecibo = async () => {
+    const id = selected?.id;
+    handleMenuClose();
+    if (!id) return;
+    try {
+      await abrirRecibo(id);
+    } catch {
+      error("Não foi possível gerar o recibo.");
+    }
+  };
   const openAcao = (a: Acao) => { setAcao(a); handleMenuClose(); };
   const handleReceberDireto = (conta: Conta) => { setSelected(conta); setAcao("pagar"); };
 
@@ -304,8 +315,13 @@ export default function ClientePagamentos({
           <VisibilityRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "text.secondary" }} />Detalhes
         </MenuItem>
         <Divider />
-        {can("financeiro", "delete") && (
-          <MenuItem onClick={() => openAcao("estornar")} disabled={selected?.status !== "pago" && selected?.status !== "parcial"}>
+        {selected?.status === "pago" && (
+          <MenuItem onClick={handleRecibo}>
+            <ReceiptLongRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "text.secondary" }} />Gerar recibo
+          </MenuItem>
+        )}
+        {selected?.status === "pago" && can("financeiro", "delete") && (
+          <MenuItem onClick={() => openAcao("estornar")}>
             <UndoRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "warning.main" }} />Estornar recebimento
           </MenuItem>
         )}

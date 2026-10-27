@@ -1,6 +1,7 @@
 import { renderizarPdf } from "./pdfBrowser.js";
 import { Response } from "express";
 import { prisma } from "../prisma/client.js";
+import { HttpError } from "../utils/httpError.js";
 import {
   assinaturas,
   blocoDados,
@@ -11,6 +12,7 @@ import {
   documento,
   formasPagamento,
   tabelaItens,
+  tabelaRecebimentos,
   type ItemPdf,
 } from "./pdfTemplates.js";
 
@@ -49,6 +51,14 @@ const veiculoLinhas = (v?: { placa?: string | null; ano?: number | string | null
   v?.ano ? `Ano: ${v.ano}` : null,
   v?.cor ? `Cor: ${v.cor}` : null,
 ];
+
+const METODO_LABEL: Record<string, string> = {
+  dinheiro: "Dinheiro",
+  pix: "Pix",
+  cartao: "Cartão",
+  boleto: "Boleto",
+  transferencia: "Transferência",
+};
 
 export const PdfHtmlService = {
   async gerarOrcamentoPDF(id: number, res: Response, oficinaId: number) {
@@ -147,6 +157,51 @@ export const PdfHtmlService = {
     const pdfBuffer = await renderPdf(documento(ordem.oficina, corpo, `Ordem de serviço Nº ${ordem.id}`));
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename=ordem_${ordem.id}.pdf`);
+    res.end(pdfBuffer);
+  },
+
+  async gerarReciboPDF(id: number, res: Response, oficinaId: number) {
+    const pag = await prisma.pagamento.findFirst({
+      where: { id, deleted_at: null, oficina_id: oficinaId },
+      include: {
+        cliente: true,
+        oficina: { select: oficinaSelect },
+        movimentos: { orderBy: { id: "asc" } },
+      },
+    });
+    if (!pag) throw new HttpError("Recebimento não encontrado.", 404);
+    if (pag.tipo !== "receber") throw new HttpError("Só é possível emitir recibo de um recebimento.", 409);
+    if (pag.status !== "pago") throw new HttpError("O recibo só pode ser emitido para um recebimento já recebido.", 409);
+
+    // Só entram os pagamentos que continuam valendo (os já estornados ficam de fora).
+    const estornados = new Set(pag.movimentos.filter((m) => m.tipo === "estorno" && m.estorno_de_id).map((m) => m.estorno_de_id));
+    const recebidos = pag.movimentos.filter((m) => m.tipo === "pagamento" && !estornados.has(m.id));
+    const linhas = (recebidos.length
+      ? recebidos.map((m) => ({ data: m.created_at, metodo: m.metodo ? METODO_LABEL[m.metodo] ?? m.metodo : "—", valor: m.valor }))
+      : [{ data: pag.data_pagamento ?? pag.updated_at, metodo: pag.metodo ? METODO_LABEL[pag.metodo] ?? pag.metodo : "—", valor: pag.valor_pago }]);
+    const total = recebidos.length ? recebidos.reduce((acc, m) => acc + Number(m.valor), 0) : pag.valor_pago;
+
+    const corpo = [
+      cabecalho(pag.oficina, {
+        tipo: "Recibo",
+        numero: pag.id,
+        status: { label: "Recebido", classe: "ok" },
+        meta: [`Emitido em ${dataBr(new Date(), true)}`],
+      }),
+      `<div class="colunas c2">
+        ${blocoDados("Recebido de", pag.cliente?.nome ?? "", [pag.cliente?.telefone, pag.cliente?.email, pag.cliente?.cpf ? `CPF/CNPJ: ${pag.cliente.cpf}` : null])}
+        ${blocoDados("Referente a", pag.descricao?.trim() || "Recebimento", [
+          pag.ordem_servico_id ? `Ordem de serviço Nº ${String(pag.ordem_servico_id).padStart(4, "0")}` : null,
+          `Vencimento: ${dataBr(pag.data_vencimento)}`,
+        ])}
+      </div>`,
+      tabelaRecebimentos(linhas, total),
+      assinaturas(`Recebido por — ${pag.oficina.nome}`, `Cliente — ${pag.cliente?.nome ?? ""}`),
+    ].join("");
+
+    const pdfBuffer = await renderPdf(documento(pag.oficina, corpo, `Recibo Nº ${pag.id}`));
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename=recibo_${pag.id}.pdf`);
     res.end(pdfBuffer);
   },
 };

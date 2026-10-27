@@ -205,6 +205,29 @@ export function tabelaItens(itens: ItemPdf[], total: Num, titulo = "Itens") {
     </div>`;
 }
 
+export type RecebimentoPdf = { data: Date | string; metodo: string; valor: Num };
+
+/** Tabela de recebimentos (data, forma e valor) com o total recebido no rodapé. */
+export function tabelaRecebimentos(linhas: RecebimentoPdf[], total: Num) {
+  return `
+    <div class="secao">
+      <h3>Recebimentos</h3>
+      <table>
+        <thead>
+          <tr><th>Data</th><th>Forma de pagamento</th><th class="num">Valor</th></tr>
+        </thead>
+        <tbody>
+          ${linhas
+            .map((l) => `<tr><td>${esc(dataBr(l.data, true))}</td><td>${esc(l.metodo)}</td><td class="num">${dinheiro(l.valor)}</td></tr>`)
+            .join("")}
+        </tbody>
+      </table>
+      <div class="totais">
+        <div class="linha total"><span>Total recebido</span><span>${dinheiro(total)}</span></div>
+      </div>
+    </div>`;
+}
+
 export function caixaTexto(titulo: string, texto: string) {
   return `<div class="secao"><h3>${esc(titulo)}</h3><div class="caixa">${esc(texto)}</div></div>`;
 }
