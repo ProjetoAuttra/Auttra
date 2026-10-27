@@ -10,7 +10,6 @@ import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
 import SellRoundedIcon from "@mui/icons-material/SellRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
-import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
 import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
@@ -22,17 +21,19 @@ import { useConfirm } from "../../../../context/ConfirmContext";
 import { useListaPaginada } from "../../../../hooks/useListaPaginada";
 import ModuleHeader from "../../../../components/layout/ModuleHeader";
 import StatCard, { StatGroup } from "../../../../components/common/StatCard";
+import CampoData from "../../../../components/common/CampoData";
 import TextoLimitado from "../../../../components/common/TextoLimitado";
 import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../components/common/AppDialog";
 import api from "../../../../api/api";
-import { type Conta, brl, isVencido, valorLiquido, valorRestante, formatarData, METODO_OPTIONS, criarPagamento, atualizarPagamento, marcarComoPago, estornarPagamento, aplicarDesconto, renegociarPrazo, parcelar, cancelarPagamento, resumoPagamentos, type ResumoContas } from "../../api/api";
+import { type Conta, brl, isVencido, valorLiquido, formatarData, paraInputData, METODO_OPTIONS, criarPagamento, atualizarPagamento, marcarComoPago, estornarPagamento, parcelar, cancelarPagamento, resumoPagamentos, type ResumoContas } from "../../api/api";
 import {
-  ReceberDialog, EstornarDialog, DetalhesDialog, DescontoDialog, RenegociarDialog, ParcelarDialog,
+  EstornarDialog, DetalhesDialog,
 } from "../../dialogs/index";
+import { ReceberTituloDialog, RenegociarTituloDialog } from "../../dialogs/TituloDialogs";
 
-type Acao = "pagar" | "estornar" | "detalhes" | "desconto" | "renegociar" | "parcelar" | "editar" | null;
+type Acao = "pagar" | "estornar" | "detalhes" | "renegociar" | "editar" | null;
 
 function StatusChip({ conta }: { conta: Conta }) {
   if (isVencido(conta))
@@ -291,14 +292,8 @@ export default function ContasReceber() {
             <UndoRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "warning.main" }} />Estornar recebimento
           </MenuItem>
         )}
-        <MenuItem onClick={() => openAcao("desconto")} disabled={selected?.status === "pago" || selected?.status === "cancelado"}>
-          <SellRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "info.main" }} />Dar desconto
-        </MenuItem>
-        <MenuItem onClick={() => openAcao("renegociar")} disabled={selected?.status === "pago" || selected?.status === "cancelado"}>
-          <EventRepeatRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "secondary.main" }} />Renegociar prazo
-        </MenuItem>
-        <MenuItem onClick={() => openAcao("parcelar")} disabled={selected?.status !== "pendente"}>
-          <AccountTreeRoundedIcon fontSize="small" sx={{ mr: 1.5 }} />Parcelar
+        <MenuItem onClick={() => openAcao("renegociar")} disabled={selected?.status !== "pendente"}>
+          <EventRepeatRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "secondary.main" }} />Renegociar
         </MenuItem>
         <Divider />
         <MenuItem onClick={() => openAcao("editar")}>
@@ -315,11 +310,11 @@ export default function ContasReceber() {
       </Menu>
 
       {/* Dialogs de ação */}
-      <ReceberDialog
+      <ReceberTituloDialog
         open={acao === "pagar"}
         onClose={() => setAcao(null)}
+        conta={selected}
         tipo="receber"
-        saldoRestante={selected ? valorRestante(selected) : 0}
         onConfirm={(d) =>
           handleAcao(
             () => marcarComoPago(selected!.id, d),
@@ -343,22 +338,12 @@ export default function ContasReceber() {
         conta={selected}
         tipo="receber"
       />
-      <DescontoDialog
-        open={acao === "desconto"}
-        onClose={() => setAcao(null)}
-        valorOriginal={selected ? Number(selected.valor_original) : 0}
-        onConfirm={(d) => handleAcao(() => aplicarDesconto(selected!.id, d), "Desconto aplicado!")}
-      />
-      <RenegociarDialog
+      <RenegociarTituloDialog
         open={acao === "renegociar"}
         onClose={() => setAcao(null)}
-        onConfirm={(d) => handleAcao(() => renegociarPrazo(selected!.id, d), "Prazo renegociado!")}
-      />
-      <ParcelarDialog
-        open={acao === "parcelar"}
-        onClose={() => setAcao(null)}
-        valorOriginal={selected ? valorLiquido(selected) : 0}
-        onConfirm={(d) => handleAcao(() => parcelar(selected!.id, d), "Título parcelado!")}
+        conta={selected}
+        tipo="receber"
+        onConfirm={(d) => handleAcao(() => parcelar(selected!.id, d), "Título renegociado e parcelado!")}
       />
 
       {/* Dialog editar */}
@@ -398,14 +383,20 @@ function EditarDialog({ open, conta, onClose, onConfirm }: {
   const [descricao, setDescricao] = React.useState("");
   const [categoria, setCategoria] = React.useState("");
   const [observacao, setObservacao] = React.useState("");
+  const [vencimento, setVencimento] = React.useState("");
 
   React.useEffect(() => {
     if (open && conta) {
       setDescricao(conta.descricao ?? "");
       setCategoria(conta.categoria ?? "");
       setObservacao(conta.observacao ?? "");
+      setVencimento(paraInputData(conta.data_vencimento));
     }
   }, [open, conta]);
+
+  const vencimentoOriginal = conta ? paraInputData(conta.data_vencimento) : "";
+  const venceuAlteracao = !!vencimento && vencimento !== vencimentoOriginal;
+  const vencimentoTravado = conta?.status === "pago" || conta?.status === "cancelado";
 
   return (
     <AppDialog open={open} onClose={onClose} onCloseClick={onClose} closeOnBackdrop={false} maxWidth="xs" title="Editar conta" icon={<EditRoundedIcon />} variant="entity">
@@ -413,13 +404,26 @@ function EditarDialog({ open, conta, onClose, onConfirm }: {
         <Stack spacing={2}>
           <TextField label="Descrição" value={descricao} onChange={(e) => setDescricao(e.target.value)} size="small" fullWidth />
           <TextField label="Categoria" value={categoria} onChange={(e) => setCategoria(e.target.value)} size="small" fullWidth />
+          <CampoData
+            label="Data de vencimento"
+            value={vencimento}
+            onChange={setVencimento}
+            disabled={vencimentoTravado}
+            helperText={
+              vencimentoTravado
+                ? "Título já finalizado: o vencimento não pode ser alterado"
+                : venceuAlteracao
+                  ? "Alterar o vencimento conta como renegociação de prazo; a data original é preservada"
+                  : " "
+            }
+          />
           <TextField label="Observação" value={observacao} onChange={(e) => setObservacao(e.target.value)} size="small" fullWidth multiline rows={2} />
         </Stack>
       </AppDialogContent>
       <AppDialogActions>
         <Button onClick={onClose} variant="outlined">Cancelar</Button>
         <Button variant="contained" disableElevation sx={{ textTransform: "none" }}
-          onClick={() => onConfirm({ descricao, categoria, observacao })}>
+          onClick={() => onConfirm({ descricao, categoria, observacao, ...(venceuAlteracao ? { data_vencimento: vencimento } : {}) })}>
           Salvar
         </Button>
       </AppDialogActions>
@@ -453,7 +457,7 @@ function NovaContaReceberDialog({ open, onClose, clientes, onConfirm }: {
           <TextField label="Descrição *" value={form.descricao} onChange={(e) => set("descricao", e.target.value)} size="small" fullWidth />
           <TextField label="Categoria" value={form.categoria} onChange={(e) => set("categoria", e.target.value)} size="small" fullWidth />
           <TextField label="Valor *" type="number" value={form.valor} onChange={(e) => set("valor", e.target.value)} size="small" fullWidth InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }} />
-          <TextField label="Vencimento *" type="date" value={form.data_vencimento} onChange={(e) => set("data_vencimento", e.target.value)} size="small" fullWidth InputLabelProps={{ shrink: true }} />
+          <CampoData label="Vencimento *" value={form.data_vencimento} onChange={(v) => set("data_vencimento", v)} />
           <TextField select label="Método" value={form.metodo} onChange={(e) => set("metodo", e.target.value)} size="small" fullWidth>
             {METODO_OPTIONS.map((m) => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
           </TextField>

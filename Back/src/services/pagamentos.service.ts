@@ -158,7 +158,8 @@ async function registrarEntrada(
     },
     include: relacoes,
   });
-  await registrarMovimento(tx, existing, { tipo: "pagamento", valor: entrada, metodo, usuarioId });
+  // Desconto de 100% quita o titulo sem entrada de dinheiro: nao ha movimento de valor zero.
+  if (entrada.greaterThan(0)) await registrarMovimento(tx, existing, { tipo: "pagamento", valor: entrada, metodo, usuarioId });
 
   if (quitado) return atualizado;
 
@@ -337,7 +338,17 @@ export const PagamentosService = {
       if (data.cliente_id !== undefined) patch.cliente_id = data.cliente_id;
       if (data.fornecedor_id !== undefined) patch.fornecedor_id = data.fornecedor_id;
       if (data.ordem_servico_id !== undefined) patch.ordem_servico_id = data.ordem_servico_id;
-      if (data.data_vencimento !== undefined) patch.data_vencimento = toDate(data.data_vencimento, "data_vencimento");
+      if (data.data_vencimento !== undefined) {
+        const nova = toDate(data.data_vencimento, "data_vencimento");
+        // Mudar o vencimento eh renegociar o prazo: conta a renegociacao e preserva a data original.
+        if (nova.toISOString().slice(0, 10) !== existing.data_vencimento.toISOString().slice(0, 10)) {
+          if (existing.status === "pago" || existing.status === "cancelado")
+            throw new Error("Não é possível alterar o vencimento de títulos pagos ou cancelados.");
+          patch.data_vencimento = nova;
+          patch.vezes_renegociado = { increment: 1 };
+          if (!existing.data_vencimento_original) patch.data_vencimento_original = existing.data_vencimento;
+        }
+      }
 
       if (data.valor !== undefined) {
         if (existing.status !== "pendente" || !D(existing.valor_pago).isZero()) {
@@ -413,14 +424,35 @@ export const PagamentosService = {
    */
   async pagar(
     id: number,
-    data: { metodo: string; valor?: number | string | null; data_pagamento?: string },
+    data: {
+      metodo: string;
+      valor?: number | string | null;
+      data_pagamento?: string;
+      /** Desconto do titulo (substitui o atual), aplicado na mesma transacao antes de calcular o saldo. */
+      desconto?: number | string | null;
+      motivo_desconto?: string | null;
+    },
     oficinaId: number,
     usuarioId?: number | null
   ) {
     return prisma.$transaction(async (tx) => {
-      const existing = await lockPagamento(tx, id, oficinaId);
+      let existing = await lockPagamento(tx, id, oficinaId);
       if (existing.status === "pago") throw new Error("Este pagamento já foi registrado como pago.");
       if (existing.status === "cancelado") throw new Error("Não é possível pagar um título cancelado.");
+
+      if (data.desconto !== undefined && data.desconto !== null && data.desconto !== "") {
+        const desconto = D(Number(data.desconto));
+        if (!Number.isFinite(Number(data.desconto)) || desconto.isNegative()) throw new Error("Desconto invalido.");
+        if (desconto.greaterThan(D(existing.valor_original))) throw new Error("Desconto não pode ser maior que o valor original.");
+        if (D(existing.valor_original).minus(desconto).lessThan(D(existing.valor_pago)))
+          throw new Error("Desconto deixaria o valor abaixo do que ja foi pago.");
+        const motivo = String(data.motivo_desconto ?? "").trim();
+        if (desconto.greaterThan(0) && !motivo) throw new Error("Motivo do desconto é obrigatório.");
+        existing = await tx.pagamento.update({
+          where: { id },
+          data: { desconto, motivo_desconto: desconto.greaterThan(0) ? motivo : null },
+        });
+      }
 
       const liquido = valorLiquido(existing);
       const restante = liquido.minus(D(existing.valor_pago));
