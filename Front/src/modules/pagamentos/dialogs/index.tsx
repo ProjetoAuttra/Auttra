@@ -1,6 +1,6 @@
 import * as React from "react";
 import {
-  Stack, Typography, Divider,
+  Box, Stack, Typography, Divider,
   Button, TextField, MenuItem, InputAdornment,
 } from "@mui/material";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
@@ -10,7 +10,7 @@ import SellRoundedIcon from "@mui/icons-material/SellRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
 import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../components/common/AppDialog";
-import { METODO_OPTIONS, METODO_LABEL, brl, listarMovimentos, type Movimento } from "../api/api";
+import { METODO_OPTIONS, METODO_LABEL, brl, formatarData, listarMovimentos, valorLiquido, valorRestante, type Conta, type Movimento } from "../api/api";
 
 // ── 1. Receber / Pagar (valor editavel; menor que o saldo = parcial) ──────────
 
@@ -188,9 +188,9 @@ export function EstornarDialog({ open, onClose, onConfirm, valorPago, tipo }: {
 
 // ── 2b. Histórico de movimentos ───────────────────────────────────────────────
 
-export function MovimentosDialog({ open, onClose, contaId, tipo }: {
-  open: boolean;
-  onClose: () => void;
+/** Lista de movimentações do título (recebimentos/pagamentos e estornos), usada no histórico e nos detalhes. */
+export function HistoricoMovimentos({ ativo, contaId, tipo }: {
+  ativo: boolean;
   contaId: number | null;
   tipo: "receber" | "pagar";
 }) {
@@ -198,19 +198,55 @@ export function MovimentosDialog({ open, onClose, contaId, tipo }: {
   const [erro, setErro] = React.useState("");
 
   React.useEffect(() => {
-    if (!open || !contaId) return;
-    let ativo = true;
+    if (!ativo || !contaId) return;
+    let vivo = true;
     setMovs(null);
     setErro("");
     listarMovimentos(contaId)
-      .then((m) => { if (ativo) setMovs(m); })
-      .catch((err) => { if (ativo) setErro(err?.response?.data?.message ?? "Não foi possível carregar o histórico."); });
-    return () => { ativo = false; };
-  }, [open, contaId]);
+      .then((m) => { if (vivo) setMovs(m); })
+      .catch((err) => { if (vivo) setErro(err?.response?.data?.message ?? "Não foi possível carregar o histórico."); });
+    return () => { vivo = false; };
+  }, [ativo, contaId]);
 
   const rotulo = (m: Movimento) =>
     m.tipo === "estorno" ? "Estorno" : tipo === "receber" ? "Recebimento" : "Pagamento";
 
+  if (erro) return <Typography color="error" variant="body2">{erro}</Typography>;
+  if (movs === null) return <Typography variant="body2" color="text.secondary">Carregando...</Typography>;
+  if (movs.length === 0) return <Typography variant="body2" color="text.secondary">Nenhuma movimentação registrada neste título.</Typography>;
+
+  return (
+    <Stack spacing={1.25} divider={<Divider flexItem />}>
+      {movs.map((m) => (
+        <Stack key={m.id} spacing={0.25}>
+          <Stack direction="row" justifyContent="space-between" alignItems="baseline">
+            <Typography variant="body2" fontWeight={700} color={m.tipo === "estorno" ? "error.main" : "success.main"}>
+              {rotulo(m)} · {m.tipo === "estorno" ? "−" : "+"}{brl(Number(m.valor))}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {new Date(m.created_at).toLocaleString("pt-BR")}
+            </Typography>
+          </Stack>
+          <Typography variant="caption" color="text.secondary">
+            {[m.metodo ? METODO_LABEL[m.metodo] ?? m.metodo : null, m.usuario?.nome ? `por ${m.usuario.nome}` : null]
+              .filter(Boolean)
+              .join(" · ") || "—"}
+          </Typography>
+          {m.motivo && (
+            <Typography variant="caption" color="text.secondary">Motivo: {m.motivo}</Typography>
+          )}
+        </Stack>
+      ))}
+    </Stack>
+  );
+}
+
+export function MovimentosDialog({ open, onClose, contaId, tipo }: {
+  open: boolean;
+  onClose: () => void;
+  contaId: number | null;
+  tipo: "receber" | "pagar";
+}) {
   return (
     <AppDialog
       open={open}
@@ -222,34 +258,127 @@ export function MovimentosDialog({ open, onClose, contaId, tipo }: {
       variant="entity"
     >
       <AppDialogContent>
-        {erro ? (
-          <Typography color="error" variant="body2">{erro}</Typography>
-        ) : movs === null ? (
-          <Typography variant="body2" color="text.secondary">Carregando...</Typography>
-        ) : movs.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">Nenhuma movimentação registrada neste título.</Typography>
-        ) : (
-          <Stack spacing={1.25} divider={<Divider flexItem />}>
-            {movs.map((m) => (
-              <Stack key={m.id} spacing={0.25}>
-                <Stack direction="row" justifyContent="space-between" alignItems="baseline">
-                  <Typography variant="body2" fontWeight={700} color={m.tipo === "estorno" ? "error.main" : "success.main"}>
-                    {rotulo(m)} · {m.tipo === "estorno" ? "−" : "+"}{brl(Number(m.valor))}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {new Date(m.created_at).toLocaleString("pt-BR")}
-                  </Typography>
-                </Stack>
-                <Typography variant="caption" color="text.secondary">
-                  {[m.metodo ? METODO_LABEL[m.metodo] ?? m.metodo : null, m.usuario?.nome ? `por ${m.usuario.nome}` : null]
-                    .filter(Boolean)
-                    .join(" · ") || "—"}
-                </Typography>
-                {m.motivo && (
-                  <Typography variant="caption" color="text.secondary">Motivo: {m.motivo}</Typography>
+        <HistoricoMovimentos ativo={open} contaId={contaId} tipo={tipo} />
+      </AppDialogContent>
+      <AppDialogActions>
+        <Button onClick={onClose} variant="outlined">Fechar</Button>
+      </AppDialogActions>
+    </AppDialog>
+  );
+}
+
+// ── 2c. Detalhes do título ────────────────────────────────────────────────────
+
+const STATUS_LABEL: Record<Conta["status"], string> = {
+  pendente: "Pendente",
+  parcial: "Parcial",
+  pago: "Quitado",
+  cancelado: "Cancelado",
+};
+
+const dataBr = formatarData;
+
+function Campo({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
+  return (
+    <Stack spacing={0.25} sx={{ minWidth: 0 }}>
+      <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 0.6 }}>
+        {rotulo}
+      </Typography>
+      <Typography variant="body2" fontWeight={600} sx={{ overflowWrap: "anywhere" }}>
+        {children}
+      </Typography>
+    </Stack>
+  );
+}
+
+function Secao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <Stack spacing={1.5}>
+      <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.4, letterSpacing: 1 }}>
+        {titulo}
+      </Typography>
+      {children}
+    </Stack>
+  );
+}
+
+const GRADE = { display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 } as const;
+
+export function DetalhesDialog({ open, onClose, conta, tipo }: {
+  open: boolean;
+  onClose: () => void;
+  conta: Conta | null;
+  tipo: "receber" | "pagar";
+}) {
+  const receber = tipo === "receber";
+  const liquido = conta ? valorLiquido(conta) : 0;
+  const restante = conta ? valorRestante(conta) : 0;
+  const pessoa = receber ? conta?.cliente?.nome : conta?.fornecedor?.nome;
+
+  return (
+    <AppDialog
+      open={open}
+      onClose={onClose}
+      onCloseClick={onClose}
+      maxWidth="sm"
+      fullWidth
+      title={receber ? "Detalhes do recebimento" : "Detalhes do pagamento"}
+      confirmDiscard={false}
+    >
+      <AppDialogContent>
+        {conta && (
+          <Stack spacing={3} divider={<Divider flexItem />}>
+            <Secao titulo="Título">
+              <Box sx={GRADE}>
+                <Campo rotulo={receber ? "Cliente" : "Fornecedor"}>{pessoa ?? "—"}</Campo>
+                <Campo rotulo="Status">{STATUS_LABEL[conta.status] ?? conta.status}</Campo>
+                <Campo rotulo="Descrição">{conta.descricao || "—"}</Campo>
+                <Campo rotulo="Categoria">{conta.categoria || "—"}</Campo>
+                {conta.total_parcelas && conta.total_parcelas > 1 && (
+                  <Campo rotulo="Parcela">{`${conta.parcela_numero ?? 1} de ${conta.total_parcelas}`}</Campo>
                 )}
-              </Stack>
-            ))}
+                {conta.ordem_servico && <Campo rotulo="Ordem de serviço">{`#${conta.ordem_servico.id}`}</Campo>}
+              </Box>
+            </Secao>
+
+            <Secao titulo="Valores">
+              <Box sx={GRADE}>
+                <Campo rotulo="Valor original">{brl(Number(conta.valor_original))}</Campo>
+                <Campo rotulo="Desconto">
+                  {Number(conta.desconto) > 0
+                    ? `${brl(Number(conta.desconto))}${conta.motivo_desconto ? ` · ${conta.motivo_desconto}` : ""}`
+                    : "—"}
+                </Campo>
+                <Campo rotulo={receber ? "Valor a receber" : "Valor a pagar"}>{brl(liquido)}</Campo>
+                <Campo rotulo={receber ? "Recebido" : "Pago"}>{brl(Number(conta.valor_pago))}</Campo>
+                {conta.status !== "pago" && conta.status !== "cancelado" && <Campo rotulo="Saldo restante">{brl(restante)}</Campo>}
+              </Box>
+            </Secao>
+
+            <Secao titulo="Datas e método">
+              <Box sx={GRADE}>
+                <Campo rotulo="Data de vencimento">
+                  {dataBr(conta.data_vencimento)}
+                  {conta.vezes_renegociado > 0 && conta.data_vencimento_original
+                    ? ` (original ${dataBr(conta.data_vencimento_original)}, renegociado ${conta.vezes_renegociado}×)`
+                    : ""}
+                </Campo>
+                <Campo rotulo={receber ? "Data de recebimento" : "Data de pagamento"}>{dataBr(conta.data_pagamento)}</Campo>
+                <Campo rotulo={receber ? "Método de recebimento" : "Método de pagamento"}>
+                  {conta.metodo ? METODO_LABEL[conta.metodo] ?? conta.metodo : "—"}
+                </Campo>
+              </Box>
+            </Secao>
+
+            <Secao titulo={receber ? "Histórico de recebimentos" : "Histórico de pagamentos"}>
+              <HistoricoMovimentos ativo={open} contaId={conta.id} tipo={tipo} />
+            </Secao>
+
+            {conta.observacao && (
+              <Secao titulo="Observação">
+                <Typography variant="body2">{conta.observacao}</Typography>
+              </Secao>
+            )}
           </Stack>
         )}
       </AppDialogContent>

@@ -37,6 +37,19 @@ export type Conta = {
   ordem_servico?: { id: number; status: string } | null;
 };
 
+/**
+ * Data para exibição. Datas escolhidas num campo de data chegam como meia-noite UTC (ex.: 2026-11-01T00:00:00.000Z)
+ * e, lidas no fuso local do Brasil, apareceriam um dia antes; esses valores são tratados como data de calendário.
+ * Instantes (ex.: a hora em que o recebimento foi registrado) seguem o fuso local.
+ */
+export function formatarData(iso?: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  const soDia = d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0;
+  return d.toLocaleDateString("pt-BR", soDia ? { timeZone: "UTC" } : undefined);
+}
+
 export const brl = (v: number) =>
   Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
