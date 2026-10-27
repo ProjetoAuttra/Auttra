@@ -1,107 +1,100 @@
 import { renderizarPdf } from "./pdfBrowser.js";
 import { Response } from "express";
 import { prisma } from "../prisma/client.js";
-import { escapeHtml as esc } from "../utils/escapeHtml.js";
+import {
+  assinaturas,
+  blocoDados,
+  cabecalho,
+  caixaTexto,
+  condicoes,
+  dataBr,
+  documento,
+  formasPagamento,
+  tabelaItens,
+  type ItemPdf,
+} from "./pdfTemplates.js";
 
 export const renderPdf = renderizarPdf;
+
+const oficinaSelect = {
+  nome: true,
+  cnpj: true,
+  logradouro: true,
+  numero: true,
+  complemento: true,
+  cep: true,
+  telefone: true,
+  email: true,
+  logo_url: true,
+  financeiro_config: true,
+  cidade: { select: { nome: true, uf: true } },
+} as const;
+
+const STATUS_ORCAMENTO: Record<string, { label: string; classe: string }> = {
+  analise: { label: "Em análise", classe: "info" },
+  aprovado: { label: "Aprovado", classe: "ok" },
+  recusado: { label: "Recusado", classe: "erro" },
+};
+
+const STATUS_OS: Record<string, { label: string; classe: string }> = {
+  aberta: { label: "Aberta", classe: "info" },
+  em_andamento: { label: "Em andamento", classe: "aviso" },
+  concluida: { label: "Concluída", classe: "ok" },
+  cancelada: { label: "Cancelada", classe: "erro" },
+};
+
+const veiculoLinhas = (v?: { placa?: string | null; ano?: number | string | null; cor?: string | null; quilometragem?: number | null } | null) => [
+  v?.placa ? `Placa: ${v.placa}` : null,
+  v?.ano ? `Ano: ${v.ano}` : null,
+  v?.cor ? `Cor: ${v.cor}` : null,
+];
 
 export const PdfHtmlService = {
   async gerarOrcamentoPDF(id: number, res: Response, oficinaId: number) {
     const orc = await prisma.orcamento.findFirst({
       where: { id, deleted_at: null, cliente: { oficina_id: oficinaId } },
-      include: { cliente: true, veiculo: true },
+      include: {
+        cliente: true,
+        veiculo: true,
+        itens: { where: { deleted_at: null }, orderBy: { id: "asc" }, include: { servico: true, peca: true } },
+      },
     });
     if (!orc) throw new Error("Orçamento não encontrado.");
 
-    const money = (v: any) =>
-      Number(v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const oficina = await prisma.oficina.findUniqueOrThrow({ where: { id: oficinaId }, select: oficinaSelect });
 
-    const STATUS_LABEL: Record<string, string> = {
-      analise: "Em análise",
-      aprovado: "Aprovado",
-      recusado: "Recusado",
-    };
+    const itens: ItemPdf[] = orc.itens.map((i) => ({
+      tipo: i.tipo_item === "peca" ? "peca" : "servico",
+      nome: i.nome || (i.tipo_item === "peca" ? i.peca?.nome : i.servico?.nome) || "",
+      quantidade: i.quantidade,
+      unitario: i.preco_unitario,
+      subtotal: i.subtotal,
+    }));
 
-    const html = `
-      <html lang="pt-BR">
-        <head>
-          <meta charset="UTF-8" />
-          <style>
-            * { box-sizing: border-box; }
-            body { font-family: "Segoe UI", Arial, sans-serif; margin: 0; padding: 40px; color: #333; background: #fff; }
-            header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1976d2; padding-bottom: 12px; margin-bottom: 24px; }
-            .logo { font-size: 26px; font-weight: 900; color: #1976d2; letter-spacing: -1px; }
-            .doc-title { text-align: right; }
-            .doc-title h1 { font-size: 20px; margin: 0 0 4px; color: #222; }
-            .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: #e3f2fd; color: #1565c0; }
-            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
-            .card { background: #f8f9fb; border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px; }
-            .card h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; }
-            .card p { margin: 3px 0; font-size: 14px; }
-            .card .main { font-weight: 700; font-size: 15px; color: #111; }
-            .desc-box { background: #f8f9fb; border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px; margin-bottom: 24px; }
-            .desc-box h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; }
-            .desc-box p { margin: 0; font-size: 14px; line-height: 1.6; }
-            .valor-section { background: #1976d2; color: white; border-radius: 8px; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
-            .valor-section .label { font-size: 13px; opacity: 0.85; }
-            .valor-section .amount { font-size: 28px; font-weight: 900; }
-            footer { border-top: 1px solid #e0e0e0; padding-top: 12px; text-align: center; font-size: 11px; color: #aaa; }
-          </style>
-        </head>
-        <body>
-          <header>
-            <div class="logo">Auttra</div>
-            <div class="doc-title">
-              <h1>Orçamento #${orc.id}</h1>
-              <span class="badge">${esc(STATUS_LABEL[orc.status] ?? orc.status)}</span>
-              <p style="margin:4px 0 0;font-size:12px;color:#888;">
-                Data: ${new Date(orc.data).toLocaleDateString("pt-BR")}
-              </p>
-              ${orc.validade ? `
-                <p style="margin:2px 0 0;font-size:12px;color:#888;">
-                  Válido até: ${new Date(orc.validade).toLocaleDateString("pt-BR")}
-                </p>
-              ` : ""}
-            </div>
-          </header>
+    const veiculoNome = [orc.veiculo?.marca, orc.veiculo?.modelo].filter(Boolean).join(" ");
+    const formas = formasPagamento(oficina);
 
-          <div class="grid">
-            <div class="card">
-              <h3>Cliente</h3>
-              <p class="main">${esc(orc.cliente?.nome ?? "—")}</p>
-              ${orc.cliente?.telefone ? `<p>${esc(orc.cliente.telefone)}</p>` : ""}
-              ${orc.cliente?.email ? `<p>${esc(orc.cliente.email)}</p>` : ""}
-              ${orc.cliente?.cpf ? `<p>CPF/CNPJ: ${esc(orc.cliente.cpf)}</p>` : ""}
-            </div>
-            <div class="card">
-              <h3>Veículo</h3>
-              <p class="main">${esc([orc.veiculo?.marca, orc.veiculo?.modelo].filter(Boolean).join(" ") || "—")}</p>
-              ${orc.veiculo?.placa ? `<p>Placa: <strong>${esc(orc.veiculo.placa)}</strong></p>` : ""}
-              ${orc.veiculo?.ano ? `<p>Ano: ${esc(orc.veiculo.ano)}</p>` : ""}
-            </div>
-          </div>
+    const corpo = [
+      cabecalho(oficina, {
+        tipo: "Orçamento",
+        numero: orc.id,
+        status: STATUS_ORCAMENTO[orc.status] ?? { label: orc.status },
+        meta: [`Emitido em ${dataBr(orc.data)}`, ...(orc.validade ? [`Válido até ${dataBr(orc.validade)}`] : [])],
+      }),
+      `<div class="colunas c2">
+        ${blocoDados("Cliente", orc.cliente?.nome ?? "", [orc.cliente?.telefone, orc.cliente?.email, orc.cliente?.cpf ? `CPF/CNPJ: ${orc.cliente.cpf}` : null])}
+        ${blocoDados("Veículo", veiculoNome, veiculoLinhas(orc.veiculo))}
+      </div>`,
+      orc.descricao?.trim() ? caixaTexto("Descrição", orc.descricao) : "",
+      tabelaItens(itens, orc.valor, "Serviços e peças"),
+      condicoes([
+        { rotulo: "Validade da proposta", valor: orc.validade ? `Até ${dataBr(orc.validade)}` : "Consulte a oficina" },
+        { rotulo: "Formas de pagamento", valor: formas ?? "A combinar" },
+      ]),
+      assinaturas(`Aprovação do cliente — ${orc.cliente?.nome ?? ""}`, oficina.nome),
+    ].join("");
 
-          <div class="desc-box">
-            <h3>Descrição dos serviços</h3>
-            <p>${esc(orc.descricao || "Sem descrição informada.")}</p>
-          </div>
-
-          <div class="valor-section">
-            <div>
-              <div class="label">Valor total do orçamento</div>
-            </div>
-            <div class="amount">${money(orc.valor)}</div>
-          </div>
-
-          <footer>
-            Orçamento gerado automaticamente por Auttra © ${new Date().getFullYear()}.
-            Este documento não tem validade fiscal.
-          </footer>
-        </body>
-      </html>
-    `;
-
-    const pdfBuffer = await renderPdf(html);
+    const pdfBuffer = await renderPdf(documento(oficina, corpo, `Orçamento Nº ${orc.id}`));
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename=orcamento_${orc.id}.pdf`);
     res.end(pdfBuffer);
@@ -114,179 +107,43 @@ export const PdfHtmlService = {
         cliente: true,
         veiculo: true,
         funcionario: true,
-        itens: { include: { servico: true, peca: true } },
+        oficina: { select: oficinaSelect },
+        itens: { where: { deleted_at: null }, orderBy: { id: "asc" }, include: { servico: true, peca: true } },
       },
     });
-
     if (!ordem) throw new Error("Ordem de serviço não encontrada.");
 
-    const money = (v: { toNumber?: () => number } | number | null | undefined) => {
-      const value = typeof v === "number" ? v : v?.toNumber?.() ?? 0;
-      return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-    };
+    const itens: ItemPdf[] = ordem.itens.map((i) => ({
+      tipo: i.tipo_item === "peca" ? "peca" : "servico",
+      nome: (i.tipo_item === "peca" ? i.peca?.nome : i.servico?.nome) ?? "",
+      quantidade: i.quantidade,
+      unitario: i.preco_unitario,
+      subtotal: i.subtotal,
+    }));
 
-    const html = `
-      <html lang="pt-BR">
-        <head>
-          <meta charset="UTF-8" />
-          <style>
-            body {
-              font-family: "Segoe UI", Arial, sans-serif;
-              margin: 40px;
-              color: #333;
-            }
-            header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              border-bottom: 2px solid #1976d2;
-              padding-bottom: 8px;
-              margin-bottom: 20px;
-            }
-            .logo {
-              font-size: 22px;
-              font-weight: 800;
-              color: #1976d2;
-            }
-            h1 {
-              font-size: 22px;
-              margin: 0;
-              color: #444;
-            }
-            .info {
-              display: grid;
-              grid-template-columns: repeat(3, 1fr);
-              gap: 16px;
-              font-size: 14px;
-              margin-bottom: 20px;
-            }
-            section {
-              margin-top: 10px;
-              margin-bottom: 20px;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              font-size: 13px;
-            }
-            th {
-              background-color: #1976d2;
-              color: white;
-              text-align: left;
-              padding: 8px;
-            }
-            td {
-              border-bottom: 1px solid #ccc;
-              padding: 8px;
-            }
-            tfoot td {
-              font-weight: bold;
-              border-top: 2px solid #1976d2;
-              text-align: right;
-              font-size: 14px;
-            }
-            .obs {
-              background: #f8f9fb;
-              border: 1px solid #ddd;
-              border-radius: 6px;
-              padding: 12px;
-              font-size: 13px;
-            }
-            footer {
-              margin-top: 40px;
-              text-align: center;
-              font-size: 12px;
-              color: #888;
-            }
-          </style>
-        </head>
-        <body>
-          <header>
-            <div class="logo">Auttra</div>
-            <div>
-              <h1>Ordem de Serviço #${ordem.id}</h1>
-              <p>Status: <strong>${esc(ordem.status.toUpperCase())}</strong></p>
-            </div>
-          </header>
+    const veiculoNome = [ordem.veiculo?.marca, ordem.veiculo?.modelo].filter(Boolean).join(" ");
 
-          <section class="info">
-            <div>
-              <h3>Cliente</h3>
-              <p>${esc(ordem.cliente?.nome ?? "-")}</p>
-              <p>${esc(ordem.cliente?.telefone)}</p>
-            </div>
-            <div>
-              <h3>Veículo</h3>
-              <p>${esc(ordem.veiculo?.marca)} ${esc(ordem.veiculo?.modelo)}</p>
-              <p>Placa: ${esc(ordem.veiculo?.placa)}</p>
-              <p>Ano: ${esc(ordem.veiculo?.ano)}</p>
-            </div>
-            <div>
-              <h3>Funcionário</h3>
-              <p>${esc(ordem.funcionario?.nome ?? "-")}</p>
-            </div>
-          </section>
+    const corpo = [
+      cabecalho(ordem.oficina, {
+        tipo: "Ordem de serviço",
+        numero: ordem.id,
+        status: STATUS_OS[ordem.status] ?? { label: ordem.status },
+        meta: [
+          `Aberta em ${dataBr(ordem.data_abertura, true)}`,
+          ...(ordem.data_fechamento ? [`Concluída em ${dataBr(ordem.data_fechamento, true)}`] : []),
+        ],
+      }),
+      `<div class="colunas c3">
+        ${blocoDados("Cliente", ordem.cliente?.nome ?? "", [ordem.cliente?.telefone, ordem.cliente?.email])}
+        ${blocoDados("Veículo", veiculoNome, veiculoLinhas(ordem.veiculo))}
+        ${blocoDados("Responsável", ordem.funcionario?.nome ?? "", [])}
+      </div>`,
+      tabelaItens(itens, ordem.valor_total, "Serviços e peças"),
+      ordem.observacoes?.trim() ? caixaTexto("Observações", ordem.observacoes) : "",
+      assinaturas(`Cliente — ${ordem.cliente?.nome ?? ""}`, `Responsável — ${ordem.funcionario?.nome ?? ordem.oficina.nome}`),
+    ].join("");
 
-          <section>
-            <h3>Itens</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th>Descrição</th>
-                  <th>Qtd</th>
-                  <th>Unitário</th>
-                  <th>Subtotal</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${
-                  ordem.itens.length
-                    ? ordem.itens
-                        .map(
-                          (i) => `
-                          <tr>
-                            <td>${esc(
-                              i.tipo_item === "peca"
-                                ? i.peca?.nome
-                                : i.servico?.nome
-                            )}</td>
-                            <td>${esc(i.quantidade)}</td>
-                            <td>${money(i.preco_unitario)}</td>
-                            <td>${money(i.subtotal)}</td>
-                          </tr>`
-                        )
-                        .join("")
-                    : `<tr><td colspan="4">Nenhum item adicionado</td></tr>`
-                }
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="3">Total</td>
-                  <td>${money(ordem.valor_total)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </section>
-
-          <section>
-            <h3>Observações</h3>
-            <div class="obs">
-              ${esc(
-                ordem.observacoes?.trim()
-                  ? ordem.observacoes
-                  : "Nenhuma observação registrada."
-              )}
-            </div>
-          </section>
-
-          <footer>
-            Gerado automaticamente por Auttra © ${new Date().getFullYear()}
-          </footer>
-        </body>
-      </html>
-    `;
-
-    const pdfBuffer = await renderPdf(html);
+    const pdfBuffer = await renderPdf(documento(ordem.oficina, corpo, `Ordem de serviço Nº ${ordem.id}`));
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename=ordem_${ordem.id}.pdf`);
     res.end(pdfBuffer);
