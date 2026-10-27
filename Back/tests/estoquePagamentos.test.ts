@@ -15,6 +15,8 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
   let veiculoId: number;
   let funcionarioId: number;
   let auth: string;
+  let authSemDelete: string;
+  let usuarioId: number;
   const pecasCriadas: number[] = [];
 
   const novaPeca = async (estoque: number) => {
@@ -58,16 +60,22 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
     funcionarioId = (
       await prisma.funcionario.create({ data: { nome: "Mecanico", cargo: "mecanico", data_contratacao: new Date(), oficina_id: oficinaId } })
     ).id;
-    auth =
+    usuarioId = (
+      await prisma.usuario.create({ data: { email: `estorno-${suffix}@example.com`, senha: "x", nome: "Gestor Estorno", tipo: "funcionario" } })
+    ).id;
+    const tokenCom = (permissoes: object) =>
       "Bearer " +
       jwt.sign(
-        { id: 1, email: "g@example.com", nome: "Gestor", tipo: "gestoroficina", oficinaId, permissoes: { ordens: todas, financeiro: todas, orcamentos: todas } },
+        { id: usuarioId, email: "g@example.com", nome: "Gestor", tipo: "gestoroficina", oficinaId, permissoes },
         getJwtSecret(),
         { expiresIn: "5m" }
       );
+    auth = tokenCom({ ordens: todas, financeiro: todas, orcamentos: todas });
+    authSemDelete = tokenCom({ financeiro: ["read", "create", "update"] });
   });
 
   afterAll(async () => {
+    await prisma.pagamento_movimento.deleteMany({ where: { oficina_id: oficinaId } });
     await prisma.pagamento.deleteMany({ where: { oficina_id: oficinaId } });
     await prisma.item_orcamento.deleteMany({ where: { orcamento: { cliente_id: clienteId } } });
     await prisma.orcamento.deleteMany({ where: { cliente_id: clienteId } });
@@ -78,6 +86,7 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
     await prisma.veiculo.deleteMany({ where: { oficina_id: oficinaId } });
     await prisma.cliente.deleteMany({ where: { oficina_id: oficinaId } });
     await prisma.oficina.deleteMany({ where: { id: oficinaId } });
+    await prisma.usuario.deleteMany({ where: { id: usuarioId } });
     await prisma.cidade.deleteMany({ where: { id: cidadeId } });
   });
 
@@ -378,6 +387,136 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
 
       expect(res.status).toBe(400);
       expect(typeof res.body.message).toBe("string");
+    });
+  });
+
+  describe("estorno e historico (ledger)", () => {
+    const post = (path: string, body: object = {}, token = auth) =>
+      request(app).post(path).set("Authorization", token).send(body);
+    const movimentos = (id: number) => prisma.pagamento_movimento.findMany({ where: { pagamento_id: id }, orderBy: { id: "asc" } });
+
+    it("pagar e parcial gravam movimentos com o usuario; valor_pago = soma dos movimentos", async () => {
+      const id = await novoPagamento(100);
+      await post(`/api/pagamentos/${id}/pagamento-parcial`, { valor_entrada: 30, metodo: "dinheiro" }).expect(200);
+      await post(`/api/pagamentos/${id}/pagar`, { metodo: "pix" }).expect(200);
+
+      const movs = await movimentos(id);
+      expect(movs.map((m) => [m.tipo, Number(m.valor), m.metodo, m.usuario_id])).toEqual([
+        ["pagamento", 30, "dinheiro", usuarioId],
+        ["pagamento", 70, "pix", usuarioId],
+      ]);
+      const p = await prisma.pagamento.findUniqueOrThrow({ where: { id } });
+      expect(Number(p.valor_pago)).toBe(100);
+    });
+
+    it("estornar: volta para pendente, mantem o historico e registra motivo e usuario", async () => {
+      const id = await novoPagamento(100);
+      await post(`/api/pagamentos/${id}/pagamento-parcial`, { valor_entrada: 30, metodo: "dinheiro" }).expect(200);
+      await post(`/api/pagamentos/${id}/pagar`, { metodo: "pix" }).expect(200);
+
+      const res = await post(`/api/pagamentos/${id}/estornar`, { motivo: "Cliente pagou em duplicidade" });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({ status: "pendente", data_pagamento: null });
+      expect(Number(res.body.valor_pago)).toBe(0);
+
+      const movs = await movimentos(id);
+      expect(movs).toHaveLength(4); // nada foi apagado
+      const [p1, p2, e1, e2] = movs;
+      expect([e1.tipo, e2.tipo]).toEqual(["estorno", "estorno"]);
+      expect([e1.estorno_de_id, e2.estorno_de_id]).toEqual([p1.id, p2.id]);
+      expect([Number(e1.valor), Number(e2.valor)]).toEqual([30, 70]);
+      expect(e1.motivo).toBe("Cliente pagou em duplicidade");
+      expect(e1.usuario_id).toBe(usuarioId);
+    });
+
+    it("depois do estorno o titulo pode ser pago de novo e tambem excluido", async () => {
+      const id = await novoPagamento(100);
+      await post(`/api/pagamentos/${id}/pagar`, { metodo: "pix" }).expect(200);
+      await post(`/api/pagamentos/${id}/estornar`, { motivo: "erro" }).expect(200);
+      await post(`/api/pagamentos/${id}/pagar`, { metodo: "cartao" }).expect(200);
+      await post(`/api/pagamentos/${id}/estornar`, { motivo: "erro de novo" }).expect(200);
+
+      const movs = await movimentos(id);
+      expect(movs.filter((m) => m.tipo === "pagamento")).toHaveLength(2);
+      expect(movs.filter((m) => m.tipo === "estorno")).toHaveLength(2);
+      await request(app).delete(`/api/pagamentos/${id}`).set("Authorization", auth).expect(204);
+    });
+
+    it("sem pagamento nao ha o que estornar (409); motivo eh obrigatorio (400)", async () => {
+      const pendente = await novoPagamento(100);
+      const res = await post(`/api/pagamentos/${pendente}/estornar`, { motivo: "x" });
+      expect(res.status).toBe(409);
+      expect(res.body.code).toBe("NADA_A_ESTORNAR");
+
+      const pago = await novoPagamento(100);
+      await post(`/api/pagamentos/${pago}/pagar`, { metodo: "pix" }).expect(200);
+      expect((await post(`/api/pagamentos/${pago}/estornar`, {})).status).toBe(400);
+      expect((await post(`/api/pagamentos/${pago}/estornar`, { motivo: "   " })).status).toBe(400);
+      expect((await movimentos(pago)).filter((m) => m.tipo === "estorno")).toHaveLength(0);
+    });
+
+    it("dois estornos simultaneos: so um acontece", async () => {
+      const id = await novoPagamento(100);
+      await post(`/api/pagamentos/${id}/pagar`, { metodo: "pix" }).expect(200);
+
+      const [a, b] = await Promise.all([
+        post(`/api/pagamentos/${id}/estornar`, { motivo: "a" }),
+        post(`/api/pagamentos/${id}/estornar`, { motivo: "b" }),
+      ]);
+
+      expect([a.status, b.status].sort()).toEqual([200, 409]);
+      expect((await movimentos(id)).filter((m) => m.tipo === "estorno")).toHaveLength(1);
+    });
+
+    it("exige financeiro:delete (403 sem a permissao)", async () => {
+      const id = await novoPagamento(100);
+      await post(`/api/pagamentos/${id}/pagar`, { metodo: "pix" }).expect(200);
+
+      const res = await post(`/api/pagamentos/${id}/estornar`, { motivo: "x" }, authSemDelete);
+
+      expect(res.status).toBe(403);
+      expect((await prisma.pagamento.findUniqueOrThrow({ where: { id } })).status).toBe("pago");
+    });
+
+    it("cada parcela eh independente: estornar uma nao mexe nas outras", async () => {
+      const pai = await novoPagamento(100);
+      const { parcelas } = (await post(`/api/pagamentos/${pai}/parcelar`, { total_parcelas: 2, data_primeira_parcela: "2026-06-01" }).expect(201)).body;
+      for (const p of parcelas) await post(`/api/pagamentos/${p.id}/pagar`, { metodo: "pix" }).expect(200);
+
+      await post(`/api/pagamentos/${parcelas[0].id}/estornar`, { motivo: "parcela errada" }).expect(200);
+
+      const [p0, p1] = await Promise.all(parcelas.map((p: any) => prisma.pagamento.findUniqueOrThrow({ where: { id: p.id } })));
+      expect([p0.status, p1.status]).toEqual(["pendente", "pago"]);
+      expect(await movimentos(parcelas[1].id)).toHaveLength(1);
+    });
+
+    it("titulo de outra oficina eh 404", async () => {
+      const outra = await prisma.oficina.create({
+        data: { nome: `Outra ${suffix}`, logradouro: "R", numero: "1", cep: "00000000", cidade_id: cidadeId },
+      });
+      try {
+        const token = "Bearer " + jwt.sign({ id: usuarioId, tipo: "gestoroficina", oficinaId: outra.id, permissoes: { financeiro: todas } }, getJwtSecret(), { expiresIn: "5m" });
+        const id = await novoPagamento(100);
+        await post(`/api/pagamentos/${id}/pagar`, { metodo: "pix" }).expect(200);
+
+        expect((await post(`/api/pagamentos/${id}/estornar`, { motivo: "x" }, token)).status).toBe(404);
+        expect((await request(app).get(`/api/pagamentos/${id}/movimentos`).set("Authorization", token)).status).toBe(404);
+      } finally {
+        await prisma.oficina.delete({ where: { id: outra.id } });
+      }
+    });
+
+    it("GET /movimentos devolve o historico em ordem, com o nome de quem fez", async () => {
+      const id = await novoPagamento(100);
+      await post(`/api/pagamentos/${id}/pagar`, { metodo: "pix" }).expect(200);
+      await post(`/api/pagamentos/${id}/estornar`, { motivo: "teste" }).expect(200);
+
+      const res = await request(app).get(`/api/pagamentos/${id}/movimentos`).set("Authorization", auth);
+
+      expect(res.status).toBe(200);
+      expect(res.body.map((m: any) => m.tipo)).toEqual(["pagamento", "estorno"]);
+      expect(res.body[1]).toMatchObject({ motivo: "teste", usuario: { id: usuarioId, nome: "Gestor Estorno" } });
     });
   });
 });

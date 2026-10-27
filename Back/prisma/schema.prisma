@@ -28,6 +28,7 @@ model usuario {
   cliente        cliente? @relation("UsuarioCliente")
   gestor_oficina oficina? @relation("GestorOficina")
   acessos        usuario_oficina[]
+  movimentos_pagamento pagamento_movimento[]
   password_reset_tokens password_reset_token[]
   admin_audit_logs admin_audit_log[] @relation("AdminAuditActor")
 
@@ -137,6 +138,8 @@ model oficina {
   deleted_at DateTime?
 
   links_publicos link_publico[]
+
+  movimentos_pagamento pagamento_movimento[]
 
   @@index([cidade_id])
   @@index([deleted_at])
@@ -407,6 +410,7 @@ model pagamento {
   fornecedor    fornecedor?    @relation(fields: [fornecedor_id], references: [id])
   pagamento_pai pagamento?     @relation("Parcelas", fields: [pagamento_pai_id], references: [id])
   parcelas      pagamento[]    @relation("Parcelas")
+  movimentos    pagamento_movimento[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -686,4 +690,34 @@ model link_publico {
   @@index([oficina_id])
   @@index([ordem_servico_id, status])
   @@index([orcamento_id, status])
+}
+
+enum tipo_movimento_pagamento {
+  pagamento
+  estorno
+}
+
+// Livro de movimentos de um titulo: so insercao, nunca alterado nem apagado pela aplicacao.
+// pagamento.valor_pago eh a soma dos movimentos "pagamento" ainda nao estornados.
+model pagamento_movimento {
+  id            Int                      @id @default(autoincrement())
+  pagamento_id  Int
+  oficina_id    Int
+  tipo          tipo_movimento_pagamento
+  valor         Decimal // sempre positivo; o sinal vem do tipo
+  metodo        metodo_pagamento?
+  motivo        String?
+  usuario_id    Int?
+  estorno_de_id Int?
+  created_at    DateTime                 @default(now())
+
+  pagamento   pagamento            @relation(fields: [pagamento_id], references: [id], onDelete: Cascade)
+  oficina     oficina              @relation(fields: [oficina_id], references: [id])
+  usuario     usuario?             @relation(fields: [usuario_id], references: [id], onDelete: SetNull)
+  estorno_de  pagamento_movimento? @relation("EstornoDe", fields: [estorno_de_id], references: [id])
+  estornos    pagamento_movimento[] @relation("EstornoDe")
+
+  @@index([pagamento_id])
+  @@index([oficina_id])
+  @@index([estorno_de_id])
 }
