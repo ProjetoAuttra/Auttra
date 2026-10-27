@@ -1,9 +1,10 @@
 import * as React from "react";
-import { Box, Button, Divider, InputAdornment, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import { Box, Button, Collapse, Divider, FormControlLabel, InputAdornment, MenuItem, Stack, Switch, TextField, Typography } from "@mui/material";
 import PaymentsRoundedIcon from "@mui/icons-material/PaymentsRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../components/common/AppDialog";
-import { METODO_OPTIONS, brl, formatarData, type Conta } from "../api/api";
+import CampoData from "../../../components/common/CampoData";
+import { METODO_OPTIONS, brl, formatarData, hojeInput, type Conta } from "../api/api";
 
 const toCents = (v: number) => Math.round(v * 100);
 
@@ -66,11 +67,13 @@ export type DadosReceber = {
   motivo_desconto?: string;
 };
 
-function FormReceber({ conta, receber, onConfirm }: { conta: Conta; receber: boolean; onConfirm: (d: DadosReceber) => void }) {
+function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; receber: boolean; onConfirm: (d: DadosReceber) => void; onCancel: () => void }) {
   const original = Number(conta.valor_original);
   const jaPago = Number(conta.valor_pago);
   const descontoAtual = Number(conta.desconto);
 
+  // O desconto só aparece quando ligado; um título que já tem desconto abre com ele ligado.
+  const [comDesconto, setComDesconto] = React.useState(descontoAtual > 0);
   const [descontoStr, setDescontoStr] = React.useState(descontoAtual > 0 ? descontoAtual.toFixed(2) : "");
   const [motivo, setMotivo] = React.useState(conta.motivo_desconto ?? "");
   const [valorStr, setValorStr] = React.useState(() => {
@@ -78,12 +81,13 @@ function FormReceber({ conta, receber, onConfirm }: { conta: Conta; receber: boo
     return inicial > 0 ? inicial.toFixed(2) : "";
   });
   const [valorEditado, setValorEditado] = React.useState(false);
-  const [metodo, setMetodo] = React.useState("pix");
-  const [data, setData] = React.useState("");
+  const [metodo, setMetodo] = React.useState("");
+  const [data, setData] = React.useState(hojeInput);
 
-  const desconto = parseFloat(descontoStr) || 0;
+  const desconto = comDesconto ? parseFloat(descontoStr) || 0 : 0; // desligado = sem desconto (remove o atual)
   const descontoInvalido = desconto < 0 || toCents(desconto) > toCents(original) || toCents(original - desconto) < toCents(jaPago);
-  const precisaMotivo = desconto > 0 && !motivo.trim();
+  const precisaMotivo = comDesconto && desconto > 0 && !motivo.trim();
+  const descontoVazio = comDesconto && desconto <= 0; // ligou o desconto mas não informou o valor
   const saldo = original - (descontoInvalido ? descontoAtual : desconto) - jaPago;
   const semSaldo = toCents(saldo) <= 0; // ex.: desconto de 100%: só confirma a baixa
 
@@ -96,10 +100,12 @@ function FormReceber({ conta, receber, onConfirm }: { conta: Conta; receber: boo
   const excede = toCents(valor) > toCents(saldo);
   const valorInvalido = !semSaldo && (valor <= 0 || excede);
   const parcial = !semSaldo && !valorInvalido && toCents(valor) < toCents(saldo);
-  const invalido = descontoInvalido || precisaMotivo || valorInvalido;
+  const invalido = descontoInvalido || precisaMotivo || descontoVazio || valorInvalido || !metodo || !data;
   const mudouDesconto = toCents(desconto) !== toCents(descontoAtual);
 
   return (
+    <>
+    <AppDialogContent>
     <Estrutura
       formulario={
         <Stack spacing={2.5}>
@@ -127,78 +133,84 @@ function FormReceber({ conta, receber, onConfirm }: { conta: Conta; receber: boo
               />
             )}
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-              <TextField select label="Método *" value={metodo} onChange={(e) => setMetodo(e.target.value)} size="small" fullWidth>
+              <TextField select label="Método *" value={metodo} onChange={(e) => setMetodo(e.target.value)} size="small" fullWidth helperText=" ">
                 {METODO_OPTIONS.map((m) => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
               </TextField>
-              <TextField
-                label={receber ? "Data do recebimento" : "Data do pagamento"}
-                type="date"
+              <CampoData
+                label={receber ? "Data do recebimento *" : "Data do pagamento *"}
                 value={data}
-                onChange={(e) => setData(e.target.value)}
-                size="small"
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-                helperText="Vazio = hoje"
+                onChange={setData}
+                error={!data}
+                helperText={!data ? "Informe a data" : " "}
               />
             </Stack>
           </Stack>
 
           <Divider />
 
-          <Stack spacing={2}>
-            <Titulo>Desconto (opcional)</Titulo>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-              <TextField
-                label="Valor do desconto"
-                type="number"
-                value={descontoStr}
-                onChange={(e) => setDescontoStr(e.target.value)}
-                size="small"
-                fullWidth
-                error={descontoStr !== "" && descontoInvalido}
-                helperText={
-                  descontoInvalido
-                    ? toCents(desconto) > toCents(original) ? `Máximo: ${brl(original)}` : "Deixaria o valor abaixo do que já foi recebido"
-                    : " "
-                }
-                InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }}
-                inputProps={{ min: 0, step: "0.01" }}
-              />
-              <TextField
-                label={desconto > 0 ? "Motivo do desconto *" : "Motivo do desconto"}
-                value={motivo}
-                onChange={(e) => setMotivo(e.target.value)}
-                size="small"
-                fullWidth
-                error={precisaMotivo}
-                helperText={precisaMotivo ? "Informe o motivo" : " "}
-              />
-            </Stack>
+          <Stack spacing={1}>
+            <FormControlLabel
+              sx={{ ml: 0 }}
+              control={<Switch checked={comDesconto} onChange={(e) => setComDesconto(e.target.checked)} />}
+              label={<Typography variant="body2" fontWeight={600}>Aplicar desconto</Typography>}
+            />
+            <Collapse in={comDesconto} unmountOnExit>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ pt: 1 }}>
+                <TextField
+                  label="Valor do desconto *"
+                  type="number"
+                  value={descontoStr}
+                  onChange={(e) => setDescontoStr(e.target.value)}
+                  size="small"
+                  fullWidth
+                  autoFocus
+                  error={descontoStr !== "" && descontoInvalido}
+                  helperText={
+                    descontoInvalido
+                      ? toCents(desconto) > toCents(original) ? `Máximo: ${brl(original)}` : "Deixaria o valor abaixo do que já foi recebido"
+                      : " "
+                  }
+                  InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }}
+                  inputProps={{ min: 0, step: "0.01" }}
+                />
+                <TextField
+                  label="Motivo do desconto *"
+                  value={motivo}
+                  onChange={(e) => setMotivo(e.target.value)}
+                  size="small"
+                  fullWidth
+                  error={precisaMotivo}
+                  helperText={precisaMotivo ? "Informe o motivo" : " "}
+                />
+              </Stack>
+            </Collapse>
           </Stack>
-
-          <Box>
-            <Button
-              variant="contained"
-              disableElevation
-              disabled={invalido}
-              sx={{ fontWeight: 700 }}
-              onClick={() =>
-                onConfirm({
-                  metodo,
-                  valor: semSaldo ? undefined : valor,
-                  data_pagamento: data || undefined,
-                  // O desconto só viaja quando mudou; 0 remove o desconto anterior.
-                  ...(mudouDesconto ? { desconto, motivo_desconto: motivo.trim() || undefined } : {}),
-                })
-              }
-            >
-              {parcial ? `Registrar ${receber ? "recebimento" : "pagamento"} parcial` : receber ? "Confirmar recebimento" : "Confirmar pagamento"}
-            </Button>
-          </Box>
         </Stack>
       }
       resumo={<Resumo conta={conta} receber={receber} desconto={descontoInvalido ? descontoAtual : desconto} />}
     />
+    </AppDialogContent>
+    <AppDialogActions>
+      <Button onClick={onCancel} variant="outlined">Cancelar</Button>
+        <Button
+          variant="contained"
+          disableElevation
+          disabled={invalido}
+          sx={{ fontWeight: 700 }}
+          onClick={() =>
+            onConfirm({
+              metodo,
+              valor: semSaldo ? undefined : valor,
+              data_pagamento: data,
+              // O desconto só viaja quando mudou; 0 remove o desconto anterior.
+              ...(mudouDesconto ? { desconto, motivo_desconto: desconto > 0 ? motivo.trim() : undefined } : {}),
+            })
+          }
+        >
+          {parcial ? `Registrar ${receber ? "recebimento" : "pagamento"} parcial` : receber ? "Confirmar recebimento" : "Confirmar pagamento"}
+        </Button>
+    </AppDialogActions>
+    </>
   );
 }
 
@@ -215,19 +227,14 @@ export function ReceberTituloDialog({ open, onClose, conta, tipo, onConfirm }: R
   const receber = tipo === "receber";
   return (
     <AppDialog open={open} onClose={onClose} onCloseClick={onClose} closeOnBackdrop={false} maxWidth="md" fullWidth title={receber ? "Receber" : "Pagar"} icon={<PaymentsRoundedIcon />} confirmDiscard={false}>
-      <AppDialogContent>
-        {open && conta && <FormReceber key={conta.id} conta={conta} receber={receber} onConfirm={onConfirm} />}
-      </AppDialogContent>
-      <AppDialogActions>
-        <Button onClick={onClose} variant="outlined">Cancelar</Button>
-      </AppDialogActions>
+      {open && conta && <FormReceber key={conta.id} conta={conta} receber={receber} onConfirm={onConfirm} onCancel={onClose} />}
     </AppDialog>
   );
 }
 
 export type DadosParcelar = { total_parcelas: number; data_primeira_parcela: string; metodo?: string };
 
-function FormRenegociar({ conta, receber, onConfirm }: { conta: Conta; receber: boolean; onConfirm: (d: DadosParcelar) => void }) {
+function FormRenegociar({ conta, receber, onConfirm, onCancel }: { conta: Conta; receber: boolean; onConfirm: (d: DadosParcelar) => void; onCancel: () => void }) {
   const saldo = Number(conta.valor_original) - Number(conta.desconto) - Number(conta.valor_pago);
   const [totalStr, setTotalStr] = React.useState("2");
   const [dataPrimeira, setDataPrimeira] = React.useState("");
@@ -236,6 +243,8 @@ function FormRenegociar({ conta, receber, onConfirm }: { conta: Conta; receber: 
   const invalido = n < 2 || n > 60 || !dataPrimeira;
 
   return (
+    <>
+    <AppDialogContent>
     <Estrutura
       formulario={
         <Stack spacing={2.5}>
@@ -255,32 +264,12 @@ function FormRenegociar({ conta, receber, onConfirm }: { conta: Conta; receber: 
               error={totalStr !== "" && (n < 2 || n > 60)}
               helperText={n >= 2 && n <= 60 ? `${brl(saldo / n)} por parcela` : "Entre 2 e 60 parcelas"}
             />
-            <TextField
-              label="Data da 1ª parcela *"
-              type="date"
-              value={dataPrimeira}
-              onChange={(e) => setDataPrimeira(e.target.value)}
-              size="small"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              helperText="As demais são mensais"
-            />
+            <CampoData label="Data da 1ª parcela *" value={dataPrimeira} onChange={setDataPrimeira} helperText="As demais são mensais" />
           </Stack>
           <TextField select label="Método (opcional)" value={metodo} onChange={(e) => setMetodo(e.target.value)} size="small" fullWidth>
             <MenuItem value=""><em>Não definido</em></MenuItem>
             {METODO_OPTIONS.map((m) => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
           </TextField>
-          <Box>
-            <Button
-              variant="contained"
-              disableElevation
-              disabled={invalido}
-              sx={{ fontWeight: 700 }}
-              onClick={() => onConfirm({ total_parcelas: n, data_primeira_parcela: dataPrimeira, metodo: metodo || undefined })}
-            >
-              Confirmar renegociação
-            </Button>
-          </Box>
         </Stack>
       }
       resumo={
@@ -292,6 +281,20 @@ function FormRenegociar({ conta, receber, onConfirm }: { conta: Conta; receber: 
         />
       }
     />
+    </AppDialogContent>
+    <AppDialogActions>
+      <Button onClick={onCancel} variant="outlined">Cancelar</Button>
+        <Button
+          variant="contained"
+          disableElevation
+          disabled={invalido}
+          sx={{ fontWeight: 700 }}
+          onClick={() => onConfirm({ total_parcelas: n, data_primeira_parcela: dataPrimeira, metodo: metodo || undefined })}
+        >
+          Confirmar renegociação
+        </Button>
+    </AppDialogActions>
+    </>
   );
 }
 
@@ -308,12 +311,7 @@ export function RenegociarTituloDialog({ open, onClose, conta, tipo, onConfirm }
   const receber = tipo === "receber";
   return (
     <AppDialog open={open} onClose={onClose} onCloseClick={onClose} closeOnBackdrop={false} maxWidth="md" fullWidth title="Renegociar" icon={<EventRepeatRoundedIcon />} confirmDiscard={false}>
-      <AppDialogContent>
-        {open && conta && <FormRenegociar key={conta.id} conta={conta} receber={receber} onConfirm={onConfirm} />}
-      </AppDialogContent>
-      <AppDialogActions>
-        <Button onClick={onClose} variant="outlined">Cancelar</Button>
-      </AppDialogActions>
+      {open && conta && <FormRenegociar key={conta.id} conta={conta} receber={receber} onConfirm={onConfirm} onCancel={onClose} />}
     </AppDialog>
   );
 }

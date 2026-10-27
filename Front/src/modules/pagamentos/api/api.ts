@@ -62,6 +62,12 @@ export function paraInputData(iso?: string | null) {
   return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
+/** Data de hoje, no fuso local, no formato de <input type="date"> (YYYY-MM-DD). */
+export function hojeInput() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export const brl = (v: number) =>
   Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 

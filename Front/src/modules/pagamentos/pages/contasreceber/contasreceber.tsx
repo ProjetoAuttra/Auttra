@@ -21,6 +21,7 @@ import { useConfirm } from "../../../../context/ConfirmContext";
 import { useListaPaginada } from "../../../../hooks/useListaPaginada";
 import ModuleHeader from "../../../../components/layout/ModuleHeader";
 import StatCard, { StatGroup } from "../../../../components/common/StatCard";
+import CampoData from "../../../../components/common/CampoData";
 import TextoLimitado from "../../../../components/common/TextoLimitado";
 import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
@@ -403,15 +404,11 @@ function EditarDialog({ open, conta, onClose, onConfirm }: {
         <Stack spacing={2}>
           <TextField label="Descrição" value={descricao} onChange={(e) => setDescricao(e.target.value)} size="small" fullWidth />
           <TextField label="Categoria" value={categoria} onChange={(e) => setCategoria(e.target.value)} size="small" fullWidth />
-          <TextField
+          <CampoData
             label="Data de vencimento"
-            type="date"
             value={vencimento}
-            onChange={(e) => setVencimento(e.target.value)}
-            size="small"
-            fullWidth
+            onChange={setVencimento}
             disabled={vencimentoTravado}
-            InputLabelProps={{ shrink: true }}
             helperText={
               vencimentoTravado
                 ? "Título já finalizado: o vencimento não pode ser alterado"
@@ -460,7 +457,7 @@ function NovaContaReceberDialog({ open, onClose, clientes, onConfirm }: {
           <TextField label="Descrição *" value={form.descricao} onChange={(e) => set("descricao", e.target.value)} size="small" fullWidth />
           <TextField label="Categoria" value={form.categoria} onChange={(e) => set("categoria", e.target.value)} size="small" fullWidth />
           <TextField label="Valor *" type="number" value={form.valor} onChange={(e) => set("valor", e.target.value)} size="small" fullWidth InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }} />
-          <TextField label="Vencimento *" type="date" value={form.data_vencimento} onChange={(e) => set("data_vencimento", e.target.value)} size="small" fullWidth InputLabelProps={{ shrink: true }} />
+          <CampoData label="Vencimento *" value={form.data_vencimento} onChange={(v) => set("data_vencimento", v)} />
           <TextField select label="Método" value={form.metodo} onChange={(e) => set("metodo", e.target.value)} size="small" fullWidth>
             {METODO_OPTIONS.map((m) => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
           </TextField>
