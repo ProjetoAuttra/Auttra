@@ -1,4 +1,41 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client.js";
+
+const D = (v: Prisma.Decimal.Value) => new Prisma.Decimal(v);
+
+function toPositiveDecimal(value: unknown, field: string) {
+  const n = typeof value === "string" ? Number(value) : (value as number);
+  if (typeof n !== "number" || !Number.isFinite(n) || n <= 0) throw new Error(`${field} deve ser um numero maior que zero.`);
+  return D(n).toDecimalPlaces(2);
+}
+
+function toDate(value: unknown, field: string) {
+  const d = new Date(value as any);
+  if (!value || Number.isNaN(d.getTime())) throw new Error(`${field} invalida.`);
+  return d;
+}
+
+/** Soma meses mantendo o dia, limitado ao ultimo dia do mes (31/jan + 1 mes = 28/fev). */
+function addMonths(base: Date, months: number) {
+  const d = new Date(base);
+  const day = d.getDate();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + months);
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day, last));
+  return d;
+}
+
+/** Trava a linha (SELECT ... FOR UPDATE) para que acoes concorrentes sobre o mesmo titulo sejam serializadas. */
+async function lockPagamento(tx: Prisma.TransactionClient, id: number, oficinaId: number) {
+  await tx.$queryRaw`SELECT id FROM pagamento WHERE id = ${id} AND oficina_id = ${oficinaId} AND deleted_at IS NULL FOR UPDATE`;
+  const pagamento = await tx.pagamento.findFirst({ where: { id, oficina_id: oficinaId, deleted_at: null } });
+  if (!pagamento) throw new Error("Pagamento não encontrado.");
+  return pagamento;
+}
+
+const valorLiquido = (p: { valor_original: Prisma.Decimal.Value; desconto: Prisma.Decimal.Value }) =>
+  D(p.valor_original).minus(D(p.desconto));
 
 type PagamentoInput = {
   cliente_id?: number | null;
@@ -87,6 +124,8 @@ export const PagamentosService = {
 
   async create(data: PagamentoInput) {
     validatePagamento(data);
+    toPositiveDecimal(data.valor, "valor");
+    toDate(data.data_vencimento, "data_vencimento");
     await validatePagamentoRelations(data, data.oficina_id);
     return await prisma.pagamento.create({
       data: {
@@ -100,10 +139,11 @@ export const PagamentosService = {
         valor_original:           data.valor,
         desconto:                 0,
         valor_pago:               0,
-        status:                   data.status ?? "pendente",
+        // titulos nascem pendentes; baixa so pelas acoes /pagar e /pagamento-parcial
+        status:                   "pendente",
         data_vencimento:          new Date(data.data_vencimento),
         data_vencimento_original: new Date(data.data_vencimento),
-        data_pagamento:           data.data_pagamento ? new Date(data.data_pagamento) : null,
+        data_pagamento:           null,
         categoria:                data.categoria ?? null,
         descricao:                data.descricao ?? null,
         observacao:               data.observacao ?? null,
@@ -113,30 +153,41 @@ export const PagamentosService = {
 
   async update(id: number, data: Partial<PagamentoInput>, oficinaId: number) {
     if (!id) throw new Error("ID do pagamento e obrigatorio.");
-    const existing = await prisma.pagamento.findFirst({
-      where: { id, deleted_at: null, oficina_id: oficinaId },
-    });
-    if (!existing) throw new Error("Pagamento nao encontrado.");
-    const merged = { ...existing, ...data };
-    validatePagamento({
-      oficina_id: oficinaId,
-      valor: Number(merged.valor),
-      tipo: merged.tipo,
-      cliente_id: merged.cliente_id,
-      ordem_servico_id: merged.ordem_servico_id,
-    });
-    await validatePagamentoRelations(merged, oficinaId);
-    return await prisma.pagamento.update({
-      where: { id },
-      data: {
-        ...data,
-        oficina_id:       oficinaId,
-        cliente_id:       data.cliente_id === undefined ? existing.cliente_id : data.cliente_id,
-        fornecedor_id:    data.fornecedor_id === undefined ? existing.fornecedor_id : data.fornecedor_id,
-        ordem_servico_id: data.ordem_servico_id === undefined ? existing.ordem_servico_id : data.ordem_servico_id,
-        data_vencimento:  data.data_vencimento ? new Date(data.data_vencimento) : existing.data_vencimento,
-        data_pagamento:   data.data_pagamento ? new Date(data.data_pagamento) : existing.data_pagamento,
-      },
+    return prisma.$transaction(async (tx) => {
+      const existing = await lockPagamento(tx, id, oficinaId);
+
+      // Whitelist: status, valor_pago, desconto, deleted_at etc. so mudam pelas acoes financeiras.
+      const patch: Prisma.pagamentoUncheckedUpdateInput = {};
+      for (const key of ["categoria", "descricao", "observacao"] as const) {
+        if (data[key] !== undefined) patch[key] = data[key];
+      }
+      if (data.metodo !== undefined) patch.metodo = data.metodo;
+      if (data.cliente_id !== undefined) patch.cliente_id = data.cliente_id;
+      if (data.fornecedor_id !== undefined) patch.fornecedor_id = data.fornecedor_id;
+      if (data.ordem_servico_id !== undefined) patch.ordem_servico_id = data.ordem_servico_id;
+      if (data.data_vencimento !== undefined) patch.data_vencimento = toDate(data.data_vencimento, "data_vencimento");
+
+      if (data.valor !== undefined) {
+        if (existing.status !== "pendente" || !D(existing.valor_pago).isZero()) {
+          throw new Error("So eh possivel alterar o valor de titulos pendentes sem pagamento registrado.");
+        }
+        const valor = toPositiveDecimal(data.valor, "valor");
+        if (D(existing.desconto).greaterThan(valor)) throw new Error("O desconto aplicado eh maior que o novo valor.");
+        patch.valor = valor;
+        patch.valor_original = valor; // pagar/parcelar calculam a partir de valor_original
+      }
+
+      const merged = { ...existing, ...patch } as any;
+      validatePagamento({
+        oficina_id: oficinaId,
+        valor: Number(merged.valor),
+        tipo: merged.tipo,
+        cliente_id: merged.cliente_id,
+        ordem_servico_id: merged.ordem_servico_id,
+      });
+      await validatePagamentoRelations(merged, oficinaId);
+
+      return tx.pagamento.update({ where: { id }, data: patch });
     });
   },
 
@@ -154,8 +205,11 @@ export const PagamentosService = {
   async extrato(oficina_id: number, from?: string, to?: string) {
     if (!oficina_id) throw new Error("oficina_id e obrigatorio.");
     const where: any = { oficina_id, deleted_at: null };
-    if (from && to) {
-      where.data_vencimento = { gte: new Date(from), lte: new Date(to) };
+    if (from || to) {
+      where.data_vencimento = {
+        ...(from ? { gte: toDate(from, "from") } : {}),
+        ...(to ? { lte: toDate(to, "to") } : {}),
+      };
     }
     const pagamentos = await prisma.pagamento.findMany({
       where,
@@ -170,79 +224,82 @@ export const PagamentosService = {
     return { totalRecebido, totalPagar, saldo: totalRecebido - totalPagar, pagamentos };
   },
 
-  // ── Ações financeiras ────────────────────────────────────────────────────────
+  // ── Ações financeiras (cada uma roda em transacao com a linha travada) ─────────
 
   async pagar(id: number, data: { metodo: string; data_pagamento?: string }, oficinaId: number) {
-    const existing = await prisma.pagamento.findFirst({
-      where: { id, oficina_id: oficinaId, deleted_at: null },
-    });
-    if (!existing) throw new Error("Pagamento não encontrado.");
-    if (existing.status === "pago") throw new Error("Este pagamento já foi registrado como pago.");
-    const valorLiquido = Number(existing.valor_original) - Number(existing.desconto);
-    return prisma.pagamento.update({
-      where: { id },
-      data: {
-        status:         "pago",
-        valor_pago:     valorLiquido,
-        metodo:         data.metodo as any,
-        data_pagamento: data.data_pagamento ? new Date(data.data_pagamento) : new Date(),
-      },
+    return prisma.$transaction(async (tx) => {
+      const existing = await lockPagamento(tx, id, oficinaId);
+      if (existing.status === "pago") throw new Error("Este pagamento já foi registrado como pago.");
+      if (existing.status === "cancelado") throw new Error("Não é possível pagar um título cancelado.");
+      return tx.pagamento.update({
+        where: { id },
+        data: {
+          status:         "pago",
+          valor_pago:     valorLiquido(existing),
+          metodo:         data.metodo as any,
+          data_pagamento: data.data_pagamento ? toDate(data.data_pagamento, "data_pagamento") : new Date(),
+        },
+      });
     });
   },
 
   async aplicarDesconto(id: number, data: { desconto: number; motivo_desconto: string }, oficinaId: number) {
-    const existing = await prisma.pagamento.findFirst({
-      where: { id, oficina_id: oficinaId, deleted_at: null },
-    });
-    if (!existing) throw new Error("Pagamento não encontrado.");
-    if (existing.status === "pago" || existing.status === "cancelado")
-      throw new Error("Não é possível aplicar desconto em pagamentos pagos ou cancelados.");
-    if (data.desconto > Number(existing.valor_original))
-      throw new Error("Desconto não pode ser maior que o valor original.");
-    if (!data.motivo_desconto?.trim())
-      throw new Error("Motivo do desconto é obrigatório.");
-    return prisma.pagamento.update({
-      where: { id },
-      data: { desconto: data.desconto, motivo_desconto: data.motivo_desconto },
+    return prisma.$transaction(async (tx) => {
+      const existing = await lockPagamento(tx, id, oficinaId);
+      if (existing.status === "pago" || existing.status === "cancelado")
+        throw new Error("Não é possível aplicar desconto em pagamentos pagos ou cancelados.");
+      const desconto = D(Number(data.desconto));
+      if (!Number.isFinite(Number(data.desconto)) || desconto.isNegative())
+        throw new Error("Desconto invalido.");
+      if (desconto.greaterThan(D(existing.valor_original)))
+        throw new Error("Desconto não pode ser maior que o valor original.");
+      if (D(existing.valor_original).minus(desconto).lessThan(D(existing.valor_pago)))
+        throw new Error("Desconto deixaria o valor abaixo do que ja foi pago.");
+      if (!data.motivo_desconto?.trim())
+        throw new Error("Motivo do desconto é obrigatório.");
+      return tx.pagamento.update({
+        where: { id },
+        data: { desconto, motivo_desconto: data.motivo_desconto },
+      });
     });
   },
 
   async renegociar(id: number, data: { nova_data_vencimento: string }, oficinaId: number) {
-    const existing = await prisma.pagamento.findFirst({
-      where: { id, oficina_id: oficinaId, deleted_at: null },
-    });
-    if (!existing) throw new Error("Pagamento não encontrado.");
-    if (existing.status === "pago" || existing.status === "cancelado")
-      throw new Error("Não é possível renegociar pagamentos pagos ou cancelados.");
-    return prisma.pagamento.update({
-      where: { id },
-      data: {
-        data_vencimento:   new Date(data.nova_data_vencimento),
-        vezes_renegociado: { increment: 1 },
-      },
+    const novaData = toDate(data.nova_data_vencimento, "nova_data_vencimento");
+    return prisma.$transaction(async (tx) => {
+      const existing = await lockPagamento(tx, id, oficinaId);
+      if (existing.status === "pago" || existing.status === "cancelado")
+        throw new Error("Não é possível renegociar pagamentos pagos ou cancelados.");
+      return tx.pagamento.update({
+        where: { id },
+        data: {
+          data_vencimento:   novaData,
+          vezes_renegociado: { increment: 1 },
+        },
+      });
     });
   },
 
   async pagamentoParcial(id: number, data: { valor_entrada: number; metodo: string }, oficinaId: number) {
-    const existing = await prisma.pagamento.findFirst({
-      where: { id, oficina_id: oficinaId, deleted_at: null },
-    });
-    if (!existing) throw new Error("Pagamento não encontrado.");
-    if (existing.status === "pago" || existing.status === "cancelado")
-      throw new Error("Não é possível registrar entrada em pagamentos pagos ou cancelados.");
-    if (data.valor_entrada <= 0)
-      throw new Error("Valor de entrada deve ser maior que zero.");
-    const novoValorPago = Number(existing.valor_pago) + data.valor_entrada;
-    const valorLiquido  = Number(existing.valor_original) - Number(existing.desconto);
-    const novoStatus    = novoValorPago >= valorLiquido ? "pago" : "parcial";
-    return prisma.pagamento.update({
-      where: { id },
-      data: {
-        valor_pago:     novoValorPago,
-        status:         novoStatus as any,
-        metodo:         data.metodo as any,
-        data_pagamento: novoStatus === "pago" ? new Date() : existing.data_pagamento,
-      },
+    const entrada = toPositiveDecimal(data.valor_entrada, "Valor de entrada");
+    return prisma.$transaction(async (tx) => {
+      const existing = await lockPagamento(tx, id, oficinaId);
+      if (existing.status === "pago" || existing.status === "cancelado")
+        throw new Error("Não é possível registrar entrada em pagamentos pagos ou cancelados.");
+      const liquido = valorLiquido(existing);
+      const novoValorPago = D(existing.valor_pago).plus(entrada);
+      if (novoValorPago.greaterThan(liquido))
+        throw new Error(`Valor excede o saldo restante (${liquido.minus(D(existing.valor_pago)).toFixed(2)}).`);
+      const quitado = novoValorPago.greaterThanOrEqualTo(liquido);
+      return tx.pagamento.update({
+        where: { id },
+        data: {
+          valor_pago:     novoValorPago,
+          status:         quitado ? "pago" : "parcial",
+          metodo:         data.metodo as any,
+          data_pagamento: quitado ? new Date() : existing.data_pagamento,
+        },
+      });
     });
   },
 
@@ -251,26 +308,29 @@ export const PagamentosService = {
     data: { total_parcelas: number; data_primeira_parcela: string; metodo?: string },
     oficinaId: number,
   ) {
-    const existing = await prisma.pagamento.findFirst({
-      where: { id, oficina_id: oficinaId, deleted_at: null },
-    });
-    if (!existing) throw new Error("Pagamento não encontrado.");
-    if (existing.status !== "pendente")
-      throw new Error("Só é possível parcelar pagamentos pendentes.");
-    if (data.total_parcelas < 2)
-      throw new Error("Total de parcelas deve ser no mínimo 2.");
-    const valorLiquido = Number(existing.valor_original) - Number(existing.desconto);
-    const valorParcela = valorLiquido / data.total_parcelas;
-    const dataPrimeira = new Date(data.data_primeira_parcela);
-    return prisma.$transaction(async (tx: any) => {
+    const total = Number(data.total_parcelas);
+    if (!Number.isInteger(total) || total < 2) throw new Error("Total de parcelas deve ser no mínimo 2.");
+    if (total > 120) throw new Error("Total de parcelas deve ser no máximo 120.");
+    const dataPrimeira = toDate(data.data_primeira_parcela, "data_primeira_parcela");
+
+    return prisma.$transaction(async (tx) => {
+      const existing = await lockPagamento(tx, id, oficinaId);
+      if (existing.status !== "pendente")
+        throw new Error("Só é possível parcelar pagamentos pendentes.");
+
+      // Divide em centavos; o resto vai para a ultima parcela para a soma fechar exatamente.
+      const centavos = valorLiquido(existing).times(100).toDecimalPlaces(0).toNumber();
+      const base = Math.floor(centavos / total);
+      const resto = centavos - base * total;
+
       await tx.pagamento.update({
         where: { id },
         data: { status: "cancelado", deleted_at: new Date() },
       });
       const parcelas = [];
-      for (let i = 0; i < data.total_parcelas; i++) {
-        const dataVencimento = new Date(dataPrimeira);
-        dataVencimento.setMonth(dataVencimento.getMonth() + i);
+      for (let i = 0; i < total; i++) {
+        const valorParcela = D(i === total - 1 ? base + resto : base).div(100);
+        const dataVencimento = addMonths(dataPrimeira, i);
         parcelas.push(await tx.pagamento.create({
           data: {
             oficina_id:               existing.oficina_id,
@@ -288,12 +348,12 @@ export const PagamentosService = {
             data_vencimento_original: dataVencimento,
             categoria:                existing.categoria,
             descricao:                existing.descricao
-              ? `${existing.descricao} (${i + 1}/${data.total_parcelas})`
-              : `Parcela ${i + 1}/${data.total_parcelas}`,
+              ? `${existing.descricao} (${i + 1}/${total})`
+              : `Parcela ${i + 1}/${total}`,
             observacao:               existing.observacao,
             pagamento_pai_id:         id,
             parcela_numero:           i + 1,
-            total_parcelas:           data.total_parcelas,
+            total_parcelas:           total,
           },
         }));
       }
