@@ -4,7 +4,6 @@ import {
   Chip,
   CircularProgress,
   MenuItem,
-  Paper,
   Select,
   Stack,
   Table,
@@ -32,8 +31,7 @@ import {
   PeriodFilter,
   ReportHeader,
   ReportPage,
-  todayISO,
-} from "../../shared/reportUtils";
+  todayISO, TituloSecao } from "../../shared/reportUtils";
 
 type Orcamento = {
   id: number;
@@ -162,8 +160,8 @@ export default function OrcamentosPerdidosRelatorio() {
       </StatGroup>
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
-          <Typography fontWeight={700} mb={1}>Principais perdas por item</Typography>
+        <Box sx={{ flex: 1 }}>
+          <TituloSecao>Principais perdas por item</TituloSecao>
           {Object.entries(servicosPerdidos).length ? Object.entries(servicosPerdidos)
             .sort((a, b) => b[1].valor - a[1].valor)
             .slice(0, 8)
@@ -173,10 +171,10 @@ export default function OrcamentosPerdidosRelatorio() {
                 <Typography variant="body2" fontWeight={600}>{item.qtd} - {brl(item.valor)}</Typography>
               </Stack>
             )) : <Typography variant="body2" color="text.secondary">Nenhum orçamento perdido no período.</Typography>}
-        </Paper>
+        </Box>
 
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
-          <Typography fontWeight={700} mb={1}>Follow-up prioritário</Typography>
+        <Box sx={{ flex: 1 }}>
+          <TituloSecao>Follow-up prioritário</TituloSecao>
           {pendentes.length ? [...pendentes]
             .sort((a, b) => daysBetween(b.data) - daysBetween(a.data) || Number(b.valor ?? 0) - Number(a.valor ?? 0))
             .slice(0, 8)
@@ -189,10 +187,11 @@ export default function OrcamentosPerdidosRelatorio() {
                 <Typography variant="body2" fontWeight={600}>{brl(Number(o.valor ?? 0))}</Typography>
               </Stack>
             )) : <Typography variant="body2" color="text.secondary">Nenhum orçamento pendente no período.</Typography>}
-        </Paper>
+        </Box>
       </Stack>
 
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflowX: "auto" }}>
+      <TituloSecao>Orçamentos perdidos</TituloSecao>
+      <Box sx={{ overflowX: "auto" }}>
         {linhas.length ? (
           <Table>
             <TableHead>
@@ -221,7 +220,7 @@ export default function OrcamentosPerdidosRelatorio() {
             </TableBody>
           </Table>
         ) : <EmptyReport message="Nenhum orçamento encontrado nesse filtro." />}
-      </Paper>
+      </Box>
     </ReportPage>
   );
 }

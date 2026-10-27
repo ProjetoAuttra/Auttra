@@ -3,7 +3,6 @@ import {
   Box,
   Chip,
   CircularProgress,
-  Paper,
   Stack,
   Table,
   TableBody,
@@ -24,8 +23,7 @@ import {
   MetricCard,
   StatGroup,
   ReportHeader,
-  ReportPage,
-} from "../../shared/reportUtils";
+  ReportPage, TituloSecao } from "../../shared/reportUtils";
 
 type Peca = {
   id: number;
@@ -132,18 +130,18 @@ export default function EstoqueCriticoRelatorio() {
       </StatGroup>
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
-          <Typography fontWeight={700} mb={1}>Maior dinheiro parado</Typography>
+        <Box sx={{ flex: 1 }}>
+          <TituloSecao>Maior dinheiro parado</TituloSecao>
           {topCapital.length ? topCapital.map((p) => (
             <Stack key={p.id} direction="row" justifyContent="space-between" py={0.75} gap={2}>
               <Typography variant="body2" noWrap>{p.nome}</Typography>
               <Typography variant="body2" fontWeight={600}>{brl(valorEstoque(p))}</Typography>
             </Stack>
           )) : <Typography variant="body2" color="text.secondary">Nenhuma peça cadastrada.</Typography>}
-        </Paper>
+        </Box>
 
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
-          <Typography fontWeight={700} mb={1}>Filtro</Typography>
+        <Box sx={{ flex: 1 }}>
+          <TituloSecao>Filtro</TituloSecao>
           <TextField
             size="small"
             fullWidth
@@ -151,10 +149,11 @@ export default function EstoqueCriticoRelatorio() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-        </Paper>
+        </Box>
       </Stack>
 
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflowX: "auto" }}>
+      <TituloSecao>Peças em estoque crítico</TituloSecao>
+      <Box sx={{ overflowX: "auto" }}>
         {filtradas.length ? (
           <Table>
             <TableHead>
@@ -190,7 +189,7 @@ export default function EstoqueCriticoRelatorio() {
             </TableBody>
           </Table>
         ) : <EmptyReport message="Nenhuma peça encontrada." />}
-      </Paper>
+      </Box>
     </ReportPage>
   );
 }

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {
-  Box, Stack, Typography, Paper, Table, TableBody, TableCell,
+  Box, Stack, Typography, Table, TableBody, TableCell,
   TableHead, TableRow, Button, CircularProgress
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
@@ -85,12 +85,7 @@ export default function RelatorioClientes() {
         </Button>
       </Stack>
 
-      <Paper
-        variant="outlined"
-        sx={{
-          borderRadius: 1.5,
-        }}
-      >
+      <Box>
         {clientes.length ? (
           <Table>
             <TableHead>
@@ -123,7 +118,7 @@ export default function RelatorioClientes() {
             </Typography>
           </Box>
         )}
-      </Paper>
+      </Box>
     </Box>
   );
 }

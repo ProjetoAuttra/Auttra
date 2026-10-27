@@ -1,19 +1,15 @@
 import * as React from "react";
 import {
   Box,
-  Chip,
   CircularProgress,
-  Paper,
-  Stack,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableRow,
-  Typography,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import api from "../../../../api/api";
+import { METODO_LABEL, METODO_OPTIONS } from "../../../pagamentos/api/api";
 import { useAuth } from "../../../../context/AuthContext";
 import { useToast } from "../../../../context/ToastContext";
 import {
@@ -28,8 +24,8 @@ import {
   PeriodFilter,
   ReportHeader,
   ReportPage,
-  todayISO,
-} from "../../shared/reportUtils";
+  todayISO, TituloSecao } from "../../shared/reportUtils";
+import { GraficoPizza, GraficoEntradasSaidas, chaveSemana, rotuloSemana, semanasDoPeriodo } from "../../shared/graficos";
 
 type Pagamento = {
   id: number;
@@ -100,10 +96,6 @@ export default function RelatorioFinanceiro() {
   const saldoRealizado = recebido - pago;
   const saldoProjetado = recebido + aReceber - pago - aPagar;
 
-  const cobrarPrimeiro = [...vencidos]
-    .sort((a, b) => valorAberto(b) - valorAberto(a))
-    .slice(0, 10);
-
   const porMetodo = filtrados
     .filter((p) => isReceber(p) && isPago(p))
     .reduce<Record<string, number>>((acc, p) => {
@@ -111,6 +103,24 @@ export default function RelatorioFinanceiro() {
       acc[metodo] = (acc[metodo] ?? 0) + valorPago(p);
       return acc;
     }, {});
+
+  const semanasChart = React.useMemo(() => {
+    const semanas = semanasDoPeriodo(dataInicio, dataFim);
+    const porSemana = new Map(semanas.map((d) => [chaveSemana(d), { rotulo: rotuloSemana(d), entradas: 0, saidas: 0 }]));
+    for (const p of filtrados) {
+      if (!isPago(p) || !p.data_pagamento) continue;
+      const alvo = porSemana.get(chaveSemana(new Date(p.data_pagamento)));
+      if (!alvo) continue;
+      if (isReceber(p)) alvo.entradas += valorPago(p);
+      else alvo.saidas += valorPago(p);
+    }
+    return [...porSemana.values()];
+  }, [filtrados, dataInicio, dataFim]);
+
+  const METODOS_ORDEM = METODO_OPTIONS.map((m) => m.label);
+  const itensMetodo = Object.entries(porMetodo)
+    .map(([metodo, total]) => ({ rotulo: METODO_LABEL[metodo] ?? metodo.replace("_", " ").replace(/^./, (c) => c.toUpperCase()), valor: total }))
+    .sort((a, b) => b.valor - a.valor);
 
   const handleExportarCSV = () => {
     if (!filtrados.length) {
@@ -146,7 +156,7 @@ export default function RelatorioFinanceiro() {
 
       <PeriodFilter dataInicio={dataInicio} dataFim={dataFim} onDataInicio={setDataInicio} onDataFim={setDataFim} />
 
-      <StatGroup>
+      <StatGroup espalhar>
         <MetricCard label="Recebido" value={brl(recebido)} tone="success" />
         <MetricCard label="A receber" value={brl(aReceber)} tone="info" />
         <MetricCard label="Vencido" value={brl(valorVencido)} tone={valorVencido > 0 ? "error" : "default"} helper={`${vencidos.length} conta(s)`} />
@@ -154,76 +164,52 @@ export default function RelatorioFinanceiro() {
         <MetricCard label="Saldo projetado" value={brl(saldoProjetado)} tone={saldoProjetado < 0 ? "error" : "success"} helper={`Realizado: ${brl(saldoRealizado)}`} />
       </StatGroup>
 
-      <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
-          <Typography fontWeight={700} mb={1}>Cobrar primeiro</Typography>
-          {cobrarPrimeiro.length ? cobrarPrimeiro.map((p) => (
-            <Stack key={p.id} direction="row" justifyContent="space-between" alignItems="center" py={0.75} gap={2}>
-              <Stack minWidth={0}>
-                <Typography variant="body2" fontWeight={600} noWrap>{p.cliente?.nome ?? "Cliente não informado"}</Typography>
-                <Typography variant="caption" color="text.secondary">Venceu em {dateBr(p.data_vencimento)}</Typography>
-              </Stack>
-              <Typography variant="body2" fontWeight={600} color="error.main">{brl(valorAberto(p))}</Typography>
-            </Stack>
-          )) : <Typography variant="body2" color="text.secondary">Nenhuma conta vencida no período.</Typography>}
-        </Paper>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "3fr 2fr" }, gap: { xs: 3, lg: 6 }, mb: 4 }}>
+        <Box>
+          <TituloSecao>Entradas e saídas por semana</TituloSecao>
+          <GraficoEntradasSaidas semanas={semanasChart} semDados="Nenhum recebimento ou pagamento realizado no período." />
+        </Box>
+        <Box>
+          <TituloSecao>Recebido por forma de pagamento</TituloSecao>
+          <GraficoPizza itens={itensMetodo} ordemCores={METODOS_ORDEM} semDados="Nenhum recebimento pago no período." />
+        </Box>
+      </Box>
 
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
-          <Typography fontWeight={700} mb={1}>Recebido por forma de pagamento</Typography>
-          {Object.entries(porMetodo).length ? Object.entries(porMetodo).map(([metodo, total]) => (
-            <Stack key={metodo} direction="row" justifyContent="space-between" py={0.75}>
-              <Typography variant="body2" sx={{ textTransform: "capitalize" }}>{metodo.replace("_", " ")}</Typography>
-              <Typography variant="body2" fontWeight={600}>{brl(total)}</Typography>
-            </Stack>
-          )) : <Typography variant="body2" color="text.secondary">Nenhum recebimento pago no período.</Typography>}
-        </Paper>
-      </Stack>
-
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflowX: "auto" }}>
+      <TituloSecao>Movimentações</TituloSecao>
+      <Box sx={{ overflowX: "auto" }}>
         {filtrados.length ? (
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell>Tipo</TableCell>
-                <TableCell>Status</TableCell>
                 <TableCell>Cliente/Fornecedor</TableCell>
                 <TableCell>Descrição</TableCell>
-                <TableCell align="right">Valor</TableCell>
-                <TableCell>Vencimento</TableCell>
-                <TableCell>Pagamento</TableCell>
+                <TableCell align="center">Vencimento</TableCell>
+                <TableCell align="center">Valor</TableCell>
+                <TableCell align="center">Pagamento</TableCell>
+                <TableCell align="center">Status</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filtrados.map((p) => {
                 const vencido = isReceber(p) && isPendente(p) && p.data_vencimento && new Date(p.data_vencimento) < hoje;
+                const status = vencido ? "Vencido" : p.status ? p.status.charAt(0).toUpperCase() + p.status.slice(1) : "-";
                 return (
                   <TableRow key={p.id} hover>
-                    <TableCell>
-                      <Chip size="small" label={isReceber(p) ? "Receber" : "Pagar"} color={isReceber(p) ? "success" : "warning"} sx={{ fontWeight: 700 }} />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={vencido ? "vencido" : p.status || "-"}
-                        sx={{
-                          fontWeight: 700,
-                          bgcolor: (t) => alpha(vencido ? t.palette.error.main : t.palette.text.primary, vencido ? 0.12 : 0.06),
-                          color: vencido ? "error.main" : "text.secondary",
-                        }}
-                      />
-                    </TableCell>
+                    <TableCell>{isReceber(p) ? "Receber" : "Pagar"}</TableCell>
                     <TableCell>{p.cliente?.nome ?? p.fornecedor?.nome ?? "-"}</TableCell>
                     <TableCell>{p.descricao ?? p.categoria ?? "-"}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>{brl(Number(p.valor ?? 0))}</TableCell>
-                    <TableCell>{dateBr(p.data_vencimento)}</TableCell>
-                    <TableCell>{dateBr(p.data_pagamento)}</TableCell>
+                    <TableCell align="center">{dateBr(p.data_vencimento)}</TableCell>
+                    <TableCell align="center">{brl(Number(p.valor ?? 0))}</TableCell>
+                    <TableCell align="center">{dateBr(p.data_pagamento)}</TableCell>
+                    <TableCell align="center">{status}</TableCell>
                   </TableRow>
                 );
               })}
             </TableBody>
           </Table>
         ) : <EmptyReport message="Nenhum movimento financeiro encontrado no período." />}
-      </Paper>
+      </Box>
     </ReportPage>
   );
 }

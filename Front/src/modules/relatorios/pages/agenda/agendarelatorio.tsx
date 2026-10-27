@@ -3,7 +3,6 @@ import {
   Box,
   Stack,
   Typography,
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -117,7 +116,7 @@ export default function RelatorioAgenda() {
         </Button>
       </Stack>
 
-      <Paper variant="outlined" sx={{ borderRadius: 1.5 }}>
+      <Box>
         {agenda.length ? (
           <Table>
             <TableHead>
@@ -149,7 +148,7 @@ export default function RelatorioAgenda() {
             </Typography>
           </Box>
         )}
-      </Paper>
+      </Box>
     </Box>
   );
 }
