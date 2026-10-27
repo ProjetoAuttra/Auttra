@@ -7,8 +7,8 @@ import {
 import { alpha } from "@mui/material/styles";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
-import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import SellRoundedIcon from "@mui/icons-material/SellRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
 import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
@@ -27,12 +27,12 @@ import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../components/common/AppDialog";
 import api from "../../../../api/api";
-import { type Conta, brl, isVencido, valorLiquido, valorRestante, METODO_LABEL, METODO_OPTIONS, criarPagamento, atualizarPagamento, marcarComoPago, estornarPagamento, aplicarDesconto, renegociarPrazo, parcelar, cancelarPagamento, resumoPagamentos, type ResumoContas } from "../../api/api";
+import { type Conta, brl, isVencido, valorLiquido, valorRestante, formatarData, METODO_OPTIONS, criarPagamento, atualizarPagamento, marcarComoPago, estornarPagamento, aplicarDesconto, renegociarPrazo, parcelar, cancelarPagamento, resumoPagamentos, type ResumoContas } from "../../api/api";
 import {
-  ReceberDialog, EstornarDialog, MovimentosDialog, DescontoDialog, RenegociarDialog, ParcelarDialog,
+  ReceberDialog, EstornarDialog, DetalhesDialog, DescontoDialog, RenegociarDialog, ParcelarDialog,
 } from "../../dialogs/index";
 
-type Acao = "pagar" | "estornar" | "historico" | "desconto" | "renegociar" | "parcelar" | "editar" | null;
+type Acao = "pagar" | "estornar" | "detalhes" | "desconto" | "renegociar" | "parcelar" | "editar" | null;
 
 function StatusChip({ conta }: { conta: Conta }) {
   if (isVencido(conta))
@@ -152,7 +152,7 @@ export default function ContasReceber() {
       />
 
       {/* Cards */}
-      <StatGroup>
+      <StatGroup espalhar>
         {resumo.map((r) => (
           <StatCard key={r.label} label={r.label} value={r.value} icon={r.icon} tone={r.tone} />
         ))}
@@ -166,10 +166,9 @@ export default function ContasReceber() {
               <TableRow>
                 <TableCell>Responsável</TableCell>
                 <TableCell>Descrição</TableCell>
-                <TableCell>Valor</TableCell>
-                <TableCell>Vencimento</TableCell>
-                <TableCell>Método</TableCell>
-                <TableCell>Status</TableCell>
+                <TableCell align="center">Valor</TableCell>
+                <TableCell align="center">Vencimento</TableCell>
+                <TableCell align="center">Status</TableCell>
                 <TableCell align="right">Ações</TableCell>
               </TableRow>
             </TableHead>
@@ -196,8 +195,8 @@ export default function ContasReceber() {
                         {conta.descricao ?? "—"}
                       </Typography>
                     </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={0.75} alignItems="center">
+                    <TableCell align="center">
+                      <Stack direction="row" spacing={0.75} alignItems="center" justifyContent="center">
                         <Typography
                           variant="body2" fontWeight={600}
                           color={conta.status === "pago" ? "success.main" : vencido ? "error.main" : "text.primary"}
@@ -223,38 +222,37 @@ export default function ContasReceber() {
                         </Typography>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={0.5} alignItems="center">
+                    <TableCell align="center">
+                      <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
                         <Typography variant="body2" color={vencido ? "error.main" : "text.primary"} fontWeight={vencido ? 700 : 400}>
-                          {new Date(conta.data_vencimento).toLocaleDateString("pt-BR")}
+                          {formatarData(conta.data_vencimento)}
                         </Typography>
                         {conta.vezes_renegociado > 0 && (
-                          <Tooltip title={`Data original: ${conta.data_vencimento_original ? new Date(conta.data_vencimento_original).toLocaleDateString("pt-BR") : "—"} · Renegociado ${conta.vezes_renegociado}×`}>
+                          <Tooltip title={`Data original: ${formatarData(conta.data_vencimento_original)} · Renegociado ${conta.vezes_renegociado}×`}>
                             <EventRepeatRoundedIcon sx={{ fontSize: 13, color: "warning.main", cursor: "help" }} />
                           </Tooltip>
                         )}
                       </Stack>
                     </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {conta.metodo ? (METODO_LABEL[conta.metodo] ?? conta.metodo) : "—"}
-                      </Typography>
-                    </TableCell>
-                    <TableCell><StatusChip conta={conta} /></TableCell>
+                    <TableCell align="center"><StatusChip conta={conta} /></TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                        <Tooltip title="Receber">
-                          <span>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleReceberDireto(conta)}
-                              disabled={conta.status === "pago" || conta.status === "cancelado"}
-                              sx={{ color: "success.main" }}
-                            >
-                              <CheckCircleRoundedIcon fontSize="small" />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
+                        <Button
+                          size="small"
+                          variant="text"
+                          color="success"
+                          onClick={() => handleReceberDireto(conta)}
+                          disabled={conta.status === "pago" || conta.status === "cancelado"}
+                          sx={{
+                            fontWeight: 700,
+                            letterSpacing: 0.6,
+                            px: 1.75,
+                            // Já recebido: continua visível, mas bem mais apagado.
+                            "&.Mui-disabled": { color: "success.main", opacity: 0.35 },
+                          }}
+                        >
+                          RECEBER
+                        </Button>
                         <IconButton size="small" aria-label="Mais ações" onClick={(e) => handleMenuOpen(e, conta)}>
                           <MoreVertRoundedIcon fontSize="small" />
                         </IconButton>
@@ -264,7 +262,7 @@ export default function ContasReceber() {
                 );
               }) : (
                 <TableRow>
-                  <TableCell colSpan={7} sx={{ border: 0 }}>
+                  <TableCell colSpan={6} sx={{ border: 0 }}>
                     <EmptyState
                       icon={<TrendingUpRoundedIcon />}
                       title="Nenhuma conta a receber"
@@ -297,9 +295,10 @@ export default function ContasReceber() {
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <MenuItem onClick={() => openAcao("historico")}>
-          <HistoryRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "text.secondary" }} />Histórico de recebimentos
+        <MenuItem onClick={() => openAcao("detalhes")}>
+          <VisibilityRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "text.secondary" }} />Detalhes
         </MenuItem>
+        <Divider />
         {can("financeiro", "delete") && (
           <MenuItem onClick={() => openAcao("estornar")} disabled={selected?.status !== "pago" && selected?.status !== "parcial"}>
             <UndoRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "warning.main" }} />Estornar recebimento
@@ -348,10 +347,10 @@ export default function ContasReceber() {
         valorPago={selected ? Number(selected.valor_pago) : 0}
         onConfirm={(d) => handleAcao(() => estornarPagamento(selected!.id, d), "Pagamento estornado!")}
       />
-      <MovimentosDialog
-        open={acao === "historico"}
+      <DetalhesDialog
+        open={acao === "detalhes"}
         onClose={() => setAcao(null)}
-        contaId={selected?.id ?? null}
+        conta={selected}
         tipo="receber"
       />
       <DescontoDialog
