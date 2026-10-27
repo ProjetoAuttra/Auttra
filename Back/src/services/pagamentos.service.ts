@@ -119,6 +119,67 @@ async function validatePagamentoRelations(data: any, oficinaId: number) {
   }
 }
 
+/**
+ * Registra um recebimento/pagamento de `entrada` no titulo (ja travado).
+ * - Quitando o saldo, o titulo fica "pago".
+ * - Pagando menos que o saldo, o titulo vira "pago" pelo valor recebido e o que falta nasce como um
+ *   novo titulo pendente, com o mesmo vencimento: nao existe mais titulo "parcial".
+ */
+async function registrarEntrada(
+  tx: Prisma.TransactionClient,
+  existing: Awaited<ReturnType<typeof lockPagamento>>,
+  entrada: Prisma.Decimal,
+  metodo: string,
+  dataPagamento: Date,
+  usuarioId?: number | null
+) {
+  const restante = valorLiquido(existing).minus(D(existing.valor_pago));
+  const totalPago = D(existing.valor_pago).plus(entrada);
+  const quitado = entrada.greaterThanOrEqualTo(restante);
+
+  // Parcial: o titulo passa a valer exatamente o que foi pago (o desconto ja dado fica nele).
+  const novoOriginal = quitado ? undefined : totalPago.plus(D(existing.desconto));
+
+  const atualizado = await tx.pagamento.update({
+    where: { id: existing.id },
+    data: {
+      status: "pago",
+      valor_pago: totalPago,
+      metodo: metodo as any,
+      data_pagamento: dataPagamento,
+      ...(novoOriginal ? { valor_original: novoOriginal, valor: novoOriginal } : {}),
+    },
+    include: relacoes,
+  });
+  await registrarMovimento(tx, existing, { tipo: "pagamento", valor: entrada, metodo, usuarioId });
+
+  if (quitado) return atualizado;
+
+  const saldo = restante.minus(entrada);
+  const tituloSaldo = await tx.pagamento.create({
+    data: {
+      cliente_id: existing.cliente_id,
+      oficina_id: existing.oficina_id,
+      ordem_servico_id: existing.ordem_servico_id,
+      fornecedor_id: existing.fornecedor_id,
+      tipo: existing.tipo,
+      metodo: existing.metodo,
+      valor: saldo,
+      valor_original: saldo,
+      status: "pendente",
+      data_vencimento: existing.data_vencimento,
+      data_vencimento_original: existing.data_vencimento_original,
+      vezes_renegociado: existing.vezes_renegociado,
+      categoria: existing.categoria,
+      descricao: existing.descricao,
+      observacao: `Saldo do título #${existing.id}`,
+      pagamento_pai_id: existing.id,
+    },
+    include: relacoes,
+  });
+  return { ...atualizado, titulo_saldo: tituloSaldo };
+}
+
 export const PagamentosService = {
   async list(
     oficina_id: number,
@@ -362,23 +423,14 @@ export const PagamentosService = {
         throw new Error(`Valor excede o saldo restante (${restante.toFixed(2)}).`);
       }
 
-      const quitado = D(existing.valor_pago).plus(entrada).greaterThanOrEqualTo(liquido);
-      const atualizado = await tx.pagamento.update({
-        where: { id },
-        data: {
-          status:         quitado ? "pago" : "parcial",
-          valor_pago:     D(existing.valor_pago).plus(entrada),
-          metodo:         data.metodo as any,
-          data_pagamento: quitado
-            ? (data.data_pagamento ? toDate(data.data_pagamento, "data_pagamento") : new Date())
-            : existing.data_pagamento,
-        },
-        include: relacoes,
-      });
-      if (entrada.greaterThan(0)) {
-        await registrarMovimento(tx, existing, { tipo: "pagamento", valor: entrada, metodo: data.metodo, usuarioId });
-      }
-      return atualizado;
+      return registrarEntrada(
+        tx,
+        existing,
+        entrada,
+        data.metodo,
+        data.data_pagamento ? toDate(data.data_pagamento, "data_pagamento") : new Date(),
+        usuarioId
+      );
     });
   },
 
@@ -427,23 +479,10 @@ export const PagamentosService = {
       const existing = await lockPagamento(tx, id, oficinaId);
       if (existing.status === "pago" || existing.status === "cancelado")
         throw new Error("Não é possível registrar entrada em pagamentos pagos ou cancelados.");
-      const liquido = valorLiquido(existing);
-      const novoValorPago = D(existing.valor_pago).plus(entrada);
-      if (novoValorPago.greaterThan(liquido))
-        throw new Error(`Valor excede o saldo restante (${liquido.minus(D(existing.valor_pago)).toFixed(2)}).`);
-      const quitado = novoValorPago.greaterThanOrEqualTo(liquido);
-      const atualizado = await tx.pagamento.update({
-        where: { id },
-        data: {
-          valor_pago:     novoValorPago,
-          status:         quitado ? "pago" : "parcial",
-          metodo:         data.metodo as any,
-          data_pagamento: quitado ? new Date() : existing.data_pagamento,
-        },
-        include: relacoes,
-      });
-      await registrarMovimento(tx, existing, { tipo: "pagamento", valor: entrada, metodo: data.metodo, usuarioId });
-      return atualizado;
+      const restante = valorLiquido(existing).minus(D(existing.valor_pago));
+      if (entrada.greaterThan(restante))
+        throw new Error(`Valor excede o saldo restante (${restante.toFixed(2)}).`);
+      return registrarEntrada(tx, existing, entrada, data.metodo, new Date(), usuarioId);
     });
   },
 
