@@ -1,6 +1,7 @@
 import { renderizarPdf } from "./pdfBrowser.js";
 import { Response } from "express";
 import { prisma } from "../prisma/client.js";
+import { valorPorExtenso } from "../utils/extenso.js";
 import { HttpError } from "../utils/httpError.js";
 import {
   assinaturas,
@@ -12,7 +13,8 @@ import {
   documento,
   formasPagamento,
   tabelaItens,
-  tabelaRecebimentos,
+  destaqueRecibo,
+  formaPagamentoRecibo,
   type ItemPdf,
 } from "./pdfTemplates.js";
 
@@ -181,25 +183,24 @@ export const PdfHtmlService = {
       : [{ data: pag.data_pagamento ?? pag.updated_at, metodo: pag.metodo ? METODO_LABEL[pag.metodo] ?? pag.metodo : "—", valor: pag.valor_pago }]);
     const total = recebidos.length ? recebidos.reduce((acc, m) => acc + Number(m.valor), 0) : pag.valor_pago;
 
+    const totalNumero = Number(total);
     const corpo = [
       cabecalho(pag.oficina, {
         tipo: "Recibo",
         numero: pag.id,
-        status: { label: "Recebido", classe: "ok" },
         meta: [`Emitido em ${dataBr(new Date(), true)}`],
       }),
-      `<div class="colunas c2">
-        ${blocoDados("Recebido de", pag.cliente?.nome ?? "", [pag.cliente?.telefone, pag.cliente?.email, pag.cliente?.cpf ? `CPF/CNPJ: ${pag.cliente.cpf}` : null])}
-        ${blocoDados("Referente a", pag.descricao?.trim() || "Recebimento", [
-          pag.ordem_servico_id ? `Ordem de serviço Nº ${String(pag.ordem_servico_id).padStart(4, "0")}` : null,
-          `Vencimento: ${dataBr(pag.data_vencimento)}`,
-        ])}
-      </div>`,
-      tabelaRecebimentos(linhas, total),
-      assinaturas(`Recebido por — ${pag.oficina.nome}`, `Cliente — ${pag.cliente?.nome ?? ""}`),
+      destaqueRecibo(pag.cliente?.nome ?? "", totalNumero, valorPorExtenso(totalNumero)),
+      `<div class="secao">${blocoDados("Referente a", pag.descricao?.trim() || "Recebimento", [
+        pag.ordem_servico_id ? `Ordem de serviço Nº ${String(pag.ordem_servico_id).padStart(4, "0")}` : null,
+        `Vencimento: ${dataBr(pag.data_vencimento)}`,
+        pag.cliente?.cpf ? `CPF/CNPJ do cliente: ${pag.cliente.cpf}` : null,
+      ])}</div>`,
+      formaPagamentoRecibo(linhas),
+      assinaturas("Cliente", "Oficina"),
     ].join("");
 
-    const pdfBuffer = await renderPdf(documento(pag.oficina, corpo, `Recibo Nº ${pag.id}`));
+    const pdfBuffer = await renderPdf(documento(pag.oficina, corpo, `Recibo Nº ${pag.id}`, { rodapeSimples: true }));
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename=recibo_${pag.id}.pdf`);
     res.end(pdfBuffer);
