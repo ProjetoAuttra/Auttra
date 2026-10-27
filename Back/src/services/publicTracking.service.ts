@@ -1,5 +1,5 @@
 import { prisma } from "../prisma/client.js";
-import { shortLinks } from "./shortLinks.js";
+import { LinksPublicosService } from "./linksPublicos.service.js";
 
 const toNumber = (value: unknown) => Number(value ?? 0);
 const toIso = (value?: Date | string | null) => value ? new Date(value).toISOString() : null;
@@ -88,7 +88,7 @@ function buildOrcamentoTimeline(status: string, createdAt: string | null) {
 
 export const PublicTrackingService = {
   async getByCode(code: string) {
-    const link = shortLinks.get(code);
+    const link = await LinksPublicosService.resolver(code);
     if (!link) return null;
 
     if (link.osId) {
