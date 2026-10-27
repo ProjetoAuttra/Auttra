@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "./utils";
 import api from "../api/api";
 import { DetalhesDialog, EstornarDialog, MovimentosDialog, ReceberDialog } from "../modules/pagamentos/dialogs";
+import { GerenciarTituloDialog } from "../modules/pagamentos/dialogs/GerenciarTituloDialog";
 import { formatarData, type Conta } from "../modules/pagamentos/api/api";
 
 vi.mock("../api/api", () => ({
@@ -253,5 +254,100 @@ describe("formatarData", () => {
     expect(formatarData("2026-10-20T15:00:00.000Z")).toBe("20/10/2026");
     expect(formatarData(null)).toBe("—");
     expect(formatarData("lixo")).toBe("—");
+  });
+});
+
+describe("GerenciarTituloDialog", () => {
+  const conta: Conta = {
+    id: 9,
+    tipo: "receber",
+    status: "pendente",
+    valor: 300,
+    valor_original: 300,
+    desconto: 0,
+    valor_pago: 0,
+    data_vencimento: "2026-11-01T00:00:00.000Z",
+    vezes_renegociado: 0,
+    metodo: "pix",
+    descricao: "Entrada do orçamento",
+    cliente: { id: 1, nome: "Ana Beatriz Costa" },
+  };
+
+  const setup = (c: Conta = conta, abaInicial?: "receber" | "desconto" | "renegociar" | "parcelar") => {
+    const h = { onReceber: vi.fn(), onDesconto: vi.fn(), onRenegociar: vi.fn(), onParcelar: vi.fn() };
+    renderWithProviders(<GerenciarTituloDialog open onClose={() => {}} conta={c} tipo="receber" abaInicial={abaInicial} {...h} />);
+    return h;
+  };
+  const aba = (nome: RegExp | string) => userEvent.setup().click(screen.getByRole("tab", { name: nome }));
+
+  it("abre na aba Receber com o resumo do título ao lado", () => {
+    setup();
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Receber", "Desconto", "Renegociar prazo", "Parcelar"]);
+    expect(screen.getByRole("tab", { name: "Receber" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("Ana Beatriz Costa")).toBeInTheDocument();
+    expect(screen.getByText("Entrada do orçamento")).toBeInTheDocument();
+    expect(screen.getByText("Saldo a receber").nextElementSibling?.textContent?.replace(/\s/g, " ")).toBe(brl(300));
+  });
+
+  it("receber: valor vem com o saldo; parcial avisa do saldo e cada aba tem seu botão", async () => {
+    const h = setup();
+    const user = userEvent.setup();
+    const campo = screen.getByLabelText(/valor recebido/i) as HTMLInputElement;
+    expect(campo.value).toBe("300.00");
+
+    await user.clear(campo);
+    await user.type(campo, "100");
+    expect(screen.getByText(/será lançado como um novo título pendente/i).textContent?.replace(/\s/g, " ")).toContain(brl(200));
+    await user.click(screen.getByRole("button", { name: /registrar recebimento parcial/i }));
+
+    expect(h.onReceber).toHaveBeenCalledWith({ metodo: "pix", valor: 100, data_pagamento: undefined });
+    expect(h.onDesconto).not.toHaveBeenCalled();
+  });
+
+  it("desconto: valida o valor e o motivo e confirma só pela própria aba", async () => {
+    const h = setup();
+    await aba("Desconto");
+    const user = userEvent.setup();
+    const botao = () => screen.getByRole("button", { name: /aplicar desconto/i }) as HTMLButtonElement;
+    expect(botao().disabled).toBe(true);
+
+    await user.type(screen.getByLabelText(/valor do desconto/i), "50");
+    expect(screen.getByText(/valor final/i).textContent?.replace(/\s/g, " ")).toContain(brl(250));
+    expect(botao().disabled).toBe(true); // falta o motivo
+    await user.type(screen.getByLabelText(/motivo do desconto/i), "Cliente antigo");
+    await user.click(botao());
+
+    expect(h.onDesconto).toHaveBeenCalledWith({ desconto: 50, motivo_desconto: "Cliente antigo" });
+    expect(h.onReceber).not.toHaveBeenCalled();
+  });
+
+  it("renegociar prazo envia a nova data", async () => {
+    const h = setup();
+    await aba(/renegociar/i);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/nova data de vencimento/i), "2026-12-15");
+    await user.click(screen.getByRole("button", { name: /salvar nova data/i }));
+    expect(h.onRenegociar).toHaveBeenCalledWith({ nova_data_vencimento: "2026-12-15" });
+  });
+
+  it("parcelar mostra o valor por parcela e envia o parcelamento; só vale para título pendente", async () => {
+    const h = setup();
+    await aba("Parcelar");
+    const user = userEvent.setup();
+    expect(screen.getByText(/por parcela/i).textContent?.replace(/\s/g, " ")).toContain(brl(150));
+    await user.type(screen.getByLabelText(/data da 1ª parcela/i), "2026-12-01");
+    await user.click(screen.getByRole("button", { name: /confirmar parcelamento/i }));
+    expect(h.onParcelar).toHaveBeenCalledWith({ total_parcelas: 2, data_primeira_parcela: "2026-12-01", metodo: undefined });
+  });
+
+  it("título já com recebimento parcial legado não pode ser parcelado", () => {
+    setup({ ...conta, status: "parcial", valor_pago: 100 });
+    expect(screen.getByRole("tab", { name: "Parcelar" })).toBeDisabled();
+  });
+
+  it("abaInicial abre direto na aba pedida", () => {
+    setup(conta, "desconto");
+    expect(screen.getByRole("tab", { name: "Desconto" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByLabelText(/valor do desconto/i)).toBeInTheDocument();
   });
 });

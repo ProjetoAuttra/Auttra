@@ -10,7 +10,6 @@ import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
 import SellRoundedIcon from "@mui/icons-material/SellRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
-import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
 import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
@@ -27,12 +26,13 @@ import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../components/common/AppDialog";
 import api from "../../../../api/api";
-import { type Conta, brl, isVencido, valorLiquido, valorRestante, formatarData, METODO_OPTIONS, criarPagamento, atualizarPagamento, marcarComoPago, estornarPagamento, aplicarDesconto, renegociarPrazo, parcelar, cancelarPagamento, resumoPagamentos, type ResumoContas } from "../../api/api";
+import { type Conta, brl, isVencido, valorLiquido, formatarData, METODO_OPTIONS, criarPagamento, atualizarPagamento, marcarComoPago, estornarPagamento, aplicarDesconto, renegociarPrazo, parcelar, cancelarPagamento, resumoPagamentos, type ResumoContas } from "../../api/api";
 import {
-  ReceberDialog, EstornarDialog, DetalhesDialog, DescontoDialog, RenegociarDialog, ParcelarDialog,
+  EstornarDialog, DetalhesDialog,
 } from "../../dialogs/index";
+import { GerenciarTituloDialog } from "../../dialogs/GerenciarTituloDialog";
 
-type Acao = "pagar" | "estornar" | "detalhes" | "desconto" | "renegociar" | "parcelar" | "editar" | null;
+type Acao = "pagar" | "estornar" | "detalhes" | "editar" | null;
 
 function StatusChip({ conta }: { conta: Conta }) {
   if (isVencido(conta))
@@ -291,15 +291,6 @@ export default function ContasReceber() {
             <UndoRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "warning.main" }} />Estornar recebimento
           </MenuItem>
         )}
-        <MenuItem onClick={() => openAcao("desconto")} disabled={selected?.status === "pago" || selected?.status === "cancelado"}>
-          <SellRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "info.main" }} />Dar desconto
-        </MenuItem>
-        <MenuItem onClick={() => openAcao("renegociar")} disabled={selected?.status === "pago" || selected?.status === "cancelado"}>
-          <EventRepeatRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "secondary.main" }} />Renegociar prazo
-        </MenuItem>
-        <MenuItem onClick={() => openAcao("parcelar")} disabled={selected?.status !== "pendente"}>
-          <AccountTreeRoundedIcon fontSize="small" sx={{ mr: 1.5 }} />Parcelar
-        </MenuItem>
         <Divider />
         <MenuItem onClick={() => openAcao("editar")}>
           <EditRoundedIcon fontSize="small" sx={{ mr: 1.5 }} />Editar
@@ -315,21 +306,6 @@ export default function ContasReceber() {
       </Menu>
 
       {/* Dialogs de ação */}
-      <ReceberDialog
-        open={acao === "pagar"}
-        onClose={() => setAcao(null)}
-        tipo="receber"
-        saldoRestante={selected ? valorRestante(selected) : 0}
-        onConfirm={(d) =>
-          handleAcao(
-            () => marcarComoPago(selected!.id, d),
-            (r) =>
-              r?.titulo_saldo
-                ? `Recebimento parcial registrado! O saldo de ${brl(Number(r.titulo_saldo.valor_original))} foi lançado como um novo título pendente.`
-                : "Recebimento confirmado!"
-          )
-        }
-      />
       <EstornarDialog
         open={acao === "estornar"}
         onClose={() => setAcao(null)}
@@ -343,22 +319,23 @@ export default function ContasReceber() {
         conta={selected}
         tipo="receber"
       />
-      <DescontoDialog
-        open={acao === "desconto"}
+      <GerenciarTituloDialog
+        open={acao === "pagar"}
         onClose={() => setAcao(null)}
-        valorOriginal={selected ? Number(selected.valor_original) : 0}
-        onConfirm={(d) => handleAcao(() => aplicarDesconto(selected!.id, d), "Desconto aplicado!")}
-      />
-      <RenegociarDialog
-        open={acao === "renegociar"}
-        onClose={() => setAcao(null)}
-        onConfirm={(d) => handleAcao(() => renegociarPrazo(selected!.id, d), "Prazo renegociado!")}
-      />
-      <ParcelarDialog
-        open={acao === "parcelar"}
-        onClose={() => setAcao(null)}
-        valorOriginal={selected ? valorLiquido(selected) : 0}
-        onConfirm={(d) => handleAcao(() => parcelar(selected!.id, d), "Título parcelado!")}
+        conta={selected}
+        tipo="receber"
+        onReceber={(d) =>
+          handleAcao(
+            () => marcarComoPago(selected!.id, d),
+            (r) =>
+              r?.titulo_saldo
+                ? `Recebimento parcial registrado! O saldo de ${brl(Number(r.titulo_saldo.valor_original))} foi lançado como um novo título pendente.`
+                : "Recebimento confirmado!"
+          )
+        }
+        onDesconto={(d) => handleAcao(() => aplicarDesconto(selected!.id, d), "Desconto aplicado!")}
+        onRenegociar={(d) => handleAcao(() => renegociarPrazo(selected!.id, d), "Prazo renegociado!")}
+        onParcelar={(d) => handleAcao(() => parcelar(selected!.id, d), "Título parcelado!")}
       />
 
       {/* Dialog editar */}
