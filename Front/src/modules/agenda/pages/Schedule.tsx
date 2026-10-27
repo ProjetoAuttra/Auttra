@@ -14,7 +14,7 @@ import {
   Typography,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { brand, radius } from '../../../app/theme';
+import { brand } from '../../../app/theme';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
@@ -553,14 +553,14 @@ function AppointmentDetailsDialog({
               </Stack>
             )}
             {(appointment.clientName || appointment.vehicleLabel) && (
-              <Paper elevation={0} sx={{ p: 1.5, borderRadius: 1.5, bgcolor: brand.subtle, border: (t) => `1px solid ${t.palette.divider}` }}>
+              <Paper elevation={0} sx={{ p: 1.5, borderRadius: 1.5, bgcolor: brand.subtle, border: 0 }}>
                 <Typography variant="caption" color="text.secondary" fontWeight={600}>Cliente e veículo</Typography>
                 <Typography fontWeight={700}>{appointment.clientName || 'Cliente não informado'}</Typography>
                 <Typography variant="body2" color="text.secondary">{appointment.vehicleLabel || 'Veículo não informado'}</Typography>
               </Paper>
             )}
             {appointment.ordemServicoId && (
-              <Paper elevation={0} sx={{ p: 1.5, borderRadius: 1.5, bgcolor: brand.subtle, border: (t) => `1px solid ${t.palette.divider}` }}>
+              <Paper elevation={0} sx={{ p: 1.5, borderRadius: 1.5, bgcolor: brand.subtle, border: 0 }}>
                 <Typography variant="caption" color="text.secondary" fontWeight={600}>Ordem de Serviço vinculada</Typography>
                 <Typography fontWeight={700}>OS #{appointment.ordemServicoId}</Typography>
                 {appointment.ordemServicoStatus && (
@@ -806,9 +806,9 @@ export default function Schedule() {
         <Paper
           elevation={0}
           sx={{
-            p: { xs: 2, md: 2.5 },
-            borderRadius: `${radius.card}px`,
-            border: (t) => `1px solid ${t.palette.divider}`,
+            p: 0,
+            borderRadius: 0,
+            border: 0,
             minHeight: 'calc(100dvh - 250px)',
           }}
         >

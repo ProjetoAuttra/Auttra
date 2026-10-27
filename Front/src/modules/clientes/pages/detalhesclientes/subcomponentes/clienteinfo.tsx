@@ -21,7 +21,7 @@ function formatDocumento(value?: string | null) {
 
 export default function ClienteHeaderCard({ cliente, onEditar }: Props) {
   return (
-    <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: (t) => `1px solid ${t.palette.divider}` }}>
+    <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: 0 }}>
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={2}>
         <Stack direction="row" spacing={2}>
           <Avatar sx={{ bgcolor: "primary.main", width: 64, height: 64, fontSize: 24, fontWeight: 700 }}>

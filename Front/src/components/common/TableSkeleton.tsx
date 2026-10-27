@@ -8,7 +8,7 @@ interface TableSkeletonProps {
 
 export default function TableSkeleton({ columns, rows = 8, hasAvatar = false }: TableSkeletonProps) {
     return (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, border: (t) => `1px solid ${t.palette.divider}` }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 0, border: 0 }}>
             <Table>
                 <TableHead>
                     <TableRow>

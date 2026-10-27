@@ -23,7 +23,7 @@ type AppDialogProps = Omit<DialogProps, "title"> & {
 export function AppDialog({
   title,
   icon,
-  variant = "simple",
+  variant: _variant = "simple",
   children,
   PaperProps,
   closeOnBackdrop = true,
@@ -32,7 +32,6 @@ export function AppDialog({
   onCloseClick,
   ...props
 }: AppDialogProps) {
-  const isEntity = variant === "entity";
 
   const handleClose: DialogProps["onClose"] = (event, reason) => {
     if (reason === "backdropClick" && !closeOnBackdrop) return;
@@ -68,8 +67,6 @@ export function AppDialog({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          bgcolor: isEntity ? (t) => alpha(t.palette.primary.main, 0.06) : undefined,
-          borderBottom: (t) => `1px solid ${t.palette.divider}`,
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 }}>
@@ -115,8 +112,6 @@ export function AppDialogActions({ sx, ...props }: DialogActionsProps) {
       sx={{
         px: 3,
         py: 2,
-        borderTop: (t) => `1px solid ${t.palette.divider}`,
-        bgcolor: (t) => alpha(t.palette.background.default, 0.6),
         ...sx,
       }}
       {...props}

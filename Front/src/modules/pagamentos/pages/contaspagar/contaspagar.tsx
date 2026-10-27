@@ -23,7 +23,6 @@ import ModuleHeader from "../../../../components/layout/ModuleHeader";
 import StatCard, { StatGroup } from "../../../../components/common/StatCard";
 import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
-import { radius } from "../../../../app/theme";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../components/common/AppDialog";
 import api from "../../../../api/api";
 import {
@@ -329,7 +328,7 @@ export default function ContasPagar() {
         onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
         rowsPerPageOptions={[5, 10, 20]} labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
-        sx={{ bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}`, borderTop: 0, borderRadius: `0 0 ${radius.card}px ${radius.card}px` }}
+        sx={{ bgcolor: "transparent", borderTop: (t) => `1px solid ${t.palette.divider}` }}
       />
 
       {/* Menu 3-pontos */}

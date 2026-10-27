@@ -11,15 +11,12 @@ import DialogCliente from "../../clientes/dialog/";
 import DialogOrcamento from "../../orcamentos/dialog/";
 import { useAuth } from "../../../context/AuthContext";
 import api from "../../../api/api";
-import { brand, shadows } from "../../../app/theme";
+import { brand } from "../../../app/theme";
 
 // ─── Cores do sistema ─────────────────────────────────────────────────────────
 
-const PRIMARY  = brand.primary;
 const INK      = brand.ink;
 const MUTED    = brand.muted;
-const SURFACE  = brand.surface;
-const LINE     = brand.line;
 const ICON_BG  = brand.subtleStrong;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -57,16 +54,16 @@ function ShortcutCard({ icon, title, subtitle, onClick }: ShortcutProps) {
         width: "100%",
         textAlign: "left",
         cursor: "pointer",
-        background: SURFACE,
-        border: `1px solid ${LINE}`,
+        background: brand.subtle,
+        border: 0,
         borderRadius: 2,
         p: "1.75rem 1.5rem",
         display: "flex",
         gap: 2,
         alignItems: "flex-start",
         transition: "border-color 0.15s, box-shadow 0.15s",
-        "&:hover": { borderColor: PRIMARY, boxShadow: shadows.raised },
-        "&:focus-visible": { borderColor: PRIMARY, boxShadow: `0 0 0 3px ${brand.primaryTint}` },
+        "&:hover": { background: brand.subtleStrong },
+        "&:focus-visible": { boxShadow: `0 0 0 3px ${brand.primaryTint}` },
         fontFamily: "inherit",
         outline: "none",
         appearance: "none",

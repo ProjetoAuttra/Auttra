@@ -25,7 +25,6 @@ import {
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import StatCard, { StatGroup } from "../../../components/common/StatCard";
 import ListTableContainer from "../../../components/common/ListTableContainer";
-import { radius } from "../../../app/theme";
 import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationEstoque } from "../../../components/common/Illustrations";
 import { paths } from "../../../routes/paths";
@@ -345,7 +344,7 @@ export default function EstoquePage() {
         rowsPerPageOptions={[5, 10, 20]}
         labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-        sx={{ bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}`, borderTop: 0, borderRadius: `0 0 ${radius.card}px ${radius.card}px` }}
+        sx={{ bgcolor: "transparent", borderTop: (t) => `1px solid ${t.palette.divider}` }}
       />
 
       {/* ── Menu contextual ─────────────────────────────────────── */}
