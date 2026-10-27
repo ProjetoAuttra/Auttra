@@ -37,14 +37,6 @@ type Acao = "pagar" | "estornar" | "historico" | "desconto" | "renegociar" | "pa
 function StatusChip({ conta }: { conta: Conta }) {
   if (isVencido(conta))
     return <Chip label="Vencido" size="small" color="error" sx={{ fontWeight: 600, fontSize: 12 }} />;
-  if (conta.status === "parcial")
-    return (
-      <Chip
-        label={`${brl(Number(conta.valor_pago))} de ${brl(valorLiquido(conta))}`}
-        size="small"
-        sx={{ bgcolor: (t) => alpha(t.palette.warning.main, 0.15), color: "warning.dark", fontWeight: 600, fontSize: 12 }}
-      />
-    );
   if (conta.status === "pago")
     return <Chip label="Pago" size="small" color="success" sx={{ fontWeight: 600, fontSize: 12 }} />;
   if (conta.status === "cancelado")
@@ -177,7 +169,6 @@ export default function ContasPagar() {
               {contas.length > 0 ? contas.map((conta) => {
                 const vencido = isVencido(conta);
                 const liquido = valorLiquido(conta);
-                const restante = valorRestante(conta);
                 return (
                   <TableRow
                     key={conta.id} hover
@@ -217,11 +208,6 @@ export default function ContasPagar() {
                           </Tooltip>
                         )}
                       </Stack>
-                      {conta.status === "parcial" && (
-                        <Typography variant="caption" color="text.disabled">
-                          {brl(Number(conta.valor_pago))} pagos · {brl(restante)} restante
-                        </Typography>
-                      )}
                     </TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={0.5} alignItems="center">
@@ -337,7 +323,10 @@ export default function ContasPagar() {
         onConfirm={(d) =>
           handleAcao(
             () => marcarComoPago(selected!.id, d),
-            (r) => (r?.status === "parcial" ? "Pagamento parcial registrado!" : "Pagamento confirmado!")
+            (r) =>
+              r?.titulo_saldo
+                ? `Pagamento parcial registrado! O saldo de ${brl(Number(r.titulo_saldo.valor_original))} foi lançado como um novo título pendente.`
+                : "Pagamento confirmado!"
           )
         }
       />

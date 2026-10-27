@@ -297,9 +297,12 @@ export default function OrdensPage() {
                         {(() => {
                           const pags = r.pagamentos ?? [];
                           if (pags.length === 0) return <Typography variant="caption" color="text.disabled">—</Typography>;
-                          if (pags.some((p) => p.status === "pago")) return <Chip label="Pago" size="small" color="success" sx={{ fontWeight: 600, fontSize: 12 }} />;
-                          if (pags.some((p) => p.status === "parcial")) return <Chip label="Parcial" size="small" color="warning" sx={{ fontWeight: 600, fontSize: 12 }} />;
-                          if (pags.every((p) => p.status === "cancelado")) return <Typography variant="caption" color="text.disabled">Cancelado</Typography>;
+                          const ativos = pags.filter((p) => p.status !== "cancelado");
+                          if (ativos.length === 0) return <Typography variant="caption" color="text.disabled">Cancelado</Typography>;
+                          const pagos = ativos.filter((p) => p.status === "pago").length;
+                          // Recebimento parcial gera um título de saldo pendente: a OS tem parte paga e parte em aberto.
+                          if (pagos === ativos.length) return <Chip label="Pago" size="small" color="success" sx={{ fontWeight: 600, fontSize: 12 }} />;
+                          if (pagos > 0) return <Chip label="Parcial" size="small" color="warning" sx={{ fontWeight: 600, fontSize: 12 }} />;
                           return <Chip label="Pendente" size="small" sx={{ fontWeight: 600, fontSize: 12, bgcolor: (t) => alpha(t.palette.warning.main, 0.12), color: "warning.dark" }} />;
                         })()}
                       </TableCell>

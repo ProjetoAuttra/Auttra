@@ -37,12 +37,13 @@ describe("ReceberDialog", () => {
     expect(onConfirm).toHaveBeenCalledWith({ metodo: "pix", valor: 100, data_pagamento: undefined });
   });
 
-  it("valor menor que o saldo vira recebimento parcial (sem campo de data)", async () => {
+  it("valor menor que o saldo avisa que o resto vira um novo título e envia o valor", async () => {
     const { onConfirm } = setup();
     const user = await digitar("40");
 
-    expect(screen.getByText(/recebimento parcial — restará/i)).toBeTruthy();
-    expect(screen.queryByLabelText(/data do recebimento/i)).toBeNull();
+    const aviso = screen.getByText(/será lançado como um novo título pendente/i);
+    expect(aviso.textContent?.replace(/\s/g, " ")).toContain(brl(60));
+    expect(screen.getByLabelText(/data do recebimento/i)).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: /registrar recebimento parcial/i }));
     expect(onConfirm).toHaveBeenCalledWith({ metodo: "pix", valor: 40, data_pagamento: undefined });

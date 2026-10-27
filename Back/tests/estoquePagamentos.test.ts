@@ -163,7 +163,9 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
       expect(respostas.map((r) => r.status).sort()).toEqual([200, 400]);
       const p = await prisma.pagamento.findUniqueOrThrow({ where: { id } });
       expect(Number(p.valor_pago)).toBe(60);
-      expect(p.status).toBe("parcial");
+      expect(p.status).toBe("pago");
+      // so um saldo nasce, mesmo com duas baixas simultaneas
+      expect(await prisma.pagamento.count({ where: { pagamento_pai_id: id } })).toBe(1);
     });
 
     it("parcial acima do saldo e entrada invalida sao rejeitados; quitar fecha como pago", async () => {
@@ -241,7 +243,8 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
 
     it("desconto: rejeita negativo e desconto que deixaria o valor abaixo do ja pago", async () => {
       const id = await novoPagamento(100);
-      await request(app).post(`/api/pagamentos/${id}/pagamento-parcial`).set("Authorization", auth).send({ valor_entrada: 80, metodo: "pix" }).expect(200);
+      // titulo "parcial" legado (antes de o saldo virar um novo titulo): a trava continua valendo
+      await prisma.pagamento.update({ where: { id }, data: { status: "parcial", valor_pago: 80 } });
       const desc = (v: number) => request(app).post(`/api/pagamentos/${id}/desconto`).set("Authorization", auth).send({ desconto: v, motivo_desconto: "x" });
 
       expect((await desc(-1)).status).toBe(400);
@@ -394,37 +397,37 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
       request(app).post(path).set("Authorization", token).send(body);
     const movimentos = (id: number) => prisma.pagamento_movimento.findMany({ where: { pagamento_id: id }, orderBy: { id: "asc" } });
 
-    it("pagar e parcial gravam movimentos com o usuario; valor_pago = soma dos movimentos", async () => {
+    it("pagar e parcial gravam movimentos com o usuario; valor_pago = soma dos movimentos de cada titulo", async () => {
       const id = await novoPagamento(100);
-      await post(`/api/pagamentos/${id}/pagamento-parcial`, { valor_entrada: 30, metodo: "dinheiro" }).expect(200);
-      await post(`/api/pagamentos/${id}/pagar`, { metodo: "pix" }).expect(200);
+      const parcial = await post(`/api/pagamentos/${id}/pagamento-parcial`, { valor_entrada: 30, metodo: "dinheiro" }).expect(200);
+      await post(`/api/pagamentos/${parcial.body.titulo_saldo.id}/pagar`, { metodo: "pix" }).expect(200);
 
-      const movs = await movimentos(id);
-      expect(movs.map((m) => [m.tipo, Number(m.valor), m.metodo, m.usuario_id])).toEqual([
+      expect((await movimentos(id)).map((m) => [m.tipo, Number(m.valor), m.metodo, m.usuario_id])).toEqual([
         ["pagamento", 30, "dinheiro", usuarioId],
+      ]);
+      expect((await movimentos(parcial.body.titulo_saldo.id)).map((m) => [m.tipo, Number(m.valor), m.metodo, m.usuario_id])).toEqual([
         ["pagamento", 70, "pix", usuarioId],
       ]);
-      const p = await prisma.pagamento.findUniqueOrThrow({ where: { id } });
-      expect(Number(p.valor_pago)).toBe(100);
+      expect(Number((await prisma.pagamento.findUniqueOrThrow({ where: { id } })).valor_pago)).toBe(30);
     });
 
     it("estornar: volta para pendente, mantem o historico e registra motivo e usuario", async () => {
       const id = await novoPagamento(100);
-      await post(`/api/pagamentos/${id}/pagamento-parcial`, { valor_entrada: 30, metodo: "dinheiro" }).expect(200);
-      await post(`/api/pagamentos/${id}/pagar`, { metodo: "pix" }).expect(200);
+      await post(`/api/pagamentos/${id}/pagar`, { metodo: "dinheiro", valor: 30 }).expect(200);
 
       const res = await post(`/api/pagamentos/${id}/estornar`, { motivo: "Cliente pagou em duplicidade" });
 
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({ status: "pendente", data_pagamento: null });
       expect(Number(res.body.valor_pago)).toBe(0);
+      expect(Number(res.body.valor_original)).toBe(30); // o titulo continua valendo o que foi recebido
 
       const movs = await movimentos(id);
-      expect(movs).toHaveLength(4); // nada foi apagado
-      const [p1, p2, e1, e2] = movs;
-      expect([e1.tipo, e2.tipo]).toEqual(["estorno", "estorno"]);
-      expect([e1.estorno_de_id, e2.estorno_de_id]).toEqual([p1.id, p2.id]);
-      expect([Number(e1.valor), Number(e2.valor)]).toEqual([30, 70]);
+      expect(movs).toHaveLength(2); // nada foi apagado
+      const [p1, e1] = movs;
+      expect(e1.tipo).toBe("estorno");
+      expect(e1.estorno_de_id).toBe(p1.id);
+      expect(Number(e1.valor)).toBe(30);
       expect(e1.motivo).toBe("Cliente pagou em duplicidade");
       expect(e1.usuario_id).toBe(usuarioId);
     });
@@ -534,21 +537,59 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
       expect(Number(res.body.valor_pago)).toBe(100);
     });
 
-    it("valor menor que o saldo recebe parcialmente; o resto quita depois", async () => {
-      const id = await novoPagamento(100);
+    it("valor menor que o saldo quita o titulo pelo que foi recebido e lanca o resto como novo titulo pendente", async () => {
+      const id = await novoPagamento(100, { descricao: "Entrada", categoria: "Servicos", data_vencimento: "2026-11-10" });
 
       const parcial = await pagar(id, { metodo: "dinheiro", valor: 40 });
       expect(parcial.status).toBe(200);
-      expect(parcial.body.status).toBe("parcial");
+      expect(parcial.body.status).toBe("pago");
       expect(Number(parcial.body.valor_pago)).toBe(40);
-      expect(parcial.body.data_pagamento).toBeNull();
+      expect(Number(parcial.body.valor_original)).toBe(40);
+      expect(Number(parcial.body.valor)).toBe(40);
+      expect(parcial.body.data_pagamento).not.toBeNull();
 
-      const resto = await pagar(id, { metodo: "pix" });
+      const saldo = parcial.body.titulo_saldo;
+      expect(saldo).toMatchObject({
+        status: "pendente",
+        descricao: "Entrada (saldo do pagamento parcial)",
+        categoria: "Servicos",
+        pagamento_pai_id: id,
+      });
+      expect(Number(saldo.valor_original)).toBe(60);
+      expect(Number(saldo.valor_pago)).toBe(0);
+      expect(saldo.data_vencimento.slice(0, 10)).toBe("2026-11-10");
+      expect(saldo.data_pagamento).toBeNull();
+
+      // o saldo eh um titulo independente: quita sozinho
+      const resto = await pagar(saldo.id, { metodo: "pix" });
       expect(resto.body.status).toBe("pago");
-      expect(Number(resto.body.valor_pago)).toBe(100);
+      expect(resto.body.titulo_saldo).toBeUndefined();
+      expect(Number(resto.body.valor_pago)).toBe(60);
 
-      const movs = await prisma.pagamento_movimento.findMany({ where: { pagamento_id: id }, orderBy: { id: "asc" } });
-      expect(movs.map((m) => Number(m.valor))).toEqual([40, 60]);
+      // so os dois titulos existem para esse recebimento
+      expect(await prisma.pagamento.count({ where: { OR: [{ id }, { pagamento_pai_id: id }] } })).toBe(2);
+    });
+
+    it("parcial sobre um saldo nao empilha a marca na descricao", async () => {
+      const id = await novoPagamento(100, { descricao: "Entrada" });
+      const primeiro = await pagar(id, { metodo: "pix", valor: 40 });
+      const segundo = await pagar(primeiro.body.titulo_saldo.id, { metodo: "pix", valor: 10 });
+
+      expect(primeiro.body.titulo_saldo.descricao).toBe("Entrada (saldo do pagamento parcial)");
+      expect(segundo.body.titulo_saldo.descricao).toBe("Entrada (saldo do pagamento parcial)");
+    });
+
+    it("titulo sem descricao recebe uma descricao de saldo", async () => {
+      const id = await novoPagamento(100, { descricao: "" });
+      const res = await pagar(id, { metodo: "pix", valor: 40 });
+      expect(res.body.titulo_saldo.descricao).toBe("Saldo do pagamento parcial");
+    });
+
+    it("pagar o valor inteiro nao cria titulo de saldo", async () => {
+      const id = await novoPagamento(100);
+      const res = await pagar(id, { metodo: "pix", valor: 100 });
+      expect(res.body.titulo_saldo).toBeUndefined();
+      expect(await prisma.pagamento.count({ where: { pagamento_pai_id: id } })).toBe(0);
     });
 
     it("valor igual ao saldo quita; valor maior, zero, negativo ou texto sao rejeitados", async () => {
@@ -563,14 +604,24 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
       expect(ok.body.status).toBe("pago");
     });
 
-    it("o valor eh limitado ao saldo restante depois de um parcial, considerando desconto", async () => {
+    it("com desconto: o parcial recebe sobre o valor liquido e o saldo nasce sem desconto", async () => {
       const id = await novoPagamento(100);
       await request(app).post(`/api/pagamentos/${id}/desconto`).set("Authorization", auth).send({ desconto: 20, motivo_desconto: "x" }).expect(200);
-      await pagar(id, { metodo: "pix", valor: 30 }).then((r) => expect(r.status).toBe(200));
 
-      expect((await pagar(id, { metodo: "pix", valor: 51 })).status).toBe(400); // saldo = 100 - 20 - 30 = 50
-      const fim = await pagar(id, { metodo: "pix", valor: 50 });
-      expect(fim.body.status).toBe("pago");
+      expect((await pagar(id, { metodo: "pix", valor: 81 })).status).toBe(400); // liquido = 100 - 20 = 80
+      const parcial = await pagar(id, { metodo: "pix", valor: 30 });
+      expect(parcial.status).toBe(200);
+      // o titulo pago fica com liquido 30 (original 50 menos o desconto de 20)
+      expect(Number(parcial.body.valor_original)).toBe(50);
+      expect(Number(parcial.body.desconto)).toBe(20);
+      expect(Number(parcial.body.valor_pago)).toBe(30);
+
+      const saldo = parcial.body.titulo_saldo;
+      expect(Number(saldo.valor_original)).toBe(50);
+      expect(Number(saldo.desconto)).toBe(0);
+
+      expect((await pagar(saldo.id, { metodo: "pix", valor: 51 })).status).toBe(400);
+      expect((await pagar(saldo.id, { metodo: "pix", valor: 50 })).body.status).toBe("pago");
     });
 
     it("duas baixas parciais simultaneas nunca passam do saldo", async () => {

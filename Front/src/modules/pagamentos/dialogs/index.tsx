@@ -13,7 +13,7 @@ import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../components/common/AppDialog";
 import { METODO_OPTIONS, METODO_LABEL, brl, formatarData, listarMovimentos, valorLiquido, valorRestante, type Conta, type Movimento } from "../api/api";
 
-// ── 1. Receber / Pagar (valor editavel; menor que o saldo = parcial) ──────────
+// ── 1. Receber / Pagar (valor editavel; menor que o saldo = o resto vira um novo titulo) ──────────
 
 const toCents = (v: number) => Math.round(v * 100);
 
@@ -73,7 +73,7 @@ export function ReceberDialog({ open, onClose, onConfirm, saldoRestante, tipo }:
                 excede
                   ? `Máximo: ${brl(saldoRestante)}`
                   : parcial
-                    ? `${receber ? "Recebimento" : "Pagamento"} parcial — restará ${brl(saldoRestante - valor)}`
+                    ? `O saldo de ${brl(saldoRestante - valor)} será lançado como um novo título pendente`
                     : undefined
               }
               InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }}
@@ -90,7 +90,7 @@ export function ReceberDialog({ open, onClose, onConfirm, saldoRestante, tipo }:
           >
             {METODO_OPTIONS.map((m) => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
           </TextField>
-          {!parcial && (
+          {(
             <TextField
               label={receber ? "Data do recebimento" : "Data do pagamento"}
               type="date"
@@ -114,7 +114,7 @@ export function ReceberDialog({ open, onClose, onConfirm, saldoRestante, tipo }:
             onConfirm({
               metodo,
               valor: semSaldo ? undefined : valor,
-              data_pagamento: parcial ? undefined : dataPagamento || undefined,
+              data_pagamento: dataPagamento || undefined,
             })
           }
           sx={{ fontWeight: 700 }}
