@@ -3,7 +3,6 @@ import {
   Box, Stack, Typography, Divider, Chip, Tabs, Tab,
   Button, TextField, MenuItem, InputAdornment,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
@@ -300,11 +299,11 @@ function Campo({ rotulo, children }: { rotulo: string; children: React.ReactNode
   );
 }
 
-/** Bloco com fundo suave e título, usado em cada aba dos detalhes. */
+/** Conteúdo de uma aba dos detalhes: título e campos direto sobre o fundo do modal, sem caixa extra. */
 function Cartao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
-    <Box sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.035), borderRadius: 2, p: 2.5 }}>
-      <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ mb: 1.5 }}>
+    <Box>
+      <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ mb: 2 }}>
         {titulo}
       </Typography>
       {children}
