@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client.js";
 import { HttpError } from "../utils/httpError.js";
+import { LIMITE_LISTAGEM } from "../utils/limites.js";
 
 const D = (v: Prisma.Decimal.Value) => new Prisma.Decimal(v);
 
@@ -139,6 +140,7 @@ export const PagamentosService = {
     return await prisma.pagamento.findMany({
       where: { cliente_id, oficina_id, deleted_at: null },
       orderBy: { data_vencimento: "desc" },
+      take: LIMITE_LISTAGEM,
       include: {
         oficina: { select: { id: true, nome: true } },
         fornecedor: { select: { id: true, nome: true } },

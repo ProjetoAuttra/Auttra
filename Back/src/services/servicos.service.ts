@@ -1,4 +1,5 @@
 import { prisma } from "../prisma/client.js";
+import { LIMITE_LISTAGEM } from "../utils/limites.js";
 
 export const ServicosService = {
   list: (oficinaId: number, search: string = "") => {
@@ -8,7 +9,7 @@ export const ServicosService = {
     }
     return prisma.servico.findMany({
       where,
-      ...(search.trim().length > 0 ? { take: 20 } : {}),
+      take: search.trim().length > 0 ? 20 : LIMITE_LISTAGEM,
     });
   },
 

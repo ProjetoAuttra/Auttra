@@ -1,4 +1,5 @@
 import { prisma } from "../prisma/client.js";
+import { LIMITE_LISTAGEM } from "../utils/limites.js";
 
 export const PecasService = {
   list: async (oficinaId: number, search: string = "") => {
@@ -9,7 +10,7 @@ export const PecasService = {
     return prisma.peca.findMany({
       where,
       orderBy: { id: "desc" },
-      ...(search.trim().length > 0 ? { take: 20 } : {}),
+      take: search.trim().length > 0 ? 20 : LIMITE_LISTAGEM,
     });
   },
 

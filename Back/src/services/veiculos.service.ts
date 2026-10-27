@@ -1,4 +1,5 @@
 import { prisma } from "../prisma/client.js";
+import { LIMITE_LISTAGEM } from "../utils/limites.js";
 
 function normalizePlaca(placa: string) {
   return placa.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -13,6 +14,7 @@ export const VeiculosService = {
       where,
       include: { cliente: true, oficina: true },
       orderBy: { id: "desc" },
+      take: LIMITE_LISTAGEM,
     });
   },
 
