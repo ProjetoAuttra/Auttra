@@ -10,7 +10,7 @@ on:
 
 jobs:
   backend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: Back
@@ -44,7 +44,7 @@ jobs:
       - run: npm run test:run
 
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: Front
@@ -60,7 +60,7 @@ jobs:
       - run: npm run test:run
 
   e2e-smoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:
       - backend
       - frontend
