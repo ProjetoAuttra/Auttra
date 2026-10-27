@@ -1,6 +1,10 @@
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
-RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+# O Chrome baixado pelo Puppeteer so existe para linux x64 e nao roda em Mac com Apple Silicon (Docker arm64).
+# Para o ambiente de desenvolvimento (target build) usamos o Chromium do Debian, que tem build arm64 e x64.
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl chromium fonts-liberation \
+  && rm -rf /var/lib/apt/lists/*
 COPY package*.json ./
 RUN npm ci
 

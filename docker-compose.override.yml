@@ -13,6 +13,7 @@ services:
     command: ["npm", "run", "dev"]
     environment:
       NODE_ENV: development
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
     volumes:
       - ./Back:/app
       - /app/node_modules
