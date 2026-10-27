@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Box, Typography, Stack, Paper, Tabs, Tab, CircularProgress, IconButton,
+  Box, Typography, Stack, Tabs, Tab, CircularProgress, IconButton,
   Avatar, Chip, Divider, Button,
   TextField, MenuItem, Select, FormControl, InputLabel, Skeleton,
 } from "@mui/material";
@@ -42,7 +42,7 @@ function formatDocumento(value?: string | null) {
 
 function HeaderSkeleton() {
   return (
-    <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: 0, bgcolor: "action.hover", mb: 3 }}>
+    <Box sx={{ pb: 3, mb: 3, borderBottom: (t) => `1px solid ${t.palette.divider}` }}>
       <Stack direction="row" spacing={3} alignItems="center">
         <Skeleton variant="circular" width={72} height={72} />
         <Stack spacing={1} flex={1}>
@@ -54,7 +54,7 @@ function HeaderSkeleton() {
           </Stack>
         </Stack>
       </Stack>
-    </Paper>
+    </Box>
   );
 }
 
@@ -176,7 +176,7 @@ export default function ClienteDetalhesPage() {
 
         {/* ── Card de cabeçalho ── */}
         {loading ? <HeaderSkeleton /> : cliente && (
-          <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: 0, bgcolor: "action.hover", mb: 3 }}>
+          <Box sx={{ pb: 3, mb: 3, borderBottom: (t) => `1px solid ${t.palette.divider}` }}>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={3} alignItems={{ xs: "flex-start", sm: "center" }} justifyContent="space-between">
 
               {/* Avatar + info ── */}
@@ -254,11 +254,11 @@ export default function ClienteDetalhesPage() {
                 </Typography>
               </>
             )}
-          </Paper>
+          </Box>
         )}
 
         {/* ── Abas ── */}
-        <Paper elevation={0} sx={{ borderRadius: 2, border: 0, bgcolor: "action.hover", overflow: "hidden" }}>
+        <Box>
           <Tabs
             value={tab}
             onChange={(_, v) => setTab(v)}
@@ -266,7 +266,7 @@ export default function ClienteDetalhesPage() {
             scrollButtons="auto"
             sx={{
               borderBottom: (t) => `1px solid ${t.palette.divider}`,
-              px: 2,
+              px: 0,
               "& .MuiTab-root": { textTransform: "none", fontWeight: 600, fontSize: 14, minHeight: 52 },
               "& .Mui-selected": { color: "primary.main" },
             }}
@@ -294,7 +294,7 @@ export default function ClienteDetalhesPage() {
             } />
           </Tabs>
 
-          <Box sx={{ p: { xs: 2, sm: 3 } }}>
+          <Box sx={{ pt: 3 }}>
             {loading ? (
               <Stack spacing={1.5}>
                 {[1, 2, 3].map((i) => <Skeleton key={i} variant="rounded" height={64} sx={{ borderRadius: 2 }} />)}
@@ -307,7 +307,7 @@ export default function ClienteDetalhesPage() {
               </>
             )}
           </Box>
-        </Paper>
+        </Box>
       </Box>
 
       {/* ── Dialog WhatsApp ── */}

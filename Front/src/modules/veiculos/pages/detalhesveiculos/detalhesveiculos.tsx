@@ -130,7 +130,7 @@ function VeiculoOrdens({ ordens, onAdd }: { ordens: any[]; onAdd?: () => void })
 
 function HeaderSkeleton() {
   return (
-    <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: 0, bgcolor: "action.hover", mb: 3 }}>
+    <Box sx={{ pb: 3, mb: 3, borderBottom: (t) => `1px solid ${t.palette.divider}` }}>
       <Stack direction="row" spacing={2.5} alignItems="center">
         <Skeleton variant="circular" width={72} height={72} />
         <Stack spacing={1} flex={1}>
@@ -142,7 +142,7 @@ function HeaderSkeleton() {
           </Stack>
         </Stack>
       </Stack>
-    </Paper>
+    </Box>
   );
 }
 
@@ -221,8 +221,7 @@ export default function VeiculoDetalhesPage() {
 
         {/* ── Header card ── */}
         {loading ? <HeaderSkeleton /> : veiculo && (
-          <Paper elevation={0}
-            sx={{ p: 3, borderRadius: 2, border: 0, bgcolor: "action.hover", mb: 3 }}>
+          <Box sx={{ pb: 3, mb: 3, borderBottom: (t) => `1px solid ${t.palette.divider}` }}>
             <Stack
               direction={{ xs: "column", sm: "row" }}
               spacing={3}
@@ -314,18 +313,17 @@ export default function VeiculoDetalhesPage() {
                 </Typography>
               </>
             )}
-          </Paper>
+          </Box>
         )}
 
         {/* ── Abas ── */}
-        <Paper elevation={0}
-          sx={{ borderRadius: 2, border: 0, bgcolor: "action.hover", overflow: "hidden" }}>
+        <Box>
           <Tabs
             value={tab}
             onChange={(_, v) => setTab(v)}
             sx={{
               borderBottom: (t) => `1px solid ${t.palette.divider}`,
-              px: 2,
+              px: 0,
               "& .MuiTab-root": { textTransform: "none", fontWeight: 600, fontSize: 14, minHeight: 52 },
               "& .Mui-selected": { color: "primary.main" },
             }}
@@ -342,7 +340,7 @@ export default function VeiculoDetalhesPage() {
             } />
           </Tabs>
 
-          <Box sx={{ p: { xs: 2, sm: 3 } }}>
+          <Box sx={{ pt: 3 }}>
             {loading ? (
               <Stack spacing={1.5}>
                 {[1, 2, 3].map((i) => (
@@ -353,7 +351,7 @@ export default function VeiculoDetalhesPage() {
               tab === 0 && <VeiculoOrdens ordens={veiculo?.ordens ?? []} onAdd={() => setOpenOrdem(true)} />
             )}
           </Box>
-        </Paper>
+        </Box>
 
       </Box>
 
