@@ -166,9 +166,9 @@ export default function ContasReceber() {
               <TableRow>
                 <TableCell>Responsável</TableCell>
                 <TableCell>Descrição</TableCell>
-                <TableCell>Valor</TableCell>
-                <TableCell>Vencimento</TableCell>
-                <TableCell>Status</TableCell>
+                <TableCell align="center">Valor</TableCell>
+                <TableCell align="center">Vencimento</TableCell>
+                <TableCell align="center">Status</TableCell>
                 <TableCell align="right">Ações</TableCell>
               </TableRow>
             </TableHead>
@@ -195,8 +195,8 @@ export default function ContasReceber() {
                         {conta.descricao ?? "—"}
                       </Typography>
                     </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={0.75} alignItems="center">
+                    <TableCell align="center">
+                      <Stack direction="row" spacing={0.75} alignItems="center" justifyContent="center">
                         <Typography
                           variant="body2" fontWeight={600}
                           color={conta.status === "pago" ? "success.main" : vencido ? "error.main" : "text.primary"}
@@ -222,8 +222,8 @@ export default function ContasReceber() {
                         </Typography>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={0.5} alignItems="center">
+                    <TableCell align="center">
+                      <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
                         <Typography variant="body2" color={vencido ? "error.main" : "text.primary"} fontWeight={vencido ? 700 : 400}>
                           {formatarData(conta.data_vencimento)}
                         </Typography>
@@ -234,7 +234,7 @@ export default function ContasReceber() {
                         )}
                       </Stack>
                     </TableCell>
-                    <TableCell><StatusChip conta={conta} /></TableCell>
+                    <TableCell align="center"><StatusChip conta={conta} /></TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                         <Button
