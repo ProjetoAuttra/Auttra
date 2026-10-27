@@ -58,6 +58,14 @@ function optionalLogo(value: unknown) {
   return logo;
 }
 
+/** Cor principal da marca da oficina, como #RRGGBB; vazio volta para a cor padrão. */
+function optionalCor(value: unknown) {
+  const cor = optionalText(value);
+  if (!cor) return null;
+  if (!/^#[0-9a-fA-F]{6}$/.test(cor)) throw new Error("Cor invalida. Use o formato #RRGGBB.");
+  return cor.toLowerCase();
+}
+
 async function ensureUnique(field: "nome" | "cnpj" | "email", value: string | null, oficinaId?: number) {
   if (!value) return;
 
@@ -149,6 +157,7 @@ export const OficinaService = {
     }
     if (data?.email !== undefined) patch.email = normalizeEmail(data.email);
     if (data?.logo_url !== undefined) patch.logo_url = optionalLogo(data.logo_url);
+    if (data?.cor_principal !== undefined) patch.cor_principal = optionalCor(data.cor_principal);
     if (data?.telefone !== undefined) {
       patch.telefone = optionalDigits(data.telefone);
       if (patch.telefone && ![10, 11].includes(patch.telefone.length)) {

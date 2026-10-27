@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cabecalho, dataBr, dinheiro, tabelaItens } from "../src/services/pdfTemplates.js";
+import { COR_PADRAO, cabecalho, corValida, dataBr, dinheiro, documento, paleta, tabelaItens } from "../src/services/pdfTemplates.js";
 
 const oficina = { nome: `Oficina <img src=x onerror=alert(1)>`, cnpj: "12.345.678/0001-90", logradouro: "Rua A", numero: "10", cep: "01001000" };
 const status = { label: "Em análise", classe: "info" };
@@ -29,5 +29,27 @@ describe("pdfTemplates", () => {
     expect(dinheiro(null).replace(/\s/g, " ")).toBe("R$ 0,00");
     expect(dataBr("2026-11-04T00:00:00.000Z")).toBe("04/11/2026");
     expect(dataBr("2026-11-04T01:00:00.000Z", true)).toBe("03/11/2026");
+  });
+
+  it("cor da oficina: valida #RRGGBB e cai no padrão para qualquer outra coisa (o valor vai para o CSS)", () => {
+    expect(corValida("#E11D48")).toBe("#e11d48");
+    for (const ruim of [null, undefined, "", "red", "#fff", "#12345g", "#123456;}</style><script>x</script>", "url(x)"]) {
+      expect(corValida(ruim as string)).toBe(COR_PADRAO);
+    }
+  });
+
+  it("paleta: texto legível sobre a cor e cor escura para textos", () => {
+    expect(paleta("#1e3a8a").sobrePrincipal).toBe("#ffffff");
+    expect(paleta("#facc15").sobrePrincipal).toBe("#111827");
+    // amarelo claro vira um tom escurecido para usar como texto sobre branco
+    expect(paleta("#facc15").escura).not.toBe("#facc15");
+    expect(paleta("#0f172a").escura).toBe("#0f172a");
+  });
+
+  it("o documento usa a cor da oficina no CSS", () => {
+    const html = documento({ ...oficina, nome: "X", cor_principal: "#e11d48" }, "<p>corpo</p>", "Doc");
+    expect(html).toContain("--cor: #e11d48");
+    const padrao = documento({ ...oficina, nome: "X" }, "<p>corpo</p>", "Doc");
+    expect(padrao).toContain(`--cor: ${COR_PADRAO}`);
   });
 });
