@@ -286,7 +286,7 @@ export default function ClientePagamentos({
                       <Button
                         size="small"
                         variant="text"
-                        color="success"
+                        color="primary"
                         onClick={() => handleReceberDireto(conta)}
                         disabled={conta.status === "pago" || conta.status === "cancelado"}
                         sx={{
@@ -294,7 +294,7 @@ export default function ClientePagamentos({
                           letterSpacing: 0.6,
                           px: 1.75,
                           // Já recebido: continua visível, mas bem mais apagado.
-                          "&.Mui-disabled": { color: "success.main", opacity: 0.35 },
+                          "&.Mui-disabled": { color: "primary.main", opacity: 0.35 },
                         }}
                       >
                         RECEBER
