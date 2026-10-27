@@ -49,6 +49,9 @@ Thumbs.db
 CLAUDE.md
 **/CLAUDE.md
 
+# Local implementation tracking
+PLANO_IMPLEMENTACAO_UX_UI.md
+
 # Railway/local deploy metadata
 .railway/
 RAILWAY.md
