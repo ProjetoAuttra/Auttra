@@ -22,7 +22,7 @@ import StoreIcon from '@mui/icons-material/Store';
 import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { paths } from '../../routes/paths';
 import { useSidebar } from '../../context/SidebarContext';
 import { useAuth } from '../../context/AuthContext';
@@ -103,6 +103,9 @@ const moduleResourceMap: Partial<Record<AccessModule, 'agenda' | 'estoque' | 'fo
   fornecedores: 'fornecedores',
 };
 
+// Última tela visitada dentro de Configurações, para voltar nela ao reabrir o item da sidebar.
+let lastSettingsLocation: string = paths.settings;
+
 function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collapsed?: boolean }) {
   const { pathname, search } = useLocation();
   const nav = useNavigate();
@@ -115,6 +118,10 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
     if (!queryString) return !search; // sem query no subitem → só ativo quando URL também não tem query
     return search === `?${queryString}`;
   };
+
+  useEffect(() => {
+    if (settingsPaths.includes(pathname)) lastSettingsLocation = `${pathname}${search}`;
+  }, [pathname, search]);
 
   const isSettingsVisible = settingsModules.some((module) => can(module));
 
@@ -163,7 +170,12 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
             onClick={() => {
               if (allowedSubItems.length > 0) toggleMenu(label);
               else {
-                nav(to);
+                if (to === paths.settings) {
+                  // Já dentro de Configurações: mantém a seção atual; fora: volta à última visitada.
+                  if (!settingsPaths.includes(pathname)) nav(lastSettingsLocation);
+                } else {
+                  nav(to);
+                }
                 onItemClick?.();
               }
             }}
