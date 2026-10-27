@@ -77,7 +77,7 @@ export default function SettingsLayout() {
       <Box
         component="nav"
         aria-label="Configurações"
-        sx={{ width: { xs: "100%", md: 220 }, flexShrink: 0, position: { md: "sticky" }, top: { md: 16 }, alignSelf: "flex-start" }}
+        sx={{ width: { xs: "100%", md: 220 }, flexShrink: 0, alignSelf: "flex-start" }}
       >
         <Stack spacing={{ xs: 1, md: 2.5 }} direction={{ xs: "row", md: "column" }} sx={{ overflowX: { xs: "auto", md: "visible" }, pb: { xs: 0.5, md: 0 } }}>
           {visibleGroups.map((group) => (

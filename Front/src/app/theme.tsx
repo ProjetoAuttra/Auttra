@@ -67,6 +67,8 @@ export const theme = createTheme({
   components: {
     MuiCssBaseline: {
       styleOverrides: {
+        // Reserva o espaço da barra de rolagem: o layout não "pula" entre telas curtas e longas.
+        html: { scrollbarGutter: 'stable' },
         body: { fontFeatureSettings: '"cv11", "ss01"' },
       },
     },
