@@ -48,7 +48,7 @@ export const FuncionariosController = {
         perfil_acesso_id,
       } = req.body;
 
-      if (!nome || !email || !telefone || !cargo || !senha) {
+      if (!nome || !email || !telefone || !cargo) {
         return res
           .status(400)
           .json({ error: "Preencha todos os campos obrigatórios." });
