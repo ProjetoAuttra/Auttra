@@ -7,9 +7,9 @@ import {
   TableCell,
   TableHead,
   TableRow,
-  Typography,
 } from "@mui/material";
 import api from "../../../../api/api";
+import { METODO_LABEL, METODO_OPTIONS } from "../../../pagamentos/api/api";
 import { useAuth } from "../../../../context/AuthContext";
 import { useToast } from "../../../../context/ToastContext";
 import {
@@ -24,8 +24,8 @@ import {
   PeriodFilter,
   ReportHeader,
   ReportPage,
-  todayISO, TituloSecao, LinhaLista } from "../../shared/reportUtils";
-import { GraficoBarrasHorizontais, GraficoEntradasSaidas, chaveSemana, rotuloSemana, semanasDoPeriodo } from "../../shared/graficos";
+  todayISO, TituloSecao } from "../../shared/reportUtils";
+import { GraficoPizza, GraficoEntradasSaidas, chaveSemana, rotuloSemana, semanasDoPeriodo } from "../../shared/graficos";
 
 type Pagamento = {
   id: number;
@@ -96,10 +96,6 @@ export default function RelatorioFinanceiro() {
   const saldoRealizado = recebido - pago;
   const saldoProjetado = recebido + aReceber - pago - aPagar;
 
-  const cobrarPrimeiro = [...vencidos]
-    .sort((a, b) => valorAberto(b) - valorAberto(a))
-    .slice(0, 10);
-
   const porMetodo = filtrados
     .filter((p) => isReceber(p) && isPago(p))
     .reduce<Record<string, number>>((acc, p) => {
@@ -121,8 +117,9 @@ export default function RelatorioFinanceiro() {
     return [...porSemana.values()];
   }, [filtrados, dataInicio, dataFim]);
 
+  const METODOS_ORDEM = METODO_OPTIONS.map((m) => m.label);
   const itensMetodo = Object.entries(porMetodo)
-    .map(([metodo, total]) => ({ rotulo: metodo.replace("_", " ").replace(/^./, (c) => c.toUpperCase()), valor: total }))
+    .map(([metodo, total]) => ({ rotulo: METODO_LABEL[metodo] ?? metodo.replace("_", " ").replace(/^./, (c) => c.toUpperCase()), valor: total }))
     .sort((a, b) => b.valor - a.valor);
 
   const handleExportarCSV = () => {
@@ -174,20 +171,8 @@ export default function RelatorioFinanceiro() {
         </Box>
         <Box>
           <TituloSecao>Recebido por forma de pagamento</TituloSecao>
-          <GraficoBarrasHorizontais itens={itensMetodo} semDados="Nenhum recebimento pago no período." />
+          <GraficoPizza itens={itensMetodo} ordemCores={METODOS_ORDEM} semDados="Nenhum recebimento pago no período." />
         </Box>
-      </Box>
-
-      <Box sx={{ mb: 4 }}>
-        <TituloSecao>Cobrar primeiro</TituloSecao>
-        {cobrarPrimeiro.length ? cobrarPrimeiro.map((p) => (
-          <LinhaLista
-            key={p.id}
-            titulo={<strong>{p.cliente?.nome ?? "Cliente não informado"}</strong>}
-            apoio={`Venceu em ${dateBr(p.data_vencimento)}`}
-            valor={brl(valorAberto(p))}
-          />
-        )) : <Typography variant="body2" color="text.secondary">Nenhuma conta vencida no período.</Typography>}
       </Box>
 
       <TituloSecao>Movimentações</TituloSecao>
