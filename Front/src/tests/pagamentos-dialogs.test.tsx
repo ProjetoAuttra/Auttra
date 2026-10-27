@@ -162,26 +162,51 @@ describe("DetalhesDialog", () => {
     });
   });
 
-  it("mostra datas, método de recebimento, valores e o histórico de recebimentos", async () => {
+  const aba = (nome: string) => userEvent.setup().click(screen.getByRole("tab", { name: nome }));
+
+  it("organiza os detalhes em abas e começa em Dados principais", async () => {
     renderWithProviders(<DetalhesDialog open onClose={() => {}} conta={conta} tipo="receber" />);
 
     expect(screen.getByText("Detalhes do recebimento")).toBeInTheDocument();
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Dados principais", "Valores", "Recebimento", "Histórico"]);
+    expect(screen.getByRole("tab", { name: "Dados principais" })).toHaveAttribute("aria-selected", "true");
+
     expect(screen.getByText("Data de vencimento")).toBeInTheDocument();
     expect(screen.getByText("01/11/2026")).toBeInTheDocument();
-    expect(screen.getByText("Data de recebimento")).toBeInTheDocument();
-    expect(screen.getByText("20/10/2026")).toBeInTheDocument();
-    expect(screen.getByText("Método de recebimento")).toBeInTheDocument();
-    expect(screen.getByText("Transferência")).toBeInTheDocument();
+    expect(screen.getByText("Parcial")).toBeInTheDocument();
     expect(screen.getByText("Ana Beatriz Costa")).toBeInTheDocument();
+    expect(screen.getByText("Entrada do orçamento aprovado")).toBeInTheDocument();
+    // o resto fica nas outras abas
+    expect(screen.queryByText("Valor original")).toBeNull();
+    expect(api.get).not.toHaveBeenCalled();
+  });
+
+  it("aba Valores mostra original, recebido e saldo", async () => {
+    renderWithProviders(<DetalhesDialog open onClose={() => {}} conta={conta} tipo="receber" />);
+    await aba("Valores");
+
     const valorDe = (rotulo: string) => screen.getByText(rotulo).nextElementSibling?.textContent?.replace(/\s/g, " ");
     expect(valorDe("Valor original")).toBe(brl(300));
     expect(valorDe("Recebido")).toBe(brl(150));
     expect(valorDe("Saldo restante")).toBe(brl(150));
+  });
+
+  it("aba Recebimento mostra data de recebimento e método", async () => {
+    renderWithProviders(<DetalhesDialog open onClose={() => {}} conta={conta} tipo="receber" />);
+    await aba("Recebimento");
+
+    expect(screen.getByText("Data de recebimento")).toBeInTheDocument();
+    expect(screen.getByText("20/10/2026")).toBeInTheDocument();
+    expect(screen.getByText("Método de recebimento")).toBeInTheDocument();
+    expect(screen.getByText("Transferência")).toBeInTheDocument();
+  });
+
+  it("aba Histórico carrega os recebimentos e estornos só quando aberta", async () => {
+    renderWithProviders(<DetalhesDialog open onClose={() => {}} conta={conta} tipo="receber" />);
+    await aba("Histórico");
 
     expect(screen.getByText("Histórico de recebimentos")).toBeInTheDocument();
-    expect(
-      await screen.findByText((t) => t.replace(/\s/g, " ") === `Recebimento · +${brl(150)}`)
-    ).toBeInTheDocument();
+    expect(await screen.findByText((t) => t.replace(/\s/g, " ") === `Recebimento · +${brl(150)}`)).toBeInTheDocument();
     expect(await screen.findByText(/Estorno/)).toBeInTheDocument();
     expect(screen.getByText("Motivo: Valor lançado errado")).toBeInTheDocument();
     expect(api.get).toHaveBeenCalledWith("/pagamentos/7/movimentos");
@@ -198,8 +223,10 @@ describe("DetalhesDialog", () => {
       />
     );
 
-    expect(await screen.findByText(/Nenhuma movimentação registrada/)).toBeInTheDocument();
+    await aba("Recebimento");
     expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(2);
+    await aba("Histórico");
+    expect(await screen.findByText(/Nenhuma movimentação registrada/)).toBeInTheDocument();
   });
 
   it("não busca o histórico enquanto fechado", () => {

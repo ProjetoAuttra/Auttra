@@ -1,8 +1,10 @@
 import * as React from "react";
 import {
-  Box, Stack, Typography, Divider,
+  Box, Stack, Typography, Divider, Chip, Tabs, Tab,
   Button, TextField, MenuItem, InputAdornment,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
 import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
@@ -276,6 +278,13 @@ const STATUS_LABEL: Record<Conta["status"], string> = {
   cancelado: "Cancelado",
 };
 
+const STATUS_COR: Record<Conta["status"], "warning" | "success" | "default" | "info"> = {
+  pendente: "warning",
+  parcial: "info",
+  pago: "success",
+  cancelado: "default",
+};
+
 const dataBr = formatarData;
 
 function Campo({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
@@ -284,25 +293,29 @@ function Campo({ rotulo, children }: { rotulo: string; children: React.ReactNode
       <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 0.6 }}>
         {rotulo}
       </Typography>
-      <Typography variant="body2" fontWeight={600} sx={{ overflowWrap: "anywhere" }}>
+      <Typography component="div" variant="body2" fontWeight={600} sx={{ overflowWrap: "anywhere" }}>
         {children}
       </Typography>
     </Stack>
   );
 }
 
-function Secao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+/** Bloco com fundo suave e título, usado em cada aba dos detalhes. */
+function Cartao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
-    <Stack spacing={1.5}>
-      <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.4, letterSpacing: 1 }}>
+    <Box sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.035), borderRadius: 2, p: 2.5 }}>
+      <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ mb: 1.5 }}>
         {titulo}
       </Typography>
       {children}
-    </Stack>
+    </Box>
   );
 }
 
-const GRADE = { display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 } as const;
+const GRADE = { display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2.5 } as const;
+const LINHA_INTEIRA = { gridColumn: { sm: "1 / -1" } } as const;
+
+type AbaDetalhes = "principais" | "valores" | "recebimento" | "historico";
 
 export function DetalhesDialog({ open, onClose, conta, tipo }: {
   open: boolean;
@@ -311,79 +324,120 @@ export function DetalhesDialog({ open, onClose, conta, tipo }: {
   tipo: "receber" | "pagar";
 }) {
   const receber = tipo === "receber";
+  const [aba, setAba] = React.useState<AbaDetalhes>("principais");
   const liquido = conta ? valorLiquido(conta) : 0;
   const restante = conta ? valorRestante(conta) : 0;
   const pessoa = receber ? conta?.cliente?.nome : conta?.fornecedor?.nome;
+
+  // Cada abertura começa na primeira aba.
+  React.useEffect(() => {
+    if (open) setAba("principais");
+  }, [open, conta?.id]);
 
   return (
     <AppDialog
       open={open}
       onClose={onClose}
       onCloseClick={onClose}
-      maxWidth="sm"
+      maxWidth="md"
       fullWidth
       title={receber ? "Detalhes do recebimento" : "Detalhes do pagamento"}
+      icon={<VisibilityRoundedIcon />}
       confirmDiscard={false}
     >
-      <AppDialogContent>
-        {conta && (
-          <Stack spacing={3} divider={<Divider flexItem />}>
-            <Secao titulo="Título">
+      <AppDialogContent sx={{ pt: 0 }}>
+        <Tabs
+          value={aba}
+          onChange={(_, v: AbaDetalhes) => setAba(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{ borderBottom: (t) => `1px solid ${t.palette.divider}`, mb: 2.5, "& .MuiTab-root": { fontWeight: 700, letterSpacing: 0.4 } }}
+        >
+          <Tab value="principais" label="Dados principais" />
+          <Tab value="valores" label="Valores" />
+          <Tab value="recebimento" label={receber ? "Recebimento" : "Pagamento"} />
+          <Tab value="historico" label="Histórico" />
+        </Tabs>
+
+        <Box sx={{ minHeight: 260 }}>
+          {conta && aba === "principais" && (
+            <Cartao titulo="Dados principais">
               <Box sx={GRADE}>
-                <Campo rotulo={receber ? "Cliente" : "Fornecedor"}>{pessoa ?? "—"}</Campo>
-                <Campo rotulo="Status">{STATUS_LABEL[conta.status] ?? conta.status}</Campo>
-                <Campo rotulo="Descrição">{conta.descricao || "—"}</Campo>
+                <Campo rotulo="Data de vencimento">{dataBr(conta.data_vencimento)}</Campo>
+                <Campo rotulo="Valor">{brl(liquido)}</Campo>
+                <Campo rotulo="Situação">
+                  <Chip
+                    size="small"
+                    label={STATUS_LABEL[conta.status] ?? conta.status}
+                    color={STATUS_COR[conta.status] ?? "default"}
+                    sx={{ fontWeight: 700 }}
+                  />
+                </Campo>
+                <Box sx={LINHA_INTEIRA}>
+                  <Campo rotulo={receber ? "Cliente" : "Fornecedor"}>{pessoa ?? "—"}</Campo>
+                </Box>
+                <Box sx={LINHA_INTEIRA}>
+                  <Campo rotulo="Descrição">{conta.descricao || "—"}</Campo>
+                </Box>
                 <Campo rotulo="Categoria">{conta.categoria || "—"}</Campo>
                 {conta.total_parcelas && conta.total_parcelas > 1 && (
                   <Campo rotulo="Parcela">{`${conta.parcela_numero ?? 1} de ${conta.total_parcelas}`}</Campo>
                 )}
                 {conta.ordem_servico && <Campo rotulo="Ordem de serviço">{`#${conta.ordem_servico.id}`}</Campo>}
+                {conta.observacao && (
+                  <Box sx={LINHA_INTEIRA}>
+                    <Campo rotulo="Observação">{conta.observacao}</Campo>
+                  </Box>
+                )}
               </Box>
-            </Secao>
+            </Cartao>
+          )}
 
-            <Secao titulo="Valores">
+          {conta && aba === "valores" && (
+            <Cartao titulo="Valores">
               <Box sx={GRADE}>
                 <Campo rotulo="Valor original">{brl(Number(conta.valor_original))}</Campo>
-                <Campo rotulo="Desconto">
-                  {Number(conta.desconto) > 0
-                    ? `${brl(Number(conta.desconto))}${conta.motivo_desconto ? ` · ${conta.motivo_desconto}` : ""}`
-                    : "—"}
-                </Campo>
+                <Campo rotulo="Desconto">{Number(conta.desconto) > 0 ? brl(Number(conta.desconto)) : "—"}</Campo>
                 <Campo rotulo={receber ? "Valor a receber" : "Valor a pagar"}>{brl(liquido)}</Campo>
                 <Campo rotulo={receber ? "Recebido" : "Pago"}>{brl(Number(conta.valor_pago))}</Campo>
                 {conta.status !== "pago" && conta.status !== "cancelado" && <Campo rotulo="Saldo restante">{brl(restante)}</Campo>}
+                {Number(conta.desconto) > 0 && conta.motivo_desconto && (
+                  <Box sx={LINHA_INTEIRA}>
+                    <Campo rotulo="Motivo do desconto">{conta.motivo_desconto}</Campo>
+                  </Box>
+                )}
               </Box>
-            </Secao>
+            </Cartao>
+          )}
 
-            <Secao titulo="Datas e método">
+          {conta && aba === "recebimento" && (
+            <Cartao titulo={receber ? "Recebimento" : "Pagamento"}>
               <Box sx={GRADE}>
-                <Campo rotulo="Data de vencimento">
-                  {dataBr(conta.data_vencimento)}
-                  {conta.vezes_renegociado > 0 && conta.data_vencimento_original
-                    ? ` (original ${dataBr(conta.data_vencimento_original)}, renegociado ${conta.vezes_renegociado}×)`
-                    : ""}
-                </Campo>
+                <Campo rotulo="Data de vencimento">{dataBr(conta.data_vencimento)}</Campo>
                 <Campo rotulo={receber ? "Data de recebimento" : "Data de pagamento"}>{dataBr(conta.data_pagamento)}</Campo>
                 <Campo rotulo={receber ? "Método de recebimento" : "Método de pagamento"}>
                   {conta.metodo ? METODO_LABEL[conta.metodo] ?? conta.metodo : "—"}
                 </Campo>
+                {conta.vezes_renegociado > 0 && (
+                  <Box sx={LINHA_INTEIRA}>
+                    <Campo rotulo="Renegociação">
+                      {`Vencimento original em ${dataBr(conta.data_vencimento_original)} · renegociado ${conta.vezes_renegociado}×`}
+                    </Campo>
+                  </Box>
+                )}
               </Box>
-            </Secao>
+            </Cartao>
+          )}
 
-            <Secao titulo={receber ? "Histórico de recebimentos" : "Histórico de pagamentos"}>
+          {conta && aba === "historico" && (
+            <Cartao titulo={receber ? "Histórico de recebimentos" : "Histórico de pagamentos"}>
               <HistoricoMovimentos ativo={open} contaId={conta.id} tipo={tipo} />
-            </Secao>
-
-            {conta.observacao && (
-              <Secao titulo="Observação">
-                <Typography variant="body2">{conta.observacao}</Typography>
-              </Secao>
-            )}
-          </Stack>
-        )}
+            </Cartao>
+          )}
+        </Box>
       </AppDialogContent>
       <AppDialogActions>
-        <Button onClick={onClose} variant="outlined">Fechar</Button>
+        <Button onClick={onClose} sx={{ fontWeight: 700 }}>Fechar</Button>
       </AppDialogActions>
     </AppDialog>
   );
