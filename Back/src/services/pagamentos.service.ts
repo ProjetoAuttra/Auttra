@@ -160,6 +160,48 @@ export const PagamentosService = {
     );
   },
 
+  /** Totais dos cards de Contas a Receber/Pagar, calculados no banco sobre todos os títulos (não só a página). */
+  async resumo(oficina_id: number, tipo: "receber" | "pagar", hojeIso?: string) {
+    if (!oficina_id) throw new Error("oficina_id e obrigatorio.");
+    const base = hojeIso && /^\d{4}-\d{2}-\d{2}$/.test(hojeIso) ? new Date(`${hojeIso}T00:00:00.000Z`) : new Date();
+    const hoje = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate()));
+    const inicioMes = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), 1));
+    const fimMes = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() + 1, 0));
+
+    const [r] = await prisma.$queryRaw<
+      Array<{
+        total_aberto: Prisma.Decimal;
+        pago_mes: Prisma.Decimal;
+        vencidos: Prisma.Decimal;
+        a_vencer: Prisma.Decimal;
+        qtd_total: bigint;
+        qtd_vencidos: bigint;
+        qtd_pendentes: bigint;
+      }>
+    >`
+      SELECT
+        COALESCE(SUM(CASE WHEN status IN ('pendente','parcial') THEN valor_original - desconto - valor_pago END), 0) AS total_aberto,
+        COALESCE(SUM(CASE WHEN status = 'pago' AND data_pagamento >= ${inicioMes} THEN valor_original - desconto END), 0) AS pago_mes,
+        COALESCE(SUM(CASE WHEN status IN ('pendente','parcial') AND data_vencimento < ${hoje} THEN valor_original - desconto - valor_pago END), 0) AS vencidos,
+        COALESCE(SUM(CASE WHEN status IN ('pendente','parcial') AND data_vencimento >= ${hoje} AND data_vencimento <= ${fimMes} THEN valor_original - desconto - valor_pago END), 0) AS a_vencer,
+        COUNT(*) AS qtd_total,
+        COUNT(*) FILTER (WHERE status IN ('pendente','parcial') AND data_vencimento < ${hoje}) AS qtd_vencidos,
+        COUNT(*) FILTER (WHERE status = 'pendente') AS qtd_pendentes
+      FROM pagamento
+      WHERE oficina_id = ${oficina_id} AND deleted_at IS NULL AND tipo = ${tipo}::tipo_pagamento
+    `;
+
+    return {
+      total_aberto: Number(r.total_aberto),
+      pago_mes: Number(r.pago_mes),
+      vencidos: Number(r.vencidos),
+      a_vencer: Number(r.a_vencer),
+      qtd_total: Number(r.qtd_total),
+      qtd_vencidos: Number(r.qtd_vencidos),
+      qtd_pendentes: Number(r.qtd_pendentes),
+    };
+  },
+
   async listByCliente(cliente_id: number, oficina_id: number) {
     if (!cliente_id) throw new Error("cliente_id e obrigatorio.");
     return await prisma.pagamento.findMany({

@@ -1,7 +1,7 @@
 import api from "../../../api/api";
 import { type VeiculoForm } from "../dialog";
 
-function mapVeiculo(v: any) {
+export function mapVeiculo(v: any) {
   return {
     id: String(v.id),
     cliente_id: v.cliente_id,

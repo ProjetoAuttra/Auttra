@@ -20,19 +20,14 @@ import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import { useAuth } from "../../../../context/AuthContext";
 import { useToast } from "../../../../context/ToastContext";
 import { useConfirm } from "../../../../context/ConfirmContext";
+import { useListaPaginada } from "../../../../hooks/useListaPaginada";
 import ModuleHeader from "../../../../components/layout/ModuleHeader";
 import StatCard, { StatGroup } from "../../../../components/common/StatCard";
 import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../components/common/AppDialog";
 import api from "../../../../api/api";
-import {
-  type Conta, brl, isVencido, valorLiquido, valorRestante,
-  METODO_LABEL, METODO_OPTIONS,
-  listarPagamentos, criarPagamento, atualizarPagamento,
-  marcarComoPago, estornarPagamento, aplicarDesconto, renegociarPrazo,
-  parcelar, cancelarPagamento,
-} from "../../api/api";
+import { type Conta, brl, isVencido, valorLiquido, valorRestante, METODO_LABEL, METODO_OPTIONS, criarPagamento, atualizarPagamento, marcarComoPago, estornarPagamento, aplicarDesconto, renegociarPrazo, parcelar, cancelarPagamento, resumoPagamentos, type ResumoContas } from "../../api/api";
 import {
   ReceberDialog, EstornarDialog, MovimentosDialog, DescontoDialog, RenegociarDialog, ParcelarDialog,
 } from "../../dialogs/index";
@@ -62,29 +57,28 @@ export default function ContasPagar() {
   const { success, error } = useToast();
   const confirm = useConfirm();
 
-  const [contas, setContas] = React.useState<Conta[]>([]);
   const [fornecedores, setFornecedores] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [selected, setSelected] = React.useState<Conta | null>(null);
   const [acao, setAcao] = React.useState<Acao>(null);
   const [dialogNova, setDialogNova] = React.useState(false);
   const [query, setQuery] = React.useState("");
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+
+  const { rows: contas, total, carregandoInicial, page, setPage, rowsPerPage, setRowsPerPage, recarregar } =
+    useListaPaginada<Conta>("/pagamentos", {
+      filtros: { tipo: "pagar", search: query },
+      onError: (err) => console.error("Erro ao carregar contas:", err),
+    });
+  const [resumoApi, setResumoApi] = React.useState<ResumoContas | null>(null);
+  const carregarResumo = React.useCallback(() => {
+    resumoPagamentos("pagar").then(setResumoApi).catch((err) => console.error("Erro ao carregar resumo:", err));
+  }, []);
+  React.useEffect(() => { carregarResumo(); }, [carregarResumo]);
+  const recarregarTudo = () => { recarregar(); carregarResumo(); };
 
   React.useEffect(() => {
     if (!user?.oficina_id) return;
-    Promise.all([
-      listarPagamentos(user.oficina_id),
-      api.get("/fornecedores").then((r) => r.data).catch(() => []),
-    ])
-      .then(([pags, forns]) => {
-        setContas(pags.filter((p) => p.tipo === "pagar"));
-        setFornecedores(forns);
-      })
-      .catch((err) => console.error("Erro ao carregar contas a pagar:", err))
-      .finally(() => setLoading(false));
+    api.get("/fornecedores").then((r) => r.data).catch(() => []).then(setFornecedores);
   }, [user?.oficina_id]);
 
   const handleMenuOpen = (e: React.MouseEvent<HTMLElement>, conta: Conta) => {
@@ -97,14 +91,7 @@ export default function ContasPagar() {
   const handleAcao = async (fn: () => Promise<any>, msg: string | ((result: any) => string)) => {
     try {
       const result = await fn();
-      if (result?.parcelas) {
-        setContas((prev) => [
-          ...result.parcelas,
-          ...prev.filter((c) => c.id !== selected?.id),
-        ]);
-      } else if (result?.id) {
-        setContas((prev) => prev.map((c) => (c.id === result.id ? result : c)));
-      }
+      recarregarTudo();
       success(typeof msg === "function" ? msg(result) : msg);
       setAcao(null);
     } catch (err: any) {
@@ -124,7 +111,7 @@ export default function ContasPagar() {
     if (!ok) return;
     try {
       await cancelarPagamento(selected.id);
-      setContas((prev) => prev.filter((c) => c.id !== selected.id));
+      recarregarTudo();
       success("Título cancelado.");
     } catch (err: any) {
       error(err?.response?.data?.message ?? "Não foi possível cancelar o título.");
@@ -132,26 +119,10 @@ export default function ContasPagar() {
   };
 
   // ── Cards de resumo ──────────────────────────────────────────────────────────
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-  const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-  const fimMes    = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
-
-  const totalAberto = contas
-    .filter((c) => c.status === "pendente" || c.status === "parcial")
-    .reduce((s, c) => s + valorRestante(c), 0);
-
-  const pagoNomes = contas
-    .filter((c) => c.status === "pago" && c.data_pagamento && new Date(c.data_pagamento) >= inicioMes)
-    .reduce((s, c) => s + valorLiquido(c), 0);
-
-  const totalVencidos = contas
-    .filter(isVencido)
-    .reduce((s, c) => s + valorRestante(c), 0);
-
-  const aVencer = contas
-    .filter((c) => (c.status === "pendente" || c.status === "parcial") &&
-      new Date(c.data_vencimento) >= hoje && new Date(c.data_vencimento) <= fimMes)
-    .reduce((s, c) => s + valorRestante(c), 0);
+  const totalAberto = resumoApi?.total_aberto ?? 0;
+  const pagoNomes = resumoApi?.pago_mes ?? 0;
+  const totalVencidos = resumoApi?.vencidos ?? 0;
+  const aVencer = resumoApi?.a_vencer ?? 0;
 
   const resumo = [
     { label: "Total a pagar",  value: brl(totalAberto),  icon: <TrendingDownRoundedIcon />, tone: "error" },
@@ -160,19 +131,7 @@ export default function ContasPagar() {
     { label: "A vencer (mês)", value: brl(aVencer),      icon: <ScheduleRoundedIcon />,     tone: "warning" },
   ] as const;
 
-  // ── Filtro ──────────────────────────────────────────────────────────────────
-  const filtered = contas.filter((c) => {
-    const q = query.trim().toLowerCase();
-    if (!q) return true;
-    return (
-      (c.descricao ?? "").toLowerCase().includes(q) ||
-      (c.fornecedor?.nome ?? "").toLowerCase().includes(q) ||
-      (c.categoria ?? "").toLowerCase().includes(q)
-    );
-  });
-  const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
-  if (loading) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
+  if (carregandoInicial) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
 
   return (
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
@@ -181,9 +140,9 @@ export default function ContasPagar() {
         subtitle="Gerencie pagamentos a fornecedores e despesas da oficina."
         icon={<TrendingDownRoundedIcon />}
         metrics={[
-          { label: "Total",    value: contas.length,                                       tone: "primary" },
-          { label: "Vencidos", value: contas.filter(isVencido).length,                     tone: "error" },
-          { label: "Pendentes", value: contas.filter((c) => c.status === "pendente").length, tone: "neutral" },
+          { label: "Total",    value: resumoApi?.qtd_total ?? 0,                                       tone: "primary" },
+          { label: "Vencidos", value: resumoApi?.qtd_vencidos ?? 0,                     tone: "error" },
+          { label: "Pendentes", value: resumoApi?.qtd_pendentes ?? 0, tone: "neutral" },
         ]}
         searchValue={query}
         searchPlaceholder="Pesquisar por descrição, fornecedor ou categoria"
@@ -215,7 +174,7 @@ export default function ContasPagar() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginated.length > 0 ? paginated.map((conta) => {
+              {contas.length > 0 ? contas.map((conta) => {
                 const vencido = isVencido(conta);
                 const liquido = valorLiquido(conta);
                 const restante = valorRestante(conta);
@@ -324,9 +283,9 @@ export default function ContasPagar() {
       </Fade>
 
       <TablePagination
-        component="div" count={filtered.length} page={page}
+        component="div" count={total} page={page}
         onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+        onRowsPerPageChange={(e) => setRowsPerPage(parseInt(e.target.value, 10))}
         rowsPerPageOptions={[5, 10, 20]} labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
         sx={{ bgcolor: "transparent", borderTop: (t) => `1px solid ${t.palette.divider}` }}
@@ -428,8 +387,8 @@ export default function ContasPagar() {
         fornecedores={fornecedores}
         onConfirm={async (payload) => {
           try {
-            const nova = await criarPagamento({ ...payload, tipo: "pagar", oficina_id: user?.oficina_id });
-            setContas((prev) => [nova, ...prev]);
+            await criarPagamento({ ...payload, tipo: "pagar", oficina_id: user?.oficina_id });
+            recarregarTudo();
             setDialogNova(false);
             success("Conta cadastrada!");
           } catch {

@@ -13,7 +13,8 @@ import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
 import ServicoDialog, { type Servico, type ServicoForm, CATEGORIAS } from "../dialog";
-import { listarServicos, criarServico, atualizarServico, excluirServico } from "../api/api";
+import { mapServico, criarServico, atualizarServico, excluirServico } from "../api/api";
+import { useListaPaginada } from "../../../hooks/useListaPaginada";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import ListTableContainer from "../../../components/common/ListTableContainer";
 import EmptyState from "../../../components/common/EmptyState";
@@ -39,22 +40,18 @@ export default function ServicosPage() {
   const [openDialog, setOpenDialog] = React.useState(false);
   const [mode, setMode] = React.useState<"create" | "edit">("create");
   const [current, setCurrent] = React.useState<Servico | null>(null);
-  const [rows, setRows] = React.useState<Servico[]>([]);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [menuId, setMenuId] = React.useState<number | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
-  React.useEffect(() => {
-    listarServicos(user?.oficina_id)
-      .then(setRows)
-      .catch((err) => {
+  const { rows: rowsApi, total, carregandoInicial, page, setPage, rowsPerPage, setRowsPerPage, recarregar } =
+    useListaPaginada<any>("/servicos", {
+      filtros: { search: query, categoria: categoriaFiltro },
+      onError: (err) => {
         console.error("Erro ao carregar serviços:", err);
         error("Não foi possível carregar os serviços.");
-      })
-      .finally(() => setLoading(false));
-  }, [user?.oficina_id]);
+      },
+    });
+  const rows = React.useMemo<Servico[]>(() => rowsApi.map(mapServico), [rowsApi]);
 
   const openCreate = () => { setMode("create"); setCurrent(null); setOpenDialog(true); };
   const openEdit = (s: Servico) => { setMode("edit"); setCurrent(s); setOpenDialog(true); };
@@ -73,7 +70,7 @@ export default function ServicosPage() {
     if (!ok) { handleMenuClose(); return; }
     try {
       await excluirServico(menuId);
-      setRows((p) => p.filter((x) => x.id !== menuId));
+      recarregar();
       success("Serviço excluído com sucesso.");
     } catch {
       error("Não foi possível excluir o serviço.");
@@ -87,12 +84,12 @@ export default function ServicosPage() {
       const oficinaId = user?.oficina_id;
       if (!oficinaId) { error("Usuário sem oficina vinculada."); return; }
       if (mode === "create") {
-        const { data: novo, reativado } = await criarServico(data, oficinaId);
-        setRows((p) => [novo, ...p]);
+        const { reativado } = await criarServico(data, oficinaId);
+        recarregar();
         success(reativado ? "Serviço já existia e foi reativado." : "Serviço cadastrado com sucesso!");
       } else if (current) {
-        const atualizado = await atualizarServico(current.id, data);
-        setRows((p) => p.map((r) => (r.id === current.id ? atualizado : r)));
+        await atualizarServico(current.id, data);
+        recarregar();
         success("Serviço atualizado com sucesso!");
       }
       setOpenDialog(false);
@@ -102,23 +99,9 @@ export default function ServicosPage() {
     }
   };
 
-  const categoriasUsadas = React.useMemo(() => {
-    const set = new Set(rows.map((r) => r.categoria).filter(Boolean) as string[]);
-    return Array.from(set).sort();
-  }, [rows]);
+  const categoriasUsadas = CATEGORIAS.map((c) => c.value);
 
-  const filtered = rows.filter((r) => {
-    const q = query.trim().toLowerCase();
-    const matchQuery = !q || r.nome.toLowerCase().includes(q) || (r.categoria ?? "").toLowerCase().includes(q);
-    const matchCategoria = !categoriaFiltro || r.categoria === categoriaFiltro;
-    return matchQuery && matchCategoria;
-  });
-
-  const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
-  const disponiveis = rows.filter((r) => r.ativo !== false).length;
-
-  if (loading) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
+  if (carregandoInicial) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
 
   return (
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
@@ -127,9 +110,7 @@ export default function ServicosPage() {
         subtitle="Catálogo de mão de obra, valores e serviços recorrentes."
         icon={<BuildRoundedIcon />}
         metrics={[
-          { label: "Cadastrados", value: rows.length, tone: "primary" },
-          { label: "Disponíveis", value: disponiveis, tone: "success" },
-          { label: "Filtrados", value: filtered.length, tone: "neutral" },
+          { label: query.trim() || categoriaFiltro ? "Encontrados" : "Cadastrados", value: total, tone: "primary" },
         ]}
         searchValue={query}
         searchPlaceholder="Pesquisar serviço ou categoria"
@@ -153,7 +134,7 @@ export default function ServicosPage() {
               label={CATEGORIA_LABEL[cat] ?? cat}
               size="small"
               color={categoriaFiltro === cat ? "primary" : "default"}
-              onClick={() => { setCategoriaFiltro(cat === categoriaFiltro ? null : cat); setPage(0); }}
+              onClick={() => setCategoriaFiltro(cat === categoriaFiltro ? null : cat)}
               sx={{ fontWeight: 600 }}
             />
           ))}
@@ -174,7 +155,7 @@ export default function ServicosPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginated.length > 0 ? paginated.map((s) => (
+              {rows.length > 0 ? rows.map((s) => (
                 <TableRow key={s.id} hover sx={{ height: 56 }}>
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={1.5}>
@@ -256,9 +237,9 @@ export default function ServicosPage() {
         </ListTableContainer>
       </Fade>
 
-      <TablePagination component="div" count={filtered.length} page={page}
+      <TablePagination component="div" count={total} page={page}
         onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+        onRowsPerPageChange={(e) => setRowsPerPage(parseInt(e.target.value, 10))}
         rowsPerPageOptions={[5, 10, 20]} labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
         sx={{ bgcolor: "transparent", borderTop: (t) => `1px solid ${t.palette.divider}` }}
@@ -274,7 +255,7 @@ export default function ServicosPage() {
       <ServicoDialog open={openDialog} mode={mode} initial={current} onClose={() => setOpenDialog(false)}
         onSubmit={onSubmit} onDelete={(s) => {
           excluirServico(s.id)
-            .then(() => { setRows((p) => p.filter((x) => x.id !== s.id)); success("Serviço excluído."); setOpenDialog(false); })
+            .then(() => { recarregar(); success("Serviço excluído."); setOpenDialog(false); })
             .catch(() => error("Não foi possível excluir o serviço."));
         }} />
     </Box>

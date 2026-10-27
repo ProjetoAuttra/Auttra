@@ -1,7 +1,7 @@
 import api from "../../../api/api";
 import { type ServicoForm } from "../dialog";
 
-function mapServico(s: any) {
+export function mapServico(s: any) {
   return {
     id: s.id,
     nome: s.nome,

@@ -26,6 +26,7 @@ import api from "../../../api/api";
 import ListTableContainer from "../../../components/common/ListTableContainer";
 import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationOrcamentos } from "../../../components/common/Illustrations";
+import { useListaPaginada } from "../../../hooks/useListaPaginada";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
@@ -68,8 +69,6 @@ export default function OrcamentosPage() {
   const confirm = useConfirm();
   const nav = useNavigate();
 
-  const [orcamentos, setOrcamentos] = React.useState<Orcamento[]>([]);
-  const [loading, setLoading] = React.useState(true);
   const [query, setQuery] = React.useState("");
   const [filtroStatus, setFiltroStatus] = React.useState<string>("analise");
   const [dialogOpen, setDialogOpen] = React.useState(false);
@@ -78,23 +77,14 @@ export default function OrcamentosPage() {
   const [convertingOrcamento, setConvertingOrcamento] = React.useState<Orcamento | null>(null);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [selectedId, setSelectedId] = React.useState<number | null>(null);
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+
+  const { rows: orcamentos, total, carregandoInicial, page, setPage, rowsPerPage, setRowsPerPage, recarregar } =
+    useListaPaginada<Orcamento>("/orcamentos", {
+      filtros: { search: query, status: filtroStatus },
+      onError: () => error("Não foi possível carregar os orçamentos."),
+    });
 
   // ── Carrega ──
-  const fetchData = React.useCallback(async () => {
-    try {
-      const res = await api.get("/orcamentos");
-      setOrcamentos(res.data ?? []);
-    } catch {
-      setOrcamentos([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => { fetchData(); }, [fetchData]);
-
   // ── Menu ──
   const handleMenuClick = (e: React.MouseEvent<HTMLElement>, id: number) => { setAnchorEl(e.currentTarget); setSelectedId(id); };
   const handleMenuClose = () => { setAnchorEl(null); setSelectedId(null); };
@@ -110,7 +100,7 @@ export default function OrcamentosPage() {
     handleMenuClose();
     try {
       await api.patch(`/orcamentos/${selectedId}/status`, { status: "aprovado" });
-      setOrcamentos((p) => p.map((o) => o.id === selectedId ? { ...o, status: "aprovado" } : o));
+      recarregar();
       success("Orçamento aprovado!");
     } catch { error("Não foi possível aprovar o orçamento."); }
   };
@@ -128,7 +118,7 @@ export default function OrcamentosPage() {
     if (!ok) return;
     try {
       await api.patch(`/orcamentos/${selectedId}/status`, { status: "recusado" });
-      setOrcamentos((p) => p.map((o) => o.id === selectedId ? { ...o, status: "recusado" } : o));
+      recarregar();
       success("Orçamento recusado.");
     } catch { error("Não foi possível recusar o orçamento."); }
   };
@@ -146,7 +136,7 @@ export default function OrcamentosPage() {
     if (!ok) return;
     try {
       await api.delete(`/orcamentos/${selectedId}`);
-      setOrcamentos((p) => p.filter((o) => o.id !== selectedId));
+      recarregar();
       success("Orçamento excluído.");
     } catch { error("Não foi possível excluir o orçamento."); }
   };
@@ -197,7 +187,7 @@ export default function OrcamentosPage() {
     try {
       const novaOS = await api.post("/ordens", payload);
       await api.patch(`/orcamentos/${convertingOrcamento.id}/status`, { status: "aprovado" });
-      setOrcamentos((p) => p.map((o) => o.id === convertingOrcamento.id ? { ...o, status: "aprovado" } : o));
+      recarregar();
       setOsDialogOpen(false);
       setOsInitial(null);
       setConvertingOrcamento(null);
@@ -286,7 +276,6 @@ export default function OrcamentosPage() {
   const criarOrcamento = async (data: any) => {
     try {
       const res = await api.post("/orcamentos", data);
-      setOrcamentos((prev) => [res.data, ...prev]);
       nav(`/orcamentos/${res.data.id}`);
       success("Orçamento criado com sucesso!");
     } catch (err) {
@@ -295,19 +284,7 @@ export default function OrcamentosPage() {
     }
   };
 
-  // ── Filtros ──
-  const filtered = React.useMemo(() => {
-    return orcamentos.filter((o) => {
-      const matchStatus = filtroStatus === "todos" || o.status === filtroStatus;
-      const matchQuery = [o.cliente?.nome, o.veiculo?.modelo, o.veiculo?.placa, o.descricao]
-        .join(" ").toLowerCase().includes(query.toLowerCase());
-      return matchStatus && matchQuery;
-    });
-  }, [orcamentos, filtroStatus, query]);
-
-  const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
-  if (loading) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
+  if (carregandoInicial) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
 
   return (
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
@@ -326,7 +303,7 @@ export default function OrcamentosPage() {
         <ToggleButtonGroup
           value={filtroStatus}
           exclusive
-          onChange={(_, v) => { if (v !== null) { setFiltroStatus(v); setPage(0); } }}
+          onChange={(_, v) => { if (v !== null) setFiltroStatus(v); }}
           size="small"
           sx={{ "& .MuiToggleButton-root": { textTransform: "none", fontWeight: 600, px: 2, borderRadius: "999px !important", border: (t) => `1px solid ${t.palette.divider} !important`, mx: 0.25 } }}
         >
@@ -353,7 +330,7 @@ export default function OrcamentosPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginated.length > 0 ? paginated.map((o) => {
+              {orcamentos.length > 0 ? orcamentos.map((o) => {
                 const st = STATUS_CONFIG[o.status] ?? STATUS_CONFIG.analise;
                 return (
                   <TableRow
@@ -462,11 +439,11 @@ export default function OrcamentosPage() {
       {/* ── Paginação ── */}
       <TablePagination
         component="div"
-        count={filtered.length}
+        count={total}
         page={page}
         onPageChange={(_, p) => setPage(p)}
         rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+        onRowsPerPageChange={(e) => setRowsPerPage(parseInt(e.target.value, 10))}
         rowsPerPageOptions={[5, 10, 20]}
         labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
