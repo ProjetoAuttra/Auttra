@@ -12,12 +12,15 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Typography,
+  Tooltip,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { brand } from '../../../app/theme';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import dayjs, { type Dayjs } from 'dayjs';
 import 'dayjs/locale/pt-br';
@@ -59,6 +62,10 @@ type FormValues = {
   description?: string;
   start: Dayjs | null;
   end: Dayjs | null;
+  /** Campos do formulário de criação; start/end são montados no envio. */
+  date?: Dayjs | null;
+  startTime?: Dayjs | null;
+  endTime?: Dayjs | null;
   location?: string;
   clientId: string;
   vehicleId: string;
@@ -114,6 +121,7 @@ function NewAppointmentDialog({
   onClose,
   onCreate,
   defaultStart,
+  defaultHasTime = false,
   clients,
   vehicles,
   ordens,
@@ -121,7 +129,10 @@ function NewAppointmentDialog({
   open: boolean;
   onClose: () => void;
   onCreate: (data: FormValues) => Promise<void>;
+  /** Dia do agendamento (a hora só é usada se defaultHasTime). */
   defaultStart?: Dayjs | null;
+  /** Visão Dia: o horário clicado vem preenchido. Mês/Semana: a hora vem em branco. */
+  defaultHasTime?: boolean;
   clients: ClientOption[];
   vehicles: VehicleOption[];
   ordens: OrdemOption[];
@@ -130,20 +141,25 @@ function NewAppointmentDialog({
     control,
     handleSubmit,
     reset,
+    setValue,
+    getValues,
     formState: { errors, isValid, isSubmitting },
   } = useForm<FormValues>({
     mode: 'onChange',
     defaultValues: {
       title: '',
       description: '',
-      start: defaultStart ?? dayjs().hour(9).minute(0).second(0),
-      end: (defaultStart ?? dayjs().hour(9).minute(0).second(0)).add(1, 'hour'),
+      start: null,
+      end: null,
+      date: defaultStart ?? dayjs(),
+      startTime: null,
+      endTime: null,
       location: '',
       clientId: '',
       vehicleId: '',
     },
   });
-  const start = useWatch({ control, name: 'start' });
+  const startTime = useWatch({ control, name: 'startTime' });
   const clientId = useWatch({ control, name: 'clientId' });
   const availableVehicles = useMemo(
     () => vehicles.filter((vehicle) => !clientId || String(getVehicleClientId(vehicle)) === clientId),
@@ -156,9 +172,21 @@ function NewAppointmentDialog({
 
   useEffect(() => {
     if (!open) return;
-    const base = (defaultStart ?? dayjs().hour(9).minute(0)).second(0);
-    reset({ title: '', description: '', start: base, end: base.add(1, 'hour'), location: '', clientId: '', vehicleId: '', ordemServicoId: '' });
-  }, [defaultStart, open, reset]);
+    const base = (defaultStart ?? dayjs()).second(0);
+    reset({
+      title: '',
+      description: '',
+      start: null,
+      end: null,
+      date: base,
+      startTime: defaultHasTime ? base : null,
+      endTime: defaultHasTime ? base.add(1, 'hour') : null,
+      location: '',
+      clientId: '',
+      vehicleId: '',
+      ordemServicoId: '',
+    });
+  }, [defaultStart, defaultHasTime, open, reset]);
 
   const handleClose = () => {
     reset();
@@ -166,8 +194,9 @@ function NewAppointmentDialog({
   };
 
   const onSubmit = async (data: FormValues) => {
+    const combine = (time: Dayjs) => (data.date as Dayjs).hour(time.hour()).minute(time.minute()).second(0).millisecond(0);
     try {
-      await onCreate(data);
+      await onCreate({ ...data, start: combine(data.startTime as Dayjs), end: combine(data.endTime as Dayjs) });
       handleClose();
     } catch {
       // A mensagem de erro e exibida pelo fluxo que tentou salvar.
@@ -244,34 +273,53 @@ function NewAppointmentDialog({
               )}
             />
           </Box>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1.4fr 1fr 1fr' }, gap: 2 }}>
             <Controller
-              name="start"
+              name="date"
               control={control}
-              rules={{ required: 'Informe o início' }}
+              rules={{ required: 'Informe a data' }}
               render={({ field }) => (
-                <DateTimePicker
+                <DatePicker
                   {...field}
-                  label="Início"
-                  ampm={false}
-                  slotProps={{ textField: { error: !!errors.start, helperText: errors.start?.message, fullWidth: true } }}
+                  label="Data"
+                  slotProps={{ textField: { error: !!errors.date, helperText: errors.date?.message as string | undefined, fullWidth: true } }}
                 />
               )}
             />
             <Controller
-              name="end"
+              name="startTime"
+              control={control}
+              rules={{ required: 'Informe o início' }}
+              render={({ field }) => (
+                <TimePicker
+                  {...field}
+                  label="Início"
+                  ampm={false}
+                  onChange={(value) => {
+                    field.onChange(value);
+                    // Sugere 1h de duração quando o término ainda está em branco.
+                    if (value?.isValid() && !getValues('endTime')) setValue('endTime', value.add(1, 'hour'), { shouldValidate: true });
+                  }}
+                  slotProps={{ textField: { error: !!errors.startTime, helperText: errors.startTime?.message as string | undefined, fullWidth: true } }}
+                />
+              )}
+            />
+            <Controller
+              name="endTime"
               control={control}
               rules={{
                 required: 'Informe o término',
-                validate: (value) => (value && start && dayjs(value).isAfter(start) ? true : 'Término deve ser depois do início'),
+                validate: (value) =>
+                  value && startTime && value.isValid() && startTime.isValid()
+                    ? value.hour() * 60 + value.minute() > startTime.hour() * 60 + startTime.minute() || 'Deve ser depois do início'
+                    : true,
               }}
               render={({ field }) => (
-                <DateTimePicker
+                <TimePicker
                   {...field}
                   label="Término"
                   ampm={false}
-                  minDateTime={start ?? undefined}
-                  slotProps={{ textField: { error: !!errors.end, helperText: errors.end?.message, fullWidth: true } }}
+                  slotProps={{ textField: { error: !!errors.endTime, helperText: errors.endTime?.message as string | undefined, fullWidth: true } }}
                 />
               )}
             />
@@ -339,6 +387,7 @@ function AppointmentCard({
         event.stopPropagation();
         onOpen?.(appointment);
       }}
+      onDoubleClick={(event) => event.stopPropagation()}
       sx={(theme) => ({
         p: 1.5,
         width: '100%',
@@ -400,29 +449,72 @@ function AppointmentCard({
   );
 }
 
-function CompactAppointment({ appointment, onOpen }: { appointment: Appointment; onOpen?: (appointment: Appointment) => void }) {
+function CompactAppointment({
+  appointment,
+  onOpen,
+  detailed = false,
+}: {
+  appointment: Appointment;
+  onOpen?: (appointment: Appointment) => void;
+  /** Visão semanal: mostra também cliente e veículo. */
+  detailed?: boolean;
+}) {
+  const time = dayjs(appointment.start).format('HH:mm');
+  const who = [appointment.clientName, appointment.vehicleLabel].filter(Boolean).join(' • ');
+  const clamp = (lines: number) => ({
+    display: '-webkit-box',
+    WebkitLineClamp: lines,
+    WebkitBoxOrient: 'vertical' as const,
+    overflow: 'hidden',
+    overflowWrap: 'anywhere' as const,
+  });
+
   return (
-    <Box
-      onClick={(event) => {
-        event.stopPropagation();
-        onOpen?.(appointment);
-      }}
-      sx={(theme) => ({
-        px: 1,
-        py: 0.6,
-        minWidth: 0,
-        borderRadius: 2,
-        bgcolor: alpha(theme.palette.primary.main, 0.09),
-        color: 'primary.main',
-        overflow: 'hidden',
-        cursor: onOpen ? 'pointer' : 'default',
-        '&:hover': onOpen ? { bgcolor: alpha(theme.palette.primary.main, 0.14) } : undefined,
-      })}
+    <Tooltip
+      arrow
+      placement="top"
+      title={
+        <Box>
+          <Typography variant="caption" fontWeight={700} display="block">
+            {formatTimeRange(appointment)} · {appointment.title}
+          </Typography>
+          {who && (
+            <Typography variant="caption" display="block">
+              {who}
+            </Typography>
+          )}
+        </Box>
+      }
     >
-      <Typography sx={{ fontSize: 12, fontWeight: 600 }} noWrap>
-        {dayjs(appointment.start).format('HH:mm')} {appointment.title}
-      </Typography>
-    </Box>
+      <Box
+        onClick={(event) => {
+          event.stopPropagation();
+          onOpen?.(appointment);
+        }}
+        onDoubleClick={(event) => event.stopPropagation()}
+        sx={(theme) => ({
+          px: 1,
+          py: 0.75,
+          minWidth: 0,
+          borderRadius: 1.5,
+          bgcolor: alpha(theme.palette.primary.main, 0.09),
+          cursor: onOpen ? 'pointer' : 'default',
+          '&:hover': onOpen ? { bgcolor: alpha(theme.palette.primary.main, 0.14) } : undefined,
+        })}
+      >
+        <Typography sx={{ fontSize: 11, fontWeight: 700, lineHeight: 1.3 }} color="primary.main">
+          {time}
+        </Typography>
+        <Typography sx={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.35, ...clamp(2) }} color="text.primary">
+          {appointment.title}
+        </Typography>
+        {detailed && who && (
+          <Typography sx={{ fontSize: 11, lineHeight: 1.35, mt: 0.25, ...clamp(1) }} color="text.secondary">
+            {who}
+          </Typography>
+        )}
+      </Box>
+    </Tooltip>
   );
 }
 
@@ -603,6 +695,7 @@ export default function Schedule() {
   const [query, setQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [draftStart, setDraftStart] = useState<Dayjs | null>(null);
+  const [draftHasTime, setDraftHasTime] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [clients, setClients] = useState<ClientOption[]>([]);
@@ -707,10 +800,12 @@ export default function Schedule() {
   const goPrevious = () => setSelectedDate((current) => current.subtract(1, view === 'month' ? 'month' : view === 'week' ? 'week' : 'day'));
   const goNext = () => setSelectedDate((current) => current.add(1, view === 'month' ? 'month' : view === 'week' ? 'week' : 'day'));
 
-  const openCreateAt = (date: Dayjs) => {
+  // withTime: só a visão Dia leva o horário clicado; nas demais a hora vem em branco.
+  const openCreateAt = (date: Dayjs, withTime = false) => {
     const base = date.minute(0).second(0);
     setSelectedDate(base);
     setDraftStart(base);
+    setDraftHasTime(withTime);
     setDialogOpen(true);
   };
 
@@ -799,7 +894,7 @@ export default function Schedule() {
           searchPlaceholder="Pesquisar por cliente, placa, serviço ou local"
           onSearchChange={setQuery}
           actionLabel="Novo agendamento"
-          onAction={() => openCreateAt(selectedDate.hour(9))}
+          onAction={() => openCreateAt(selectedDate)}
         />
 
         <Paper
@@ -884,11 +979,11 @@ export default function Schedule() {
                   return (
                     <Box
                       key={day.format('YYYY-MM-DD')}
-                      onClick={() => openCreateAt(day.hour(9))}
+                      onDoubleClick={() => openCreateAt(day)}
                       sx={(theme) => ({
                         minHeight: 132,
                         p: 1.1,
-                        cursor: 'pointer',
+                        userSelect: 'none',
                         borderRight: `1px solid ${theme.palette.divider}`,
                         borderBottom: `1px solid ${theme.palette.divider}`,
                         bgcolor: active ? alpha(theme.palette.primary.main, 0.05) : inMonth ? 'transparent' : brand.subtle,
@@ -914,7 +1009,7 @@ export default function Schedule() {
               </Box>
             </Box>
           ) : view === 'week' ? (
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(150px, 1fr))', gap: 0, overflowX: 'auto', borderTop: (t) => `1px solid ${t.palette.divider}` }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(150px, 1fr))', gap: 0, overflowX: 'auto', borderTop: (t) => `1px solid ${t.palette.divider}`, borderBottom: (t) => `1px solid ${t.palette.divider}` }}>
               {weekDays.map((day, dayIndex) => {
                 const active = day.isSame(selectedDate, 'day');
                 const dayAppointments = filteredAppointments
@@ -923,50 +1018,29 @@ export default function Schedule() {
                 return (
                   <Box
                     key={day.format('YYYY-MM-DD')}
-                    onClick={() => openCreateAt(day.hour(9))}
+                    onDoubleClick={() => openCreateAt(day)}
                     sx={(theme) => ({
-                      minHeight: 160,
+                      // Em tela grande a coluna ocupa a altura útil, como um calendário.
+                      minHeight: 'max(360px, calc(100dvh - 260px))',
                       p: 1.25,
                       borderRight: dayIndex < weekDays.length - 1 ? `1px solid ${theme.palette.divider}` : 0,
-                      cursor: 'pointer',
+                      userSelect: 'none',
                       bgcolor: active ? alpha(theme.palette.primary.main, 0.05) : 'transparent',
                       '&:hover': { bgcolor: active ? alpha(theme.palette.primary.main, 0.07) : brand.subtle },
                     })}
                   >
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5}>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                          {day.format('ddd')}
-                        </Typography>
-                        <Typography fontWeight={700} sx={{ fontSize: 24 }}>
-                          {day.format('DD')}
-                        </Typography>
-                      </Box>
+                    <Box mb={1.5}>
                       <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                        {dayAppointments.length}
+                        {day.format('ddd')}
                       </Typography>
-                    </Stack>
+                      <Typography fontWeight={700} sx={{ fontSize: 24 }}>
+                        {day.format('DD')}
+                      </Typography>
+                    </Box>
                     <Stack spacing={1}>
-                      {dayAppointments.length > 0 ? (
-                        groupAppointmentsByStartTime(dayAppointments).map((group) => (
-                          <Box
-                            key={group.time}
-                            sx={{
-                              display: 'grid',
-                              gridTemplateColumns: `repeat(${group.appointments.length}, minmax(0, 1fr))`,
-                              gap: 0.75,
-                            }}
-                          >
-                            {group.appointments.map((appointment) => (
-                              <CompactAppointment key={appointment.id} appointment={appointment} onOpen={setSelectedAppointment} />
-                            ))}
-                          </Box>
-                        ))
-                      ) : (
-                        <Box sx={{ py: 2, textAlign: 'center', color: 'text.disabled' }}>
-                          <Typography variant="caption" fontWeight={600}>Livre</Typography>
-                        </Box>
-                      )}
+                      {dayAppointments.map((appointment) => (
+                        <CompactAppointment key={appointment.id} appointment={appointment} onOpen={setSelectedAppointment} detailed />
+                      ))}
                     </Stack>
                   </Box>
                 );
@@ -981,7 +1055,7 @@ export default function Schedule() {
                 return (
                   <Box
                     key={hour}
-                    onClick={() => openCreateAt(selectedDate.hour(hour))}
+                    onDoubleClick={() => openCreateAt(selectedDate.hour(hour), true)}
                     sx={{
                       display: 'grid',
                       gridTemplateColumns: { xs: '56px 1fr', sm: '72px 1fr' },
@@ -989,7 +1063,7 @@ export default function Schedule() {
                       minHeight: 78,
                       borderTop: (t) => `1px solid ${t.palette.divider}`,
                       py: 1.25,
-                      cursor: 'pointer',
+                      userSelect: 'none',
                       '&:hover': { bgcolor: 'rgba(37, 99, 235, 0.025)' },
                     }}
                   >
@@ -1038,7 +1112,8 @@ export default function Schedule() {
           setDraftStart(null);
         }}
         onCreate={handleCreate}
-        defaultStart={draftStart ?? selectedDate.hour(9).minute(0).second(0)}
+        defaultStart={draftStart ?? selectedDate}
+        defaultHasTime={draftHasTime}
         clients={clients}
         vehicles={vehicles}
         ordens={ordens}
