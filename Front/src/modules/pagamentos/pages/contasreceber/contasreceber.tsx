@@ -239,9 +239,8 @@ export default function ContasReceber() {
                       <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                         <Button
                           size="small"
-                          variant="contained"
+                          variant="text"
                           color="success"
-                          disableElevation
                           onClick={() => handleReceberDireto(conta)}
                           disabled={conta.status === "pago" || conta.status === "cancelado"}
                           sx={{
@@ -249,7 +248,7 @@ export default function ContasReceber() {
                             letterSpacing: 0.6,
                             px: 1.75,
                             // Já recebido: continua visível, mas bem mais apagado.
-                            "&.Mui-disabled": { bgcolor: "success.main", color: "#fff", opacity: 0.35 },
+                            "&.Mui-disabled": { color: "success.main", opacity: 0.35 },
                           }}
                         >
                           RECEBER
