@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client.js";
+import { HttpError } from "../utils/httpError.js";
 
 const D = (v: Prisma.Decimal.Value) => new Prisma.Decimal(v);
 
@@ -193,13 +194,22 @@ export const PagamentosService = {
 
   async delete(id: number, oficinaId: number) {
     if (!id) throw new Error("ID do pagamento e obrigatorio.");
-    const existing = await prisma.pagamento.findFirst({ where: { id, deleted_at: null, oficina_id: oficinaId } });
-    if (!existing) throw new Error("Pagamento nao encontrado.");
-    await prisma.pagamento.update({
-      where: { id },
-      data: { deleted_at: new Date(), status: "cancelado" },
+    return prisma.$transaction(async (tx) => {
+      const existing = await lockPagamento(tx, id, oficinaId);
+      // titulo com dinheiro ja registrado nao some: primeiro precisa ser estornado
+      if (existing.status === "pago" || existing.status === "parcial" || !D(existing.valor_pago).isZero()) {
+        throw new HttpError(
+          "Este título já possui pagamento registrado e não pode ser excluído. Estorne o pagamento antes de excluir.",
+          409,
+          "PAGAMENTO_REQUER_ESTORNO"
+        );
+      }
+      await tx.pagamento.update({
+        where: { id },
+        data: { deleted_at: new Date(), status: "cancelado" },
+      });
+      return { message: "Pagamento cancelado com sucesso." };
     });
-    return { message: "Pagamento cancelado com sucesso." };
   },
 
   async extrato(oficina_id: number, from?: string, to?: string) {

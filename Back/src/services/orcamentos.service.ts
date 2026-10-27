@@ -22,6 +22,8 @@ function mapItemOrcamento(item: OrcamentoItemInput) {
   const tipo = item.tipo_item ?? item.tipo ?? "servico";
   const quantidade = Number(item.quantidade ?? 1);
   const precoUnitario = Number(item.preco_unitario ?? item.preco ?? 0);
+  if (!Number.isInteger(quantidade) || quantidade <= 0) throw new Error("Quantidade do item deve ser um inteiro maior que zero.");
+  if (!Number.isFinite(precoUnitario) || precoUnitario < 0) throw new Error("Preco unitario do item invalido.");
 
   return {
     tipo_item: tipo,
@@ -30,7 +32,8 @@ function mapItemOrcamento(item: OrcamentoItemInput) {
     nome: item.nome ?? null,
     quantidade,
     preco_unitario: precoUnitario,
-    subtotal: Number(item.subtotal ?? quantidade * precoUnitario),
+    // subtotal nunca eh confiado: sempre quantidade x preco unitario
+    subtotal: Math.round(quantidade * precoUnitario * 100) / 100,
   };
 }
 

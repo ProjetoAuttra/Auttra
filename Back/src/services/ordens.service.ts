@@ -1,5 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client.js";
+import { HttpError } from "../utils/httpError.js";
+import { calcularItens } from "../utils/totais.js";
 
 /**
  * Baixa o estoque em uma unica operacao condicional (so decrementa se ainda houver saldo),
@@ -91,11 +93,13 @@ export const OrdensService = {
   },
 
   create: async (data: any) => {
-    const { oficina_id, cliente_id, veiculo_id, funcionario_id, observacoes, valor_total, itens } = data;
+    const { oficina_id, cliente_id, veiculo_id, funcionario_id, observacoes, itens } = data;
 
     if (!oficina_id || !cliente_id || !veiculo_id || !funcionario_id) {
       throw new Error("Campos obrigatórios não informados.");
     }
+    // subtotal e valor_total sao sempre recalculados aqui; o que vier do cliente eh ignorado
+    const calculo = calcularItens(itens);
     await validateOrdemRelations({ cliente_id, veiculo_id, funcionario_id, itens }, oficina_id);
 
     const pecaItens = (itens ?? []).filter((i: any) => (i.tipo_item ?? i.tipo) === "peca" && i.peca_id);
@@ -113,17 +117,8 @@ export const OrdensService = {
           funcionario_id,
           observacoes: observacoes ?? "",
           status: "aberta",
-          valor_total: valor_total ?? 0,
-          itens: {
-            create: (itens ?? []).map((i: any) => ({
-              tipo_item: i.tipo_item ?? i.tipo ?? "servico",
-              servico_id: (i.tipo_item ?? i.tipo) === "servico" ? i.servico_id ?? null : null,
-              peca_id:    (i.tipo_item ?? i.tipo) === "peca"    ? i.peca_id    ?? null : null,
-              quantidade:     i.quantidade     ?? 1,
-              preco_unitario: i.preco_unitario ?? i.preco ?? 0,
-              subtotal:       i.subtotal       ?? 0,
-            })),
-          },
+          valor_total: calculo.total,
+          itens: { create: calculo.itens },
         },
         include: {
           cliente: true,
@@ -168,6 +163,8 @@ export const OrdensService = {
 
     delete rest.oficina_id;
     delete rest.oficinaId;
+    delete rest.valor_total; // so muda junto com os itens, recalculado abaixo
+    const calculo = Array.isArray(itens) ? calcularItens(itens) : null;
     await validateOrdemRelations(
       {
         cliente_id:    rest.cliente_id    ?? existing.cliente_id,
@@ -218,7 +215,12 @@ export const OrdensService = {
 
       const osAtualizada = await tx.ordem_servico.update({
         where: { id },
-        data: { ...rest, oficina_id: oficinaId, updated_at: new Date() },
+        data: {
+          ...rest,
+          ...(calculo ? { valor_total: calculo.total } : {}),
+          oficina_id: oficinaId,
+          updated_at: new Date(),
+        },
         include: {
           cliente: true,
           veiculo: true,
@@ -230,15 +232,7 @@ export const OrdensService = {
       if (isUpdatingItems) {
         await tx.item_ordem_servico.deleteMany({ where: { ordem_servico_id: id } });
         await tx.item_ordem_servico.createMany({
-          data: itens.map((i: any) => ({
-            ordem_servico_id: id,
-            tipo_item:        i.tipo_item ?? i.tipo ?? "servico",
-            servico_id:       (i.tipo_item ?? i.tipo) === "servico" ? i.servico_id ?? null : null,
-            peca_id:          (i.tipo_item ?? i.tipo) === "peca"    ? i.peca_id    ?? null : null,
-            quantidade:       i.quantidade     ?? 1,
-            preco_unitario:   i.preco_unitario ?? i.preco ?? 0,
-            subtotal:         i.subtotal       ?? 0,
-          })),
+          data: calculo!.itens.map((i) => ({ ordem_servico_id: id, ...i })),
         });
       }
 
@@ -287,7 +281,11 @@ export const OrdensService = {
       const pagamentoBloqueante = await prisma.pagamento.findFirst({
         where: { ordem_servico_id: id, status: { in: ["pago", "parcial"] }, deleted_at: null },
       });
-      if (pagamentoBloqueante) throw new Error("Não é possível excluir uma OS com pagamento já registrado.");
+      if (pagamentoBloqueante) throw new HttpError(
+        "Não é possível excluir uma OS com pagamento já registrado. Estorne o pagamento antes de excluir.",
+        409,
+        "PAGAMENTO_REQUER_ESTORNO"
+      );
 
       return await prisma.$transaction(async (tx) => {
         // Cancel pending payments
@@ -320,7 +318,7 @@ export const OrdensService = {
     } catch (err: any) {
       console.error("Erro ao excluir OS:", err);
       if (err.code === "P2003") {
-        throw new Error("Não é possível excluir esta OS porque há registros vinculados.");
+        throw new HttpError("Não é possível excluir esta OS porque há registros vinculados.", 409, "REGISTROS_VINCULADOS");
       }
       throw err;
     }
