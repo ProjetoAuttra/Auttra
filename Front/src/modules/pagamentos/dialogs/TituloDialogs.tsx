@@ -4,6 +4,7 @@ import PaymentsRoundedIcon from "@mui/icons-material/PaymentsRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../components/common/AppDialog";
 import CampoData from "../../../components/common/CampoData";
+import TextoLimitado from "../../../components/common/TextoLimitado";
 import { METODO_OPTIONS, brl, formatarData, hojeInput, type Conta } from "../api/api";
 
 const toCents = (v: number) => Math.round(v * 100);
@@ -33,7 +34,7 @@ function Resumo({ conta, receber, desconto, linhas }: { conta: Conta; receber: b
       <Box>
         <Titulo>Título</Titulo>
         <Typography variant="body2" fontWeight={700} sx={{ overflowWrap: "anywhere" }}>{pessoa ?? "—"}</Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: "anywhere" }}>{conta.descricao ?? "—"}</Typography>
+        <TextoLimitado texto={conta.descricao ?? "—"} linhas={3} variant="body2" color="text.secondary" />
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Vencimento: {formatarData(conta.data_vencimento)}</Typography>
       </Box>
       <Divider />

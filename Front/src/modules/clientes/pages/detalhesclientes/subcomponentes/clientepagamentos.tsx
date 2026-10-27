@@ -1,20 +1,18 @@
 import * as React from "react";
 import {
   Table, TableHead, TableRow, TableCell, TableBody,
-  Typography, Paper, Chip, Stack, Box, IconButton, Menu, MenuItem,
+  Typography, Chip, Stack, Box, IconButton, Menu, MenuItem,
   Divider, Tooltip, Button, TextField, InputAdornment,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
-import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import SellRoundedIcon from "@mui/icons-material/SellRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
-import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
 import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
@@ -23,19 +21,21 @@ import { useToast } from "../../../../../context/ToastContext";
 import { useAuth } from "../../../../../context/AuthContext";
 import { useConfirm } from "../../../../../context/ConfirmContext";
 import ListTableContainer from "../../../../../components/common/ListTableContainer";
+import StatCard, { StatGroup } from "../../../../../components/common/StatCard";
+import TextoLimitado from "../../../../../components/common/TextoLimitado";
+import CampoData from "../../../../../components/common/CampoData";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../../components/common/AppDialog";
 import {
-  type Conta, brl, isVencido, valorLiquido, valorRestante,
-  METODO_LABEL, METODO_OPTIONS,
-  criarPagamento,
-  marcarComoPago, estornarPagamento, aplicarDesconto, renegociarPrazo,
-  parcelar, cancelarPagamento,
+  type Conta, brl, isVencido, valorLiquido, valorRestante, formatarData,
+  METODO_OPTIONS,
+  criarPagamento, atualizarPagamento,
+  marcarComoPago, estornarPagamento, parcelar, cancelarPagamento,
 } from "../../../../pagamentos/api/api";
-import {
-  ReceberDialog, EstornarDialog, MovimentosDialog, DescontoDialog, RenegociarDialog, ParcelarDialog,
-} from "../../../../pagamentos/dialogs/index";
+import { EstornarDialog, DetalhesDialog } from "../../../../pagamentos/dialogs/index";
+import { ReceberTituloDialog, RenegociarTituloDialog } from "../../../../pagamentos/dialogs/TituloDialogs";
+import { EditarContaDialog } from "../../../../pagamentos/dialogs/EditarContaDialog";
 
-type Acao = "pagar" | "estornar" | "historico" | "desconto" | "renegociar" | "parcelar" | null;
+type Acao = "pagar" | "estornar" | "detalhes" | "renegociar" | "editar" | null;
 
 function StatusChip({ conta }: { conta: Conta }) {
   if (isVencido(conta))
@@ -50,10 +50,12 @@ function StatusChip({ conta }: { conta: Conta }) {
 export default function ClientePagamentos({
   pagamentos: pagamentosInit,
   clienteId,
+  clienteNome,
   oficinaId,
 }: {
   pagamentos: any[];
   clienteId: number;
+  clienteNome?: string;
   oficinaId: number;
 }) {
   const { can } = useAuth();
@@ -66,26 +68,38 @@ export default function ClientePagamentos({
   const [acao, setAcao] = React.useState<Acao>(null);
   const [dialogNova, setDialogNova] = React.useState(false);
 
+  // A lista do cliente não traz o relacionamento com o cliente; os modais precisam dele para o resumo.
   React.useEffect(() => {
-    setContas((pagamentosInit ?? []) as Conta[]);
-  }, [pagamentosInit]);
+    setContas(((pagamentosInit ?? []) as Conta[]).map((c) => ({ ...c, cliente: c.cliente ?? { id: clienteId, nome: clienteNome ?? "—" } })));
+  }, [pagamentosInit, clienteId, clienteNome]);
 
   const handleMenuOpen = (e: React.MouseEvent<HTMLElement>, conta: Conta) => {
     setAnchorEl(e.currentTarget); setSelected(conta);
   };
   const handleMenuClose = () => { setAnchorEl(null); };
   const openAcao = (a: Acao) => { setAcao(a); handleMenuClose(); };
+  const handleReceberDireto = (conta: Conta) => { setSelected(conta); setAcao("pagar"); };
+
+  const comCliente = (c: Conta): Conta => ({ ...c, cliente: c.cliente ?? { id: clienteId, nome: clienteNome ?? "—" } });
 
   const handleAcao = async (fn: () => Promise<any>, msg: string | ((result: any) => string)) => {
     try {
       const result = await fn();
       if (result?.parcelas) {
         setContas((prev) => [
-          ...result.parcelas,
+          ...result.parcelas.map(comCliente),
           ...prev.filter((c) => c.id !== selected?.id),
         ]);
       } else if (result?.id) {
-        setContas((prev) => prev.map((c) => (c.id === result.id ? result : c)));
+        setContas((prev) => {
+          const atualizadas = prev.map((c) => (c.id === result.id ? comCliente(result) : c));
+          // Recebimento parcial: o saldo nasce como um novo título, logo depois do que foi recebido.
+          if (result.titulo_saldo) {
+            const i = atualizadas.findIndex((c) => c.id === result.id);
+            atualizadas.splice(i + 1, 0, comCliente(result.titulo_saldo));
+          }
+          return atualizadas;
+        });
       }
       success(typeof msg === "function" ? msg(result) : msg);
       setAcao(null);
@@ -126,7 +140,7 @@ export default function ClientePagamentos({
         oficina_id: oficinaId,
         status: "pendente",
       });
-      setContas((prev) => [nova, ...prev]);
+      setContas((prev) => [comCliente(nova), ...prev]);
       setDialogNova(false);
       success("Pagamento cadastrado!");
     } catch (err: any) {
@@ -157,9 +171,7 @@ export default function ClientePagamentos({
     );
   }
 
-  // ── Cards de resumo ────────────────────────────────────────────────────────
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-
+  // ── KPIs ───────────────────────────────────────────────────────────────────
   const totalGeral = contas
     .filter((c) => c.status !== "cancelado")
     .reduce((s, c) => s + valorLiquido(c), 0);
@@ -190,58 +202,46 @@ export default function ClientePagamentos({
         </Button>
       </Stack>
 
-      {/* Resumo */}
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-        {[
-          { label: "Total a receber", value: brl(totalGeral),    color: "primary.main",  icon: <AccountBalanceWalletOutlinedIcon sx={{ fontSize: 16 }} /> },
-          { label: "Pago",            value: brl(totalPago),     color: "success.main",  icon: <CheckCircleOutlineRoundedIcon sx={{ fontSize: 16 }} /> },
-          { label: "Pendente",        value: brl(totalPendente), color: "warning.main",  icon: <ScheduleRoundedIcon sx={{ fontSize: 16 }} /> },
-          { label: "Vencido",         value: brl(totalVencidos), color: "error.main",    icon: <ErrorOutlineRoundedIcon sx={{ fontSize: 16 }} /> },
-        ].map((c) => (
-          <Paper key={c.label} elevation={0} sx={{
-            flex: 1, p: 2, borderRadius: 2, border: 0, bgcolor: "action.hover",
-          }}>
-            <Stack direction="row" alignItems="center" spacing={0.75} mb={0.25}>
-              <Box sx={{ color: c.color, display: "flex" }}>{c.icon}</Box>
-              <Typography variant="caption" color="text.secondary" fontWeight={600}>{c.label}</Typography>
-            </Stack>
-            <Typography variant="h6" fontWeight={700} color={c.color}>{c.value}</Typography>
-          </Paper>
-        ))}
-      </Stack>
+      <StatGroup espalhar sx={{ mb: 0 }}>
+        <StatCard label="Total a receber" value={brl(totalGeral)} tone="primary" icon={<AccountBalanceWalletOutlinedIcon />} />
+        <StatCard label="Recebido" value={brl(totalPago)} tone="success" icon={<CheckCircleOutlineRoundedIcon />} />
+        <StatCard label="Pendente" value={brl(totalPendente)} tone="warning" icon={<ScheduleRoundedIcon />} />
+        <StatCard label="Vencido" value={brl(totalVencidos)} tone="error" icon={<ErrorOutlineRoundedIcon />} />
+      </StatGroup>
 
       <ListTableContainer>
         <Table size="small">
           <TableHead>
             <TableRow>
               <TableCell>Descrição</TableCell>
-              <TableCell>Valor</TableCell>
-              <TableCell>Vencimento</TableCell>
-              <TableCell>Método</TableCell>
-              <TableCell>Status</TableCell>
+              <TableCell align="center">Vencimento</TableCell>
+              <TableCell align="center">Valor</TableCell>
+              <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>Valor recebido</TableCell>
+              <TableCell align="center">Status</TableCell>
               <TableCell align="right">Ações</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {contas.map((conta) => {
-              const vencido = isVencido(conta);
               const liquido = valorLiquido(conta);
               return (
-                <TableRow
-                  key={conta.id} hover
-                  sx={{ bgcolor: vencido ? (t) => alpha(t.palette.error.main, 0.04) : undefined }}
-                >
+                <TableRow key={conta.id} hover>
                   <TableCell>
-                    <Typography variant="body2">{conta.descricao || "—"}</Typography>
+                    <TextoLimitado texto={conta.descricao || "—"} linhas={2} variant="body2" />
                   </TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={0.75} alignItems="center">
-                      <Typography
-                        variant="body2" fontWeight={600}
-                        color={conta.status === "pago" ? "success.main" : vencido ? "error.main" : "text.primary"}
-                      >
-                        {brl(liquido)}
-                      </Typography>
+                  <TableCell align="center">
+                    <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
+                      <Typography variant="body2">{formatarData(conta.data_vencimento)}</Typography>
+                      {conta.vezes_renegociado > 0 && (
+                        <Tooltip title={`Data original: ${formatarData(conta.data_vencimento_original)} · Renegociado ${conta.vezes_renegociado}×`}>
+                          <EventRepeatRoundedIcon sx={{ fontSize: 13, color: "warning.main", cursor: "help" }} />
+                        </Tooltip>
+                      )}
+                    </Stack>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Stack direction="row" spacing={0.75} alignItems="center" justifyContent="center">
+                      <Typography variant="body2" fontWeight={600}>{brl(liquido)}</Typography>
                       {conta.total_parcelas && conta.total_parcelas > 1 && (
                         <Chip
                           label={`${conta.parcela_numero ?? 1}/${conta.total_parcelas}`}
@@ -256,32 +256,36 @@ export default function ClientePagamentos({
                       )}
                     </Stack>
                   </TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={0.5} alignItems="center">
-                      <Typography
-                        variant="body2"
-                        color={vencido ? "error.main" : "text.primary"}
-                        fontWeight={vencido ? 700 : 400}
-                      >
-                        {new Date(conta.data_vencimento).toLocaleDateString("pt-BR")}
-                      </Typography>
-                      {conta.vezes_renegociado > 0 && (
-                        <Tooltip title={`Data original: ${conta.data_vencimento_original ? new Date(conta.data_vencimento_original).toLocaleDateString("pt-BR") : "—"} · Renegociado ${conta.vezes_renegociado}×`}>
-                          <EventRepeatRoundedIcon sx={{ fontSize: 13, color: "warning.main", cursor: "help" }} />
-                        </Tooltip>
-                      )}
-                    </Stack>
+                  <TableCell align="center">
+                    {Number(conta.valor_pago) > 0 ? (
+                      <Typography variant="body2" fontWeight={600}>{brl(Number(conta.valor_pago))}</Typography>
+                    ) : (
+                      <Typography variant="body2" color="text.disabled">-</Typography>
+                    )}
                   </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      {conta.metodo ? (METODO_LABEL[conta.metodo] ?? conta.metodo) : "—"}
-                    </Typography>
-                  </TableCell>
-                  <TableCell><StatusChip conta={conta} /></TableCell>
+                  <TableCell align="center"><StatusChip conta={conta} /></TableCell>
                   <TableCell align="right">
-                    <IconButton size="small" onClick={(e) => handleMenuOpen(e, conta)}>
-                      <MoreVertRoundedIcon fontSize="small" />
-                    </IconButton>
+                    <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                      <Button
+                        size="small"
+                        variant="text"
+                        color="success"
+                        onClick={() => handleReceberDireto(conta)}
+                        disabled={conta.status === "pago" || conta.status === "cancelado"}
+                        sx={{
+                          fontWeight: 700,
+                          letterSpacing: 0.6,
+                          px: 1.75,
+                          // Já recebido: continua visível, mas bem mais apagado.
+                          "&.Mui-disabled": { color: "success.main", opacity: 0.35 },
+                        }}
+                      >
+                        RECEBER
+                      </Button>
+                      <IconButton size="small" aria-label="Mais ações" onClick={(e) => handleMenuOpen(e, conta)}>
+                        <MoreVertRoundedIcon fontSize="small" />
+                      </IconButton>
+                    </Stack>
                   </TableCell>
                 </TableRow>
               );
@@ -296,25 +300,21 @@ export default function ClientePagamentos({
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <MenuItem onClick={() => openAcao("pagar")} disabled={selected?.status === "pago" || selected?.status === "cancelado"}>
-          <CheckCircleRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "success.main" }} />Receber
+        <MenuItem onClick={() => openAcao("detalhes")}>
+          <VisibilityRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "text.secondary" }} />Detalhes
         </MenuItem>
-        <MenuItem onClick={() => openAcao("historico")}>
-          <HistoryRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "text.secondary" }} />Histórico de recebimentos
-        </MenuItem>
+        <Divider />
         {can("financeiro", "delete") && (
           <MenuItem onClick={() => openAcao("estornar")} disabled={selected?.status !== "pago" && selected?.status !== "parcial"}>
             <UndoRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "warning.main" }} />Estornar recebimento
           </MenuItem>
         )}
-        <MenuItem onClick={() => openAcao("desconto")} disabled={selected?.status === "pago" || selected?.status === "cancelado"}>
-          <SellRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "info.main" }} />Dar desconto
+        <MenuItem onClick={() => openAcao("renegociar")} disabled={selected?.status !== "pendente"}>
+          <EventRepeatRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "secondary.main" }} />Renegociar
         </MenuItem>
-        <MenuItem onClick={() => openAcao("renegociar")} disabled={selected?.status === "pago" || selected?.status === "cancelado"}>
-          <EventRepeatRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "secondary.main" }} />Renegociar prazo
-        </MenuItem>
-        <MenuItem onClick={() => openAcao("parcelar")} disabled={selected?.status !== "pendente"}>
-          <AccountTreeRoundedIcon fontSize="small" sx={{ mr: 1.5 }} />Parcelar
+        <Divider />
+        <MenuItem onClick={() => openAcao("editar")}>
+          <EditRoundedIcon fontSize="small" sx={{ mr: 1.5 }} />Editar
         </MenuItem>
         <Divider />
         <MenuItem
@@ -326,12 +326,12 @@ export default function ClientePagamentos({
         </MenuItem>
       </Menu>
 
-      {/* Dialogs de ação */}
-      <ReceberDialog
+      {/* Modais de ação */}
+      <ReceberTituloDialog
         open={acao === "pagar"}
         onClose={() => setAcao(null)}
+        conta={selected}
         tipo="receber"
-        saldoRestante={selected ? valorRestante(selected) : 0}
         onConfirm={(d) =>
           handleAcao(
             () => marcarComoPago(selected!.id, d),
@@ -349,28 +349,24 @@ export default function ClientePagamentos({
         valorPago={selected ? Number(selected.valor_pago) : 0}
         onConfirm={(d) => handleAcao(() => estornarPagamento(selected!.id, d), "Pagamento estornado!")}
       />
-      <MovimentosDialog
-        open={acao === "historico"}
+      <DetalhesDialog
+        open={acao === "detalhes"}
         onClose={() => setAcao(null)}
-        contaId={selected?.id ?? null}
+        conta={selected}
         tipo="receber"
       />
-      <DescontoDialog
-        open={acao === "desconto"}
-        onClose={() => setAcao(null)}
-        valorOriginal={selected ? Number(selected.valor_original) : 0}
-        onConfirm={(d) => handleAcao(() => aplicarDesconto(selected!.id, d), "Desconto aplicado!")}
-      />
-      <RenegociarDialog
+      <RenegociarTituloDialog
         open={acao === "renegociar"}
         onClose={() => setAcao(null)}
-        onConfirm={(d) => handleAcao(() => renegociarPrazo(selected!.id, d), "Prazo renegociado!")}
+        conta={selected}
+        tipo="receber"
+        onConfirm={(d) => handleAcao(() => parcelar(selected!.id, d), "Título renegociado e parcelado!")}
       />
-      <ParcelarDialog
-        open={acao === "parcelar"}
+      <EditarContaDialog
+        open={acao === "editar"}
+        conta={selected}
         onClose={() => setAcao(null)}
-        valorOriginal={selected ? valorLiquido(selected) : 0}
-        onConfirm={(d) => handleAcao(() => parcelar(selected!.id, d), "Título parcelado!")}
+        onConfirm={(d) => handleAcao(() => atualizarPagamento(selected!.id, d), "Conta atualizada!")}
       />
       <NovoPagamentoClienteDialog
         open={dialogNova}
@@ -432,15 +428,7 @@ function NovoPagamentoClienteDialog({
             fullWidth
             InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }}
           />
-          <TextField
-            label="Vencimento *"
-            type="date"
-            value={form.data_vencimento}
-            onChange={(e) => set("data_vencimento", e.target.value)}
-            size="small"
-            fullWidth
-            InputLabelProps={{ shrink: true }}
-          />
+          <CampoData label="Vencimento *" value={form.data_vencimento} onChange={(v) => set("data_vencimento", v)} />
           <TextField select label="Método" value={form.metodo} onChange={(e) => set("metodo", e.target.value)} size="small" fullWidth>
             {METODO_OPTIONS.map((m) => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
           </TextField>

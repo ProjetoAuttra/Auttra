@@ -303,7 +303,7 @@ export default function ClienteDetalhesPage() {
               <>
                 {tab === 0 && <ClienteVeiculos veiculos={cliente?.veiculos ?? []} onAdd={() => setOpenVeiculo(true)} />}
                 {tab === 1 && <ClienteOrdens ordens={cliente?.ordens ?? []} onAdd={() => setOpenOrdem(true)} />}
-                {tab === 2 && <ClientePagamentos pagamentos={cliente?.pagamentos ?? []} clienteId={Number(cliente?.id)} oficinaId={user?.oficina_id ?? 0} />}
+                {tab === 2 && <ClientePagamentos pagamentos={cliente?.pagamentos ?? []} clienteId={Number(cliente?.id)} clienteNome={cliente?.nome} oficinaId={user?.oficina_id ?? 0} />}
               </>
             )}
           </Box>
