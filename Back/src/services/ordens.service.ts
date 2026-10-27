@@ -238,6 +238,8 @@ export const OrdensService = {
         where: { id },
         data: {
           ...rest,
+          // Ao concluir, registra quando a OS foi fechada (base dos relatorios de faturamento).
+          ...(rest.status === "concluida" && existing.status !== "concluida" ? { data_fechamento: new Date() } : {}),
           ...(calculo ? { valor_total: calculo.total } : {}),
           oficina_id: oficinaId,
           updated_at: new Date(),

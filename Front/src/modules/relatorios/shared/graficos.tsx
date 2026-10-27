@@ -27,12 +27,19 @@ export function GraficoBarrasHorizontais({
   itens,
   semDados,
   formato = brl,
+  larguraRotulo = 130,
+  ordenar = true,
 }: {
   itens: ItemBarra[];
   semDados: string;
   formato?: (v: number) => string;
+  /** Largura reservada para os rótulos das categorias, à esquerda. */
+  larguraRotulo?: number;
+  /** Ordena do maior para o menor; desligue quando a ordem da categoria importa (ex.: faixas de atraso). */
+  ordenar?: boolean;
 }) {
-  if (!itens.length) return <SemDados mensagem={semDados} />;
+  if (!itens.length || itens.every((i) => i.valor <= 0)) return <SemDados mensagem={semDados} />;
+  if (ordenar) itens = [...itens].sort((a, b) => b.valor - a.valor);
   const altura = Math.max(120, itens.length * 44 + 24);
 
   return (
@@ -41,7 +48,7 @@ export function GraficoBarrasHorizontais({
         layout="horizontal"
         height={altura}
         margin={{ top: 8, right: 16, bottom: 8, left: 8 }}
-        yAxis={[{ scaleType: "band", data: itens.map((i) => i.rotulo), tickLabelStyle: eixoTexto, disableLine: true, disableTicks: true, width: 110, categoryGapRatio: 0.5 }]}
+        yAxis={[{ scaleType: "band", data: itens.map((i) => i.rotulo), tickLabelStyle: eixoTexto, disableLine: true, disableTicks: true, width: larguraRotulo, categoryGapRatio: 0.5 }]}
         // O eixo vai além do maior valor para sobrar espaço, dentro da área do gráfico, para o rótulo da ponta da barra.
         xAxis={[{ min: 0, max: Math.max(...itens.map((i) => i.valor)) * 1.45, hideTooltip: true, disableLine: true, disableTicks: true, tickLabelStyle: { display: "none" } }]}
         series={[
@@ -175,5 +182,27 @@ export function GraficoPizza({
         ))}
       </Stack>
     </Stack>
+  );
+}
+
+
+export type ColunaSimples = { rotulo: string; valor: number };
+
+/** Colunas de uma série (ex.: faturamento por semana). Série única: sem legenda, o título da seção já nomeia. */
+export function GraficoColunas({ itens, semDados, serie = "Valor" }: { itens: ColunaSimples[]; semDados: string; serie?: string }) {
+  if (!itens.some((i) => i.valor > 0)) return <SemDados mensagem={semDados} />;
+  return (
+    <Box role="img" aria-label={itens.map((i) => `${i.rotulo}: ${brl(i.valor)}`).join("; ")}>
+      <BarChart
+        height={260}
+        margin={{ top: 16, right: 8, bottom: 8, left: 8 }}
+        xAxis={[{ scaleType: "band", data: itens.map((i) => i.rotulo), tickLabelStyle: eixoTexto, disableTicks: true, categoryGapRatio: 0.5 }]}
+        yAxis={[{ width: 92, tickLabelStyle: eixoTexto, valueFormatter: (v: number) => brl(v), disableLine: true, disableTicks: true }]}
+        series={[{ data: itens.map((i) => i.valor), label: serie, color: COR_SERIE_1, valueFormatter: (v) => (v == null ? "" : brl(v)) }]}
+        borderRadius={4}
+        hideLegend
+        grid={{ horizontal: true }}
+      />
+    </Box>
   );
 }

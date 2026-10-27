@@ -5,12 +5,12 @@ import {
   Box,
   Button,
   Stack,
-  TextField,
   Typography,
   type SxProps,
   type Theme,
 } from "@mui/material";
 import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
+import CampoData from "../../../components/common/CampoData";
 
 export const LIMITE_ESTOQUE_BAIXO = 3;
 
@@ -106,8 +106,8 @@ export function PeriodFilter({
   return (
     <Box sx={{ mb: 2.5 }}>
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }} flexWrap="wrap">
-        <TextField type="date" label="De" size="small" value={dataInicio} onChange={(e) => onDataInicio(e.target.value)} InputLabelProps={{ shrink: true }} />
-        <TextField type="date" label="Até" size="small" value={dataFim} onChange={(e) => onDataFim(e.target.value)} InputLabelProps={{ shrink: true }} />
+        <Box sx={{ width: 170 }}><CampoData label="De" value={dataInicio} onChange={onDataInicio} /></Box>
+        <Box sx={{ width: 170 }}><CampoData label="Até" value={dataFim} onChange={onDataFim} /></Box>
         {children}
       </Stack>
     </Box>

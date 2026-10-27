@@ -14,6 +14,10 @@ import AssignmentLateRoundedIcon from "@mui/icons-material/AssignmentLateRounded
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import RequestQuoteRoundedIcon from "@mui/icons-material/RequestQuoteRounded";
 import PriceCheckRoundedIcon from "@mui/icons-material/PriceCheckRounded";
+import MoneyOffRoundedIcon from "@mui/icons-material/MoneyOffRounded";
+import BalanceRoundedIcon from "@mui/icons-material/BalanceRounded";
+import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
+import EngineeringRoundedIcon from "@mui/icons-material/EngineeringRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import EventNoteRoundedIcon from "@mui/icons-material/EventNoteRounded";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
@@ -212,9 +216,25 @@ export default function Relatorios() {
             <PreviewRow label="A pagar" value={brl(p?.caixa.aPagar ?? 0)} />
           </RelatorioCard>
         </Grid>
+
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+          <RelatorioCard titulo="Inadimplência" descricao="Contas vencidas, por faixa de atraso e por cliente" icone={<MoneyOffRoundedIcon />} destino={paths.inadimplenciaRelatorio} loading={false}>
+            <PreviewRow label="Total vencido" value={brl(p?.caixa.vencido ?? 0)} />
+          </RelatorioCard>
+        </Grid>
+
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+          <RelatorioCard titulo="Resultado do mês" descricao="Receitas, despesas e resultado do período" icone={<BalanceRoundedIcon />} destino={paths.resultadoRelatorio} loading={false} />
+        </Grid>
       </Secao>
 
       <Secao titulo="Vendas">
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+          <RelatorioCard titulo="Faturamento" descricao="OS concluídas no período e comparação com o anterior" icone={<TrendingUpRoundedIcon />} destino={paths.faturamentoRelatorio} loading={false}>
+            <PreviewRow label="Faturado (OS concluídas)" value={brl(p?.rentabilidade.faturamento ?? 0)} />
+          </RelatorioCard>
+        </Grid>
+
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
           <RelatorioCard titulo="Conversão de orçamentos" descricao="Aprovados, perdidos e o que dá para recuperar" icone={<RequestQuoteRoundedIcon />} destino={paths.orcamentosRelatorio} loading={loading}>
             <PreviewRow label="Perdidos" value={p?.orcamentos.perdidos ?? 0} />
@@ -239,6 +259,10 @@ export default function Relatorios() {
             <PreviewRow label="Paradas há 3+ dias" value={p?.ordens.paradas ?? 0} />
             <PreviewRow label="Valor preso" value={brl(p?.ordens.valorPreso ?? 0)} />
           </RelatorioCard>
+        </Grid>
+
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+          <RelatorioCard titulo="Desempenho por mecânico" descricao="Ordens, faturamento, ticket médio e margem de cada um" icone={<EngineeringRoundedIcon />} destino={paths.mecanicosRelatorio} loading={false} />
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
