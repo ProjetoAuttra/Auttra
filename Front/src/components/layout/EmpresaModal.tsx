@@ -377,10 +377,12 @@ export default function EmpresaModal({ open, onClose }: Props) {
             {/* ── Aparência ───────────────────────────────────── */}
             <Box>
               <SectionLabel>Aparência</SectionLabel>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                Cor principal da sua oficina. Ela é usada como base nos PDFs de orçamento e ordem de serviço.
-              </Typography>
-              <SeletorCor value={form.cor_principal} onChange={(cor) => setForm((prev) => ({ ...prev, cor_principal: cor }))} />
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <Typography variant="body2" color="text.secondary">
+                  Cor principal da sua oficina. Ela é usada como base nos PDFs de orçamento e ordem de serviço.
+                </Typography>
+                <SeletorCor value={form.cor_principal} onChange={(cor) => setForm((prev) => ({ ...prev, cor_principal: cor }))} />
+              </Stack>
             </Box>
 
             <Divider />

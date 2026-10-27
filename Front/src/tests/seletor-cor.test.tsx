@@ -3,19 +3,20 @@ import { describe, expect, it, vi } from "vitest";
 import SeletorCor, { COR_PADRAO, textoSobreCor } from "../components/common/SeletorCor";
 import { renderWithProviders } from "./utils";
 
-const abrir = () => fireEvent.click(screen.getByRole("button", { name: "Configurar" }));
+const abrir = () => fireEvent.click(screen.getByRole("button", { name: "Configurar cor principal" }));
 const campoHex = () => screen.getByLabelText("Código hexadecimal da cor") as HTMLInputElement;
 
 describe("SeletorCor", () => {
-  it("fora do modal só existe o botão Configurar: sem campo de texto e sem prévia", () => {
+  it("fora do modal só existe o ícone de configurar: sem campo de texto e sem prévia", () => {
     renderWithProviders(<SeletorCor value={null} onChange={() => {}} />);
-    expect(screen.getByRole("button", { name: "Configurar" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Configurar cor principal" })).toBeInTheDocument();
     expect(screen.queryByRole("textbox")).toBeNull();
     expect(screen.queryByTestId("previa-cor")).toBeNull();
     expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByText("Configurar")).toBeNull();
   });
 
-  it("clicar em Configurar abre o modal com o hex atual e a prévia", () => {
+  it("clicar na engrenagem abre o modal com o hex atual e a prévia", () => {
     renderWithProviders(<SeletorCor value="#0f766e" onChange={() => {}} />);
     abrir();
     expect(screen.getByRole("dialog")).toBeInTheDocument();

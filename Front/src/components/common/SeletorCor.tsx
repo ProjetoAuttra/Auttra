@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Box, Button, Stack, Typography } from "@mui/material";
+import { Box, Button, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import { HexColorInput, HexColorPicker } from "react-colorful";
 import { AppDialog, AppDialogActions, AppDialogContent } from "./AppDialog";
@@ -154,16 +154,18 @@ type Props = {
   onChange: (cor: string | null) => void;
 };
 
-/** Botão "Configurar" que abre o modal de escolha da cor (seletor, hex e prévia do PDF). */
+/** Ícone de engrenagem que abre o modal de escolha da cor (seletor, hex e prévia do PDF). */
 export default function SeletorCor({ value, onChange }: Props) {
   const [aberto, setAberto] = React.useState(false);
   const atual = value && HEX.test(value) ? value.toLowerCase() : COR_PADRAO;
 
   return (
     <>
-      <Button variant="outlined" color="inherit" startIcon={<SettingsRoundedIcon />} onClick={() => setAberto(true)} sx={{ fontWeight: 600 }}>
-        Configurar
-      </Button>
+      <Tooltip title="Configurar cor">
+        <IconButton aria-label="Configurar cor principal" size="small" onClick={() => setAberto(true)} sx={{ color: "action.active" }}>
+          <SettingsRoundedIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
 
       <DialogCor
         open={aberto}
