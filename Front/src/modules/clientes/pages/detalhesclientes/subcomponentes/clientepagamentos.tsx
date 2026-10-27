@@ -60,7 +60,7 @@ export default function ClientePagamentos({
   oficinaId: number;
 }) {
   const { can } = useAuth();
-  const { success, error } = useToast();
+  const { success, error, warning } = useToast();
   const confirm = useConfirm();
 
   const [contas, setContas] = React.useState<Conta[]>([]);
@@ -350,7 +350,15 @@ export default function ClientePagamentos({
         tipo="receber"
         onConfirm={(d) =>
           handleAcao(
-            () => marcarComoPago(selected!.id, d),
+            async () => {
+              const r = await marcarComoPago(selected!.id, d);
+              if (r.emitir_recibo) {
+                abrirRecibo(r.id)
+                  .then((aberto) => { if (!aberto) warning("O navegador bloqueou a aba do recibo. Use “Gerar recibo” no menu da linha."); })
+                  .catch(() => warning("Recebimento registrado, mas não foi possível abrir o recibo."));
+              }
+              return r;
+            },
             (r) =>
               r?.titulo_saldo
                 ? `Recebimento parcial registrado! O saldo de ${brl(Number(r.titulo_saldo.valor_original))} foi lançado como um novo título pendente.`

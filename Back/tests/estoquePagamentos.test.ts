@@ -517,6 +517,26 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
       expect((await request(app).get(`/api/pagamentos/${id}/recibo`).set("Authorization", auth)).status).toBe(409);
     }, 30_000);
 
+    it("baixa de recebimento sinaliza emitir_recibo conforme a configuracao da oficina", async () => {
+      const definirEmitir = (emitirRecibos: boolean) =>
+        prisma.oficina.update({ where: { id: oficinaId }, data: { financeiro_config: { formasPagamento: "Pix", emitirRecibos, jurosAtraso: "2%" } } });
+
+      await definirEmitir(true);
+      const ligado = await novoPagamento(100, { tipo: "receber", cliente_id: clienteId });
+      expect((await post(`/api/pagamentos/${ligado}/pagar`, { metodo: "pix" }).expect(200)).body.emitir_recibo).toBe(true);
+
+      const parcial = await novoPagamento(100, { tipo: "receber", cliente_id: clienteId });
+      expect((await post(`/api/pagamentos/${parcial}/pagar`, { metodo: "pix", valor: 40 }).expect(200)).body.emitir_recibo).toBe(true);
+
+      const conta = await novoPagamento(100);
+      expect((await post(`/api/pagamentos/${conta}/pagar`, { metodo: "pix" }).expect(200)).body.emitir_recibo).toBe(false); // conta a pagar
+
+      await definirEmitir(false);
+      const desligado = await novoPagamento(100, { tipo: "receber", cliente_id: clienteId });
+      expect((await post(`/api/pagamentos/${desligado}/pagar`, { metodo: "pix" }).expect(200)).body.emitir_recibo).toBe(false);
+      await definirEmitir(true);
+    });
+
     it("dois estornos simultaneos: so um acontece", async () => {
       const id = await novoPagamento(100);
       await post(`/api/pagamentos/${id}/pagar`, { metodo: "pix" }).expect(200);

@@ -126,7 +126,7 @@ export async function marcarComoPago(
   payload: { metodo: string; valor?: number; data_pagamento?: string; desconto?: number; motivo_desconto?: string }
 ) {
   const { data } = await api.post(`/pagamentos/${id}/pagar`, payload);
-  return data as Conta;
+  return data as Conta & { emitir_recibo?: boolean };
 }
 
 export type Movimento = {
@@ -145,12 +145,13 @@ export async function estornarPagamento(id: number, payload: { motivo: string })
   return data as Conta;
 }
 
-/** Abre o recibo do recebimento (PDF) em uma nova aba. */
+/** Abre o recibo do recebimento (PDF) em uma nova aba. Devolve false se o navegador bloqueou a aba. */
 export async function abrirRecibo(id: number) {
   const { data } = await api.get(`/pagamentos/${id}/recibo`, { responseType: "blob" });
   const url = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
-  window.open(url, "_blank", "noopener");
+  const aba = window.open(url, "_blank");
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  return Boolean(aba);
 }
 
 export async function listarMovimentos(id: number) {
