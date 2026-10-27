@@ -24,7 +24,7 @@ import { authMiddleware, officeScopeMiddleware, requirePermission } from "../mid
 import type { AccessModule, AccessAction } from "../permissions/accessProfiles.js";
 import adminRouter from "./admin/index.js";
 
-import { shortLinks } from "../services/shortLinks.js";
+import { LinksPublicosService } from "../services/linksPublicos.service.js";
 import { PdfHtmlService } from "../services/pdfservice.service.js";
 import { PublicTrackingService } from "../services/publicTracking.service.js";
 
@@ -39,9 +39,9 @@ const getFrontendUrl = (req: any) => {
   return `${req.protocol}://${req.get("host")}`;
 };
 
-router.get("/s/:code", (req, res) => {
+router.get("/s/:code", async (req, res) => {
   const { code } = req.params;
-  const data = shortLinks.get(code);
+  const data = await LinksPublicosService.resolver(code);
   if (!data) {
     return res.status(404).send("<h1>Link expirado ou inválido.</h1>");
   }
@@ -49,8 +49,8 @@ router.get("/s/:code", (req, res) => {
 });
 
 router.get("/s/:code/pdf", async (req, res) => {
-  const data = shortLinks.get(req.params.code);
-  if (!data?.oficinaId) {
+  const data = await LinksPublicosService.resolver(req.params.code);
+  if (!data) {
     return res.status(404).send("<h1>Link expirado ou inválido.</h1>");
   }
   try {

@@ -136,6 +136,8 @@ model oficina {
   updated_at DateTime @updatedAt
   deleted_at DateTime?
 
+  links_publicos link_publico[]
+
   @@index([cidade_id])
   @@index([deleted_at])
 }
@@ -214,9 +216,10 @@ model ordem_servico {
   oficina     oficina     @relation(fields: [oficina_id], references: [id])
   veiculo     veiculo     @relation(fields: [veiculo_id], references: [id])
 
-  itens        item_ordem_servico[]
-  pagamentos   pagamento[]
-  agendamentos agendamento[]
+  itens          item_ordem_servico[]
+  pagamentos     pagamento[]
+  agendamentos   agendamento[]
+  links_publicos link_publico[]
 
   @@index([oficina_id])
   @@index([cliente_id])
@@ -400,7 +403,7 @@ model pagamento {
 
   cliente       cliente?       @relation(fields: [cliente_id], references: [id])
   oficina       oficina        @relation(fields: [oficina_id], references: [id])
-  ordem_servico ordem_servico? @relation(fields: [ordem_servico_id], references: [id])
+  ordem_servico ordem_servico? @relation(fields: [ordem_servico_id], references: [id], onDelete: Cascade)
   fornecedor    fornecedor?    @relation(fields: [fornecedor_id], references: [id])
   pagamento_pai pagamento?     @relation("Parcelas", fields: [pagamento_pai_id], references: [id])
   parcelas      pagamento[]    @relation("Parcelas")
@@ -539,6 +542,7 @@ model orcamento {
   cliente    cliente @relation(fields: [cliente_id], references: [id])
   veiculo    veiculo @relation(fields: [veiculo_id], references: [id])
   itens      item_orcamento[]
+  links_publicos link_publico[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -659,4 +663,27 @@ model admin_audit_log {
   @@index([action])
   @@index([entity_type, entity_id])
   @@index([created_at])
+}
+
+enum status_link_publico {
+  ativo
+  cancelado
+}
+
+model link_publico {
+  id               String              @id @default(uuid()) @db.Uuid
+  oficina_id       Int
+  ordem_servico_id Int?
+  orcamento_id     Int?
+  status           status_link_publico @default(ativo)
+  created_at       DateTime            @default(now())
+  deleted_at       DateTime?
+
+  oficina       oficina        @relation(fields: [oficina_id], references: [id])
+  ordem_servico ordem_servico? @relation(fields: [ordem_servico_id], references: [id], onDelete: Cascade)
+  orcamento     orcamento?     @relation(fields: [orcamento_id], references: [id], onDelete: Cascade)
+
+  @@index([oficina_id])
+  @@index([ordem_servico_id, status])
+  @@index([orcamento_id, status])
 }
