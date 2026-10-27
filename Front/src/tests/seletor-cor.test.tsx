@@ -2,28 +2,37 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import SeletorCor, { COR_PADRAO, textoSobreCor } from "../components/common/SeletorCor";
 
+const campoHex = () => screen.getByLabelText("Código hexadecimal da cor") as HTMLInputElement;
+
 describe("SeletorCor", () => {
-  it("marca a cor padrão quando não há cor salva e mostra a prévia", () => {
+  it("mostra a cor padrão sem cor salva, a prévia e não oferece 'Restaurar padrão'", () => {
     render(<SeletorCor value={null} onChange={() => {}} />);
-    expect(screen.getByLabelText("Azul-marinho")).toHaveAttribute("aria-pressed", "true");
-    expect(screen.queryByText("Restaurar padrão")).toBeNull();
+    expect(campoHex().value).toBe(COR_PADRAO.toUpperCase());
     expect(screen.getByTestId("previa-cor")).toBeInTheDocument();
+    expect(screen.queryByText("Restaurar padrão")).toBeNull();
   });
 
-  it("escolher uma sugestão devolve o hex; escolher a padrão devolve null", () => {
+  it("não tem cores sugeridas, só o seletor e o hex", () => {
+    render(<SeletorCor value={null} onChange={() => {}} />);
+    expect(screen.queryByLabelText("Vermelho")).toBeNull();
+    expect(screen.getByLabelText("Escolher cor")).toBeInTheDocument();
+  });
+
+  it("digitar um hex completo devolve a cor; incompleto só sinaliza erro", () => {
     const onChange = vi.fn();
     render(<SeletorCor value={null} onChange={onChange} />);
-    fireEvent.click(screen.getByLabelText("Vermelho"));
+    fireEvent.change(campoHex(), { target: { value: "#BE12" } });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByText("Use o formato #RRGGBB")).toBeInTheDocument();
+    fireEvent.change(campoHex(), { target: { value: "#BE123C" } });
     expect(onChange).toHaveBeenLastCalledWith("#be123c");
-    fireEvent.click(screen.getByLabelText("Azul-marinho"));
-    expect(onChange).toHaveBeenLastCalledWith(null);
   });
 
-  it("aceita cor livre, mostra o hex atual e permite restaurar o padrão", () => {
+  it("o seletor nativo devolve o hex em minúsculas e dá para restaurar o padrão", () => {
     const onChange = vi.fn();
     render(<SeletorCor value="#0f766e" onChange={onChange} />);
-    expect(screen.getByText("#0F766E")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Escolher outra cor", { selector: "input" }), { target: { value: "#FACC15" } });
+    expect(campoHex().value).toBe("#0F766E");
+    fireEvent.change(screen.getByLabelText("Escolher cor"), { target: { value: "#FACC15" } });
     expect(onChange).toHaveBeenLastCalledWith("#facc15");
     fireEvent.click(screen.getByText("Restaurar padrão"));
     expect(onChange).toHaveBeenLastCalledWith(null);

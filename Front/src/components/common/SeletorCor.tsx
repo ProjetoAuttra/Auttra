@@ -1,18 +1,7 @@
-import { Box, ButtonBase, Stack, Tooltip, Typography } from "@mui/material";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import * as React from "react";
+import { Box, ButtonBase, InputAdornment, Stack, TextField, Typography } from "@mui/material";
 
 export const COR_PADRAO = "#1e3a8a";
-
-export const CORES_SUGERIDAS = [
-  { nome: "Azul-marinho", valor: "#1e3a8a" },
-  { nome: "Azul", valor: "#2563eb" },
-  { nome: "Verde", valor: "#15803d" },
-  { nome: "Verde-água", valor: "#0f766e" },
-  { nome: "Laranja", valor: "#c2410c" },
-  { nome: "Vermelho", valor: "#be123c" },
-  { nome: "Roxo", valor: "#6d28d9" },
-  { nome: "Grafite", valor: "#1f2937" },
-];
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
@@ -30,67 +19,47 @@ type Props = {
   onChange: (cor: string | null) => void;
 };
 
-/** Escolha da cor principal: sugestões, seletor livre e prévia de como o total fica nos documentos. */
+/** Escolha da cor principal (seletor + hex) ao lado da prévia de como o total fica nos documentos. */
 export default function SeletorCor({ value, onChange }: Props) {
   const atual = value && HEX.test(value) ? value.toLowerCase() : COR_PADRAO;
   const ehPadrao = !value;
+  const [texto, setTexto] = React.useState(atual.toUpperCase());
+
+  // Mantém o campo de texto em sincronia quando a cor muda por fora (seletor, restaurar padrão, carregar dados).
+  React.useEffect(() => setTexto(atual.toUpperCase()), [atual]);
+
+  const digitado = (bruto: string) => {
+    const limpo = "#" + bruto.replace(/[^0-9a-fA-F]/g, "").slice(0, 6);
+    setTexto(limpo.toUpperCase());
+    if (HEX.test(limpo)) onChange(limpo.toLowerCase());
+  };
 
   return (
-    <Stack spacing={2}>
-      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
-        {CORES_SUGERIDAS.map((c) => {
-          const selecionada = atual === c.valor && (!ehPadrao || c.valor === COR_PADRAO);
-          return (
-            <Tooltip key={c.valor} title={c.nome}>
-              <ButtonBase
-                aria-label={c.nome}
-                aria-pressed={selecionada}
-                onClick={() => onChange(c.valor === COR_PADRAO ? null : c.valor)}
-                sx={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: "50%",
-                  bgcolor: c.valor,
-                  color: textoSobreCor(c.valor),
-                  boxShadow: selecionada ? `0 0 0 2px #fff, 0 0 0 4px ${c.valor}` : "inset 0 0 0 1px rgba(0,0,0,0.12)",
-                }}
-              >
-                {selecionada && <CheckRoundedIcon sx={{ fontSize: 18 }} />}
-              </ButtonBase>
-            </Tooltip>
-          );
-        })}
-
-        <Tooltip title="Escolher outra cor">
-          <Box
-            component="label"
-            sx={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 1,
-              ml: 1,
-              px: 1.25,
-              height: 34,
-              borderRadius: 999,
-              border: (t) => `1px solid ${t.palette.divider}`,
-              cursor: "pointer",
-              fontSize: 13,
-              color: "text.secondary",
-            }}
-          >
-            <input
-              type="color"
-              aria-label="Escolher outra cor"
-              value={atual}
-              onChange={(e) => onChange(e.target.value.toLowerCase())}
-              style={{ width: 20, height: 20, padding: 0, border: 0, background: "none", cursor: "pointer" }}
-            />
-            {atual.toUpperCase()}
-          </Box>
-        </Tooltip>
-
+    <Stack direction={{ xs: "column", sm: "row" }} spacing={3} alignItems={{ xs: "stretch", sm: "flex-start" }}>
+      <Stack spacing={1} sx={{ width: { xs: "100%", sm: 200 }, flexShrink: 0 }}>
+        <TextField
+          label="Cor principal"
+          value={texto}
+          onChange={(e) => digitado(e.target.value)}
+          error={!HEX.test(texto)}
+          helperText={HEX.test(texto) ? " " : "Use o formato #RRGGBB"}
+          inputProps={{ maxLength: 7, "aria-label": "Código hexadecimal da cor" }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <input
+                  type="color"
+                  aria-label="Escolher cor"
+                  value={atual}
+                  onChange={(e) => onChange(e.target.value.toLowerCase())}
+                  style={{ width: 24, height: 24, padding: 0, border: 0, background: "none", cursor: "pointer" }}
+                />
+              </InputAdornment>
+            ),
+          }}
+        />
         {!ehPadrao && (
-          <ButtonBase onClick={() => onChange(null)} sx={{ fontSize: 13, color: "primary.main", ml: 0.5, px: 0.5 }}>
+          <ButtonBase onClick={() => onChange(null)} sx={{ alignSelf: "flex-start", fontSize: 13, color: "primary.main" }}>
             Restaurar padrão
           </ButtonBase>
         )}
@@ -98,7 +67,7 @@ export default function SeletorCor({ value, onChange }: Props) {
 
       <Box
         data-testid="previa-cor"
-        sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 2, p: 2, maxWidth: 360 }}
+        sx={{ flex: 1, minWidth: 0, maxWidth: 360, border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 2, p: 2 }}
       >
         <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: 1, textTransform: "uppercase" }}>
           Prévia no PDF
