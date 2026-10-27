@@ -5,6 +5,7 @@ import puppeteer from "puppeteer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { escapeHtml } from "../src/utils/escapeHtml.js";
 import { renderPdf } from "../src/services/pdfservice.service.js";
+import { fecharNavegadorPdf, totalLancamentosNavegador } from "../src/services/pdfBrowser.js";
 
 describe("escapeHtml", () => {
   it("escapa caracteres de marcacao", () => {
@@ -42,7 +43,10 @@ describe.skipIf(!chromeDisponivel)("renderPdf (hardening do Chromium)", () => {
     porta = (server.address() as AddressInfo).port;
   });
 
-  afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
+  afterAll(async () => {
+    await fecharNavegadorPdf();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
 
   it("nao executa JS nem faz requisicoes externas ao renderizar HTML hostil", async () => {
     const alvo = `http://127.0.0.1:${porta}`;
@@ -58,4 +62,15 @@ describe.skipIf(!chromeDisponivel)("renderPdf (hardening do Chromium)", () => {
     expect(pdf.subarray(0, 4).toString()).toBe("%PDF");
     expect(acessos).toEqual([]);
   }, 30_000);
+
+  it("reaproveita um único Chromium em PDFs simultâneos e relança se ele cair", async () => {
+    const antes = totalLancamentosNavegador();
+    const pdfs = await Promise.all(Array.from({ length: 6 }, (_, i) => renderPdf(`<html><body>Doc ${i}</body></html>`)));
+    pdfs.forEach((p) => expect(p.subarray(0, 4).toString()).toBe("%PDF"));
+    expect(totalLancamentosNavegador() - antes).toBeLessThanOrEqual(1);
+
+    await fecharNavegadorPdf();
+    const depois = await renderPdf("<html><body>De novo</body></html>");
+    expect(depois.subarray(0, 4).toString()).toBe("%PDF");
+  }, 60_000);
 });
