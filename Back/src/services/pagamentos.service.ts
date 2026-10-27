@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client.js";
 import { HttpError } from "../utils/httpError.js";
 import { LIMITE_LISTAGEM } from "../utils/limites.js";
+import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
 
 const D = (v: Prisma.Decimal.Value) => new Prisma.Decimal(v);
 
@@ -119,20 +120,44 @@ async function validatePagamentoRelations(data: any, oficinaId: number) {
 }
 
 export const PagamentosService = {
-  async list(oficina_id: number, cliente_id?: number) {
+  async list(
+    oficina_id: number,
+    filtros: { cliente_id?: number; tipo?: string; status?: string; search?: string } = {},
+    pag: Paginacao | null = null
+  ) {
     if (!oficina_id) throw new Error("oficina_id e obrigatorio.");
     const where: any = { oficina_id, deleted_at: null };
-    if (cliente_id) where.cliente_id = cliente_id;
-    return await prisma.pagamento.findMany({
-      where,
-      orderBy: { data_vencimento: "desc" },
-      take: 200,
-      include: {
-        cliente: { select: { id: true, nome: true, email: true } },
-        fornecedor: { select: { id: true, nome: true } },
-        ordem_servico: { select: { id: true, status: true } },
+    if (filtros.cliente_id) where.cliente_id = filtros.cliente_id;
+    if (filtros.tipo) where.tipo = filtros.tipo;
+    if (filtros.status) where.status = filtros.status;
+    if (filtros.search) {
+      const contains = { contains: filtros.search, mode: "insensitive" };
+      where.OR = [
+        { descricao: contains },
+        { categoria: contains },
+        { cliente: { nome: contains } },
+        { fornecedor: { nome: contains } },
+      ];
+    }
+    return listarPaginado(
+      pag,
+      {
+        find: ({ skip, take }) =>
+          prisma.pagamento.findMany({
+            where,
+            orderBy: [{ data_vencimento: "desc" }, { id: "desc" }],
+            skip,
+            take,
+            include: {
+              cliente: { select: { id: true, nome: true, email: true } },
+              fornecedor: { select: { id: true, nome: true } },
+              ordem_servico: { select: { id: true, status: true } },
+            },
+          }),
+        count: () => prisma.pagamento.count({ where }),
       },
-    });
+      200
+    );
   },
 
   async listByCliente(cliente_id: number, oficina_id: number) {

@@ -22,6 +22,7 @@ app.use(
   cors({
     origin: corsOrigins.length ? corsOrigins : false,
     credentials: true,
+    exposedHeaders: ["X-Total-Count"],
     methods: "GET,POST,PUT,PATCH,DELETE",
   })
 );

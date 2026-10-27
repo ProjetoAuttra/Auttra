@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { ClienteService } from "../services/clientes.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 import { Prisma } from "@prisma/client";
+import { parsePaginacao, responderLista, textoQuery } from "../utils/paginacao.js";
 
 function isNotFound(err: any): boolean {
   const msg = (err?.message ?? "").toLowerCase();
@@ -12,9 +13,12 @@ export const clienteController = {
 
   async listar(req: Request, res: Response) {
     try {
-      const search = req.query.search ? String(req.query.search) : "";
-      const clientes = await ClienteService.listar(getRequiredOfficeId(req), search);
-      return res.json(clientes);
+      const clientes = await ClienteService.listar(
+        getRequiredOfficeId(req),
+        textoQuery(req.query.search),
+        parsePaginacao(req.query)
+      );
+      return responderLista(res, clientes);
     } catch (err: any) {
       console.error("Erro ao listar clientes:", err);
       return res.status(500).json({ error: err.message });

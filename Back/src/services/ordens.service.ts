@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client.js";
 import { HttpError } from "../utils/httpError.js";
 import { calcularItens } from "../utils/totais.js";
+import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
 
 /**
  * Baixa o estoque em uma unica operacao condicional (so decrementa se ainda houver saldo),
@@ -60,22 +61,42 @@ function mesmosItens(enviados: any[], salvos: any[]) {
 }
 
 export const OrdensService = {
-  list: async (oficinaId: number) => {
-    return prisma.ordem_servico.findMany({
-      where: { deleted_at: null, oficina_id: oficinaId },
-      orderBy: { created_at: "desc" },
-      take: 200,
-      include: {
-        cliente: true,
-        veiculo: true,
-        funcionario: true,
-        itens: { include: { servico: true, peca: true } },
-        pagamentos: {
-          where: { deleted_at: null, tipo: "receber" },
-          select: { status: true },
-        },
+  list: async (
+    oficinaId: number,
+    filtros: { status?: string; funcionarioId?: number; data?: string } = {},
+    pag: Paginacao | null = null
+  ) => {
+    const where: any = { deleted_at: null, oficina_id: oficinaId };
+    if (filtros.status) where.status = filtros.status;
+    if (filtros.funcionarioId) where.funcionario_id = filtros.funcionarioId;
+    if (filtros.data && /^\d{4}-\d{2}-\d{2}$/.test(filtros.data)) {
+      const inicio = new Date(`${filtros.data}T00:00:00.000Z`);
+      where.data_abertura = { gte: inicio, lt: new Date(inicio.getTime() + 24 * 60 * 60 * 1000) };
+    }
+    return listarPaginado(
+      pag,
+      {
+        find: ({ skip, take }) =>
+          prisma.ordem_servico.findMany({
+            where,
+            orderBy: { created_at: "desc" },
+            skip,
+            take,
+            include: {
+              cliente: true,
+              veiculo: true,
+              funcionario: true,
+              itens: { include: { servico: true, peca: true } },
+              pagamentos: {
+                where: { deleted_at: null, tipo: "receber" },
+                select: { status: true },
+              },
+            },
+          }),
+        count: () => prisma.ordem_servico.count({ where }),
       },
-    });
+      200
+    );
   },
 
   getById: async (id: number, oficinaId: number) => {

@@ -2,14 +2,22 @@ import { Request, Response } from "express";
 import { VeiculosService } from "../services/veiculos.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 import { Prisma } from "@prisma/client";
+import { parsePaginacao, responderLista, textoQuery } from "../utils/paginacao.js";
 
 export const VeiculosController = {
   async list(req: Request, res: Response) {
     try {
-      return res.json(await VeiculosService.list({
-        oficina_id: getRequiredOfficeId(req),
-        cliente_id: req.query.cliente_id ? Number(req.query.cliente_id) : undefined,
-      }));
+      return responderLista(
+        res,
+        await VeiculosService.list(
+          {
+            oficina_id: getRequiredOfficeId(req),
+            cliente_id: req.query.cliente_id ? Number(req.query.cliente_id) : undefined,
+            search: textoQuery(req.query.search),
+          },
+          parsePaginacao(req.query)
+        )
+      );
     } catch (err: any) {
       console.error("Erro ao listar veiculos:", err);
       return res.status(500).json({ error: err.message });

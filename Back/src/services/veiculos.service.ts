@@ -1,20 +1,30 @@
 import { prisma } from "../prisma/client.js";
 import { LIMITE_LISTAGEM } from "../utils/limites.js";
+import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
 
 function normalizePlaca(placa: string) {
   return placa.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
 export const VeiculosService = {
-  list: (filters: { oficina_id: number; cliente_id?: number }) => {
+  list: (filters: { oficina_id: number; cliente_id?: number; search?: string }, pag: Paginacao | null = null) => {
     const where: any = { deleted_at: null, oficina_id: filters.oficina_id };
     if (filters?.cliente_id) where.cliente_id = filters.cliente_id;
+    if (filters.search) {
+      const contains = { contains: filters.search, mode: "insensitive" };
+      where.OR = [
+        { modelo: contains },
+        { marca: contains },
+        { placa: contains },
+        { cor: contains },
+        { cliente: { nome: contains } },
+      ];
+    }
 
-    return prisma.veiculo.findMany({
-      where,
-      include: { cliente: true, oficina: true },
-      orderBy: { id: "desc" },
-      take: LIMITE_LISTAGEM,
+    return listarPaginado(pag, {
+      find: ({ skip, take }) =>
+        prisma.veiculo.findMany({ where, include: { cliente: true, oficina: true }, orderBy: { id: "desc" }, skip, take }),
+      count: () => prisma.veiculo.count({ where }),
     });
   },
 

@@ -1,5 +1,6 @@
 import { prisma } from "../prisma/client.js";
 import { LIMITE_LISTAGEM } from "../utils/limites.js";
+import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
 
 type OrcamentoItemInput = {
   tipo_item?: "servico" | "peca";
@@ -39,12 +40,26 @@ function mapItemOrcamento(item: OrcamentoItemInput) {
 }
 
 export class OrcamentoService {
-  async listarTodos(oficinaId: number) {
-    return prisma.orcamento.findMany({
-      where: { deleted_at: null, cliente: { oficina_id: oficinaId } },
-      orderBy: { id: "desc" },
-      take: LIMITE_LISTAGEM,
-      include: orcamentoInclude,
+  async listarTodos(
+    oficinaId: number,
+    filtros: { status?: string; search?: string } = {},
+    pag: Paginacao | null = null
+  ) {
+    const where: any = { deleted_at: null, cliente: { oficina_id: oficinaId } };
+    if (filtros.status) where.status = filtros.status;
+    if (filtros.search) {
+      const contains = { contains: filtros.search, mode: "insensitive" };
+      where.OR = [
+        { descricao: contains },
+        { cliente: { nome: contains } },
+        { veiculo: { modelo: contains } },
+        { veiculo: { placa: contains } },
+      ];
+    }
+    return listarPaginado(pag, {
+      find: ({ skip, take }) =>
+        prisma.orcamento.findMany({ where, orderBy: { id: "desc" }, include: orcamentoInclude, skip, take }),
+      count: () => prisma.orcamento.count({ where }),
     });
   }
 

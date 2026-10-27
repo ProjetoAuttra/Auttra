@@ -1,5 +1,6 @@
 import { prisma } from "../prisma/client.js";
 import type { status_cliente } from "@prisma/client";
+import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
 
 type ClienteInput = {
   nome: string;
@@ -72,7 +73,7 @@ function getObservacao(data: ClienteInput) {
 
 export const ClienteService = {
 
-  async listar(oficinaId: number, search: string = "") {
+  async listar(oficinaId: number, search: string = "", pag: Paginacao | null = null) {
     const where: any = { deleted_at: null, oficina_id: oficinaId };
 
     if (search.trim().length > 0) {
@@ -85,10 +86,9 @@ export const ClienteService = {
       ];
     }
 
-    return await prisma.cliente.findMany({
-      where,
-      orderBy: { nome: "asc" },
-      take: 200,
+    return listarPaginado(pag, {
+      find: ({ skip, take }) => prisma.cliente.findMany({ where, orderBy: { nome: "asc" }, skip, take }),
+      count: () => prisma.cliente.count({ where }),
     });
   },
 

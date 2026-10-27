@@ -2,13 +2,18 @@ import { Request, Response } from "express";
 import { OrcamentoService } from "../services/orcamentos.service.js";
 import { PdfHtmlService } from "../services/pdfservice.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
+import { parsePaginacao, responderLista, textoQuery } from "../utils/paginacao.js";
 
 const service = new OrcamentoService();
 
 export class OrcamentoController {
   async listar(req: Request, res: Response) {
-    const data = await service.listarTodos(getRequiredOfficeId(req));
-    return res.json(data);
+    const data = await service.listarTodos(
+      getRequiredOfficeId(req),
+      { status: textoQuery(req.query.status) || undefined, search: textoQuery(req.query.search) || undefined },
+      parsePaginacao(req.query)
+    );
+    return responderLista(res, data);
   }
 
   async buscar(req: Request, res: Response) {
