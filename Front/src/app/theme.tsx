@@ -157,6 +157,10 @@ export const theme = createTheme({
           backgroundColor: 'transparent',
           letterSpacing: '0.04em',
         },
+        // Cabeçalho fixo precisa de fundo opaco, senão as linhas rolam por baixo dele.
+        stickyHeader: {
+          backgroundColor: '#FFFFFF',
+        },
         root: {
           borderBottomColor: brand.line,
         },

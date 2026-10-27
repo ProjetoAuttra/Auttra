@@ -143,7 +143,6 @@ export default function ServicosPage() {
           <Chip
             label="Todos"
             size="small"
-            variant={categoriaFiltro === null ? "filled" : "outlined"}
             color={categoriaFiltro === null ? "primary" : "default"}
             onClick={() => { setCategoriaFiltro(null); setPage(0); }}
             sx={{ fontWeight: 600 }}
@@ -153,7 +152,6 @@ export default function ServicosPage() {
               key={cat}
               label={CATEGORIA_LABEL[cat] ?? cat}
               size="small"
-              variant={categoriaFiltro === cat ? "filled" : "outlined"}
               color={categoriaFiltro === cat ? "primary" : "default"}
               onClick={() => { setCategoriaFiltro(cat === categoriaFiltro ? null : cat); setPage(0); }}
               sx={{ fontWeight: 600 }}
@@ -163,7 +161,7 @@ export default function ServicosPage() {
       )}
 
       <Fade in timeout={400}>
-        <ListTableContainer>
+        <ListTableContainer sx={{ height: "auto" }}>
           <Table stickyHeader>
             <TableHead>
               <TableRow>
@@ -198,7 +196,6 @@ export default function ServicosPage() {
                       <Chip
                         label={CATEGORIA_LABEL[s.categoria] ?? s.categoria}
                         size="small"
-                        variant="outlined"
                         sx={{ fontSize: 12, fontWeight: 600 }}
                       />
                     ) : (
