@@ -1,40 +1,57 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import SeletorCor, { COR_PADRAO, textoSobreCor } from "../components/common/SeletorCor";
+import { renderWithProviders } from "./utils";
 
+const abrir = () => fireEvent.click(screen.getByLabelText("Alterar cor principal"));
 const campoHex = () => screen.getByLabelText("Código hexadecimal da cor") as HTMLInputElement;
 
 describe("SeletorCor", () => {
-  it("mostra a cor padrão sem cor salva, a prévia e não oferece 'Restaurar padrão'", () => {
-    render(<SeletorCor value={null} onChange={() => {}} />);
-    expect(campoHex().value).toBe(COR_PADRAO.toUpperCase());
+  it("o card mostra a cor e a prévia, sem nenhum campo de texto fora do modal", () => {
+    renderWithProviders(<SeletorCor value={null} onChange={() => {}} />);
+    expect(screen.getByText(COR_PADRAO.toUpperCase())).toBeInTheDocument();
     expect(screen.getByTestId("previa-cor")).toBeInTheDocument();
-    expect(screen.queryByText("Restaurar padrão")).toBeNull();
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("não tem cores sugeridas, só o seletor e o hex", () => {
-    render(<SeletorCor value={null} onChange={() => {}} />);
-    expect(screen.queryByLabelText("Vermelho")).toBeNull();
-    expect(screen.getByLabelText("Escolher cor")).toBeInTheDocument();
+  it("clicar no card abre o modal com o hex atual", () => {
+    renderWithProviders(<SeletorCor value="#0f766e" onChange={() => {}} />);
+    abrir();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(campoHex().value.toLowerCase()).toBe("#0f766e");
   });
 
-  it("digitar um hex completo devolve a cor; incompleto só sinaliza erro", () => {
+  it("digitar um hex e aplicar devolve a cor em minúsculas", async () => {
     const onChange = vi.fn();
-    render(<SeletorCor value={null} onChange={onChange} />);
-    fireEvent.change(campoHex(), { target: { value: "#BE12" } });
-    expect(onChange).not.toHaveBeenCalled();
-    expect(screen.getByText("Use o formato #RRGGBB")).toBeInTheDocument();
+    renderWithProviders(<SeletorCor value={null} onChange={onChange} />);
+    abrir();
     fireEvent.change(campoHex(), { target: { value: "#BE123C" } });
-    expect(onChange).toHaveBeenLastCalledWith("#be123c");
+    fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
+    expect(onChange).toHaveBeenCalledWith("#be123c");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
-  it("o seletor nativo devolve o hex em minúsculas e dá para restaurar o padrão", () => {
+  it("hex incompleto não pode ser aplicado e cancelar não altera nada", () => {
     const onChange = vi.fn();
-    render(<SeletorCor value="#0f766e" onChange={onChange} />);
-    expect(campoHex().value).toBe("#0F766E");
-    fireEvent.change(screen.getByLabelText("Escolher cor"), { target: { value: "#FACC15" } });
-    expect(onChange).toHaveBeenLastCalledWith("#facc15");
-    fireEvent.click(screen.getByText("Restaurar padrão"));
+    renderWithProviders(<SeletorCor value={null} onChange={onChange} />);
+    abrir();
+    fireEvent.change(campoHex(), { target: { value: "#BE1" } });
+    expect(screen.getByRole("button", { name: "Aplicar" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("restaurar padrão devolve null; escolher a cor padrão também salva como padrão", () => {
+    const onChange = vi.fn();
+    renderWithProviders(<SeletorCor value="#0f766e" onChange={onChange} />);
+    abrir();
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Restaurar padrão" }));
+    expect(onChange).toHaveBeenLastCalledWith(null);
+
+    abrir();
+    fireEvent.change(campoHex(), { target: { value: COR_PADRAO } });
+    fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
     expect(onChange).toHaveBeenLastCalledWith(null);
   });
 
