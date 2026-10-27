@@ -3,7 +3,6 @@ import {
   Box,
   Chip,
   CircularProgress,
-  Stack,
   Table,
   TableBody,
   TableCell,
@@ -24,6 +23,7 @@ import {
   StatGroup,
   ReportHeader,
   ReportPage, TituloSecao } from "../../shared/reportUtils";
+import { GraficoBarrasHorizontais } from "../../shared/graficos";
 
 type Peca = {
   id: number;
@@ -116,12 +116,12 @@ export default function EstoqueCriticoRelatorio() {
   return (
     <ReportPage>
       <ReportHeader
-        title="Relatório de Estoque Crítico e Dinheiro Parado"
-        subtitle="Mostra o que comprar, onde há preço errado e quanto capital está preso em peças."
+        title="Posição de estoque"
+        subtitle="Quanto há em estoque, o que comprar com urgência e onde o preço está errado."
         onExport={handleExportarCSV}
       />
 
-      <StatGroup>
+      <StatGroup espalhar>
         <MetricCard label="Peças cadastradas" value={pecas.length} />
         <MetricCard label="Comprar urgente" value={criticas.length} tone={criticas.length ? "error" : "default"} helper={`Estoque <= ${LIMITE_ESTOQUE_BAIXO}`} />
         <MetricCard label="Capital em estoque" value={brl(capitalParado)} tone="warning" />
@@ -129,15 +129,13 @@ export default function EstoqueCriticoRelatorio() {
         <MetricCard label="Margem baixa" value={margemBaixa.length} tone={margemBaixa.length ? "warning" : "default"} helper="< 20%" />
       </StatGroup>
 
-      <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: { xs: 3, lg: 6 }, mb: 4 }}>
         <Box sx={{ flex: 1 }}>
           <TituloSecao>Maior dinheiro parado</TituloSecao>
-          {topCapital.length ? topCapital.map((p) => (
-            <Stack key={p.id} direction="row" justifyContent="space-between" py={0.75} gap={2}>
-              <Typography variant="body2" noWrap>{p.nome}</Typography>
-              <Typography variant="body2" fontWeight={600}>{brl(valorEstoque(p))}</Typography>
-            </Stack>
-          )) : <Typography variant="body2" color="text.secondary">Nenhuma peça cadastrada.</Typography>}
+          <GraficoBarrasHorizontais
+            itens={topCapital.map((p) => ({ rotulo: p.nome, valor: valorEstoque(p) }))}
+            semDados="Nenhuma peça cadastrada."
+          />
         </Box>
 
         <Box sx={{ flex: 1 }}>
@@ -150,7 +148,7 @@ export default function EstoqueCriticoRelatorio() {
             onChange={(e) => setQuery(e.target.value)}
           />
         </Box>
-      </Stack>
+      </Box>
 
       <TituloSecao>Peças em estoque crítico</TituloSecao>
       <Box sx={{ overflowX: "auto" }}>

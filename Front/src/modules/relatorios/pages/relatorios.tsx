@@ -15,12 +15,14 @@ import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import RequestQuoteRoundedIcon from "@mui/icons-material/RequestQuoteRounded";
 import PriceCheckRoundedIcon from "@mui/icons-material/PriceCheckRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import EventNoteRoundedIcon from "@mui/icons-material/EventNoteRounded";
+import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import { useNavigate } from "react-router-dom";
 import api from "../../../api/api";
 import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../context/ToastContext";
 import { paths } from "../../../routes/paths";
-import { brl, daysBetween, LIMITE_ESTOQUE_BAIXO } from "../shared/reportUtils";
+import { brl, daysBetween, LIMITE_ESTOQUE_BAIXO, TituloSecao } from "../shared/reportUtils";
 
 type PreviewData = {
   caixa: { recebido: number; vencido: number; aPagar: number };
@@ -29,6 +31,15 @@ type PreviewData = {
   orcamentos: { perdidos: number; valorPerdido: number; pendentes: number };
   rentabilidade: { faturamento: number; lucro: number; margem: number };
 };
+
+function Secao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <Box sx={{ mb: 5 }}>
+      <TituloSecao>{titulo}</TituloSecao>
+      <Grid container spacing={3} sx={{ mt: 0.5 }}>{children}</Grid>
+    </Box>
+  );
+}
 
 function PreviewRow({ label, value, color }: { label: string; value: string | number; color?: string }) {
   return (
@@ -51,7 +62,7 @@ function RelatorioCard({
   descricao: string;
   icone: React.ReactNode;
   destino: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   loading: boolean;
 }) {
   const nav = useNavigate();
@@ -190,51 +201,64 @@ export default function Relatorios() {
       <Stack spacing={0.5} mb={4}>
         <Typography variant="h5" fontWeight={700}>Relatórios</Typography>
         <Typography variant="body2" color="text.secondary">
-          Relatórios essenciais para cobrar, destravar serviços, comprar melhor e revisar margem.
+          Acompanhe o caixa, as vendas, a operação da oficina e o estoque.
         </Typography>
       </Stack>
 
-      <Grid container spacing={3}>
+      <Secao titulo="Financeiro">
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <RelatorioCard titulo="Caixa e Inadimplência" descricao="Entradas, vencidos e pressão de caixa" icone={<AccountBalanceWalletRoundedIcon />} destino={paths.financeiroRelatorio} loading={loading}>
-            <PreviewRow label="Recebido" value={brl(p?.caixa.recebido ?? 0)} color="success.main" />
-            <PreviewRow label="Vencido" value={brl(p?.caixa.vencido ?? 0)} color={(p?.caixa.vencido ?? 0) > 0 ? "error.main" : "text.primary"} />
-            <PreviewRow label="A pagar" value={brl(p?.caixa.aPagar ?? 0)} color="warning.main" />
+          <RelatorioCard titulo="Fluxo de caixa" descricao="Entradas e saídas do período" icone={<AccountBalanceWalletRoundedIcon />} destino={paths.fluxoCaixaRelatorio} loading={loading}>
+            <PreviewRow label="Recebido" value={brl(p?.caixa.recebido ?? 0)} />
+            <PreviewRow label="A pagar" value={brl(p?.caixa.aPagar ?? 0)} />
+          </RelatorioCard>
+        </Grid>
+      </Secao>
+
+      <Secao titulo="Vendas">
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+          <RelatorioCard titulo="Conversão de orçamentos" descricao="Aprovados, perdidos e o que dá para recuperar" icone={<RequestQuoteRoundedIcon />} destino={paths.orcamentosRelatorio} loading={loading}>
+            <PreviewRow label="Perdidos" value={p?.orcamentos.perdidos ?? 0} />
+            <PreviewRow label="Valor perdido" value={brl(p?.orcamentos.valorPerdido ?? 0)} />
+            <PreviewRow label="Pendentes" value={p?.orcamentos.pendentes ?? 0} />
           </RelatorioCard>
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <RelatorioCard titulo="OS em Aberto e Paradas" descricao="Serviços travados e valor preso" icone={<AssignmentLateRoundedIcon />} destino={paths.ordensParadasRelatorio} loading={loading}>
+          <RelatorioCard titulo="Margem por OS" descricao="Lucro bruto estimado por ordem de serviço" icone={<PriceCheckRoundedIcon />} destino={paths.margemRelatorio} loading={loading}>
+            <PreviewRow label="Faturamento" value={brl(p?.rentabilidade.faturamento ?? 0)} />
+            <PreviewRow label="Lucro bruto" value={brl(p?.rentabilidade.lucro ?? 0)} />
+            <PreviewRow label="Margem" value={`${(p?.rentabilidade.margem ?? 0).toFixed(1)}%`} />
+          </RelatorioCard>
+        </Grid>
+      </Secao>
+
+      <Secao titulo="Operação">
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+          <RelatorioCard titulo="Ordens de serviço" descricao="Abertas, paradas e valor preso" icone={<AssignmentLateRoundedIcon />} destino={paths.ordensRelatorio} loading={loading}>
             <PreviewRow label="OS abertas" value={p?.ordens.abertas ?? 0} />
-            <PreviewRow label="Paradas há 3+ dias" value={p?.ordens.paradas ?? 0} color={(p?.ordens.paradas ?? 0) > 0 ? "warning.main" : "text.primary"} />
-            <PreviewRow label="Valor preso" value={brl(p?.ordens.valorPreso ?? 0)} color="warning.main" />
+            <PreviewRow label="Paradas há 3+ dias" value={p?.ordens.paradas ?? 0} />
+            <PreviewRow label="Valor preso" value={brl(p?.ordens.valorPreso ?? 0)} />
           </RelatorioCard>
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <RelatorioCard titulo="Estoque Crítico" descricao="Compra urgente e dinheiro parado" icone={<Inventory2RoundedIcon />} destino={paths.estoqueCriticoRelatorio} loading={loading}>
-            <PreviewRow label="Peças críticas" value={p?.estoque.criticas ?? 0} color={(p?.estoque.criticas ?? 0) > 0 ? "error.main" : "text.primary"} />
-            <PreviewRow label="Capital em estoque" value={brl(p?.estoque.capital ?? 0)} color="warning.main" />
+          <RelatorioCard titulo="Agenda" descricao="Agendamentos do período" icone={<EventNoteRoundedIcon />} destino={paths.agendaRelatorio} loading={false} />
+        </Grid>
+      </Secao>
+
+      <Secao titulo="Estoque e clientes">
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+          <RelatorioCard titulo="Posição de estoque" descricao="Valor em estoque, compra urgente e preços" icone={<Inventory2RoundedIcon />} destino={paths.estoqueRelatorio} loading={loading}>
+            <PreviewRow label="Peças críticas" value={p?.estoque.criticas ?? 0} />
+            <PreviewRow label="Capital em estoque" value={brl(p?.estoque.capital ?? 0)} />
             <PreviewRow label="Margem baixa" value={p?.estoque.margemBaixa ?? 0} />
           </RelatorioCard>
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <RelatorioCard titulo="Orçamentos Perdidos" descricao="Receita não convertida e follow-up" icone={<RequestQuoteRoundedIcon />} destino={paths.orcamentosPerdidosRelatorio} loading={loading}>
-            <PreviewRow label="Perdidos" value={p?.orcamentos.perdidos ?? 0} color="error.main" />
-            <PreviewRow label="Valor perdido" value={brl(p?.orcamentos.valorPerdido ?? 0)} color="error.main" />
-            <PreviewRow label="Pendentes" value={p?.orcamentos.pendentes ?? 0} color="warning.main" />
-          </RelatorioCard>
+          <RelatorioCard titulo="Clientes" descricao="Cadastro e histórico de clientes" icone={<GroupsRoundedIcon />} destino={paths.clientesRelatorio} loading={false} />
         </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <RelatorioCard titulo="Rentabilidade por OS" descricao="Lucro bruto estimado e margem baixa" icone={<PriceCheckRoundedIcon />} destino={paths.rentabilidadeRelatorio} loading={loading}>
-            <PreviewRow label="Faturamento" value={brl(p?.rentabilidade.faturamento ?? 0)} color="primary.main" />
-            <PreviewRow label="Lucro bruto" value={brl(p?.rentabilidade.lucro ?? 0)} color={(p?.rentabilidade.lucro ?? 0) >= 0 ? "success.main" : "error.main"} />
-            <PreviewRow label="Margem" value={`${(p?.rentabilidade.margem ?? 0).toFixed(1)}%`} />
-          </RelatorioCard>
-        </Grid>
-      </Grid>
+      </Secao>
     </Box>
   );
 }

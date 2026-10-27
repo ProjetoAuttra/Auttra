@@ -32,6 +32,7 @@ import {
   ReportHeader,
   ReportPage,
   todayISO, TituloSecao } from "../../shared/reportUtils";
+import { GraficoBarrasHorizontais } from "../../shared/graficos";
 
 type Orcamento = {
   id: number;
@@ -138,8 +139,8 @@ export default function OrcamentosPerdidosRelatorio() {
   return (
     <ReportPage>
       <ReportHeader
-        title="Relatório de Orçamentos Perdidos"
-        subtitle="Mostra dinheiro que não virou venda e pendências que ainda podem ser recuperadas."
+        title="Conversão de orçamentos"
+        subtitle="Quantos orçamentos viram serviço, quanto foi perdido e o que ainda dá para recuperar."
         onExport={handleExportarCSV}
       />
 
@@ -151,7 +152,7 @@ export default function OrcamentosPerdidosRelatorio() {
         </Select>
       </PeriodFilter>
 
-      <StatGroup>
+      <StatGroup espalhar>
         <MetricCard label="Orçamentos" value={noPeriodo.length} />
         <MetricCard label="Valor perdido" value={brl(valorPerdido)} tone={valorPerdido ? "error" : "default"} />
         <MetricCard label="Pendente para recuperar" value={brl(valorPendente)} tone={valorPendente ? "warning" : "default"} />
@@ -159,18 +160,13 @@ export default function OrcamentosPerdidosRelatorio() {
         <MetricCard label="Potencial total" value={brl(potencialTotal)} tone="info" />
       </StatGroup>
 
-      <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: { xs: 3, lg: 6 }, mb: 4 }}>
         <Box sx={{ flex: 1 }}>
           <TituloSecao>Principais perdas por item</TituloSecao>
-          {Object.entries(servicosPerdidos).length ? Object.entries(servicosPerdidos)
-            .sort((a, b) => b[1].valor - a[1].valor)
-            .slice(0, 8)
-            .map(([nome, item]) => (
-              <Stack key={nome} direction="row" justifyContent="space-between" gap={2} py={0.75}>
-                <Typography variant="body2" noWrap>{nome}</Typography>
-                <Typography variant="body2" fontWeight={600}>{item.qtd} - {brl(item.valor)}</Typography>
-              </Stack>
-            )) : <Typography variant="body2" color="text.secondary">Nenhum orçamento perdido no período.</Typography>}
+          <GraficoBarrasHorizontais
+            itens={Object.entries(servicosPerdidos).map(([nome, item]) => ({ rotulo: `${nome} (${item.qtd})`, valor: item.valor })).sort((a, b) => b.valor - a.valor).slice(0, 8)}
+            semDados="Nenhum orçamento perdido no período."
+          />
         </Box>
 
         <Box sx={{ flex: 1 }}>
@@ -188,7 +184,7 @@ export default function OrcamentosPerdidosRelatorio() {
               </Stack>
             )) : <Typography variant="body2" color="text.secondary">Nenhum orçamento pendente no período.</Typography>}
         </Box>
-      </Stack>
+      </Box>
 
       <TituloSecao>Orçamentos perdidos</TituloSecao>
       <Box sx={{ overflowX: "auto" }}>
