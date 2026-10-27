@@ -19,14 +19,9 @@ router.post("/:id/share", async (req, res) => {
   try {
     const id = Number(req.params.id);
     const oficinaId = getRequiredOfficeId(req);
-    const token = req.query.token ?? req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(400).json({ error: "Token é obrigatório para compartilhar." });
-    }
-    
     let code = "";
     for (const [k, v] of shortLinks.entries()) {
-      if (v.orcamentoId === id && v.token === token && v.oficinaId === oficinaId) {
+      if (v.orcamentoId === id && v.oficinaId === oficinaId) {
         code = k;
         break;
       }
@@ -34,7 +29,7 @@ router.post("/:id/share", async (req, res) => {
     
     if (!code) {
       code = crypto.randomBytes(3).toString("hex").toUpperCase();
-      shortLinks.set(code, { orcamentoId: id, oficinaId, token: String(token) });
+      shortLinks.set(code, { orcamentoId: id, oficinaId });
     }
     
     res.json({ code });

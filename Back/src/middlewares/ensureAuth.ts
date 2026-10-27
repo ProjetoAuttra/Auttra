@@ -28,8 +28,6 @@ export const authMiddleware = (
     if (parts.length === 2) {
       token = parts[1];
     }
-  } else if (req.query && typeof req.query.token === "string") {
-    token = req.query.token;
   }
 
   if (!token) {
