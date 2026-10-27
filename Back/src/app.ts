@@ -13,6 +13,11 @@ export const app = express();
 const trustProxy = Number(process.env.TRUST_PROXY ?? 1);
 app.set("trust proxy", Number.isInteger(trustProxy) && trustProxy >= 0 ? trustProxy : 1);
 
+const corsOrigins = (process.env.CORS_ORIGIN ?? "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
     origin: corsOrigins.length ? corsOrigins : false,
