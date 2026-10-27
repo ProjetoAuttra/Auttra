@@ -61,6 +61,24 @@ export async function listarPagamentos(oficina_id: number) {
   return data as Conta[];
 }
 
+export type ResumoContas = {
+  total_aberto: number;
+  pago_mes: number;
+  vencidos: number;
+  a_vencer: number;
+  qtd_total: number;
+  qtd_vencidos: number;
+  qtd_pendentes: number;
+};
+
+/** Totais dos cards, calculados no servidor sobre todos os títulos do tipo. `hoje` usa a data local do navegador. */
+export async function resumoPagamentos(tipo: "receber" | "pagar") {
+  const d = new Date();
+  const hoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const { data } = await api.get("/pagamentos/resumo", { params: { tipo, hoje } });
+  return data as ResumoContas;
+}
+
 export async function criarPagamento(payload: any) {
   const { data } = await api.post("/pagamentos", payload);
   return data as Conta;

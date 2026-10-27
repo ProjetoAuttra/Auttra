@@ -14,7 +14,8 @@ import { useNavigate, useSearchParams } from "react-router-dom"; // ← useSearc
 import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
 import api from "../../../api/api";
-import { listarOrdens, excluirOrdem, criarOrdem, atualizarOrdem, mudarStatusOrdem } from "../api/api";
+import { excluirOrdem, criarOrdem, atualizarOrdem, mudarStatusOrdem } from "../api/api";
+import { useListaPaginada } from "../../../hooks/useListaPaginada";
 import OrdemDialog from "../dialog";
 import TableSkeleton from "../../../components/common/TableSkeleton";
 import EmptyState from "../../../components/common/EmptyState";
@@ -45,7 +46,6 @@ export default function OrdensPage() {
   const { success, error } = useToast();
   const confirm = useConfirm();
 
-  const [rows, setRows] = React.useState<Ordem[]>([]);
   const [funcionarios, setFuncionarios] = React.useState<{ id: number; nome: string }[]>([]);
   const [filtroFuncionario, setFiltroFuncionario] = React.useState("todos");
   const [filtroData, setFiltroData] = React.useState("");
@@ -53,16 +53,23 @@ export default function OrdensPage() {
   const [openDialog, setOpenDialog] = React.useState(false);
   const [mode, setMode] = React.useState<"create" | "edit">("create");
   const [current, setCurrent] = React.useState<Ordem | null>(null);
-  const [loading, setLoading] = React.useState(true);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [menuId, setMenuId] = React.useState<number | null>(null);
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
   // ── Lê o filtro de status da URL (?status=em_andamento) ──
   const statusParam = searchParams.get("status") ?? "todos";
   const initialStatus = STATUS_VALIDOS.includes(statusParam) ? statusParam : "todos";
   const [filtroStatus, setFiltroStatus] = React.useState(initialStatus);
+
+  const { rows, total, carregandoInicial: loading, page, setPage, rowsPerPage, setRowsPerPage, recarregar } =
+    useListaPaginada<Ordem>("/ordens", {
+      filtros: { status: filtroStatus, funcionario_id: filtroFuncionario, data: filtroData },
+      debounceMs: 0,
+      onError: (err) => {
+        console.error(err);
+        error("Não foi possível carregar as ordens de serviço.");
+      },
+    });
 
   // Sincroniza se o usuário navegar para a mesma página com param diferente
   React.useEffect(() => {
@@ -73,14 +80,9 @@ export default function OrdensPage() {
 
   // ── Carrega ──
   React.useEffect(() => {
-    Promise.all([
-      listarOrdens(),
-      api.get("/funcionarios").then((r) => r.data).catch(() => []),
-    ]).then(([ordens, funcs]) => {
-      setRows(ordens);
+    api.get("/funcionarios").then((r) => r.data).catch(() => []).then((funcs) => {
       if (Array.isArray(funcs)) setFuncionarios(funcs);
-    }).catch(console.error)
-      .finally(() => setLoading(false));
+    });
   }, []);
 
   const handleCreate = () => { setMode("create"); setCurrent(null); setOpenDialog(true); };
@@ -99,7 +101,7 @@ export default function OrdensPage() {
     if (!ok) { handleMenuClose(); return; }
     try {
       await excluirOrdem(menuId);
-      setRows((p) => p.filter((x) => x.id !== menuId));
+      recarregar();
       success("Ordem excluída com sucesso.");
     } catch { error("Não foi possível excluir a ordem."); }
     finally { handleMenuClose(); }
@@ -132,7 +134,7 @@ export default function OrdensPage() {
     if (!ok) return;
     try {
       const atualizada = await mudarStatusOrdem(targetId, novoStatus);
-      setRows((p) => p.map((x) => (x.id === targetId ? atualizada : x)));
+      recarregar();
       if (novoStatus === "concluida" && Number(atualizada.valor_total) > 0) {
         success("OS concluída! Cobrança gerada automaticamente em Contas a Receber.");
       } else {
@@ -150,12 +152,12 @@ export default function OrdensPage() {
   const handleSubmit = async (data: OrdemPayload) => {
     try {
       if (mode === "create") {
-        const nova = await criarOrdem(data);
-        setRows((p) => [nova, ...p]);
+        await criarOrdem(data);
+        recarregar();
         success("Ordem de serviço criada!");
       } else if (current) {
-        const atualizada = await atualizarOrdem(current.id, data);
-        setRows((p) => p.map((x) => (x.id === current.id ? atualizada : x)));
+        await atualizarOrdem(current.id, data);
+        recarregar();
         success("Ordem atualizada com sucesso!");
       }
       setOpenDialog(false);
@@ -165,19 +167,8 @@ export default function OrdensPage() {
   // ── Filtros ──
   const hasActiveFilters = filtroStatus !== "todos" || filtroFuncionario !== "todos" || !!filtroData;
 
-  const filtered = React.useMemo(() => {
-    return rows.filter((r) => {
-      const matchStatus = filtroStatus === "todos" || r.status === filtroStatus;
-      const matchFunc = filtroFuncionario === "todos" || String(r.funcionario?.id) === filtroFuncionario;
-      const matchData = !filtroData || r.data_abertura?.startsWith(filtroData);
-      return matchStatus && matchFunc && matchData;
-    });
-  }, [rows, filtroStatus, filtroFuncionario, filtroData]);
-
-  const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
   const clearFilters = () => {
-    setFiltroStatus("todos"); setFiltroFuncionario("todos"); setFiltroData(""); setPage(0);
+    setFiltroStatus("todos"); setFiltroFuncionario("todos"); setFiltroData("");
   };
 
   return (
@@ -222,7 +213,7 @@ export default function OrdensPage() {
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <FormControl size="small" sx={{ minWidth: 160 }}>
                 <InputLabel>Status</InputLabel>
-                <Select value={filtroStatus} label="Status" onChange={(e: SelectChangeEvent) => { setFiltroStatus(e.target.value); setPage(0); }}>
+                <Select value={filtroStatus} label="Status" onChange={(e: SelectChangeEvent) => { setFiltroStatus(e.target.value); }}>
                   <MenuItem value="todos">Todos os status</MenuItem>
                   {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                     <MenuItem key={k} value={k}>{v.label}</MenuItem>
@@ -232,7 +223,7 @@ export default function OrdensPage() {
 
               <FormControl size="small" sx={{ minWidth: 200 }}>
                 <InputLabel>Mecânico responsável</InputLabel>
-                <Select value={filtroFuncionario} label="Mecânico responsável" onChange={(e: SelectChangeEvent) => { setFiltroFuncionario(e.target.value); setPage(0); }}>
+                <Select value={filtroFuncionario} label="Mecânico responsável" onChange={(e: SelectChangeEvent) => { setFiltroFuncionario(e.target.value); }}>
                   <MenuItem value="todos">Todos os mecânicos</MenuItem>
                   {funcionarios.map((f) => <MenuItem key={f.id} value={String(f.id)}>{f.nome}</MenuItem>)}
                 </Select>
@@ -241,7 +232,7 @@ export default function OrdensPage() {
               <TextField
                 label="Data de abertura" type="date" size="small"
                 value={filtroData}
-                onChange={(e) => { setFiltroData(e.target.value); setPage(0); }}
+                onChange={(e) => { setFiltroData(e.target.value); }}
                 InputLabelProps={{ shrink: true }}
                 sx={{ minWidth: 180 }}
               />
@@ -274,7 +265,7 @@ export default function OrdensPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {paginated.length > 0 ? paginated.map((r) => {
+                {rows.length > 0 ? rows.map((r) => {
                   const st = STATUS_CONFIG[r.status as OrdemStatus] ?? STATUS_CONFIG.aberta;
                   return (
                     <TableRow
@@ -344,9 +335,9 @@ export default function OrdensPage() {
       {/* ── Paginação ── */}
       {!loading && (
         <TablePagination
-          component="div" count={filtered.length} page={page}
+          component="div" count={total} page={page}
           onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+          onRowsPerPageChange={(e) => setRowsPerPage(parseInt(e.target.value, 10))}
           rowsPerPageOptions={[5, 10, 20]} labelRowsPerPage="Linhas por página:"
           labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
           sx={{ bgcolor: "transparent", borderTop: (t) => `1px solid ${t.palette.divider}` }}

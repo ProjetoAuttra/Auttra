@@ -26,6 +26,15 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.get("/resumo", async (req, res) => {
+  try {
+    const tipo = req.query.tipo === "pagar" ? "pagar" : "receber";
+    res.json(await PagamentosService.resumo(getRequiredOfficeId(req), tipo, textoQuery(req.query.hoje) || undefined));
+  } catch (err) {
+    sendServiceError(res, err, "pagamentos/resumo");
+  }
+});
+
 router.get("/cliente/:cliente_id", async (req, res) => {
   try {
     const cliente_id = Number(req.params.cliente_id);

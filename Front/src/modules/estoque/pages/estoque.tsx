@@ -20,8 +20,9 @@ import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
 import EstoqueDialog, { type EstoqueItem, type EstoqueForm } from "../dialog";
 import {
-  listarEstoque, criarEstoque, atualizarEstoque, excluirEstoque, ajustarEstoque,
+  criarEstoque, atualizarEstoque, excluirEstoque, ajustarEstoque,
 } from "../api/api";
+import { useListaPaginada } from "../../../hooks/useListaPaginada";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import StatCard, { StatGroup } from "../../../components/common/StatCard";
 import ListTableContainer from "../../../components/common/ListTableContainer";
@@ -55,53 +56,38 @@ export default function EstoquePage() {
   const [qtdAjuste, setQtdAjuste] = React.useState(1);
   const [loadingAjuste, setLoadingAjuste] = React.useState(false);
 
-  const [rows, setRows] = React.useState<EstoqueItem[]>([]);
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const { rows, total, page, setPage, rowsPerPage, setRowsPerPage, recarregar: recarregarLista } =
+    useListaPaginada<EstoqueItem>("/pecas", {
+      filtros: {
+        search: query,
+        estoque_maximo: filtroBaixo ? LIMITE_BAIXO : undefined,
+        ordenar_por: sortCampo ?? undefined,
+        direcao: sortCampo ? sortDir : undefined,
+      },
+      onError: (err) => {
+        console.error("Erro ao carregar estoque:", err);
+        error("Não foi possível carregar o estoque.");
+      },
+    });
+  // Contagens dos cards: pedem só o total (limit=1), independentes de página, busca e filtro.
+  const contagemGeral = useListaPaginada<EstoqueItem>("/pecas", { linhasPorPaginaInicial: 1 });
+  const contagemBaixo = useListaPaginada<EstoqueItem>("/pecas", {
+    filtros: { estoque_maximo: LIMITE_BAIXO },
+    linhasPorPaginaInicial: 1,
+  });
+  const recarregar = () => {
+    recarregarLista();
+    contagemGeral.recarregar();
+    contagemBaixo.recarregar();
+  };
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [menuId, setMenuId] = React.useState<number | null>(null);
 
-  React.useEffect(() => {
-    listarEstoque()
-      .then(setRows)
-      .catch((err) => {
-        console.error("Erro ao carregar estoque:", err);
-        error("Não foi possível carregar o estoque.");
-      });
-  }, []);
-
-  // ── Métricas ────────────────────────────────────────────────
-  const totalBaixo = rows.filter((r) => Number(r.estoque ?? 0) <= LIMITE_BAIXO).length;
-
-  // ── Filtro + Busca ───────────────────────────────────────────
-  const filtered = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return rows.filter((r) => {
-      const matchBusca = !q || r.nome.toLowerCase().includes(q) || (r.descricao ?? "").toLowerCase().includes(q);
-      const matchBaixo = !filtroBaixo || Number(r.estoque ?? 0) <= LIMITE_BAIXO;
-      return matchBusca && matchBaixo;
-    });
-  }, [rows, query, filtroBaixo]);
-
-  // ── Ordenação ────────────────────────────────────────────────
-  const sorted = React.useMemo(() => {
-    if (!sortCampo) return filtered;
-    return [...filtered].sort((a, b) => {
-      if (sortCampo === "nome") {
-        const cmp = a.nome.localeCompare(b.nome, "pt-BR");
-        return sortDir === "asc" ? cmp : -cmp;
-      }
-      const cmp = Number(a.estoque ?? 0) - Number(b.estoque ?? 0);
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-  }, [filtered, sortCampo, sortDir]);
-
-  const paginated = sorted.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const totalBaixo = contagemBaixo.total;
 
   const handleSort = (campo: SortCampo) => {
     if (sortCampo === campo) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortCampo(campo); setSortDir("asc"); }
-    setPage(0);
   };
 
   // ── Menu contextual ──────────────────────────────────────────
@@ -124,7 +110,7 @@ export default function EstoquePage() {
     if (!ok) { handleMenuClose(); return; }
     try {
       await excluirEstoque(menuId);
-      setRows((p) => p.filter((x) => x.id !== menuId));
+      recarregar();
       success("Peça excluída com sucesso.");
     } catch { error("Não foi possível excluir a peça."); }
     finally { handleMenuClose(); }
@@ -144,8 +130,8 @@ export default function EstoquePage() {
     if (!id) return;
     setLoadingAjuste(true);
     try {
-      const atualizado = await ajustarEstoque(id, tipoAjuste, qtdAjuste);
-      setRows((p) => p.map((r) => (r.id === id ? { ...r, estoque: atualizado.estoque } : r)));
+      await ajustarEstoque(id, tipoAjuste, qtdAjuste);
+      recarregar();
       success(tipoAjuste === "entrada" ? "Entrada registrada!" : "Saída registrada!");
       setOpenAjuste(false);
     } catch (err: any) {
@@ -159,12 +145,12 @@ export default function EstoquePage() {
       const oficinaId = user?.oficinaId ?? user?.oficina_id ?? 0;
       if (!oficinaId) { warning("Usuário sem oficina vinculada. Refaça o login."); return; }
       if (mode === "create") {
-        const { data: novo, reativado } = await criarEstoque(data, oficinaId);
-        setRows((p) => [novo, ...p]);
+        const { reativado } = await criarEstoque(data, oficinaId);
+        recarregar();
         success(reativado ? "Peça já existia e foi reativada." : "Peça adicionada ao estoque!");
       } else if (current) {
-        const atualizado = await atualizarEstoque(current.id, data);
-        setRows((p) => p.map((r) => (r.id === current.id ? atualizado : r)));
+        await atualizarEstoque(current.id, data);
+        recarregar();
         success("Peça atualizada com sucesso!");
       }
       setOpenDialog(false);
@@ -176,7 +162,7 @@ export default function EstoquePage() {
   const onDelete = async (id: number) => {
     try {
       await excluirEstoque(id);
-      setRows((p) => p.filter((x) => x.id !== id));
+      recarregar();
       success("Peça excluída com sucesso.");
     } catch { error("Não foi possível excluir a peça."); }
   };
@@ -197,12 +183,12 @@ export default function EstoquePage() {
 
       {/* ── Métricas ───────────────────────────────────────────── */}
       <StatGroup>
-        <StatCard label="Total de peças" value={rows.length} />
+        <StatCard label="Total de peças" value={contagemGeral.total} />
         <StatCard
           label="Baixo estoque"
           value={totalBaixo}
           tone={totalBaixo > 0 && !filtroBaixo ? "warning" : "default"}
-          onClick={() => { setFiltroBaixo((v) => !v); setPage(0); }}
+          onClick={() => setFiltroBaixo((v) => !v)}
           active={filtroBaixo}
         />
       </StatGroup>
@@ -213,7 +199,7 @@ export default function EstoquePage() {
           size="small"
           placeholder="Pesquisar por nome ou descrição..."
           value={query}
-          onChange={(e) => { setQuery(e.target.value); setPage(0); }}
+          onChange={(e) => setQuery(e.target.value)}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -257,8 +243,8 @@ export default function EstoquePage() {
             </TableHead>
 
             <TableBody>
-              {paginated.length > 0 ? (
-                paginated.map((i) => {
+              {rows.length > 0 ? (
+                rows.map((i) => {
                   const baixo = Number(i.estoque ?? 0) <= LIMITE_BAIXO;
                   return (
                     <TableRow key={i.id} hover sx={{ height: 56 }}>
@@ -336,11 +322,11 @@ export default function EstoquePage() {
       {/* ── Paginação ───────────────────────────────────────────── */}
       <TablePagination
         component="div"
-        count={sorted.length}
+        count={total}
         page={page}
         onPageChange={(_, newPage) => setPage(newPage)}
         rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+        onRowsPerPageChange={(e) => setRowsPerPage(parseInt(e.target.value, 10))}
         rowsPerPageOptions={[5, 10, 20]}
         labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}

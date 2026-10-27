@@ -106,6 +106,17 @@ describe.skipIf(!process.env.DATABASE_URL)("paginação das listagens", () => {
     expect(baixo.headers["x-total-count"]).toBe("2");
   });
 
+  it("resumo de contas soma no banco, separa vencidos e a vencer e respeita o tipo", async () => {
+    const vencido = (await get("/api/pagamentos/resumo?tipo=receber&hoje=2026-02-10")).body;
+    expect(vencido).toMatchObject({ total_aberto: 10, vencidos: 10, a_vencer: 0, qtd_total: 2, qtd_vencidos: 1, qtd_pendentes: 1 });
+
+    const noMes = (await get("/api/pagamentos/resumo?tipo=receber&hoje=2026-01-15")).body;
+    expect(noMes).toMatchObject({ vencidos: 0, a_vencer: 10, qtd_vencidos: 0 });
+
+    const pagar = (await get("/api/pagamentos/resumo?tipo=pagar&hoje=2026-01-15")).body;
+    expect(pagar).toMatchObject({ total_aberto: 10, qtd_total: 1 });
+  });
+
   it("não vaza registros de outra oficina no total", async () => {
     const r = await get("/api/clientes?page=1&limit=100");
     expect(Number(r.headers["x-total-count"])).toBe(25);

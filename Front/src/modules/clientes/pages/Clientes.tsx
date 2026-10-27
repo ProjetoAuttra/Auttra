@@ -12,6 +12,7 @@ import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
 import ClientDialog, { type Client, type ClientForm } from "../dialog";
 import api from "../../../api/api";
+import { useListaPaginada } from "../../../hooks/useListaPaginada";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import ListTableContainer from "../../../components/common/ListTableContainer";
 import EmptyState from "../../../components/common/EmptyState";
@@ -19,16 +20,15 @@ import { IllustrationClientes } from "../../../components/common/Illustrations";
 
 // ── helpers de mapeamento ──────────────────────────────────────────────────
 
-async function listarClientes(): Promise<Client[]> {
-  const { data } = await api.get("/clientes");
-  return data.map((c: any) => ({
+function mapCliente(c: any): Client {
+  return {
     id: String(c.id),
     nome: c.nome,
     email: c.email,
     cpf: c.cpf,
     telefone: c.telefone,
     observacao: c.observacao,
-  }));
+  };
 }
 
 async function criarCliente(data: ClientForm, oficinaId: number): Promise<Client> {
@@ -72,24 +72,19 @@ export default function ClientsPage() {
   const [openDialog, setOpenDialog] = React.useState(false);
   const [mode, setMode] = React.useState<"create" | "edit">("create");
   const [current, setCurrent] = React.useState<Client | null>(null);
-  const [rows, setRows] = React.useState<Client[]>([]);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [menuClientId, setMenuClientId] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
-
-  const oficinaId = user?.oficina_id ?? 0;
-
-  React.useEffect(() => {
-    listarClientes()
-      .then(setRows)
-      .catch((err) => {
+  const { rows: rowsApi, total, carregandoInicial, page, setPage, rowsPerPage, setRowsPerPage, recarregar } =
+    useListaPaginada<any>("/clientes", {
+      filtros: { search: query },
+      onError: (err) => {
         console.error("Erro ao carregar clientes:", err);
         error("Não foi possível carregar os clientes.");
-      })
-      .finally(() => setLoading(false));
-  }, []);
+      },
+    });
+  const rows = React.useMemo(() => rowsApi.map(mapCliente), [rowsApi]);
+
+  const oficinaId = user?.oficina_id ?? 0;
 
   const openCreate = () => { setMode("create"); setCurrent(null); setOpenDialog(true); };
   const handleMenuOpen = (e: React.MouseEvent<HTMLButtonElement>, id: string) => { setAnchorEl(e.currentTarget); setMenuClientId(id); };
@@ -107,7 +102,7 @@ export default function ClientsPage() {
     if (!ok) { handleMenuClose(); return; }
     try {
       await excluirCliente(cliente.id);
-      setRows((p) => p.filter((x) => x.id !== cliente.id));
+      recarregar();
       success("Cliente excluído com sucesso.");
     } catch {
       error("Não foi possível excluir o cliente.");
@@ -121,13 +116,12 @@ export default function ClientsPage() {
       if (mode === "create") {
         if (!oficinaId) { warning("Usuário sem oficina vinculada. Faça login novamente."); return; }
         const novo = await criarCliente(data, oficinaId);
-        setRows((p) => [novo, ...p]);
         setOpenDialog(false);
         success("Cliente cadastrado com sucesso!");
         navigate(`/clientes/${novo.id}`);
       } else if (current) {
-        const atualizado = await atualizarCliente(current.id, data);
-        setRows((p) => p.map((r) => (r.id === current.id ? atualizado : r)));
+        await atualizarCliente(current.id, data);
+        recarregar();
         setOpenDialog(false);
         success("Cliente atualizado com sucesso!");
       }
@@ -140,24 +134,14 @@ export default function ClientsPage() {
   const onDelete = async (id: string) => {
     try {
       await excluirCliente(id);
-      setRows((p) => p.filter((x) => x.id !== id));
+      recarregar();
       success("Cliente excluído com sucesso.");
     } catch {
       error("Não foi possível excluir o cliente.");
     }
   };
 
-  const filtered = rows.filter((r) => {
-    const q = query.trim().toLowerCase();
-    if (!q) return true;
-    const digits = q.replace(/[^\d]/g, "");
-    return r.nome.toLowerCase().includes(q) || (r.email ?? "").toLowerCase().includes(q) ||
-      (r.telefone ?? "").includes(digits) || (r.cpf ?? "").includes(digits);
-  });
-
-  const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
-  if (loading) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
+  if (carregandoInicial) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
 
   return (
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
@@ -166,8 +150,7 @@ export default function ClientsPage() {
         subtitle="Cadastro, contato e histórico de relacionamento da oficina."
         icon={<GroupsRoundedIcon />}
         metrics={[
-          { label: "Cadastrados", value: rows.length, tone: "primary" },
-          { label: "Filtrados", value: filtered.length, tone: "neutral" },
+          { label: query.trim() ? "Encontrados" : "Cadastrados", value: total, tone: "primary" },
         ]}
         searchValue={query}
         searchPlaceholder="Pesquisar por nome, email ou telefone"
@@ -188,7 +171,7 @@ export default function ClientsPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginated.length > 0 ? paginated.map((c) => (
+              {rows.length > 0 ? rows.map((c) => (
                 <TableRow
                   key={c.id}
                   hover
@@ -232,9 +215,9 @@ export default function ClientsPage() {
         </ListTableContainer>
       </Fade>
 
-      <TablePagination component="div" count={filtered.length} page={page}
+      <TablePagination component="div" count={total} page={page}
         onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+        onRowsPerPageChange={(e) => setRowsPerPage(parseInt(e.target.value, 10))}
         rowsPerPageOptions={[5, 10, 20]} labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
         sx={{ bgcolor: "transparent", borderTop: (t) => `1px solid ${t.palette.divider}` }}
