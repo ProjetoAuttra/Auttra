@@ -4,17 +4,15 @@ import {
   Table, TableBody, TableCell, TableHead, TableRow, TablePagination,
   Menu, MenuItem, Divider, Fade, CircularProgress, TextField, InputAdornment,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
-import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import SellRoundedIcon from "@mui/icons-material/SellRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
-import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
-import TrendingDownRoundedIcon from "@mui/icons-material/TrendingDownRounded";
+import TrendingDownRoundedIcon from "@mui/icons-material/TrendingUpRounded";
 import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
 import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import { useAuth } from "../../../../context/AuthContext";
@@ -23,16 +21,19 @@ import { useConfirm } from "../../../../context/ConfirmContext";
 import { useListaPaginada } from "../../../../hooks/useListaPaginada";
 import ModuleHeader from "../../../../components/layout/ModuleHeader";
 import StatCard, { StatGroup } from "../../../../components/common/StatCard";
+import CampoData from "../../../../components/common/CampoData";
+import TextoLimitado from "../../../../components/common/TextoLimitado";
 import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../components/common/AppDialog";
 import api from "../../../../api/api";
-import { type Conta, brl, isVencido, valorLiquido, valorRestante, METODO_LABEL, METODO_OPTIONS, criarPagamento, atualizarPagamento, marcarComoPago, estornarPagamento, aplicarDesconto, renegociarPrazo, parcelar, cancelarPagamento, resumoPagamentos, type ResumoContas } from "../../api/api";
+import { type Conta, brl, isVencido, valorLiquido, formatarData, paraInputData, METODO_OPTIONS, criarPagamento, atualizarPagamento, marcarComoPago, estornarPagamento, parcelar, cancelarPagamento, resumoPagamentos, type ResumoContas } from "../../api/api";
 import {
-  ReceberDialog, EstornarDialog, MovimentosDialog, DescontoDialog, RenegociarDialog, ParcelarDialog,
+  EstornarDialog, DetalhesDialog,
 } from "../../dialogs/index";
+import { ReceberTituloDialog, RenegociarTituloDialog } from "../../dialogs/TituloDialogs";
 
-type Acao = "pagar" | "estornar" | "historico" | "desconto" | "renegociar" | "parcelar" | "editar" | null;
+type Acao = "pagar" | "estornar" | "detalhes" | "renegociar" | "editar" | null;
 
 function StatusChip({ conta }: { conta: Conta }) {
   if (isVencido(conta))
@@ -112,15 +113,15 @@ export default function ContasPagar() {
 
   // ── Cards de resumo ──────────────────────────────────────────────────────────
   const totalAberto = resumoApi?.total_aberto ?? 0;
-  const pagoNomes = resumoApi?.pago_mes ?? 0;
+  const pagoMes = resumoApi?.pago_mes ?? 0;
   const totalVencidos = resumoApi?.vencidos ?? 0;
   const aVencer = resumoApi?.a_vencer ?? 0;
 
   const resumo = [
-    { label: "Total a pagar",  value: brl(totalAberto),  icon: <TrendingDownRoundedIcon />, tone: "error" },
-    { label: "Pago no mês",    value: brl(pagoNomes),    icon: <CheckCircleRoundedIcon />,  tone: "success" },
-    { label: "Vencidos",       value: brl(totalVencidos), icon: <ErrorOutlineRoundedIcon />, tone: "error" },
-    { label: "A vencer (mês)", value: brl(aVencer),      icon: <ScheduleRoundedIcon />,     tone: "warning" },
+    { label: "Total a pagar",  value: brl(totalAberto),   icon: <TrendingDownRoundedIcon />,     tone: "error" },
+    { label: "Pago no mês",  value: brl(pagoMes),   icon: <CheckCircleRoundedIcon />,    tone: "success" },
+    { label: "Vencidos",         value: brl(totalVencidos), icon: <ErrorOutlineRoundedIcon />,   tone: "error" },
+    { label: "A vencer (mês)",   value: brl(aVencer),       icon: <ScheduleRoundedIcon />,       tone: "warning" },
   ] as const;
 
   if (carregandoInicial) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
@@ -144,7 +145,7 @@ export default function ContasPagar() {
       />
 
       {/* Cards */}
-      <StatGroup>
+      <StatGroup espalhar>
         {resumo.map((r) => (
           <StatCard key={r.label} label={r.label} value={r.value} icon={r.icon} tone={r.tone} />
         ))}
@@ -158,24 +159,20 @@ export default function ContasPagar() {
               <TableRow>
                 <TableCell>Fornecedor</TableCell>
                 <TableCell>Descrição</TableCell>
-                <TableCell>Valor</TableCell>
-                <TableCell>Vencimento</TableCell>
-                <TableCell>Método</TableCell>
-                <TableCell>Status</TableCell>
+                <TableCell align="center">Vencimento</TableCell>
+                <TableCell align="center">Valor</TableCell>
+                <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>Valor pago</TableCell>
+                <TableCell align="center">Status</TableCell>
                 <TableCell align="right">Ações</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {contas.length > 0 ? contas.map((conta) => {
-                const vencido = isVencido(conta);
                 const liquido = valorLiquido(conta);
                 return (
                   <TableRow
                     key={conta.id} hover
-                    sx={{
-                      height: 56,
-                      bgcolor: vencido ? (t) => alpha(t.palette.error.main, 0.04) : undefined,
-                    }}
+                    sx={{ height: 56 }}
                   >
                     <TableCell>
                       <Typography variant="body2" fontWeight={600}>
@@ -183,16 +180,23 @@ export default function ContasPagar() {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {conta.descricao ?? "—"}
-                      </Typography>
+                      <TextoLimitado texto={conta.descricao ?? "—"} linhas={2} variant="body2" color="text.secondary" />
                     </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={0.75} alignItems="center">
-                        <Typography
-                          variant="body2" fontWeight={600}
-                          color={conta.status === "pago" ? "success.main" : vencido ? "error.main" : "text.primary"}
-                        >
+                    <TableCell align="center">
+                      <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
+                        <Typography variant="body2">
+                          {formatarData(conta.data_vencimento)}
+                        </Typography>
+                        {conta.vezes_renegociado > 0 && (
+                          <Tooltip title={`Data original: ${formatarData(conta.data_vencimento_original)} · Renegociado ${conta.vezes_renegociado}×`}>
+                            <EventRepeatRoundedIcon sx={{ fontSize: 13, color: "warning.main", cursor: "help" }} />
+                          </Tooltip>
+                        )}
+                      </Stack>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Stack direction="row" spacing={0.75} alignItems="center" justifyContent="center">
+                        <Typography variant="body2" fontWeight={600}>
                           {brl(liquido)}
                         </Typography>
                         {conta.total_parcelas && conta.total_parcelas > 1 && (
@@ -209,38 +213,34 @@ export default function ContasPagar() {
                         )}
                       </Stack>
                     </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={0.5} alignItems="center">
-                        <Typography variant="body2" color={vencido ? "error.main" : "text.primary"} fontWeight={vencido ? 700 : 400}>
-                          {new Date(conta.data_vencimento).toLocaleDateString("pt-BR")}
+                    <TableCell align="center">
+                      {Number(conta.valor_pago) > 0 ? (
+                        <Typography variant="body2" fontWeight={600}>
+                          {brl(Number(conta.valor_pago))}
                         </Typography>
-                        {conta.vezes_renegociado > 0 && (
-                          <Tooltip title={`Data original: ${conta.data_vencimento_original ? new Date(conta.data_vencimento_original).toLocaleDateString("pt-BR") : "—"} · Renegociado ${conta.vezes_renegociado}×`}>
-                            <EventRepeatRoundedIcon sx={{ fontSize: 13, color: "warning.main", cursor: "help" }} />
-                          </Tooltip>
-                        )}
-                      </Stack>
+                      ) : (
+                        <Typography variant="body2" color="text.disabled">-</Typography>
+                      )}
                     </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {conta.metodo ? (METODO_LABEL[conta.metodo] ?? conta.metodo) : "—"}
-                      </Typography>
-                    </TableCell>
-                    <TableCell><StatusChip conta={conta} /></TableCell>
+                    <TableCell align="center"><StatusChip conta={conta} /></TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                        <Tooltip title="Pagar">
-                          <span>
-                            <IconButton
-                              size="small"
-                              onClick={() => handlePagarDireto(conta)}
-                              disabled={conta.status === "pago" || conta.status === "cancelado"}
-                              sx={{ color: "success.main" }}
-                            >
-                              <CheckCircleRoundedIcon fontSize="small" />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
+                        <Button
+                          size="small"
+                          variant="text"
+                          color="success"
+                          onClick={() => handlePagarDireto(conta)}
+                          disabled={conta.status === "pago" || conta.status === "cancelado"}
+                          sx={{
+                            fontWeight: 700,
+                            letterSpacing: 0.6,
+                            px: 1.75,
+                            // Já pago: continua visível, mas bem mais apagado.
+                            "&.Mui-disabled": { color: "success.main", opacity: 0.35 },
+                          }}
+                        >
+                          PAGAR
+                        </Button>
                         <IconButton size="small" aria-label="Mais ações" onClick={(e) => handleMenuOpen(e, conta)}>
                           <MoreVertRoundedIcon fontSize="small" />
                         </IconButton>
@@ -254,7 +254,7 @@ export default function ContasPagar() {
                     <EmptyState
                       icon={<TrendingDownRoundedIcon />}
                       title="Nenhuma conta a pagar"
-                      description="Registre pagamentos e despesas para acompanhar o caixa."
+                      description="Registre contas a fornecedores para acompanhar as despesas."
                       actionLabel="Nova Conta"
                       onAction={() => setDialogNova(true)}
                       isFiltered={!!query}
@@ -283,22 +283,17 @@ export default function ContasPagar() {
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <MenuItem onClick={() => openAcao("historico")}>
-          <HistoryRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "text.secondary" }} />Histórico de pagamentos
+        <MenuItem onClick={() => openAcao("detalhes")}>
+          <VisibilityRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "text.secondary" }} />Detalhes
         </MenuItem>
+        <Divider />
         {can("financeiro", "delete") && (
           <MenuItem onClick={() => openAcao("estornar")} disabled={selected?.status !== "pago" && selected?.status !== "parcial"}>
             <UndoRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "warning.main" }} />Estornar pagamento
           </MenuItem>
         )}
-        <MenuItem onClick={() => openAcao("desconto")} disabled={selected?.status === "pago" || selected?.status === "cancelado"}>
-          <SellRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "info.main" }} />Dar desconto
-        </MenuItem>
-        <MenuItem onClick={() => openAcao("renegociar")} disabled={selected?.status === "pago" || selected?.status === "cancelado"}>
-          <EventRepeatRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "secondary.main" }} />Renegociar prazo
-        </MenuItem>
-        <MenuItem onClick={() => openAcao("parcelar")} disabled={selected?.status !== "pendente"}>
-          <AccountTreeRoundedIcon fontSize="small" sx={{ mr: 1.5 }} />Parcelar
+        <MenuItem onClick={() => openAcao("renegociar")} disabled={selected?.status !== "pendente"}>
+          <EventRepeatRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "secondary.main" }} />Renegociar
         </MenuItem>
         <Divider />
         <MenuItem onClick={() => openAcao("editar")}>
@@ -315,11 +310,11 @@ export default function ContasPagar() {
       </Menu>
 
       {/* Dialogs de ação */}
-      <ReceberDialog
+      <ReceberTituloDialog
         open={acao === "pagar"}
         onClose={() => setAcao(null)}
+        conta={selected}
         tipo="pagar"
-        saldoRestante={selected ? valorRestante(selected) : 0}
         onConfirm={(d) =>
           handleAcao(
             () => marcarComoPago(selected!.id, d),
@@ -337,31 +332,21 @@ export default function ContasPagar() {
         valorPago={selected ? Number(selected.valor_pago) : 0}
         onConfirm={(d) => handleAcao(() => estornarPagamento(selected!.id, d), "Pagamento estornado!")}
       />
-      <MovimentosDialog
-        open={acao === "historico"}
+      <DetalhesDialog
+        open={acao === "detalhes"}
         onClose={() => setAcao(null)}
-        contaId={selected?.id ?? null}
+        conta={selected}
         tipo="pagar"
       />
-      <DescontoDialog
-        open={acao === "desconto"}
-        onClose={() => setAcao(null)}
-        valorOriginal={selected ? Number(selected.valor_original) : 0}
-        onConfirm={(d) => handleAcao(() => aplicarDesconto(selected!.id, d), "Desconto aplicado!")}
-      />
-      <RenegociarDialog
+      <RenegociarTituloDialog
         open={acao === "renegociar"}
         onClose={() => setAcao(null)}
-        onConfirm={(d) => handleAcao(() => renegociarPrazo(selected!.id, d), "Prazo renegociado!")}
-      />
-      <ParcelarDialog
-        open={acao === "parcelar"}
-        onClose={() => setAcao(null)}
-        valorOriginal={selected ? valorLiquido(selected) : 0}
-        onConfirm={(d) => handleAcao(() => parcelar(selected!.id, d), "Título parcelado!")}
+        conta={selected}
+        tipo="pagar"
+        onConfirm={(d) => handleAcao(() => parcelar(selected!.id, d), "Título renegociado e parcelado!")}
       />
 
-      {/* Dialog editar (básico) */}
+      {/* Dialog editar */}
       <EditarDialog
         open={acao === "editar"}
         conta={selected}
@@ -398,14 +383,20 @@ function EditarDialog({ open, conta, onClose, onConfirm }: {
   const [descricao, setDescricao] = React.useState("");
   const [categoria, setCategoria] = React.useState("");
   const [observacao, setObservacao] = React.useState("");
+  const [vencimento, setVencimento] = React.useState("");
 
   React.useEffect(() => {
     if (open && conta) {
       setDescricao(conta.descricao ?? "");
       setCategoria(conta.categoria ?? "");
       setObservacao(conta.observacao ?? "");
+      setVencimento(paraInputData(conta.data_vencimento));
     }
   }, [open, conta]);
+
+  const vencimentoOriginal = conta ? paraInputData(conta.data_vencimento) : "";
+  const venceuAlteracao = !!vencimento && vencimento !== vencimentoOriginal;
+  const vencimentoTravado = conta?.status === "pago" || conta?.status === "cancelado";
 
   return (
     <AppDialog open={open} onClose={onClose} onCloseClick={onClose} closeOnBackdrop={false} maxWidth="xs" title="Editar conta" icon={<EditRoundedIcon />} variant="entity">
@@ -413,13 +404,26 @@ function EditarDialog({ open, conta, onClose, onConfirm }: {
         <Stack spacing={2}>
           <TextField label="Descrição" value={descricao} onChange={(e) => setDescricao(e.target.value)} size="small" fullWidth />
           <TextField label="Categoria" value={categoria} onChange={(e) => setCategoria(e.target.value)} size="small" fullWidth />
+          <CampoData
+            label="Data de vencimento"
+            value={vencimento}
+            onChange={setVencimento}
+            disabled={vencimentoTravado}
+            helperText={
+              vencimentoTravado
+                ? "Título já finalizado: o vencimento não pode ser alterado"
+                : venceuAlteracao
+                  ? "Alterar o vencimento conta como renegociação de prazo; a data original é preservada"
+                  : " "
+            }
+          />
           <TextField label="Observação" value={observacao} onChange={(e) => setObservacao(e.target.value)} size="small" fullWidth multiline rows={2} />
         </Stack>
       </AppDialogContent>
       <AppDialogActions>
         <Button onClick={onClose} variant="outlined">Cancelar</Button>
         <Button variant="contained" disableElevation sx={{ textTransform: "none" }}
-          onClick={() => onConfirm({ descricao, categoria, observacao })}>
+          onClick={() => onConfirm({ descricao, categoria, observacao, ...(venceuAlteracao ? { data_vencimento: vencimento } : {}) })}>
           Salvar
         </Button>
       </AppDialogActions>
@@ -453,7 +457,7 @@ function NovaContaPagarDialog({ open, onClose, fornecedores, onConfirm }: {
           <TextField label="Descrição *" value={form.descricao} onChange={(e) => set("descricao", e.target.value)} size="small" fullWidth />
           <TextField label="Categoria" value={form.categoria} onChange={(e) => set("categoria", e.target.value)} size="small" fullWidth />
           <TextField label="Valor *" type="number" value={form.valor} onChange={(e) => set("valor", e.target.value)} size="small" fullWidth InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }} />
-          <TextField label="Vencimento *" type="date" value={form.data_vencimento} onChange={(e) => set("data_vencimento", e.target.value)} size="small" fullWidth InputLabelProps={{ shrink: true }} />
+          <CampoData label="Vencimento *" value={form.data_vencimento} onChange={(v) => set("data_vencimento", v)} />
           <TextField select label="Método" value={form.metodo} onChange={(e) => set("metodo", e.target.value)} size="small" fullWidth>
             {METODO_OPTIONS.map((m) => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
           </TextField>
