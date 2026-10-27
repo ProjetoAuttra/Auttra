@@ -19,12 +19,13 @@ import { useNavigate } from "react-router-dom";
 import { paths } from "../../../routes/paths";
 
 type Relatorio = { titulo: string; descricao: string; icone: React.ReactNode; destino: string };
-type Categoria = { id: string; titulo: string; icone: React.ReactNode; relatorios: Relatorio[] };
+type Categoria = { id: string; titulo: string; descricao: string; icone: React.ReactNode; relatorios: Relatorio[] };
 
 const CATEGORIAS: Categoria[] = [
   {
     id: "financeiro",
     titulo: "Financeiro",
+    descricao: "Caixa, inadimplência e resultado",
     icone: <PaidRoundedIcon />,
     relatorios: [
       { titulo: "Fluxo de caixa", descricao: "Entradas e saídas do período", icone: <AccountBalanceWalletRoundedIcon />, destino: paths.fluxoCaixaRelatorio },
@@ -35,6 +36,7 @@ const CATEGORIAS: Categoria[] = [
   {
     id: "vendas",
     titulo: "Vendas",
+    descricao: "Faturamento, orçamentos e margem",
     icone: <ShoppingCartRoundedIcon />,
     relatorios: [
       { titulo: "Faturamento", descricao: "OS concluídas no período e comparação com o anterior", icone: <TrendingUpRoundedIcon />, destino: paths.faturamentoRelatorio },
@@ -45,6 +47,7 @@ const CATEGORIAS: Categoria[] = [
   {
     id: "operacao",
     titulo: "Operação",
+    descricao: "Ordens, mecânicos e agenda",
     icone: <BuildRoundedIcon />,
     relatorios: [
       { titulo: "Ordens de serviço", descricao: "Abertas, paradas e valor preso", icone: <AssignmentLateRoundedIcon />, destino: paths.ordensRelatorio },
@@ -55,6 +58,7 @@ const CATEGORIAS: Categoria[] = [
   {
     id: "estoque-clientes",
     titulo: "Estoque e clientes",
+    descricao: "Posição de estoque e base de clientes",
     icone: <Inventory2RoundedIcon />,
     relatorios: [
       { titulo: "Posição de estoque", descricao: "Valor em estoque, compra urgente e preços", icone: <Inventory2RoundedIcon />, destino: paths.estoqueRelatorio },
@@ -64,6 +68,7 @@ const CATEGORIAS: Categoria[] = [
 ];
 
 function CardCategoria({ categoria, selecionada, onClick }: { categoria: Categoria; selecionada: boolean; onClick: () => void }) {
+  const qtd = categoria.relatorios.length;
   return (
     <Box
       component="button"
@@ -74,24 +79,29 @@ function CardCategoria({ categoria, selecionada, onClick }: { categoria: Categor
         font: "inherit",
         color: "text.primary",
         cursor: "pointer",
-        textAlign: "center",
-        bgcolor: selecionada ? "action.hover" : "transparent",
+        textAlign: "left",
+        bgcolor: "transparent",
         border: "1px solid",
         borderColor: selecionada ? "primary.main" : "divider",
+        boxShadow: selecionada ? (t) => `0 0 0 1px ${t.palette.primary.main}` : "none",
         borderRadius: 2,
-        py: 4,
-        px: 2,
+        p: 3,
         display: "flex",
-        flexDirection: "column",
         alignItems: "center",
-        gap: 1.5,
-        transition: "border-color 0.15s, background-color 0.15s",
+        gap: 2.5,
+        transition: "border-color 0.15s, box-shadow 0.15s",
         "&:hover": { borderColor: "primary.main" },
-        "& svg": { fontSize: 36, color: selecionada ? "primary.main" : "text.secondary" },
       }}
     >
-      {categoria.icone}
-      <Typography fontWeight={700} fontSize={16}>{categoria.titulo}</Typography>
+      <Box sx={{ width: 64, height: 64, flexShrink: 0, borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center", bgcolor: selecionada ? "primary.main" : "action.hover", color: selecionada ? "primary.contrastText" : "text.secondary", transition: "background-color 0.15s, color 0.15s", "& svg": { fontSize: 32 } }}>
+        {categoria.icone}
+      </Box>
+      <Stack flex={1} minWidth={0} spacing={0.5}>
+        <Typography fontWeight={700} fontSize={17}>{categoria.titulo}</Typography>
+        <Typography variant="body2" color="text.secondary">{categoria.descricao}</Typography>
+        <Typography variant="caption" color="text.secondary" fontWeight={600}>{qtd} {qtd === 1 ? "relatório" : "relatórios"}</Typography>
+      </Stack>
+      <ChevronRightRoundedIcon sx={{ color: "text.secondary", transform: selecionada ? "rotate(90deg)" : "none", transition: "transform 0.15s" }} />
     </Box>
   );
 }
