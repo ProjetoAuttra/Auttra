@@ -21,7 +21,6 @@ import Relatorios from '../modules/relatorios/pages/relatorios';
 import ClientesRelatorio from '../modules/relatorios/pages/clientes/clientesrelatorio';
 import FinanceiroRelatorio from '../modules/relatorios/pages/financeiro/financeirorelatorio';
 import AgendaRelatorio from '../modules/relatorios/pages/agenda/agendarelatorio';
-import GeralRelatorio from '../modules/relatorios/pages/geral/geralrelatorio';
 import OrdensParadasRelatorio from '../modules/relatorios/pages/ordens-paradas/ordensparadasrelatorio';
 import EstoqueCriticoRelatorio from '../modules/relatorios/pages/estoque-critico/estoquecriticorelatorio';
 import OrcamentosPerdidosRelatorio from '../modules/relatorios/pages/orcamentos-perdidos/orcamentosperdidosrelatorio';
@@ -84,13 +83,12 @@ export default function Router() {
         <Route path={paths.orcamentoDetails} element={<ModuleRoute module="orcamentos"><OrcamentoDetalhes /></ModuleRoute>} />
         <Route path={paths.relatorios} element={<ModuleRoute module="relatorios"><Relatorios /></ModuleRoute>} />
         <Route path={paths.clientesRelatorio} element={<ModuleRoute module="relatorios"><ClientesRelatorio /></ModuleRoute>} />
-        <Route path={paths.financeiroRelatorio} element={<ModuleRoute module="relatorios"><FinanceiroRelatorio /></ModuleRoute>} />
+        <Route path={paths.fluxoCaixaRelatorio} element={<ModuleRoute module="relatorios"><FinanceiroRelatorio /></ModuleRoute>} />
         <Route path={paths.agendaRelatorio} element={<ModuleRoute module="relatorios"><AgendaRelatorio /></ModuleRoute>} />
-        <Route path={paths.geralRelatorio} element={<ModuleRoute module="relatorios"><GeralRelatorio /></ModuleRoute>} />
-        <Route path={paths.ordensParadasRelatorio} element={<ModuleRoute module="relatorios"><OrdensParadasRelatorio /></ModuleRoute>} />
-        <Route path={paths.estoqueCriticoRelatorio} element={<ModuleRoute module="relatorios"><EstoqueCriticoRelatorio /></ModuleRoute>} />
-        <Route path={paths.orcamentosPerdidosRelatorio} element={<ModuleRoute module="relatorios"><OrcamentosPerdidosRelatorio /></ModuleRoute>} />
-        <Route path={paths.rentabilidadeRelatorio} element={<ModuleRoute module="relatorios"><RentabilidadeRelatorio /></ModuleRoute>} />
+        <Route path={paths.ordensRelatorio} element={<ModuleRoute module="relatorios"><OrdensParadasRelatorio /></ModuleRoute>} />
+        <Route path={paths.estoqueRelatorio} element={<ModuleRoute module="relatorios"><EstoqueCriticoRelatorio /></ModuleRoute>} />
+        <Route path={paths.orcamentosRelatorio} element={<ModuleRoute module="relatorios"><OrcamentosPerdidosRelatorio /></ModuleRoute>} />
+        <Route path={paths.margemRelatorio} element={<ModuleRoute module="relatorios"><RentabilidadeRelatorio /></ModuleRoute>} />
         <Route path={paths.veiculos} element={<ModuleRoute module="veiculos"><Veiculos /></ModuleRoute>} />
         <Route path={paths.veiculoDetalhes} element={<ModuleRoute module="veiculos"><VeiculoDetalhes /></ModuleRoute>} />
         <Route path={paths.estoque} element={<ModuleRoute module="estoque"><Estoque /></ModuleRoute>} />

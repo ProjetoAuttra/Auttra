@@ -27,6 +27,7 @@ import {
   StatGroup,
   ReportHeader,
   ReportPage, TituloSecao } from "../../shared/reportUtils";
+import { GraficoBarrasHorizontais } from "../../shared/graficos";
 
 type Ordem = {
   id: number;
@@ -96,7 +97,7 @@ export default function OrdensParadasRelatorio() {
       return;
     }
     exportCsv(
-      `relatorio_ordens_abertas_paradas_${new Date().toISOString().slice(0, 10)}.csv`,
+      `relatorio_ordens_de_servico_${new Date().toISOString().slice(0, 10)}.csv`,
       ["OS", "Cliente", "Veículo", "Mecânico", "Status", "Data abertura", "Dias aberta", "Valor"],
       paradas.map((o) => [
         `#${o.id}`,
@@ -116,8 +117,8 @@ export default function OrdensParadasRelatorio() {
   return (
     <ReportPage>
       <ReportHeader
-        title="Relatório de OS em Aberto e Paradas"
-        subtitle="Lista o trabalho que está parado, há quantos dias está aberto e quanto dinheiro está preso."
+        title="Ordens de serviço"
+        subtitle="Ordens abertas, há quantos dias estão paradas e quanto dinheiro está preso."
         onExport={handleExportarCSV}
       />
 
@@ -133,7 +134,7 @@ export default function OrdensParadasRelatorio() {
         </Stack>
       </Box>
 
-      <StatGroup>
+      <StatGroup espalhar>
         <MetricCard label="OS abertas" value={abertas.length} tone="info" />
         <MetricCard label="OS paradas" value={paradas.length} tone={paradas.length ? "warning" : "default"} helper={`${diasMinimos}+ dia(s)`} />
         <MetricCard label="Críticas" value={acima7Dias} tone={acima7Dias ? "error" : "default"} helper="7+ dias abertas" />
@@ -141,28 +142,26 @@ export default function OrdensParadasRelatorio() {
         <MetricCard label="Valor parado" value={brl(valorParado)} tone={valorParado > 0 ? "error" : "default"} />
       </StatGroup>
 
-      <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: { xs: 3, lg: 6 }, mb: 4 }}>
         <Box sx={{ flex: 1 }}>
           <TituloSecao>Prioridade por valor</TituloSecao>
           {maiorValorAberto ? (
             <Stack spacing={0.5}>
               <Typography variant="body2" fontWeight={600}>OS #{maiorValorAberto.id} - {maiorValorAberto.cliente?.nome ?? "Cliente não informado"}</Typography>
               <Typography variant="body2" color="text.secondary">{daysBetween(maiorValorAberto.data_abertura)} dia(s) aberta</Typography>
-              <Typography fontWeight={700} color="warning.main">{brl(Number(maiorValorAberto.valor_total ?? 0))}</Typography>
+              <Typography fontWeight={700}>{brl(Number(maiorValorAberto.valor_total ?? 0))}</Typography>
             </Stack>
           ) : <Typography variant="body2" color="text.secondary">Nenhuma OS aberta.</Typography>}
         </Box>
 
         <Box sx={{ flex: 1 }}>
           <TituloSecao>Paradas por mecânico</TituloSecao>
-          {Object.entries(porMecanico).length ? Object.entries(porMecanico).map(([nome, item]) => (
-            <Stack key={nome} direction="row" justifyContent="space-between" py={0.75}>
-              <Typography variant="body2">{nome}</Typography>
-              <Typography variant="body2" fontWeight={600}>{item.qtd} OS - {brl(item.valor)}</Typography>
-            </Stack>
-          )) : <Typography variant="body2" color="text.secondary">Nenhuma OS parada nesse critério.</Typography>}
+          <GraficoBarrasHorizontais
+            itens={Object.entries(porMecanico).map(([nome, item]) => ({ rotulo: `${nome} (${item.qtd})`, valor: item.valor })).sort((a, b) => b.valor - a.valor)}
+            semDados="Nenhuma OS parada nesse critério."
+          />
         </Box>
-      </Stack>
+      </Box>
 
       <TituloSecao>OS paradas</TituloSecao>
       <Box sx={{ overflowX: "auto" }}>

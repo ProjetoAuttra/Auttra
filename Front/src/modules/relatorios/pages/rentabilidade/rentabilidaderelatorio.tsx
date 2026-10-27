@@ -28,6 +28,7 @@ import {
   ReportHeader,
   ReportPage,
   todayISO, TituloSecao } from "../../shared/reportUtils";
+import { GraficoBarrasHorizontais } from "../../shared/graficos";
 
 type ItemOrdem = {
   tipo_item?: "servico" | "peca" | string | null;
@@ -138,14 +139,14 @@ export default function RentabilidadeRelatorio() {
   return (
     <ReportPage>
       <ReportHeader
-        title="Relatório de Rentabilidade por OS"
+        title="Margem por OS"
         subtitle="Mostra quais ordens deram mais lucro bruto e quais precisam de revisão de preço."
         onExport={handleExportarCSV}
       />
 
       <PeriodFilter dataInicio={dataInicio} dataFim={dataFim} onDataInicio={setDataInicio} onDataFim={setDataFim} />
 
-      <StatGroup>
+      <StatGroup espalhar>
         <MetricCard label="OS concluídas" value={concluidas.length} />
         <MetricCard label="Faturamento" value={brl(faturamento)} tone="info" />
         <MetricCard label="Custo peças" value={brl(custoTotal)} tone="warning" />
@@ -153,35 +154,25 @@ export default function RentabilidadeRelatorio() {
         <MetricCard label="Margem media" value={percent(margemMedia)} tone={margemMedia >= 30 ? "success" : "warning"} helper={`Ticket: ${brl(ticketMedio)}`} />
       </StatGroup>
 
-      <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: { xs: 3, lg: 6 }, mb: 4 }}>
         <Box sx={{ flex: 1 }}>
           <TituloSecao>Clientes mais rentáveis</TituloSecao>
-          {Object.entries(porCliente).length ? Object.entries(porCliente)
-            .sort((a, b) => b[1].lucro - a[1].lucro)
-            .slice(0, 8)
-            .map(([nome, item]) => (
-              <Stack key={nome} direction="row" justifyContent="space-between" gap={2} py={0.75}>
-                <Typography variant="body2" noWrap>{nome}</Typography>
-                <Typography variant="body2" fontWeight={600}>{item.qtd} OS - {brl(item.lucro)}</Typography>
-              </Stack>
-            )) : <Typography variant="body2" color="text.secondary">Nenhuma OS concluída no período.</Typography>}
+          <GraficoBarrasHorizontais
+            itens={Object.entries(porCliente).map(([nome, item]) => ({ rotulo: `${nome} (${item.qtd})`, valor: item.lucro })).sort((a, b) => b.valor - a.valor).slice(0, 8)}
+            semDados="Nenhuma OS concluída no período."
+          />
         </Box>
 
         <Box sx={{ flex: 1 }}>
           <TituloSecao>Rentabilidade por mecânico</TituloSecao>
-          {Object.entries(porMecanico).length ? Object.entries(porMecanico)
-            .sort((a, b) => b[1].lucro - a[1].lucro)
-            .slice(0, 8)
-            .map(([nome, item]) => (
-              <Stack key={nome} direction="row" justifyContent="space-between" gap={2} py={0.75}>
-                <Typography variant="body2" noWrap>{nome}</Typography>
-                <Typography variant="body2" fontWeight={600}>{item.qtd} OS - {brl(item.lucro)}</Typography>
-              </Stack>
-            )) : <Typography variant="body2" color="text.secondary">Nenhuma OS concluída no período.</Typography>}
+          <GraficoBarrasHorizontais
+            itens={Object.entries(porMecanico).map(([nome, item]) => ({ rotulo: `${nome} (${item.qtd})`, valor: item.lucro })).sort((a, b) => b.valor - a.valor).slice(0, 8)}
+            semDados="Nenhuma OS concluída no período."
+          />
         </Box>
-      </Stack>
+      </Box>
 
-      <Box sx={{ mb: 2.5 }}>
+      <Box sx={{ mb: 4 }}>
         <TituloSecao>OS que pedem revisão de preço</TituloSecao>
         {margemBaixa.length ? (
           <Stack direction="row" gap={1} flexWrap="wrap">

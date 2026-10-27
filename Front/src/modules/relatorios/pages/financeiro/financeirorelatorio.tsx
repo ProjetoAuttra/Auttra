@@ -87,12 +87,10 @@ export default function RelatorioFinanceiro() {
   );
 
   const hoje = new Date(`${todayISO()}T23:59:59`);
-  const vencidos = filtrados.filter((p) => isReceber(p) && isPendente(p) && p.data_vencimento && new Date(p.data_vencimento) < hoje);
   const recebido = filtrados.filter((p) => isReceber(p) && isPago(p)).reduce((sum, p) => sum + valorPago(p), 0);
   const aReceber = filtrados.filter((p) => isReceber(p) && isPendente(p)).reduce((sum, p) => sum + valorAberto(p), 0);
   const pago = filtrados.filter((p) => isPagar(p) && isPago(p)).reduce((sum, p) => sum + valorPago(p), 0);
   const aPagar = filtrados.filter((p) => isPagar(p) && isPendente(p)).reduce((sum, p) => sum + valorAberto(p), 0);
-  const valorVencido = vencidos.reduce((sum, p) => sum + valorAberto(p), 0);
   const saldoRealizado = recebido - pago;
   const saldoProjetado = recebido + aReceber - pago - aPagar;
 
@@ -128,7 +126,7 @@ export default function RelatorioFinanceiro() {
       return;
     }
     exportCsv(
-      `relatorio_caixa_inadimplencia_${dataInicio}_${dataFim}.csv`,
+      `relatorio_fluxo_de_caixa_${dataInicio}_${dataFim}.csv`,
       ["Tipo", "Status", "Cliente/Fornecedor", "Descrição", "Valor", "Valor pago", "Vencimento", "Pagamento", "Método"],
       filtrados.map((p) => [
         isReceber(p) ? "Receber" : "Pagar",
@@ -149,19 +147,20 @@ export default function RelatorioFinanceiro() {
   return (
     <ReportPage>
       <ReportHeader
-        title="Relatório de Caixa e Inadimplência"
-        subtitle="Mostra o que entrou, o que ainda deve entrar, contas vencidas e pressão de caixa no período."
+        title="Fluxo de caixa"
+        subtitle="Entradas e saídas realizadas no período, e o que ainda vai entrar e sair."
         onExport={handleExportarCSV}
       />
 
       <PeriodFilter dataInicio={dataInicio} dataFim={dataFim} onDataInicio={setDataInicio} onDataFim={setDataFim} />
 
       <StatGroup espalhar>
-        <MetricCard label="Recebido" value={brl(recebido)} tone="success" />
-        <MetricCard label="A receber" value={brl(aReceber)} tone="info" />
-        <MetricCard label="Vencido" value={brl(valorVencido)} tone={valorVencido > 0 ? "error" : "default"} helper={`${vencidos.length} conta(s)`} />
-        <MetricCard label="A pagar" value={brl(aPagar)} tone={aPagar > 0 ? "warning" : "default"} />
-        <MetricCard label="Saldo projetado" value={brl(saldoProjetado)} tone={saldoProjetado < 0 ? "error" : "success"} helper={`Realizado: ${brl(saldoRealizado)}`} />
+        <MetricCard label="Recebido" value={brl(recebido)} />
+        <MetricCard label="Pago" value={brl(pago)} />
+        <MetricCard label="Saldo realizado" value={brl(saldoRealizado)} />
+        <MetricCard label="A receber" value={brl(aReceber)} />
+        <MetricCard label="A pagar" value={brl(aPagar)} />
+        <MetricCard label="Saldo projetado" value={brl(saldoProjetado)} />
       </StatGroup>
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "3fr 2fr" }, gap: { xs: 3, lg: 6 }, mb: 4 }}>
