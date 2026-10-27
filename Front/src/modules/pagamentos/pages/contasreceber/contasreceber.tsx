@@ -4,7 +4,6 @@ import {
   Table, TableBody, TableCell, TableHead, TableRow, TablePagination,
   Menu, MenuItem, Divider, Fade, CircularProgress, TextField, InputAdornment,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
@@ -161,22 +160,18 @@ export default function ContasReceber() {
                 <TableCell>Descrição</TableCell>
                 <TableCell align="center">Vencimento</TableCell>
                 <TableCell align="center">Valor</TableCell>
-                <TableCell align="center">Valor recebido</TableCell>
+                <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>Valor recebido</TableCell>
                 <TableCell align="center">Status</TableCell>
                 <TableCell align="right">Ações</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {contas.length > 0 ? contas.map((conta) => {
-                const vencido = isVencido(conta);
                 const liquido = valorLiquido(conta);
                 return (
                   <TableRow
                     key={conta.id} hover
-                    sx={{
-                      height: 56,
-                      bgcolor: vencido ? (t) => alpha(t.palette.error.main, 0.04) : undefined,
-                    }}
+                    sx={{ height: 56 }}
                   >
                     <TableCell>
                       <Typography variant="body2" fontWeight={600}>
@@ -188,7 +183,7 @@ export default function ContasReceber() {
                     </TableCell>
                     <TableCell align="center">
                       <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
-                        <Typography variant="body2" color={vencido ? "error.main" : "text.primary"} fontWeight={vencido ? 700 : 400}>
+                        <Typography variant="body2">
                           {formatarData(conta.data_vencimento)}
                         </Typography>
                         {conta.vezes_renegociado > 0 && (
@@ -200,10 +195,7 @@ export default function ContasReceber() {
                     </TableCell>
                     <TableCell align="center">
                       <Stack direction="row" spacing={0.75} alignItems="center" justifyContent="center">
-                        <Typography
-                          variant="body2" fontWeight={600}
-                          color={vencido ? "error.main" : "text.primary"}
-                        >
+                        <Typography variant="body2" fontWeight={600}>
                           {brl(liquido)}
                         </Typography>
                         {conta.total_parcelas && conta.total_parcelas > 1 && (
@@ -222,7 +214,7 @@ export default function ContasReceber() {
                     </TableCell>
                     <TableCell align="center">
                       {Number(conta.valor_pago) > 0 ? (
-                        <Typography variant="body2" fontWeight={600} color="success.main">
+                        <Typography variant="body2" fontWeight={600}>
                           {brl(Number(conta.valor_pago))}
                         </Typography>
                       ) : (
