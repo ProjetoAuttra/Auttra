@@ -4,7 +4,6 @@ import {
   Table, TableBody, TableCell, TableHead, TableRow, TablePagination,
   Menu, MenuItem, Divider, Fade, CircularProgress, TextField, InputAdornment,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
@@ -23,6 +22,7 @@ import { useConfirm } from "../../../../context/ConfirmContext";
 import { useListaPaginada } from "../../../../hooks/useListaPaginada";
 import ModuleHeader from "../../../../components/layout/ModuleHeader";
 import StatCard, { StatGroup } from "../../../../components/common/StatCard";
+import TextoLimitado from "../../../../components/common/TextoLimitado";
 import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../components/common/AppDialog";
@@ -158,23 +158,20 @@ export default function ContasReceber() {
               <TableRow>
                 <TableCell>Responsável</TableCell>
                 <TableCell>Descrição</TableCell>
-                <TableCell align="center">Valor</TableCell>
                 <TableCell align="center">Vencimento</TableCell>
+                <TableCell align="center">Valor</TableCell>
+                <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>Valor recebido</TableCell>
                 <TableCell align="center">Status</TableCell>
                 <TableCell align="right">Ações</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {contas.length > 0 ? contas.map((conta) => {
-                const vencido = isVencido(conta);
                 const liquido = valorLiquido(conta);
                 return (
                   <TableRow
                     key={conta.id} hover
-                    sx={{
-                      height: 56,
-                      bgcolor: vencido ? (t) => alpha(t.palette.error.main, 0.04) : undefined,
-                    }}
+                    sx={{ height: 56 }}
                   >
                     <TableCell>
                       <Typography variant="body2" fontWeight={600}>
@@ -182,16 +179,23 @@ export default function ContasReceber() {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {conta.descricao ?? "—"}
-                      </Typography>
+                      <TextoLimitado texto={conta.descricao ?? "—"} linhas={2} variant="body2" color="text.secondary" />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
+                        <Typography variant="body2">
+                          {formatarData(conta.data_vencimento)}
+                        </Typography>
+                        {conta.vezes_renegociado > 0 && (
+                          <Tooltip title={`Data original: ${formatarData(conta.data_vencimento_original)} · Renegociado ${conta.vezes_renegociado}×`}>
+                            <EventRepeatRoundedIcon sx={{ fontSize: 13, color: "warning.main", cursor: "help" }} />
+                          </Tooltip>
+                        )}
+                      </Stack>
                     </TableCell>
                     <TableCell align="center">
                       <Stack direction="row" spacing={0.75} alignItems="center" justifyContent="center">
-                        <Typography
-                          variant="body2" fontWeight={600}
-                          color={conta.status === "pago" ? "success.main" : vencido ? "error.main" : "text.primary"}
-                        >
+                        <Typography variant="body2" fontWeight={600}>
                           {brl(liquido)}
                         </Typography>
                         {conta.total_parcelas && conta.total_parcelas > 1 && (
@@ -209,16 +213,13 @@ export default function ContasReceber() {
                       </Stack>
                     </TableCell>
                     <TableCell align="center">
-                      <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
-                        <Typography variant="body2" color={vencido ? "error.main" : "text.primary"} fontWeight={vencido ? 700 : 400}>
-                          {formatarData(conta.data_vencimento)}
+                      {Number(conta.valor_pago) > 0 ? (
+                        <Typography variant="body2" fontWeight={600}>
+                          {brl(Number(conta.valor_pago))}
                         </Typography>
-                        {conta.vezes_renegociado > 0 && (
-                          <Tooltip title={`Data original: ${formatarData(conta.data_vencimento_original)} · Renegociado ${conta.vezes_renegociado}×`}>
-                            <EventRepeatRoundedIcon sx={{ fontSize: 13, color: "warning.main", cursor: "help" }} />
-                          </Tooltip>
-                        )}
-                      </Stack>
+                      ) : (
+                        <Typography variant="body2" color="text.disabled">-</Typography>
+                      )}
                     </TableCell>
                     <TableCell align="center"><StatusChip conta={conta} /></TableCell>
                     <TableCell align="right">
@@ -248,7 +249,7 @@ export default function ContasReceber() {
                 );
               }) : (
                 <TableRow>
-                  <TableCell colSpan={6} sx={{ border: 0 }}>
+                  <TableCell colSpan={7} sx={{ border: 0 }}>
                     <EmptyState
                       icon={<TrendingUpRoundedIcon />}
                       title="Nenhuma conta a receber"
