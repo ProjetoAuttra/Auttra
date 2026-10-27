@@ -11,6 +11,7 @@ interface EmptyStateProps {
     onAction?: () => void;
     isFiltered?: boolean;
     onClearFilter?: () => void;
+    large?: boolean;
 }
 
 export default function EmptyState({
@@ -22,9 +23,10 @@ export default function EmptyState({
     onAction,
     isFiltered = false,
     onClearFilter,
+    large = false,
 }: EmptyStateProps) {
     return (
-        <Box sx={{ py: 8, textAlign: "center" }}>
+        <Box sx={{ py: 8, textAlign: "center", ...(large && { minHeight: 480, display: "flex", alignItems: "center", justifyContent: "center" }) }}>
             <Stack alignItems="center" spacing={2}>
                 {!isFiltered && illustration && !icon && (
                     <Box sx={{ opacity: 0.9 }}>{illustration}</Box>
@@ -32,14 +34,14 @@ export default function EmptyState({
                 {(isFiltered || icon || !illustration) && (
                     <Box
                         sx={{
-                            width: 56,
-                            height: 56,
+                            width: large ? 88 : 56,
+                            height: large ? 88 : 56,
                             borderRadius: 2,
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
                             color: "text.disabled",
-                            "& svg": { fontSize: 44 },
+                            "& svg": { fontSize: large ? 72 : 44 },
                         }}
                     >
                         {isFiltered ? <SearchOffRoundedIcon sx={{ fontSize: 36 }} /> : icon}
@@ -47,10 +49,10 @@ export default function EmptyState({
                 )}
 
                 <Stack spacing={0.5} alignItems="center">
-                    <Typography variant="subtitle1" fontWeight={700} color="text.secondary">
+                    <Typography variant={large ? "h5" : "subtitle1"} fontWeight={700} color="text.secondary">
                         {isFiltered ? "Nenhum resultado encontrado" : title}
                     </Typography>
-                    <Typography variant="body2" color="text.disabled" sx={{ maxWidth: 320 }}>
+                    <Typography variant={large ? "body1" : "body2"} color="text.disabled" sx={{ maxWidth: large ? 440 : 320 }}>
                         {isFiltered
                             ? "Tente ajustar os filtros ou a busca para encontrar o que procura."
                             : (description ?? "Ainda não há nenhum registro aqui.")}

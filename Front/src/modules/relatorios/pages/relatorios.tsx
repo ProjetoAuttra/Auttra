@@ -183,6 +183,7 @@ export default function Relatorios() {
           </Box>
         ) : (
           <EmptyState
+            large
             icon={<AssessmentRoundedIcon />}
             title="Nenhuma categoria selecionada"
             description="Escolha uma categoria ao lado para ver os relatórios disponíveis."
