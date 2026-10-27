@@ -7,7 +7,8 @@ import {
 import { alpha } from "@mui/material/styles";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
-import PaymentsRoundedIcon from "@mui/icons-material/PaymentsRounded";
+import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
+import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import SellRoundedIcon from "@mui/icons-material/SellRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
 import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
@@ -29,14 +30,14 @@ import {
   type Conta, brl, isVencido, valorLiquido, valorRestante,
   METODO_LABEL, METODO_OPTIONS,
   listarPagamentos, criarPagamento, atualizarPagamento,
-  marcarComoPago, registrarParcial, aplicarDesconto, renegociarPrazo,
+  marcarComoPago, estornarPagamento, aplicarDesconto, renegociarPrazo,
   parcelar, cancelarPagamento,
 } from "../../api/api";
 import {
-  PagarDialog, PagamentoParcialDialog, DescontoDialog, RenegociarDialog, ParcelarDialog,
+  ReceberDialog, EstornarDialog, MovimentosDialog, DescontoDialog, RenegociarDialog, ParcelarDialog,
 } from "../../dialogs/index";
 
-type Acao = "pagar" | "parcial" | "desconto" | "renegociar" | "parcelar" | "editar" | null;
+type Acao = "pagar" | "estornar" | "historico" | "desconto" | "renegociar" | "parcelar" | "editar" | null;
 
 function StatusChip({ conta }: { conta: Conta }) {
   if (isVencido(conta))
@@ -57,7 +58,7 @@ function StatusChip({ conta }: { conta: Conta }) {
 }
 
 export default function ContasReceber() {
-  const { user } = useAuth();
+  const { user, can } = useAuth();
   const { success, error } = useToast();
   const confirm = useConfirm();
 
@@ -93,7 +94,7 @@ export default function ContasReceber() {
   const openAcao = (a: Acao) => { setAcao(a); handleMenuClose(); };
   const handleReceberDireto = (conta: Conta) => { setSelected(conta); setAcao("pagar"); };
 
-  const handleAcao = async (fn: () => Promise<any>, msg: string) => {
+  const handleAcao = async (fn: () => Promise<any>, msg: string | ((result: any) => string)) => {
     try {
       const result = await fn();
       if (result?.parcelas) {
@@ -104,7 +105,7 @@ export default function ContasReceber() {
       } else if (result?.id) {
         setContas((prev) => prev.map((c) => (c.id === result.id ? result : c)));
       }
-      success(msg);
+      success(typeof msg === "function" ? msg(result) : msg);
       setAcao(null);
     } catch (err: any) {
       error(err?.response?.data?.message ?? "Erro ao processar ação.");
@@ -125,8 +126,8 @@ export default function ContasReceber() {
       await cancelarPagamento(selected.id);
       setContas((prev) => prev.filter((c) => c.id !== selected.id));
       success("Título cancelado.");
-    } catch {
-      error("Não foi possível cancelar o título.");
+    } catch (err: any) {
+      error(err?.response?.data?.message ?? "Não foi possível cancelar o título.");
     }
   };
 
@@ -283,7 +284,7 @@ export default function ContasReceber() {
                     <TableCell><StatusChip conta={conta} /></TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                        <Tooltip title="Marcar como recebido">
+                        <Tooltip title="Receber">
                           <span>
                             <IconButton
                               size="small"
@@ -337,9 +338,14 @@ export default function ContasReceber() {
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <MenuItem onClick={() => openAcao("parcial")} disabled={selected?.status === "pago" || selected?.status === "cancelado"}>
-          <PaymentsRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "warning.main" }} />Recebimento parcial
+        <MenuItem onClick={() => openAcao("historico")}>
+          <HistoryRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "text.secondary" }} />Histórico de recebimentos
         </MenuItem>
+        {can("financeiro", "delete") && (
+          <MenuItem onClick={() => openAcao("estornar")} disabled={selected?.status !== "pago" && selected?.status !== "parcial"}>
+            <UndoRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "warning.main" }} />Estornar recebimento
+          </MenuItem>
+        )}
         <MenuItem onClick={() => openAcao("desconto")} disabled={selected?.status === "pago" || selected?.status === "cancelado"}>
           <SellRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "info.main" }} />Dar desconto
         </MenuItem>
@@ -354,22 +360,40 @@ export default function ContasReceber() {
           <EditRoundedIcon fontSize="small" sx={{ mr: 1.5 }} />Editar
         </MenuItem>
         <Divider />
-        <MenuItem onClick={handleCancelar} sx={{ color: "error.main" }}>
+        <MenuItem
+          onClick={handleCancelar}
+          disabled={selected?.status === "pago" || selected?.status === "parcial"}
+          sx={{ color: "error.main" }}
+        >
           <BlockRoundedIcon fontSize="small" sx={{ mr: 1.5 }} />Cancelar título
         </MenuItem>
       </Menu>
 
       {/* Dialogs de ação */}
-      <PagarDialog
+      <ReceberDialog
         open={acao === "pagar"}
         onClose={() => setAcao(null)}
-        onConfirm={(d) => handleAcao(() => marcarComoPago(selected!.id, d), "Recebimento confirmado!")}
-      />
-      <PagamentoParcialDialog
-        open={acao === "parcial"}
-        onClose={() => setAcao(null)}
+        tipo="receber"
         saldoRestante={selected ? valorRestante(selected) : 0}
-        onConfirm={(d) => handleAcao(() => registrarParcial(selected!.id, d), "Entrada registrada!")}
+        onConfirm={(d) =>
+          handleAcao(
+            () => marcarComoPago(selected!.id, d),
+            (r) => (r?.status === "parcial" ? "Recebimento parcial registrado!" : "Recebimento confirmado!")
+          )
+        }
+      />
+      <EstornarDialog
+        open={acao === "estornar"}
+        onClose={() => setAcao(null)}
+        tipo="receber"
+        valorPago={selected ? Number(selected.valor_pago) : 0}
+        onConfirm={(d) => handleAcao(() => estornarPagamento(selected!.id, d), "Pagamento estornado!")}
+      />
+      <MovimentosDialog
+        open={acao === "historico"}
+        onClose={() => setAcao(null)}
+        contaId={selected?.id ?? null}
+        tipo="receber"
       />
       <DescontoDialog
         open={acao === "desconto"}

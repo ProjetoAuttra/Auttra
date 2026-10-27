@@ -519,4 +519,84 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
       expect(res.body[1]).toMatchObject({ motivo: "teste", usuario: { id: usuarioId, nome: "Gestor Estorno" } });
     });
   });
+
+  describe("pagar com valor editavel (recebimento parcial pelo mesmo endpoint)", () => {
+    const pagar = (id: number, body: object) =>
+      request(app).post(`/api/pagamentos/${id}/pagar`).set("Authorization", auth).send(body);
+
+    it("sem valor quita o saldo inteiro", async () => {
+      const id = await novoPagamento(100);
+      const res = await pagar(id, { metodo: "pix" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe("pago");
+      expect(Number(res.body.valor_pago)).toBe(100);
+    });
+
+    it("valor menor que o saldo recebe parcialmente; o resto quita depois", async () => {
+      const id = await novoPagamento(100);
+
+      const parcial = await pagar(id, { metodo: "dinheiro", valor: 40 });
+      expect(parcial.status).toBe(200);
+      expect(parcial.body.status).toBe("parcial");
+      expect(Number(parcial.body.valor_pago)).toBe(40);
+      expect(parcial.body.data_pagamento).toBeNull();
+
+      const resto = await pagar(id, { metodo: "pix" });
+      expect(resto.body.status).toBe("pago");
+      expect(Number(resto.body.valor_pago)).toBe(100);
+
+      const movs = await prisma.pagamento_movimento.findMany({ where: { pagamento_id: id }, orderBy: { id: "asc" } });
+      expect(movs.map((m) => Number(m.valor))).toEqual([40, 60]);
+    });
+
+    it("valor igual ao saldo quita; valor maior, zero, negativo ou texto sao rejeitados", async () => {
+      const id = await novoPagamento(100);
+      expect((await pagar(id, { metodo: "pix", valor: 100.01 })).status).toBe(400);
+      expect((await pagar(id, { metodo: "pix", valor: 0 })).status).toBe(400);
+      expect((await pagar(id, { metodo: "pix", valor: -5 })).status).toBe(400);
+      expect((await pagar(id, { metodo: "pix", valor: "abc" })).status).toBe(400);
+
+      const ok = await pagar(id, { metodo: "pix", valor: 100 });
+      expect(ok.status).toBe(200);
+      expect(ok.body.status).toBe("pago");
+    });
+
+    it("o valor eh limitado ao saldo restante depois de um parcial, considerando desconto", async () => {
+      const id = await novoPagamento(100);
+      await request(app).post(`/api/pagamentos/${id}/desconto`).set("Authorization", auth).send({ desconto: 20, motivo_desconto: "x" }).expect(200);
+      await pagar(id, { metodo: "pix", valor: 30 }).then((r) => expect(r.status).toBe(200));
+
+      expect((await pagar(id, { metodo: "pix", valor: 51 })).status).toBe(400); // saldo = 100 - 20 - 30 = 50
+      const fim = await pagar(id, { metodo: "pix", valor: 50 });
+      expect(fim.body.status).toBe("pago");
+    });
+
+    it("duas baixas parciais simultaneas nunca passam do saldo", async () => {
+      const id = await novoPagamento(100);
+      const rs = await Promise.all([pagar(id, { metodo: "pix", valor: 70 }), pagar(id, { metodo: "pix", valor: 70 })]);
+
+      expect(rs.map((r) => r.status).sort()).toEqual([200, 400]);
+      expect(Number((await prisma.pagamento.findUniqueOrThrow({ where: { id } })).valor_pago)).toBe(70);
+    });
+  });
+
+  describe("respostas das acoes trazem cliente/fornecedor (o front substitui a linha pela resposta)", () => {
+    it("criar, pagar parcial, estornar, desconto, renegociar e parcelar mantem o cliente", async () => {
+      const criar = await request(app)
+        .post("/api/pagamentos")
+        .set("Authorization", auth)
+        .send({ tipo: "receber", valor: 100, cliente_id: clienteId, data_vencimento: "2026-08-01" });
+      expect(criar.body.cliente).toMatchObject({ id: clienteId, nome: "Cliente Atom" });
+      const id = criar.body.id;
+      const post = (path: string, body: object) => request(app).post(`/api/pagamentos/${id}${path}`).set("Authorization", auth).send(body);
+
+      expect((await post("/pagar", { metodo: "pix", valor: 10 })).body.cliente?.id).toBe(clienteId);
+      expect((await post("/estornar", { motivo: "teste" })).body.cliente?.id).toBe(clienteId);
+      expect((await post("/desconto", { desconto: 5, motivo_desconto: "x" })).body.cliente?.id).toBe(clienteId);
+      expect((await post("/renegociar", { nova_data_vencimento: "2026-09-01" })).body.cliente?.id).toBe(clienteId);
+      const parcelar = await post("/parcelar", { total_parcelas: 2, data_primeira_parcela: "2026-10-01" });
+      expect(parcelar.body.parcelas.every((p: any) => p.cliente?.id === clienteId)).toBe(true);
+    });
+  });
 });
