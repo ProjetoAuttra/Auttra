@@ -16,6 +16,8 @@ import ShoppingCartRoundedIcon from "@mui/icons-material/ShoppingCartRounded";
 import BuildRoundedIcon from "@mui/icons-material/BuildRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import { useNavigate } from "react-router-dom";
+import EmptyState from "../../../components/common/EmptyState";
+import AssessmentRoundedIcon from "@mui/icons-material/AssessmentRounded";
 import { paths } from "../../../routes/paths";
 
 type Relatorio = { titulo: string; descricao: string; icone: React.ReactNode; destino: string };
@@ -180,9 +182,11 @@ export default function Relatorios() {
             ))}
           </Box>
         ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ display: { xs: "none", md: "block" }, pt: 1 }}>
-            Escolha uma categoria para ver os relatórios.
-          </Typography>
+          <EmptyState
+            icon={<AssessmentRoundedIcon />}
+            title="Nenhuma categoria selecionada"
+            description="Escolha uma categoria ao lado para ver os relatórios disponíveis."
+          />
         )}
       </Box>
     </Box>
