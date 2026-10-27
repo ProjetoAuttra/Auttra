@@ -1,7 +1,9 @@
 import { prisma } from "../prisma/client.js";
 import type { cargo_funcionario } from "@prisma/client";
 import bcrypt from "bcrypt";
+import crypto from "node:crypto";
 import { PerfisAcessoService } from "./perfisAcesso.service.js";
+import { PasswordResetService } from "./passwordReset.service.js";
 
 function normTelefone(t?: string) {
   return (t || "").replace(/\D/g, "");
@@ -105,7 +107,7 @@ export const FuncionariosService = {
     const email = (data?.email ?? "").trim().toLowerCase();
     const telefone = normTelefone(data?.telefone);
     const cargo = toCargoEnum(data?.cargo);
-    const senhaPura = String(data?.senha ?? "123456");
+    const senhaInformada = data?.senha ? String(data.senha) : "";
     const oficinaId = Number(data?.oficina_id);
     const perfilAcessoId = data?.perfil_acesso_id ? Number(data.perfil_acesso_id) : null;
 
@@ -116,7 +118,22 @@ export const FuncionariosService = {
       throw new Error("Nome, e-mail e telefone são obrigatórios.");
     }
 
-    const senhaHash = await bcrypt.hash(senhaPura, 10);
+    if (senhaInformada && senhaInformada.length < 6) {
+      throw new Error("A senha deve ter pelo menos 6 caracteres.");
+    }
+
+    const usuarioExistente = await prisma.usuario.findUnique({
+      where: { email },
+      select: { tipo: true },
+    });
+    if (usuarioExistente && usuarioExistente.tipo !== "funcionario") {
+      throw new Error("Este e-mail pertence a uma conta que não pode ser vinculada como funcionário.");
+    }
+
+    // Sem senha informada, a conta nasce com uma senha aleatória inutilizável
+    // e o funcionário define a própria senha pelo link enviado por e-mail.
+    const convidar = !usuarioExistente && !senhaInformada;
+    const senhaHash = await bcrypt.hash(senhaInformada || crypto.randomBytes(32).toString("hex"), 10);
     const perfilAcesso =
       perfilAcessoId
         ? await prisma.perfil_acesso.findFirst({
@@ -136,8 +153,8 @@ export const FuncionariosService = {
     const funcionario = await prisma.$transaction(async (tx) => {
       const usuario = await tx.usuario.upsert({
         where: { email },
+        // Conta já existente (possivelmente de outra oficina): não sobrescreve nome nem senha.
         update: {
-          nome,
           status: "ativo",
           deleted_at: null,
         },
@@ -202,6 +219,11 @@ export const FuncionariosService = {
       });
     });
 
+    if (convidar && funcionario.usuario?.id) {
+      const convite = await PasswordResetService.createResetForUser(funcionario.usuario.id);
+      return { ...funcionario, convite_enviado: convite.email_sent };
+    }
+
     return funcionario;
   },
 
@@ -220,8 +242,15 @@ export const FuncionariosService = {
     if (data?.cargo != null) patch.cargo = toCargoEnum(data.cargo);
     if (data?.data_contratacao) patch.data_contratacao = new Date(data.data_contratacao);
 
-    // Sincroniza usuario (nome, email, senha)
-    if (existing.usuario_id) {
+    // Sincroniza usuario (nome, email, senha) só quando a conta pertence apenas a esta oficina;
+    // uma conta compartilhada entre oficinas não pode ser alterada por uma delas.
+    const vinculos = existing.usuario_id
+      ? await prisma.usuario_oficina.count({
+          where: { usuario_id: existing.usuario_id, deleted_at: null, status: "ativo" },
+        })
+      : 0;
+
+    if (existing.usuario_id && vinculos <= 1) {
       const usuarioPatch: any = {};
       if (data?.nome != null) usuarioPatch.nome = String(data.nome).trim();
       if (data?.email != null) usuarioPatch.email = String(data.email).trim();
