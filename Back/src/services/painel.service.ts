@@ -43,7 +43,8 @@ async function financeiro(oficinaId: number, hoje: string) {
     faturado(periodo.inicio, periodo.fim),
     faturado(periodo.anterior.inicio, periodo.anterior.fim),
     prisma.$queryRaw<Array<{ dia: string; total: unknown }>>`
-      SELECT to_char(COALESCE(data_fechamento, updated_at) AT TIME ZONE ${FUSO}, 'YYYY-MM-DD') AS dia, SUM(valor_total) AS total
+      -- colunas timestamp sem fuso guardam UTC: converte para UTC e so depois para o fuso da oficina
+      SELECT to_char((COALESCE(data_fechamento, updated_at) AT TIME ZONE 'UTC') AT TIME ZONE ${FUSO}, 'YYYY-MM-DD') AS dia, SUM(valor_total) AS total
       FROM ordem_servico
       WHERE oficina_id = ${oficinaId} AND deleted_at IS NULL AND status = 'concluida'
         AND COALESCE(data_fechamento, updated_at) >= ${inicioGrafico} AND COALESCE(data_fechamento, updated_at) < ${fimGrafico}
