@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Box, Stack, Typography } from "@mui/material";
+import { alpha, Box, Stack, Typography } from "@mui/material";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import AssignmentLateRoundedIcon from "@mui/icons-material/AssignmentLateRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
@@ -14,17 +14,18 @@ import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import PaidRoundedIcon from "@mui/icons-material/PaidRounded";
 import ShoppingCartRoundedIcon from "@mui/icons-material/ShoppingCartRounded";
 import BuildRoundedIcon from "@mui/icons-material/BuildRounded";
-import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import { useNavigate } from "react-router-dom";
 import { paths } from "../../../routes/paths";
 
 type Relatorio = { titulo: string; descricao: string; icone: React.ReactNode; destino: string };
-type Categoria = { id: string; titulo: string; descricao: string; icone: React.ReactNode; relatorios: Relatorio[] };
+type Categoria = { id: string; titulo: string; descricao: string; cor: string; icone: React.ReactNode; relatorios: Relatorio[] };
 
 const CATEGORIAS: Categoria[] = [
   {
     id: "financeiro",
     titulo: "Financeiro",
+    cor: "#2a78d6",
     descricao: "Caixa, inadimplência e resultado",
     icone: <PaidRoundedIcon />,
     relatorios: [
@@ -36,6 +37,7 @@ const CATEGORIAS: Categoria[] = [
   {
     id: "vendas",
     titulo: "Vendas",
+    cor: "#2f9e6b",
     descricao: "Faturamento, orçamentos e margem",
     icone: <ShoppingCartRoundedIcon />,
     relatorios: [
@@ -47,6 +49,7 @@ const CATEGORIAS: Categoria[] = [
   {
     id: "operacao",
     titulo: "Operação",
+    cor: "#eb6834",
     descricao: "Ordens, mecânicos e agenda",
     icone: <BuildRoundedIcon />,
     relatorios: [
@@ -58,6 +61,7 @@ const CATEGORIAS: Categoria[] = [
   {
     id: "estoque-clientes",
     titulo: "Estoque e clientes",
+    cor: "#7c5cd6",
     descricao: "Posição de estoque e base de clientes",
     icone: <Inventory2RoundedIcon />,
     relatorios: [
@@ -66,6 +70,14 @@ const CATEGORIAS: Categoria[] = [
     ],
   },
 ];
+
+function IconeColorido({ cor, tamanho, children }: { cor: string; tamanho: number; children: React.ReactNode }) {
+  return (
+    <Box sx={{ width: tamanho, height: tamanho, flexShrink: 0, borderRadius: 2.5, display: "flex", alignItems: "center", justifyContent: "center", bgcolor: alpha(cor, 0.14), color: cor, "& svg": { fontSize: tamanho * 0.52 } }}>
+      {children}
+    </Box>
+  );
+}
 
 function CardCategoria({ categoria, selecionada, onClick }: { categoria: Categoria; selecionada: boolean; onClick: () => void }) {
   const qtd = categoria.relatorios.length;
@@ -80,36 +92,70 @@ function CardCategoria({ categoria, selecionada, onClick }: { categoria: Categor
         color: "text.primary",
         cursor: "pointer",
         textAlign: "left",
-        bgcolor: "transparent",
+        width: "100%",
+        bgcolor: selecionada ? alpha(categoria.cor, 0.08) : "transparent",
         border: "1px solid",
-        borderColor: selecionada ? "primary.main" : "divider",
-        boxShadow: selecionada ? (t) => `0 0 0 1px ${t.palette.primary.main}` : "none",
-        borderRadius: 2,
-        p: 3,
+        borderColor: selecionada ? categoria.cor : "divider",
+        borderRadius: 3,
+        p: 2.5,
         display: "flex",
         alignItems: "center",
-        gap: 2.5,
-        transition: "border-color 0.15s, box-shadow 0.15s",
-        "&:hover": { borderColor: "primary.main" },
+        gap: 2,
+        transition: "border-color 0.15s, background-color 0.15s",
+        "&:hover": { borderColor: categoria.cor },
       }}
     >
-      <Box sx={{ width: 64, height: 64, flexShrink: 0, borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center", bgcolor: selecionada ? "primary.main" : "action.hover", color: selecionada ? "primary.contrastText" : "text.secondary", transition: "background-color 0.15s, color 0.15s", "& svg": { fontSize: 32 } }}>
-        {categoria.icone}
-      </Box>
-      <Stack flex={1} minWidth={0} spacing={0.5}>
-        <Typography fontWeight={700} fontSize={17}>{categoria.titulo}</Typography>
+      <IconeColorido cor={categoria.cor} tamanho={56}>{categoria.icone}</IconeColorido>
+      <Stack flex={1} minWidth={0} spacing={0.25}>
+        <Typography fontWeight={700} fontSize={16}>{categoria.titulo}</Typography>
         <Typography variant="body2" color="text.secondary">{categoria.descricao}</Typography>
-        <Typography variant="caption" color="text.secondary" fontWeight={600}>{qtd} {qtd === 1 ? "relatório" : "relatórios"}</Typography>
+        <Typography variant="caption" fontWeight={600} sx={{ color: categoria.cor }}>{qtd} {qtd === 1 ? "relatório" : "relatórios"}</Typography>
       </Stack>
-      <ChevronRightRoundedIcon sx={{ color: "text.secondary", transform: selecionada ? "rotate(90deg)" : "none", transition: "transform 0.15s" }} />
+    </Box>
+  );
+}
+
+function CardRelatorio({ relatorio, cor, onClick }: { relatorio: Relatorio; cor: string; onClick: () => void }) {
+  return (
+    <Box
+      component="button"
+      type="button"
+      onClick={onClick}
+      sx={{
+        font: "inherit",
+        color: "text.primary",
+        cursor: "pointer",
+        textAlign: "left",
+        bgcolor: "transparent",
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 3,
+        p: 3,
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+        minHeight: 170,
+        transition: "border-color 0.15s, transform 0.15s",
+        "&:hover": { borderColor: cor, transform: "translateY(-2px)" },
+      }}
+    >
+      <IconeColorido cor={cor} tamanho={52}>{relatorio.icone}</IconeColorido>
+      <Stack spacing={0.5} flex={1}>
+        <Typography fontWeight={700} fontSize={16}>{relatorio.titulo}</Typography>
+        <Typography variant="body2" color="text.secondary">{relatorio.descricao}</Typography>
+      </Stack>
+      <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: cor, fontWeight: 600, fontSize: 13 }}>
+        <span>Abrir</span>
+        <ArrowForwardRoundedIcon sx={{ fontSize: 16 }} />
+      </Stack>
     </Box>
   );
 }
 
 export default function Relatorios() {
   const nav = useNavigate();
-  const [aberta, setAberta] = React.useState<string | null>(null);
-  const categoria = CATEGORIAS.find((c) => c.id === aberta);
+  const [aberta, setAberta] = React.useState(CATEGORIAS[0].id);
+  const categoria = CATEGORIAS.find((c) => c.id === aberta) ?? CATEGORIAS[0];
 
   return (
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
@@ -120,55 +166,19 @@ export default function Relatorios() {
         </Typography>
       </Stack>
 
-      <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mb: 4 }}>
-        {CATEGORIAS.map((c) => (
-          <CardCategoria
-            key={c.id}
-            categoria={c}
-            selecionada={aberta === c.id}
-            onClick={() => setAberta((atual) => (atual === c.id ? null : c.id))}
-          />
-        ))}
-      </Box>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "320px 1fr" }, gap: { xs: 3, md: 5 }, alignItems: "start" }}>
+        <Stack spacing={1.5}>
+          {CATEGORIAS.map((c) => (
+            <CardCategoria key={c.id} categoria={c} selecionada={aberta === c.id} onClick={() => setAberta(c.id)} />
+          ))}
+        </Stack>
 
-      {categoria ? (
-        <Box>
+        <Box key={categoria.id} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", xl: "repeat(3, 1fr)" }, gap: 2 }}>
           {categoria.relatorios.map((r) => (
-            <Box
-              key={r.destino}
-              component="button"
-              type="button"
-              onClick={() => nav(r.destino)}
-              sx={{
-                font: "inherit",
-                color: "text.primary",
-                cursor: "pointer",
-                width: "100%",
-                textAlign: "left",
-                bgcolor: "transparent",
-                border: 0,
-                borderBottom: "1px solid",
-                borderColor: "divider",
-                py: 2,
-                display: "flex",
-                alignItems: "center",
-                gap: 2,
-                "&:hover": { bgcolor: "action.hover" },
-                "& .icone": { display: "flex", color: "text.secondary" },
-              }}
-            >
-              <span className="icone">{r.icone}</span>
-              <Stack flex={1} minWidth={0} spacing={0.25}>
-                <Typography fontWeight={600} fontSize={15}>{r.titulo}</Typography>
-                <Typography variant="body2" color="text.secondary">{r.descricao}</Typography>
-              </Stack>
-              <ChevronRightRoundedIcon fontSize="small" sx={{ color: "text.secondary" }} />
-            </Box>
+            <CardRelatorio key={r.destino} relatorio={r} cor={categoria.cor} onClick={() => nav(r.destino)} />
           ))}
         </Box>
-      ) : (
-        <Typography variant="body2" color="text.secondary">Escolha uma categoria para ver os relatórios.</Typography>
-      )}
+      </Box>
     </Box>
   );
 }
