@@ -208,6 +208,32 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
       expect((await request(app).put(`/api/pagamentos/${id}`).set("Authorization", auth).send({ valor: 500 })).status).toBe(400);
     });
 
+    it("editar o vencimento conta como renegociacao e preserva a data original", async () => {
+      const id = await novoPagamento(100, { data_vencimento: "2026-05-10" });
+      const put = (body: object) => request(app).put(`/api/pagamentos/${id}`).set("Authorization", auth).send(body);
+
+      const mesmo = await put({ data_vencimento: "2026-05-10", descricao: "Ajuste" });
+      expect(mesmo.status).toBe(200);
+      expect(mesmo.body.vezes_renegociado).toBe(0); // mesma data nao eh renegociar
+
+      const mudou = await put({ data_vencimento: "2026-06-20" });
+      expect(mudou.status).toBe(200);
+      expect(mudou.body.data_vencimento.slice(0, 10)).toBe("2026-06-20");
+      expect(mudou.body.data_vencimento_original.slice(0, 10)).toBe("2026-05-10");
+      expect(mudou.body.vezes_renegociado).toBe(1);
+
+      const outra = await put({ data_vencimento: "2026-07-01" });
+      expect(outra.body.vezes_renegociado).toBe(2);
+      expect(outra.body.data_vencimento_original.slice(0, 10)).toBe("2026-05-10");
+    });
+
+    it("nao altera o vencimento de titulo pago", async () => {
+      const id = await novoPagamento(100, { data_vencimento: "2026-05-10" });
+      await request(app).post(`/api/pagamentos/${id}/pagar`).set("Authorization", auth).send({ metodo: "pix" }).expect(200);
+      const res = await request(app).put(`/api/pagamentos/${id}`).set("Authorization", auth).send({ data_vencimento: "2026-08-01" });
+      expect(res.status).toBe(400);
+    });
+
     it("criacao sempre nasce pendente, mesmo se o body mandar pago", async () => {
       const res = await request(app)
         .post("/api/pagamentos")
@@ -622,6 +648,62 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
 
       expect((await pagar(saldo.id, { metodo: "pix", valor: 51 })).status).toBe(400);
       expect((await pagar(saldo.id, { metodo: "pix", valor: 50 })).body.status).toBe("pago");
+    });
+
+    it("receber com desconto: aplica o desconto e recebe sobre o valor liquido na mesma chamada", async () => {
+      const id = await novoPagamento(100);
+      const res = await pagar(id, { metodo: "pix", valor: 70, desconto: 30, motivo_desconto: "Cliente antigo" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe("pago"); // liquido = 100 - 30 = 70
+      expect(Number(res.body.desconto)).toBe(30);
+      expect(res.body.motivo_desconto).toBe("Cliente antigo");
+      expect(Number(res.body.valor_pago)).toBe(70);
+      expect(res.body.titulo_saldo).toBeUndefined();
+    });
+
+    it("receber com desconto e valor menor que o liquido deixa o saldo sem desconto", async () => {
+      const id = await novoPagamento(100);
+      const res = await pagar(id, { metodo: "pix", valor: 30, desconto: 20, motivo_desconto: "x" });
+
+      expect(res.status).toBe(200);
+      expect(Number(res.body.valor_pago)).toBe(30);
+      expect(Number(res.body.titulo_saldo.valor_original)).toBe(50); // 100 - 20 - 30
+      expect(Number(res.body.titulo_saldo.desconto)).toBe(0);
+    });
+
+    it("desconto invalido na baixa nao registra nada (transacao unica)", async () => {
+      const id = await novoPagamento(100);
+      expect((await pagar(id, { metodo: "pix", desconto: -1, motivo_desconto: "x" })).status).toBe(400);
+      expect((await pagar(id, { metodo: "pix", desconto: 101, motivo_desconto: "x" })).status).toBe(400);
+      expect((await pagar(id, { metodo: "pix", desconto: 10 })).status).toBe(400); // sem motivo
+      // valor maior que o liquido depois do desconto
+      expect((await pagar(id, { metodo: "pix", valor: 95, desconto: 10, motivo_desconto: "x" })).status).toBe(400);
+
+      const p = await prisma.pagamento.findUniqueOrThrow({ where: { id } });
+      expect(p.status).toBe("pendente");
+      expect(Number(p.desconto)).toBe(0);
+      expect(Number(p.valor_pago)).toBe(0);
+      expect(await prisma.pagamento_movimento.count({ where: { pagamento_id: id } })).toBe(0);
+    });
+
+    it("desconto de 100% quita o titulo sem gerar movimento de valor zero", async () => {
+      const id = await novoPagamento(100);
+      const res = await pagar(id, { metodo: "pix", desconto: 100, motivo_desconto: "Cortesia" });
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe("pago");
+      expect(Number(res.body.valor_pago)).toBe(0);
+      expect(await prisma.pagamento_movimento.count({ where: { pagamento_id: id } })).toBe(0);
+    });
+
+    it("desconto 0 na baixa remove o desconto anterior", async () => {
+      const id = await novoPagamento(100);
+      await request(app).post(`/api/pagamentos/${id}/desconto`).set("Authorization", auth).send({ desconto: 20, motivo_desconto: "x" }).expect(200);
+      const res = await pagar(id, { metodo: "pix", desconto: 0 });
+      expect(res.status).toBe(200);
+      expect(Number(res.body.desconto)).toBe(0);
+      expect(res.body.motivo_desconto).toBeNull();
+      expect(Number(res.body.valor_pago)).toBe(100);
     });
 
     it("duas baixas parciais simultaneas nunca passam do saldo", async () => {

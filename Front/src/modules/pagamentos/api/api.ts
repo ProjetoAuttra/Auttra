@@ -50,6 +50,18 @@ export function formatarData(iso?: string | null) {
   return d.toLocaleDateString("pt-BR", soDia ? { timeZone: "UTC" } : undefined);
 }
 
+/** Valor para <input type="date"> (YYYY-MM-DD), com a mesma regra de formatarData para meia-noite UTC. */
+export function paraInputData(iso?: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const soDia = d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0;
+  if (soDia) return d.toISOString().slice(0, 10);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
 export const brl = (v: number) =>
   Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -103,7 +115,10 @@ export async function atualizarPagamento(id: number, payload: any) {
 }
 
 /** Baixa do titulo. Com `valor` menor que o saldo vira recebimento parcial; sem `valor` quita o saldo. */
-export async function marcarComoPago(id: number, payload: { metodo: string; valor?: number; data_pagamento?: string }) {
+export async function marcarComoPago(
+  id: number,
+  payload: { metodo: string; valor?: number; data_pagamento?: string; desconto?: number; motivo_desconto?: string }
+) {
   const { data } = await api.post(`/pagamentos/${id}/pagar`, payload);
   return data as Conta;
 }
