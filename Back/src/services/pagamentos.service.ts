@@ -61,6 +61,13 @@ async function registrarMovimento(
   });
 }
 
+/** Mesmas relacoes da listagem: o front substitui a linha pela resposta da acao e precisa de cliente/fornecedor/OS. */
+const relacoes = {
+  cliente: { select: { id: true, nome: true, email: true } },
+  fornecedor: { select: { id: true, nome: true } },
+  ordem_servico: { select: { id: true, status: true } },
+} as const;
+
 const valorLiquido = (p: { valor_original: Prisma.Decimal.Value; desconto: Prisma.Decimal.Value }) =>
   D(p.valor_original).minus(D(p.desconto));
 
@@ -175,6 +182,7 @@ export const PagamentosService = {
         descricao:                data.descricao ?? null,
         observacao:               data.observacao ?? null,
       },
+      include: relacoes,
     });
   },
 
@@ -214,7 +222,7 @@ export const PagamentosService = {
       });
       await validatePagamentoRelations(merged, oficinaId);
 
-      return tx.pagamento.update({ where: { id }, data: patch });
+      return tx.pagamento.update({ where: { id }, data: patch, include: relacoes });
     });
   },
 
@@ -262,24 +270,44 @@ export const PagamentosService = {
 
   // ── Ações financeiras (cada uma roda em transacao com a linha travada) ─────────
 
-  async pagar(id: number, data: { metodo: string; data_pagamento?: string }, oficinaId: number, usuarioId?: number | null) {
+  /**
+   * Baixa do titulo. Sem `valor`, quita o saldo restante. Com `valor`: menor que o saldo = recebimento
+   * parcial (status "parcial"); igual = quita; maior = erro.
+   */
+  async pagar(
+    id: number,
+    data: { metodo: string; valor?: number | string | null; data_pagamento?: string },
+    oficinaId: number,
+    usuarioId?: number | null
+  ) {
     return prisma.$transaction(async (tx) => {
       const existing = await lockPagamento(tx, id, oficinaId);
       if (existing.status === "pago") throw new Error("Este pagamento já foi registrado como pago.");
       if (existing.status === "cancelado") throw new Error("Não é possível pagar um título cancelado.");
+
       const liquido = valorLiquido(existing);
       const restante = liquido.minus(D(existing.valor_pago));
+      const informouValor = data.valor !== undefined && data.valor !== null && data.valor !== "";
+      const entrada = informouValor ? toPositiveDecimal(data.valor, "Valor") : restante;
+      if (entrada.greaterThan(restante)) {
+        throw new Error(`Valor excede o saldo restante (${restante.toFixed(2)}).`);
+      }
+
+      const quitado = D(existing.valor_pago).plus(entrada).greaterThanOrEqualTo(liquido);
       const atualizado = await tx.pagamento.update({
         where: { id },
         data: {
-          status:         "pago",
-          valor_pago:     liquido,
+          status:         quitado ? "pago" : "parcial",
+          valor_pago:     D(existing.valor_pago).plus(entrada),
           metodo:         data.metodo as any,
-          data_pagamento: data.data_pagamento ? toDate(data.data_pagamento, "data_pagamento") : new Date(),
+          data_pagamento: quitado
+            ? (data.data_pagamento ? toDate(data.data_pagamento, "data_pagamento") : new Date())
+            : existing.data_pagamento,
         },
+        include: relacoes,
       });
-      if (restante.greaterThan(0)) {
-        await registrarMovimento(tx, existing, { tipo: "pagamento", valor: restante, metodo: data.metodo, usuarioId });
+      if (entrada.greaterThan(0)) {
+        await registrarMovimento(tx, existing, { tipo: "pagamento", valor: entrada, metodo: data.metodo, usuarioId });
       }
       return atualizado;
     });
@@ -302,6 +330,7 @@ export const PagamentosService = {
       return tx.pagamento.update({
         where: { id },
         data: { desconto, motivo_desconto: data.motivo_desconto },
+        include: relacoes,
       });
     });
   },
@@ -318,6 +347,7 @@ export const PagamentosService = {
           data_vencimento:   novaData,
           vezes_renegociado: { increment: 1 },
         },
+        include: relacoes,
       });
     });
   },
@@ -341,6 +371,7 @@ export const PagamentosService = {
           metodo:         data.metodo as any,
           data_pagamento: quitado ? new Date() : existing.data_pagamento,
         },
+        include: relacoes,
       });
       await registrarMovimento(tx, existing, { tipo: "pagamento", valor: entrada, metodo: data.metodo, usuarioId });
       return atualizado;
@@ -384,6 +415,7 @@ export const PagamentosService = {
       return tx.pagamento.update({
         where: { id },
         data: { status: "pendente", valor_pago: 0, data_pagamento: null },
+        include: relacoes,
       });
     });
   },
@@ -451,6 +483,7 @@ export const PagamentosService = {
             parcela_numero:           i + 1,
             total_parcelas:           total,
           },
+          include: relacoes,
         }));
       }
       return { cancelado: id, parcelas };

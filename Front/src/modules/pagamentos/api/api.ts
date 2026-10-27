@@ -71,14 +71,31 @@ export async function atualizarPagamento(id: number, payload: any) {
   return data as Conta;
 }
 
-export async function marcarComoPago(id: number, payload: { metodo: string; data_pagamento?: string }) {
+/** Baixa do titulo. Com `valor` menor que o saldo vira recebimento parcial; sem `valor` quita o saldo. */
+export async function marcarComoPago(id: number, payload: { metodo: string; valor?: number; data_pagamento?: string }) {
   const { data } = await api.post(`/pagamentos/${id}/pagar`, payload);
   return data as Conta;
 }
 
-export async function registrarParcial(id: number, payload: { valor_entrada: number; metodo: string }) {
-  const { data } = await api.post(`/pagamentos/${id}/pagamento-parcial`, payload);
+export type Movimento = {
+  id: number;
+  tipo: "pagamento" | "estorno";
+  valor: number | string;
+  metodo?: string | null;
+  motivo?: string | null;
+  estorno_de_id?: number | null;
+  created_at: string;
+  usuario?: { id: number; nome: string } | null;
+};
+
+export async function estornarPagamento(id: number, payload: { motivo: string }) {
+  const { data } = await api.post(`/pagamentos/${id}/estornar`, payload);
   return data as Conta;
+}
+
+export async function listarMovimentos(id: number) {
+  const { data } = await api.get(`/pagamentos/${id}/movimentos`);
+  return data as Movimento[];
 }
 
 export async function aplicarDesconto(id: number, payload: { desconto: number; motivo_desconto: string }) {
