@@ -4,14 +4,16 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "../src/prisma/client.js";
 
 const suffix = Date.now();
-const sql = fs
-  .readFileSync(path.join(__dirname, "../prisma/migrations/20260602000000_pagamento_parcial_vira_saldo/migration.sql"), "utf8")
-  .split("\n")
-  .filter((l) => !l.trim().startsWith("--"))
-  .join("\n")
-  .split(/;\s*\n/)
-  .map((c) => c.trim())
-  .filter(Boolean);
+const comandos = (pasta: string) =>
+  fs
+    .readFileSync(path.join(__dirname, `../prisma/migrations/${pasta}/migration.sql`), "utf8")
+    .split("\n")
+    .filter((l) => !l.trim().startsWith("--"))
+    .join("\n")
+    .split(/;\s*\n/)
+    .map((c) => c.trim())
+    .filter(Boolean);
+const sql = [...comandos("20260602000000_pagamento_parcial_vira_saldo"), ...comandos("20260602000001_pagamento_saldo_descricao")];
 
 describe.skipIf(!process.env.DATABASE_URL)("migration: parcial vira titulo pago + saldo pendente", () => {
   let cidadeId: number;
@@ -56,7 +58,7 @@ describe.skipIf(!process.env.DATABASE_URL)("migration: parcial vira titulo pago 
 
     const saldos = await prisma.pagamento.findMany({ where: { pagamento_pai_id: parcial.id } });
     expect(saldos).toHaveLength(1);
-    expect(saldos[0]).toMatchObject({ status: "pendente", descricao: "Entrada", cliente_id: clienteId, observacao: `Saldo do título #${parcial.id}` });
+    expect(saldos[0]).toMatchObject({ status: "pendente", descricao: "Entrada (saldo do recebimento parcial)", cliente_id: clienteId, observacao: `Saldo do título #${parcial.id}` });
     expect(Number(saldos[0].valor_original)).toBe(180); // 300 - 20 - 100
     expect(Number(saldos[0].desconto)).toBe(0);
     expect(Number(saldos[0].valor_pago)).toBe(0);

@@ -549,7 +549,12 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
       expect(parcial.body.data_pagamento).not.toBeNull();
 
       const saldo = parcial.body.titulo_saldo;
-      expect(saldo).toMatchObject({ status: "pendente", descricao: "Entrada", categoria: "Servicos", pagamento_pai_id: id });
+      expect(saldo).toMatchObject({
+        status: "pendente",
+        descricao: "Entrada (saldo do pagamento parcial)",
+        categoria: "Servicos",
+        pagamento_pai_id: id,
+      });
       expect(Number(saldo.valor_original)).toBe(60);
       expect(Number(saldo.valor_pago)).toBe(0);
       expect(saldo.data_vencimento.slice(0, 10)).toBe("2026-11-10");
@@ -563,6 +568,21 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
 
       // so os dois titulos existem para esse recebimento
       expect(await prisma.pagamento.count({ where: { OR: [{ id }, { pagamento_pai_id: id }] } })).toBe(2);
+    });
+
+    it("parcial sobre um saldo nao empilha a marca na descricao", async () => {
+      const id = await novoPagamento(100, { descricao: "Entrada" });
+      const primeiro = await pagar(id, { metodo: "pix", valor: 40 });
+      const segundo = await pagar(primeiro.body.titulo_saldo.id, { metodo: "pix", valor: 10 });
+
+      expect(primeiro.body.titulo_saldo.descricao).toBe("Entrada (saldo do pagamento parcial)");
+      expect(segundo.body.titulo_saldo.descricao).toBe("Entrada (saldo do pagamento parcial)");
+    });
+
+    it("titulo sem descricao recebe uma descricao de saldo", async () => {
+      const id = await novoPagamento(100, { descricao: "" });
+      const res = await pagar(id, { metodo: "pix", valor: 40 });
+      expect(res.body.titulo_saldo.descricao).toBe("Saldo do pagamento parcial");
     });
 
     it("pagar o valor inteiro nao cria titulo de saldo", async () => {

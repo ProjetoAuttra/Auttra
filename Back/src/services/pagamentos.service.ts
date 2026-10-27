@@ -119,6 +119,13 @@ async function validatePagamentoRelations(data: any, oficinaId: number) {
   }
 }
 
+/** Marca na descricao que o titulo nasceu do saldo de um recebimento/pagamento parcial (sem empilhar a marca). */
+export function descricaoDoSaldo(descricao: string | null | undefined, tipo: "pagar" | "receber") {
+  const marca = tipo === "receber" ? "saldo do recebimento parcial" : "saldo do pagamento parcial";
+  const base = (descricao ?? "").replace(/\s*\(saldo d[oe] (recebimento|pagamento) parcial\)\s*$/i, "").trim();
+  return base ? `${base} (${marca})` : `Saldo do ${tipo === "receber" ? "recebimento" : "pagamento"} parcial`;
+}
+
 /**
  * Registra um recebimento/pagamento de `entrada` no titulo (ja travado).
  * - Quitando o saldo, o titulo fica "pago".
@@ -171,7 +178,7 @@ async function registrarEntrada(
       data_vencimento_original: existing.data_vencimento_original,
       vezes_renegociado: existing.vezes_renegociado,
       categoria: existing.categoria,
-      descricao: existing.descricao,
+      descricao: descricaoDoSaldo(existing.descricao, existing.tipo),
       observacao: `Saldo do título #${existing.id}`,
       pagamento_pai_id: existing.id,
     },
