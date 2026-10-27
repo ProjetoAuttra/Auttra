@@ -235,7 +235,7 @@ export default function ContasPagar() {
                         <Button
                           size="small"
                           variant="text"
-                          color="success"
+                          color="primary"
                           onClick={() => handlePagarDireto(conta)}
                           disabled={conta.status === "pago" || conta.status === "cancelado"}
                           sx={{
@@ -243,7 +243,7 @@ export default function ContasPagar() {
                             letterSpacing: 0.6,
                             px: 1.75,
                             // Já pago: continua visível, mas bem mais apagado.
-                            "&.Mui-disabled": { color: "success.main", opacity: 0.35 },
+                            "&.Mui-disabled": { color: "primary.main", opacity: 0.35 },
                           }}
                         >
                           PAGAR
