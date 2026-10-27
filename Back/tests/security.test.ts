@@ -64,4 +64,22 @@ describe("security baseline", () => {
     process.env.NODE_ENV = previousEnv;
     process.env.JWT_SECRET = previousSecret;
   });
+
+  it("rate limits password recovery per client IP behind the proxy", async () => {
+    const statuses: number[] = [];
+    for (let i = 0; i < 6; i++) {
+      const response = await request(app)
+        .post("/api/auth/forgot-password")
+        .set("X-Forwarded-For", "203.0.113.7, 10.0.0.1")
+        .send({});
+      statuses.push(response.status);
+    }
+    expect(statuses[5]).toBe(429);
+
+    const other = await request(app)
+      .post("/api/auth/forgot-password")
+      .set("X-Forwarded-For", "203.0.113.8, 10.0.0.1")
+      .send({});
+    expect(other.status).not.toBe(429);
+  });
 });

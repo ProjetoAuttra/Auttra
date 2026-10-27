@@ -2,9 +2,15 @@ import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import routes from "./routes/index.js";
+import { publicLinkLimiter } from "./middlewares/rateLimiters.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 export const app = express();
+
+// Atras de proxies (borda do Railway + nginx do Front/Admin): sem isso req.ip eh o IP do proxy
+// e todos os usuarios dividem o mesmo bucket do rate limit. Ajuste TRUST_PROXY ao numero de hops.
+const trustProxy = Number(process.env.TRUST_PROXY ?? 2);
+app.set("trust proxy", Number.isInteger(trustProxy) && trustProxy >= 0 ? trustProxy : 2);
 
 const corsOrigins = (process.env.CORS_ORIGIN ?? "")
   .split(",")
@@ -29,6 +35,8 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 app.use(["/api/auth/login", "/api/auth/verify-email"], loginLimiter);
+
+app.use(["/api/s", "/api/public"], publicLinkLimiter);
 
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 app.use("/api", routes);
