@@ -55,7 +55,8 @@ export const OrdensController = {
     } catch (err: any) {
       if (isNotFound(err)) return res.status(404).json({ message: err.message });
       console.error("Erro ao excluir OS:", err);
-      res.status(500).json({ error: "Erro interno" });
+      // o service so lanca erros de regra de negocio aqui (ex.: OS com pagamento registrado)
+      res.status(400).json({ message: err.message });
     }
   },
 };

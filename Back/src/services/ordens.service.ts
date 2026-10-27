@@ -1,4 +1,24 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client.js";
+
+/**
+ * Baixa o estoque em uma unica operacao condicional (so decrementa se ainda houver saldo),
+ * evitando que duas OS concorrentes passem na checagem e deixem o estoque negativo.
+ */
+async function baixarEstoque(tx: Prisma.TransactionClient, pecaId: number, oficinaId: number, quantidade: unknown) {
+  const qtd = Number(quantidade);
+  if (!Number.isInteger(qtd) || qtd <= 0) throw new Error("Quantidade de peça inválida.");
+
+  const { count } = await tx.peca.updateMany({
+    where: { id: pecaId, oficina_id: oficinaId, deleted_at: null, estoque: { gte: qtd } },
+    data: { estoque: { decrement: qtd } },
+  });
+  if (count === 1) return;
+
+  const peca = await tx.peca.findFirst({ where: { id: pecaId, oficina_id: oficinaId, deleted_at: null } });
+  if (!peca) throw new Error("Peça não encontrada.");
+  throw new Error(`Estoque insuficiente para "${peca.nome}". Disponível: ${peca.estoque}.`);
+}
 
 async function validateOrdemRelations(data: any, oficinaId: number) {
   const [cliente, veiculo, funcionario] = await Promise.all([
@@ -25,6 +45,16 @@ async function validateOrdemRelations(data: any, oficinaId: number) {
       if (!peca) throw new Error("Peca nao encontrada nesta oficina.");
     }
   }));
+}
+
+const chaveItem = (i: any) =>
+  [i.tipo_item ?? i.tipo ?? "servico", i.servico_id ?? "", i.peca_id ?? "", Number(i.quantidade ?? 1), Number(i.preco_unitario ?? i.preco ?? 0)].join("|");
+
+/** Compara a lista enviada com a salva, ignorando ordem (o front reenvia os itens em toda edicao). */
+function mesmosItens(enviados: any[], salvos: any[]) {
+  const a = enviados.map(chaveItem).sort();
+  const b = salvos.filter((i) => !i.deleted_at).map(chaveItem).sort();
+  return a.length === b.length && a.every((k, idx) => k === b[idx]);
 }
 
 export const OrdensService = {
@@ -72,17 +102,7 @@ export const OrdensService = {
 
     return prisma.$transaction(async (tx) => {
       for (const item of pecaItens) {
-        const peca = await tx.peca.findFirst({
-          where: { id: Number(item.peca_id), oficina_id, deleted_at: null },
-        });
-        if (!peca) throw new Error("Peça não encontrada.");
-        if (Number(peca.estoque) < Number(item.quantidade)) {
-          throw new Error(`Estoque insuficiente para "${peca.nome}". Disponível: ${peca.estoque}.`);
-        }
-        await tx.peca.update({
-          where: { id: peca.id },
-          data: { estoque: { decrement: Number(item.quantidade) } },
-        });
+        await baixarEstoque(tx, Number(item.peca_id), oficina_id, item.quantidade);
       }
 
       return tx.ordem_servico.create({
@@ -116,7 +136,7 @@ export const OrdensService = {
   },
 
   update: async (id: number, data: any, oficinaId: number) => {
-    const { itens, ...rest } = data;
+    const { itens: itensEnviados, ...rest } = data;
     const existing = await prisma.ordem_servico.findFirst({
       where: { id, oficina_id: oficinaId, deleted_at: null },
       include: { itens: true },
@@ -134,6 +154,16 @@ export const OrdensService = {
       if (!allowed.includes(rest.status)) {
         throw new Error(`Transição inválida: ${existing.status} → ${rest.status}.`);
       }
+    }
+
+    // OS finalizada nao pode ter itens alterados: o estoque ja foi devolvido (cancelada) ou consumido (concluida).
+    // Se o front reenviar os mesmos itens (edicao de outros campos), eles simplesmente sao ignorados.
+    let itens = itensEnviados;
+    if (Array.isArray(itens) && (existing.status === "concluida" || existing.status === "cancelada")) {
+      if (!mesmosItens(itens, existing.itens as any[])) {
+        throw new Error("Não é possível alterar os itens de uma OS concluída ou cancelada.");
+      }
+      itens = undefined;
     }
 
     delete rest.oficina_id;
@@ -170,17 +200,7 @@ export const OrdensService = {
             (i: any) => (i.tipo_item ?? i.tipo) === "peca" && i.peca_id
           );
           for (const newItem of newPecaItens) {
-            const peca = await tx.peca.findFirst({
-              where: { id: Number(newItem.peca_id), oficina_id: oficinaId, deleted_at: null },
-            });
-            if (!peca) throw new Error("Peça não encontrada.");
-            if (Number(peca.estoque) < Number(newItem.quantidade)) {
-              throw new Error(`Estoque insuficiente para "${peca.nome}". Disponível: ${peca.estoque}.`);
-            }
-            await tx.peca.update({
-              where: { id: peca.id },
-              data: { estoque: { decrement: Number(newItem.quantidade) } },
-            });
+            await baixarEstoque(tx, Number(newItem.peca_id), oficinaId, newItem.quantidade);
           }
         }
       } else if (isCancelling) {
@@ -276,8 +296,8 @@ export const OrdensService = {
           data: { status: "cancelado", deleted_at: new Date() },
         });
 
-        // Return stock for peca items
-        const pecaItens = (existing.itens as any[]).filter(
+        // Return stock for peca items (OS cancelada ja devolveu o estoque ao ser cancelada)
+        const pecaItens = existing.status === "cancelada" ? [] : (existing.itens as any[]).filter(
           (i) => i.tipo_item === "peca" && i.peca_id && !i.deleted_at
         );
         for (const item of pecaItens) {

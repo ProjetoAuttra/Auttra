@@ -1,29 +1,12 @@
 import { Router } from "express";
-import { OrdensService } from "../services/ordens.service.js";
+import { OrdensController } from "../controllers/ordens.controller.js";
 import { PdfHtmlService } from "../services/pdfservice.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 import { LinksPublicosService } from "../services/linksPublicos.service.js";
 
 const router = Router();
 
-router.get("/", async (req, res) => {
-  try {
-    const ordens = await OrdensService.list(getRequiredOfficeId(req));
-    res.json(ordens);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.get("/:id", async (req, res) => {
-  try {
-    const ordem = await OrdensService.getById(Number(req.params.id), getRequiredOfficeId(req));
-    if (!ordem) return res.status(404).json({ error: "Ordem não encontrada" });
-    res.json(ordem);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
+router.get("/", OrdensController.list);
 
 router.get("/:id/pdf", async (req, res) => {
   try {
@@ -34,37 +17,10 @@ router.get("/:id/pdf", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
-  try {
-    const nova = await OrdensService.create({ ...req.body, oficina_id: getRequiredOfficeId(req) });
-    res.status(201).json(nova);
-  } catch (err: any) {
-    console.error("Erro ao criar OS:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.put("/:id", async (req, res) => {
-  try {
-    const atualizada = await OrdensService.update(
-      Number(req.params.id),
-      req.body,
-      getRequiredOfficeId(req)
-    );
-    res.json(atualizada);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.delete("/:id", async (req, res) => {
-  try {
-    await OrdensService.delete(Number(req.params.id), getRequiredOfficeId(req));
-    res.status(204).send();
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
+router.get("/:id", OrdensController.getById);
+router.post("/", OrdensController.create);
+router.put("/:id", OrdensController.update);
+router.delete("/:id", OrdensController.remove);
 
 router.post("/:id/share", async (req, res) => {
   try {
