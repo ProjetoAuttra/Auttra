@@ -42,7 +42,7 @@ function formatDocumento(value?: string | null) {
 
 function HeaderSkeleton() {
   return (
-    <Paper elevation={0} sx={{ p: 3, borderRadius: 1.5, border: (t) => `1px solid ${t.palette.divider}`, mb: 3 }}>
+    <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: (t) => `1px solid ${t.palette.divider}`, mb: 3 }}>
       <Stack direction="row" spacing={3} alignItems="center">
         <Skeleton variant="circular" width={72} height={72} />
         <Stack spacing={1} flex={1}>
@@ -164,7 +164,7 @@ export default function ClienteDetalhesPage() {
 
         {/* ── Navegação ── */}
         <Stack direction="row" alignItems="center" spacing={1.5} mb={3}>
-          <IconButton onClick={() => nav(-1)} size="small" sx={{ bgcolor: "action.hover", borderRadius: 1.5 }}>
+          <IconButton onClick={() => nav(-1)} size="small" sx={{ bgcolor: "action.hover", borderRadius: 2 }}>
             <ArrowBackRoundedIcon fontSize="small" />
           </IconButton>
           <Typography variant="body2" color="text.secondary">Clientes</Typography>
@@ -176,7 +176,7 @@ export default function ClienteDetalhesPage() {
 
         {/* ── Card de cabeçalho ── */}
         {loading ? <HeaderSkeleton /> : cliente && (
-          <Paper elevation={0} sx={{ p: 3, borderRadius: 1.5, border: (t) => `1px solid ${t.palette.divider}`, mb: 3 }}>
+          <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: (t) => `1px solid ${t.palette.divider}`, mb: 3 }}>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={3} alignItems={{ xs: "flex-start", sm: "center" }} justifyContent="space-between">
 
               {/* Avatar + info ── */}
@@ -193,7 +193,7 @@ export default function ClienteDetalhesPage() {
                     <IconButton
                       size="small"
                       onClick={() => setOpenEdit(true)}
-                      sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 1.5 }}
+                      sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 2 }}
                     >
                       <EditRoundedIcon fontSize="small" />
                     </IconButton>
@@ -258,7 +258,7 @@ export default function ClienteDetalhesPage() {
         )}
 
         {/* ── Abas ── */}
-        <Paper elevation={0} sx={{ borderRadius: 1.5, border: (t) => `1px solid ${t.palette.divider}`, overflow: "hidden" }}>
+        <Paper elevation={0} sx={{ borderRadius: 2, border: (t) => `1px solid ${t.palette.divider}`, overflow: "hidden" }}>
           <Tabs
             value={tab}
             onChange={(_, v) => setTab(v)}
@@ -297,7 +297,7 @@ export default function ClienteDetalhesPage() {
           <Box sx={{ p: { xs: 2, sm: 3 } }}>
             {loading ? (
               <Stack spacing={1.5}>
-                {[1, 2, 3].map((i) => <Skeleton key={i} variant="rounded" height={64} sx={{ borderRadius: 1.5 }} />)}
+                {[1, 2, 3].map((i) => <Skeleton key={i} variant="rounded" height={64} sx={{ borderRadius: 2 }} />)}
               </Stack>
             ) : (
               <>

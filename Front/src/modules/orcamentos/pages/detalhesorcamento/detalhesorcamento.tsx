@@ -137,7 +137,7 @@ export default function OrcamentoDetalhes() {
     <Box sx={{ maxWidth: 1200, mx: "auto" }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3} gap={2}>
         <Stack direction="row" spacing={1.5} alignItems="center" minWidth={0}>
-          <IconButton onClick={() => nav("/orcamentos")} size="small" sx={{ bgcolor: "action.hover", borderRadius: 1.5 }}>
+          <IconButton onClick={() => nav("/orcamentos")} size="small" sx={{ bgcolor: "action.hover", borderRadius: 2 }}>
             <ArrowBackRoundedIcon fontSize="small" />
           </IconButton>
           <Stack minWidth={0}>
@@ -165,7 +165,7 @@ export default function OrcamentoDetalhes() {
         </Stack>
       </Stack>
 
-      <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 1.5, border: (t) => `1px solid ${t.palette.divider}` }}>
+      <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 2, border: (t) => `1px solid ${t.palette.divider}` }}>
         <Grid container spacing={2.5}>
           <Grid size={{ xs: 12, md: 4 }}>
             <Stack direction="row" spacing={1.5} alignItems="center" mb={1}>
@@ -209,7 +209,7 @@ export default function OrcamentoDetalhes() {
         </Typography>
       </Paper>
 
-      <Paper elevation={0} sx={{ p: 3, borderRadius: 1.5, border: (t) => `1px solid ${t.palette.divider}` }}>
+      <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: (t) => `1px solid ${t.palette.divider}` }}>
         <Typography variant="h6" fontWeight={700} mb={2}>Itens</Typography>
 
         {itens.length ? (
@@ -220,7 +220,7 @@ export default function OrcamentoDetalhes() {
                 direction={{ xs: "column", sm: "row" }}
                 justifyContent="space-between"
                 alignItems={{ xs: "flex-start", sm: "center" }}
-                sx={{ p: 1.5, borderRadius: 1.5, bgcolor: (t) => alpha(t.palette.primary.main, 0.03) }}
+                sx={{ p: 1.5, borderRadius: 2, bgcolor: (t) => alpha(t.palette.primary.main, 0.03) }}
               >
                 <Stack spacing={0.25}>
                   <Typography fontWeight={700}>{itemName(item)}</Typography>

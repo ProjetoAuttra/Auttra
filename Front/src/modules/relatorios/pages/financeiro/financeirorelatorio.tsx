@@ -24,6 +24,7 @@ import {
   firstDayOfMonthISO,
   inDateRange,
   MetricCard,
+  StatGroup,
   PeriodFilter,
   ReportHeader,
   ReportPage,
@@ -145,16 +146,16 @@ export default function RelatorioFinanceiro() {
 
       <PeriodFilter dataInicio={dataInicio} dataFim={dataFim} onDataInicio={setDataInicio} onDataFim={setDataFim} />
 
-      <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} mb={2.5}>
+      <StatGroup>
         <MetricCard label="Recebido" value={brl(recebido)} tone="success" />
         <MetricCard label="A receber" value={brl(aReceber)} tone="info" />
         <MetricCard label="Vencido" value={brl(valorVencido)} tone={valorVencido > 0 ? "error" : "default"} helper={`${vencidos.length} conta(s)`} />
         <MetricCard label="A pagar" value={brl(aPagar)} tone={aPagar > 0 ? "warning" : "default"} />
         <MetricCard label="Saldo projetado" value={brl(saldoProjetado)} tone={saldoProjetado < 0 ? "error" : "success"} helper={`Realizado: ${brl(saldoRealizado)}`} />
-      </Stack>
+      </StatGroup>
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
           <Typography fontWeight={700} mb={1}>Cobrar primeiro</Typography>
           {cobrarPrimeiro.length ? cobrarPrimeiro.map((p) => (
             <Stack key={p.id} direction="row" justifyContent="space-between" alignItems="center" py={0.75} gap={2}>
@@ -167,7 +168,7 @@ export default function RelatorioFinanceiro() {
           )) : <Typography variant="body2" color="text.secondary">Nenhuma conta vencida no período.</Typography>}
         </Paper>
 
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
           <Typography fontWeight={700} mb={1}>Recebido por forma de pagamento</Typography>
           {Object.entries(porMetodo).length ? Object.entries(porMetodo).map(([metodo, total]) => (
             <Stack key={metodo} direction="row" justifyContent="space-between" py={0.75}>
@@ -178,7 +179,7 @@ export default function RelatorioFinanceiro() {
         </Paper>
       </Stack>
 
-      <Paper variant="outlined" sx={{ borderRadius: 1.5, overflowX: "auto" }}>
+      <Paper variant="outlined" sx={{ borderRadius: 2, overflowX: "auto" }}>
         {filtrados.length ? (
           <Table>
             <TableHead>

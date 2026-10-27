@@ -4,7 +4,7 @@ import { alpha, styled } from "@mui/material/styles";
 export const HeaderIcon = styled(Box)(({ theme }) => ({
   width: 38,
   height: 38,
-  borderRadius: 10,
+  borderRadius: 6,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -33,7 +33,7 @@ export const PlacaDisplay = styled(Box)(({ theme }) => ({
     0.04
   )})`,
   border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-  borderRadius: 8,
+  borderRadius: 6,
   padding: "6px 14px",
   fontFamily: "'Courier New', monospace",
   fontWeight: 700,
@@ -49,7 +49,7 @@ export const PrecoDisplay = styled(Box)(({ theme }) => ({
   alignItems: "baseline",
   gap: 4,
   padding: "6px 14px",
-  borderRadius: 8,
+  borderRadius: 6,
   background: alpha(theme.palette.success.main, 0.08),
   border: `1.5px solid ${alpha(theme.palette.success.main, 0.2)}`,
 }));

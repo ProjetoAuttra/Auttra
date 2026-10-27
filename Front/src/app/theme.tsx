@@ -23,8 +23,9 @@ export const brand = {
   info: '#0284C7',
 };
 
-// Escala única de raios: controles, cards/tabelas, diálogos e pílulas (chips/badges).
-export const radius = { control: 8, card: 12, dialog: 16, pill: 999 } as const;
+// Escala única de raios: controles 6, cards/tabelas/diálogos 8, chips 4. `pill` só para barras de progresso.
+// shape.borderRadius = 4: no `sx`, borderRadius 1 = 4px, 1.5 = 6px, 2 = 8px.
+export const radius = { control: 6, card: 8, dialog: 8, chip: 4, pill: 999 } as const;
 
 // Sombras discretas: o app é flat com borda fina; sombra só em elementos flutuantes.
 export const shadows = {
@@ -46,7 +47,7 @@ export const theme = createTheme({
     text: { primary: brand.ink, secondary: brand.muted },
     divider: brand.line,
   },
-  shape: { borderRadius: radius.control },
+  shape: { borderRadius: 4 },
   typography: {
     fontFamily: '"Inter Variable", "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
     fontSize: 14,
@@ -127,7 +128,7 @@ export const theme = createTheme({
     },
     MuiChip: {
       styleOverrides: {
-        root: { borderRadius: radius.pill, fontWeight: 600, fontSize: 12 },
+        root: { borderRadius: radius.chip, fontWeight: 600, fontSize: 12 },
         sizeSmall: { height: 22 },
       },
       // Chips preenchidos são "tonais" (fundo claro, texto escuro): leitura de status sem gritar.
@@ -179,7 +180,7 @@ export const theme = createTheme({
     MuiMenu: {
       styleOverrides: {
         paper: {
-          borderRadius: radius.control + 2,
+          borderRadius: radius.card,
           border: `1px solid ${brand.line}`,
           boxShadow: shadows.floating,
         },

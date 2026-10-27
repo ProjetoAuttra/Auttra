@@ -370,7 +370,7 @@ export default function OrdemServicoDialog({ open, mode = "create", initial, onC
 
           {/* ITENS E SERVIÇOS */}
           <Grid size={{ xs: 12, md: 8 }}>
-            <Box sx={{ bgcolor: "background.paper", borderRadius: 1.5, border: "1px solid", borderColor: "divider", overflow: "hidden" }}>
+            <Box sx={{ bgcolor: "background.paper", borderRadius: 2, border: "1px solid", borderColor: "divider", overflow: "hidden" }}>
               <Box sx={{ p: 2, borderBottom: (t) => `1px solid ${t.palette.divider}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <SectionLabel sx={{ mb: 0 }}>Itens da Ordem de Serviço</SectionLabel>
                 <Stack direction="row" spacing={1}>
@@ -458,7 +458,7 @@ export default function OrdemServicoDialog({ open, mode = "create", initial, onC
               onChange={(e) => setObservacoes(e.target.value)}
               fullWidth multiline rows={2}
               size="small"
-              sx={{ bgcolor: "background.paper", borderRadius: 1 }}
+              sx={{ bgcolor: "background.paper", borderRadius: 1.5 }}
             />
           </Grid>
         </Grid>

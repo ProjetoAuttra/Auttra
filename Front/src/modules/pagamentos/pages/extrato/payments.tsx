@@ -130,7 +130,7 @@ export default function ExtratoFinanceiro() {
 
       {/* Tabela */}
       <Fade in timeout={500}>
-        <TableContainer component={Paper} sx={{ borderRadius: 1.5, border: (t) => `1px solid ${t.palette.divider}` }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 2, border: (t) => `1px solid ${t.palette.divider}` }}>
           <Table>
             <TableHead>
               <TableRow>

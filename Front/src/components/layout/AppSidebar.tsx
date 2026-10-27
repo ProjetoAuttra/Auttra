@@ -180,7 +180,7 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
             sx={{
               my: 0.25,
               minHeight: 44,
-              borderRadius: 1.25,
+              borderRadius: 1.5,
               px: collapsed ? 0 : 2,
               justifyContent: collapsed ? 'center' : 'flex-start',
               bgcolor: selected ? alpha(brand.primary, 0.1) : 'transparent',
@@ -234,7 +234,7 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
                         pl: 5,
                         py: 0.75,
                         minHeight: 36,
-                        borderRadius: 1.25,
+                        borderRadius: 1.5,
                         color: brand.muted,
                         '&:hover': {
                           bgcolor: brand.subtleStrong,
@@ -318,7 +318,7 @@ export default function AppSidebar({
               sx={{
                 width: 32,
                 height: 32,
-                borderRadius: 1,
+                borderRadius: 1.5,
                 color: brand.muted,
                 '&:hover': { bgcolor: brand.subtleStrong, color: brand.ink },
               }}

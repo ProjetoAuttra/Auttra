@@ -45,7 +45,7 @@ export default function ClienteOrdens({ ordens, onAdd }: { ordens: any[]; onAdd?
         </Stack>
       )}
       <TableContainer component={Paper} elevation={0}
-        sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 1.5 }}>
+        sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 2 }}>
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -67,7 +67,7 @@ export default function ClienteOrdens({ ordens, onAdd }: { ordens: any[]; onAdd?
                     </Typography>
                     {o.veiculo?.placa && (
                       <Typography variant="caption" fontFamily="monospace" fontWeight={600}
-                        sx={{ px: 0.5, borderRadius: 0.5, bgcolor: (t) => t.palette.action.hover }}>
+                        sx={{ px: 0.5, borderRadius: 1, bgcolor: (t) => t.palette.action.hover }}>
                         {o.veiculo.placa}
                       </Typography>
                     )}

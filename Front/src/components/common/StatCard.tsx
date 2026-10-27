@@ -29,7 +29,7 @@ export default function StatCard({ label, value, helper, icon, tone = "default",
         {
           px: 2.25,
           py: 1.75,
-          borderRadius: 1.5,
+          borderRadius: 2,
           flex: 1,
           minWidth: 160,
           cursor: onClick ? "pointer" : "default",
@@ -55,6 +55,33 @@ export default function StatCard({ label, value, helper, icon, tone = "default",
           {helper}
         </Typography>
       )}
+    </Paper>
+  );
+}
+
+/** Agrupa KPIs numa única superfície, separados por divisórias verticais (em vez de várias caixas). */
+export function StatGroup({ children, sx }: { children: ReactNode; sx?: SxProps<Theme> }) {
+  return (
+    <Paper
+      variant="outlined"
+      sx={[
+        {
+          display: "flex",
+          flexWrap: "wrap",
+          overflow: "hidden",
+          mb: 2.5,
+          "& > .MuiPaper-root": {
+            border: 0,
+            borderRadius: 0,
+            borderRight: (t: Theme) => `1px solid ${t.palette.divider}`,
+            flex: "1 1 170px",
+          },
+          "& > .MuiPaper-root:last-child": { borderRight: 0 },
+        },
+        ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
+      ]}
+    >
+      {children}
     </Paper>
   );
 }

@@ -36,7 +36,7 @@ export default function ClienteVeiculos({ veiculos, onAdd }: { veiculos: any[]; 
         </Stack>
       )}
       <TableContainer component={Paper} elevation={0}
-        sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 1.5 }}>
+        sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 2 }}>
         <Table size="small">
           <TableHead>
             <TableRow>

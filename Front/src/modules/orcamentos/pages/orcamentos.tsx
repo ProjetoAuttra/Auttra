@@ -24,6 +24,7 @@ import DialogOrcamento from "../dialog";
 import OrdemServicoDialog from "../../tarefas/dialog";
 import api from "../../../api/api";
 import ListTableContainer from "../../../components/common/ListTableContainer";
+import { radius } from "../../../app/theme";
 import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationOrcamentos } from "../../../components/common/Illustrations";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
@@ -375,7 +376,7 @@ export default function OrcamentosPage() {
                         <Stack spacing={0.1}>
                           <Typography variant="body2">{o.veiculo.modelo}</Typography>
                           <Typography variant="caption" fontFamily="monospace" fontWeight={600}
-                            sx={{ px: 0.75, py: 0.1, borderRadius: 0.75, bgcolor: (t) => alpha(t.palette.text.primary, 0.06), display: "inline-block", width: "fit-content" }}>
+                            sx={{ px: 0.75, py: 0.1, borderRadius: 1, bgcolor: (t) => alpha(t.palette.text.primary, 0.06), display: "inline-block", width: "fit-content" }}>
                             {o.veiculo.placa}
                           </Typography>
                         </Stack>
@@ -470,13 +471,13 @@ export default function OrcamentosPage() {
         rowsPerPageOptions={[5, 10, 20]}
         labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
-        sx={{ mt: 1.5, borderRadius: 1.5, bgcolor: "background.paper" }}
+        sx={{ bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}`, borderTop: 0, borderRadius: `0 0 ${radius.card}px ${radius.card}px` }}
       />
 
       {/* ── Menu contextual ── */}
       <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={handleMenuClose}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }} transformOrigin={{ vertical: "top", horizontal: "right" }}
-        PaperProps={{ sx: { borderRadius: 1.5, minWidth: 180, boxShadow: "0 8px 24px rgba(0,0,0,0.10)" } }}
+        PaperProps={{ sx: { borderRadius: 2, minWidth: 180, boxShadow: "0 8px 24px rgba(0,0,0,0.10)" } }}
       >
         {selectedOrcamento?.status !== "aprovado" && (
           <MenuItem onClick={handleAprovar} sx={{ gap: 1.5 }}>

@@ -475,7 +475,7 @@ export default function ClientDialog({
 
         {/* ── Alerta de erros ── */}
         <Collapse in={submitAttempted && Object.keys(errors).length > 0}>
-          <Alert severity="error" sx={{ mt: 0.5, borderRadius: 1.25 }}>
+          <Alert severity="error" sx={{ mt: 0.5, borderRadius: 1.5 }}>
             Corrija os campos destacados antes de salvar.
           </Alert>
         </Collapse>

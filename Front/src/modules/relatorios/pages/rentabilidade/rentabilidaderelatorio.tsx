@@ -23,6 +23,7 @@ import {
   firstDayOfMonthISO,
   inDateRange,
   MetricCard,
+  StatGroup,
   percent,
   PeriodFilter,
   ReportHeader,
@@ -146,16 +147,16 @@ export default function RentabilidadeRelatorio() {
 
       <PeriodFilter dataInicio={dataInicio} dataFim={dataFim} onDataInicio={setDataInicio} onDataFim={setDataFim} />
 
-      <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} mb={2.5}>
+      <StatGroup>
         <MetricCard label="OS concluídas" value={concluidas.length} />
         <MetricCard label="Faturamento" value={brl(faturamento)} tone="info" />
         <MetricCard label="Custo peças" value={brl(custoTotal)} tone="warning" />
         <MetricCard label="Lucro bruto estimado" value={brl(lucroTotal)} tone={lucroTotal >= 0 ? "success" : "error"} />
         <MetricCard label="Margem media" value={percent(margemMedia)} tone={margemMedia >= 30 ? "success" : "warning"} helper={`Ticket: ${brl(ticketMedio)}`} />
-      </Stack>
+      </StatGroup>
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
           <Typography fontWeight={700} mb={1}>Clientes mais rentáveis</Typography>
           {Object.entries(porCliente).length ? Object.entries(porCliente)
             .sort((a, b) => b[1].lucro - a[1].lucro)
@@ -168,7 +169,7 @@ export default function RentabilidadeRelatorio() {
             )) : <Typography variant="body2" color="text.secondary">Nenhuma OS concluída no período.</Typography>}
         </Paper>
 
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
           <Typography fontWeight={700} mb={1}>Rentabilidade por mecânico</Typography>
           {Object.entries(porMecanico).length ? Object.entries(porMecanico)
             .sort((a, b) => b[1].lucro - a[1].lucro)
@@ -182,7 +183,7 @@ export default function RentabilidadeRelatorio() {
         </Paper>
       </Stack>
 
-      <Paper variant="outlined" sx={{ p: 2, mb: 2.5, borderRadius: 1.5 }}>
+      <Paper variant="outlined" sx={{ p: 2, mb: 2.5, borderRadius: 2 }}>
         <Typography fontWeight={700} mb={1}>OS que pedem revisão de preço</Typography>
         {margemBaixa.length ? (
           <Stack direction="row" gap={1} flexWrap="wrap">
@@ -193,7 +194,7 @@ export default function RentabilidadeRelatorio() {
         ) : <Typography variant="body2" color="text.secondary">Nenhuma OS concluída com margem abaixo de 30%.</Typography>}
       </Paper>
 
-      <Paper variant="outlined" sx={{ borderRadius: 1.5, overflowX: "auto" }}>
+      <Paper variant="outlined" sx={{ borderRadius: 2, overflowX: "auto" }}>
         {concluidas.length ? (
           <Table>
             <TableHead>

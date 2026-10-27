@@ -25,6 +25,7 @@ import {
   EmptyReport,
   exportCsv,
   MetricCard,
+  StatGroup,
   ReportHeader,
   ReportPage,
 } from "../../shared/reportUtils";
@@ -122,7 +123,7 @@ export default function OrdensParadasRelatorio() {
         onExport={handleExportarCSV}
       />
 
-      <Paper variant="outlined" sx={{ p: 2, mb: 2.5, borderRadius: 1.5 }}>
+      <Paper variant="outlined" sx={{ p: 2, mb: 2.5, borderRadius: 2 }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }}>
           <Typography variant="body2" fontWeight={600}>Considerar parada a partir de</Typography>
           <Select size="small" value={diasMinimos} onChange={(e: SelectChangeEvent) => setDiasMinimos(e.target.value)} sx={{ minWidth: 150 }}>
@@ -134,16 +135,16 @@ export default function OrdensParadasRelatorio() {
         </Stack>
       </Paper>
 
-      <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} mb={2.5}>
+      <StatGroup>
         <MetricCard label="OS abertas" value={abertas.length} tone="info" />
         <MetricCard label="OS paradas" value={paradas.length} tone={paradas.length ? "warning" : "default"} helper={`${diasMinimos}+ dia(s)`} />
         <MetricCard label="Críticas" value={acima7Dias} tone={acima7Dias ? "error" : "default"} helper="7+ dias abertas" />
         <MetricCard label="Valor preso" value={brl(valorPreso)} tone={valorPreso > 0 ? "warning" : "default"} />
         <MetricCard label="Valor parado" value={brl(valorParado)} tone={valorParado > 0 ? "error" : "default"} />
-      </Stack>
+      </StatGroup>
 
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} mb={2.5}>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
           <Typography fontWeight={700} mb={1}>Prioridade por valor</Typography>
           {maiorValorAberto ? (
             <Stack spacing={0.5}>
@@ -154,7 +155,7 @@ export default function OrdensParadasRelatorio() {
           ) : <Typography variant="body2" color="text.secondary">Nenhuma OS aberta.</Typography>}
         </Paper>
 
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, flex: 1 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 1 }}>
           <Typography fontWeight={700} mb={1}>Paradas por mecânico</Typography>
           {Object.entries(porMecanico).length ? Object.entries(porMecanico).map(([nome, item]) => (
             <Stack key={nome} direction="row" justifyContent="space-between" py={0.75}>
@@ -165,7 +166,7 @@ export default function OrdensParadasRelatorio() {
         </Paper>
       </Stack>
 
-      <Paper variant="outlined" sx={{ borderRadius: 1.5, overflowX: "auto" }}>
+      <Paper variant="outlined" sx={{ borderRadius: 2, overflowX: "auto" }}>
         {paradas.length ? (
           <Table>
             <TableHead>

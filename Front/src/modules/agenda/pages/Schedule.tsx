@@ -345,7 +345,7 @@ function AppointmentCard({
         width: '100%',
         minWidth: 0,
         height: '100%',
-        borderRadius: 1.25,
+        borderRadius: 1.5,
         border: `1px solid ${alpha(theme.palette.primary.main, 0.14)}`,
         bgcolor: alpha(theme.palette.primary.main, 0.07),
         cursor: onOpen ? 'pointer' : 'default',
@@ -412,7 +412,7 @@ function CompactAppointment({ appointment, onOpen }: { appointment: Appointment;
         px: 1,
         py: 0.6,
         minWidth: 0,
-        borderRadius: 1.5,
+        borderRadius: 2,
         bgcolor: alpha(theme.palette.primary.main, 0.09),
         color: 'primary.main',
         overflow: 'hidden',
@@ -553,14 +553,14 @@ function AppointmentDetailsDialog({
               </Stack>
             )}
             {(appointment.clientName || appointment.vehicleLabel) && (
-              <Paper elevation={0} sx={{ p: 1.5, borderRadius: 1.25, bgcolor: brand.subtle, border: (t) => `1px solid ${t.palette.divider}` }}>
+              <Paper elevation={0} sx={{ p: 1.5, borderRadius: 1.5, bgcolor: brand.subtle, border: (t) => `1px solid ${t.palette.divider}` }}>
                 <Typography variant="caption" color="text.secondary" fontWeight={600}>Cliente e veículo</Typography>
                 <Typography fontWeight={700}>{appointment.clientName || 'Cliente não informado'}</Typography>
                 <Typography variant="body2" color="text.secondary">{appointment.vehicleLabel || 'Veículo não informado'}</Typography>
               </Paper>
             )}
             {appointment.ordemServicoId && (
-              <Paper elevation={0} sx={{ p: 1.5, borderRadius: 1.25, bgcolor: brand.subtle, border: (t) => `1px solid ${t.palette.divider}` }}>
+              <Paper elevation={0} sx={{ p: 1.5, borderRadius: 1.5, bgcolor: brand.subtle, border: (t) => `1px solid ${t.palette.divider}` }}>
                 <Typography variant="caption" color="text.secondary" fontWeight={600}>Ordem de Serviço vinculada</Typography>
                 <Typography fontWeight={700}>OS #{appointment.ordemServicoId}</Typography>
                 {appointment.ordemServicoStatus && (
@@ -841,12 +841,12 @@ export default function Schedule() {
                 size="small"
                 sx={{
                   p: 0.35,
-                  borderRadius: 999,
+                  borderRadius: 2,
                   bgcolor: brand.subtleStrong,
                   '& .MuiToggleButton-root': {
                     px: 2,
                     border: 0,
-                    borderRadius: 999,
+                    borderRadius: 1.5,
                     fontWeight: 700,
                     color: 'text.secondary',
                     '&.Mui-selected': { bgcolor: '#fff', color: 'primary.main', boxShadow: '0 8px 20px rgba(16,24,40,0.08)' },
@@ -875,7 +875,7 @@ export default function Schedule() {
                   </Typography>
                 ))}
               </Box>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(120px, 1fr))', gap: 1, overflowX: 'auto' }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(120px, 1fr))', gap: 0, overflowX: 'auto', borderTop: (t) => `1px solid ${t.palette.divider}`, borderLeft: (t) => `1px solid ${t.palette.divider}` }}>
                 {monthDays.map((day) => {
                   const active = day.isSame(selectedDate, 'day');
                   const inMonth = day.isSame(selectedDate, 'month');
@@ -889,10 +889,11 @@ export default function Schedule() {
                       sx={(theme) => ({
                         minHeight: 132,
                         p: 1.1,
-                        borderRadius: 1.25,
                         cursor: 'pointer',
-                        border: `1px solid ${active ? alpha(theme.palette.primary.main, 0.38) : theme.palette.divider}`,
-                        bgcolor: active ? alpha(theme.palette.primary.main, 0.055) : inMonth ? '#fff' : alpha(theme.palette.text.primary, 0.025),
+                        borderRight: `1px solid ${theme.palette.divider}`,
+                        borderBottom: `1px solid ${theme.palette.divider}`,
+                        bgcolor: active ? alpha(theme.palette.primary.main, 0.05) : inMonth ? 'transparent' : brand.subtle,
+                        '&:hover': { bgcolor: active ? alpha(theme.palette.primary.main, 0.07) : brand.subtleStrong },
                       })}
                     >
                       <Typography fontWeight={700} color={inMonth ? 'text.primary' : 'text.disabled'}>
@@ -914,8 +915,8 @@ export default function Schedule() {
               </Box>
             </Box>
           ) : view === 'week' ? (
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(150px, 1fr))', gap: 1.25, overflowX: 'auto' }}>
-              {weekDays.map((day) => {
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(150px, 1fr))', gap: 0, overflowX: 'auto', borderTop: (t) => `1px solid ${t.palette.divider}` }}>
+              {weekDays.map((day, dayIndex) => {
                 const active = day.isSame(selectedDate, 'day');
                 const dayAppointments = filteredAppointments
                   .filter((appointment) => dayjs(appointment.start).isSame(day, 'day'))
@@ -927,9 +928,10 @@ export default function Schedule() {
                     sx={(theme) => ({
                       minHeight: 160,
                       p: 1.25,
-                      borderRadius: 1.25,
-                      border: `1px solid ${active ? alpha(theme.palette.primary.main, 0.42) : theme.palette.divider}`,
-                      bgcolor: active ? alpha(theme.palette.primary.main, 0.055) : '#fff',
+                      borderRight: dayIndex < weekDays.length - 1 ? `1px solid ${theme.palette.divider}` : 0,
+                      cursor: 'pointer',
+                      bgcolor: active ? alpha(theme.palette.primary.main, 0.05) : 'transparent',
+                      '&:hover': { bgcolor: active ? alpha(theme.palette.primary.main, 0.07) : brand.subtle },
                     })}
                   >
                     <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5}>
@@ -1015,7 +1017,7 @@ export default function Schedule() {
                         <Box
                           sx={(theme) => ({
                             height: 42,
-                            borderRadius: 1.5,
+                            borderRadius: 2,
                             border: `1px dashed ${alpha(theme.palette.text.primary, 0.12)}`,
                             bgcolor: alpha(theme.palette.common.white, 0.45),
                           })}

@@ -16,6 +16,7 @@ import ServicoDialog, { type Servico, type ServicoForm, CATEGORIAS } from "../di
 import { listarServicos, criarServico, atualizarServico, excluirServico } from "../api/api";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import ListTableContainer from "../../../components/common/ListTableContainer";
+import { radius } from "../../../app/theme";
 import EmptyState from "../../../components/common/EmptyState";
 
 const CATEGORIA_LABEL: Record<string, string> = Object.fromEntries(
@@ -264,7 +265,7 @@ export default function ServicosPage() {
         onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
         rowsPerPageOptions={[5, 10, 20]} labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
-        sx={{ mt: 1.5, borderRadius: 1.5, bgcolor: "background.paper" }}
+        sx={{ bgcolor: "background.paper", border: (t) => `1px solid ${t.palette.divider}`, borderTop: 0, borderRadius: `0 0 ${radius.card}px ${radius.card}px` }}
       />
 
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}
