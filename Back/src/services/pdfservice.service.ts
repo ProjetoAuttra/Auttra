@@ -1,34 +1,9 @@
-import puppeteer from "puppeteer";
+import { renderizarPdf } from "./pdfBrowser.js";
 import { Response } from "express";
 import { prisma } from "../prisma/client.js";
 import { escapeHtml as esc } from "../utils/escapeHtml.js";
 
-export async function renderPdf(html: string): Promise<Buffer> {
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
-  });
-  try {
-    const page = await browser.newPage();
-    // O HTML eh autocontido: sem JS e sem nenhuma requisicao de rede/arquivo (evita SSRF e leitura local).
-    await page.setJavaScriptEnabled(false);
-    await page.setRequestInterception(true);
-    page.on("request", (request) => {
-      const url = request.url();
-      if (url.startsWith("data:") || url === "about:blank") return void request.continue();
-      return void request.abort();
-    });
-    await page.setContent(html, { waitUntil: "load" });
-    const buffer = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: { top: "20mm", bottom: "20mm", left: "15mm", right: "15mm" },
-    });
-    return Buffer.from(buffer);
-  } finally {
-    await browser.close();
-  }
-}
+export const renderPdf = renderizarPdf;
 
 export const PdfHtmlService = {
   async gerarOrcamentoPDF(id: number, res: Response, oficinaId: number) {
