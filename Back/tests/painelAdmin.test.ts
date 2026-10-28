@@ -264,5 +264,75 @@ describe.skipIf(!process.env.DATABASE_URL)("painel admin", () => {
       const salva = await prisma.oficina.findUniqueOrThrow({ where: { id: body.oficina.id } });
       expect(salva).toMatchObject({ telefone: "1133334444", gestor_usuario_id: adminId });
     });
+
+    it("grava dados da empresa e do proprietário no cadastro", async () => {
+      const res = await request(app).post("/api/admin/oficinas").set("Cookie", cookieDe(await adminAtual())).send({
+        oficina: {
+          ...dadosOficina("empresa"), razao_social: "Oficina Empresa LTDA", inscricao_estadual: "110.042.490.114",
+          whatsapp: "(11) 98888-7777", bairro: "Sé",
+        },
+        gestor: {
+          nome: "Dono Empresa", email: email("dono-empresa"), cpf: "529.982.247-25", telefone: "(11) 97777-6666", data_nascimento: "1985-04-12",
+        },
+      });
+      expect(res.status).toBe(201);
+      oficinasCriadas.push(res.body.oficina.id);
+      usuariosCriados.push(res.body.usuario.id);
+
+      const detalhe = await request(app).get(`/api/admin/oficinas/${res.body.oficina.id}`).set("Cookie", cookieDe(await adminAtual()));
+      expect(detalhe.body).toMatchObject({
+        razao_social: "Oficina Empresa LTDA", inscricao_estadual: "110.042.490.114", whatsapp: "11988887777", bairro: "Sé",
+        gestor: { nome: "Dono Empresa", cpf: "52998224725", telefone: "11977776666" },
+      });
+      expect(detalhe.body.gestor.data_nascimento).toMatch(/^1985-04-12/);
+    });
+
+    it("recusa CPF, nascimento e inscrição estadual inválidos", async () => {
+      const cookie = cookieDe(await adminAtual());
+      const enviar = (oficina: Record<string, unknown>, gestor: Record<string, unknown>) =>
+        request(app).post("/api/admin/oficinas").set("Cookie", cookie).send({
+          oficina: { ...dadosOficina("dono-invalido"), ...oficina },
+          gestor: { nome: "Dono", email: email("dono-invalido"), ...gestor },
+        });
+
+      expect((await enviar({}, { cpf: "111.111.111-11" })).body.message).toBe("CPF inválido.");
+      expect((await enviar({}, { data_nascimento: "2999-01-01" })).body.message).toBe("Data de nascimento inválida.");
+      expect((await enviar({}, { data_nascimento: "1990-02-30" })).body.message).toBe("Data de nascimento inválida.");
+      expect((await enviar({ inscricao_estadual: "abc" }, {})).body.message).toMatch(/^Inscrição estadual inválida/);
+      expect(await prisma.oficina.count({ where: { nome: dadosOficina("dono-invalido").nome } })).toBe(0);
+    });
+
+    it("edita os dados do proprietário e troca para outro usuário da oficina", async () => {
+      const body = await criarOficina("troca-dono", email("dono-original"));
+      const oficinaId = body.oficina.id;
+      const cookie = cookieDe(await adminAtual());
+      const patch = (dados: Record<string, unknown>) =>
+        request(app).patch(`/api/admin/oficinas/${oficinaId}/proprietario`).set("Cookie", cookie).send(dados);
+
+      const editado = await patch({ usuario_id: body.usuario.id, nome: "Dono Editado", email: email("dono-editado"), cpf: "52998224725" });
+      expect(editado.status).toBe(200);
+      expect(editado.body).toMatchObject({ nome: "Dono Editado", email: email("dono-editado"), cpf: "52998224725" });
+
+      const outro = await prisma.usuario.create({ data: { nome: "Sócio", email: email("socio"), senha: "x", tipo: "funcionario" } });
+      usuariosCriados.push(outro.id);
+      await prisma.usuario_oficina.create({ data: { usuario_id: outro.id, oficina_id: oficinaId, perfil: "funcionario", status: "ativo" } });
+
+      expect((await patch({ usuario_id: outro.id, nome: "Sócio", email: email("socio") })).status).toBe(200);
+      expect((await prisma.oficina.findUniqueOrThrow({ where: { id: oficinaId } })).gestor_usuario_id).toBe(outro.id);
+    });
+
+    it("não aceita como proprietário usuário do painel, sem acesso à oficina ou com e-mail de outro", async () => {
+      const body = await criarOficina("dono-recusado", email("dono-recusado"));
+      const cookie = cookieDe(await adminAtual());
+      const patch = (dados: Record<string, unknown>) =>
+        request(app).patch(`/api/admin/oficinas/${body.oficina.id}/proprietario`).set("Cookie", cookie).send(dados);
+
+      const semAcesso = await prisma.usuario.create({ data: { nome: "Estranho", email: email("estranho"), senha: "x" } });
+      usuariosCriados.push(semAcesso.id);
+
+      expect((await patch({ usuario_id: adminId, nome: "Admin", email: email("ator") })).body.message).toBe("Proprietário inválido para esta oficina.");
+      expect((await patch({ usuario_id: semAcesso.id, nome: "Estranho", email: email("estranho") })).status).toBe(400);
+      expect((await patch({ usuario_id: body.usuario.id, nome: "Dono", email: email("ator") })).body.message).toBe("E-mail já está em uso por outro usuário.");
+    });
   });
 });

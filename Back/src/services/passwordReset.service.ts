@@ -45,7 +45,7 @@ function passwordResetEmailHtml(resetUrl: string) {
 function conviteEmailHtml(resetUrl: string, tipo: string) {
   const intro = tipo === "sistema"
     ? "Você recebeu acesso ao painel administrativo do Auttra."
-    : "Sua oficina foi cadastrada no Auttra e você foi definido como gestor.";
+    : "Sua oficina foi cadastrada no Auttra e você foi definido como proprietário da conta.";
   return `
     <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #111827;">
       <h2 style="margin: 0 0 16px;">Bem-vindo ao Auttra</h2>

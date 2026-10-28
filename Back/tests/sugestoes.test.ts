@@ -85,4 +85,68 @@ describe.skipIf(!process.env.DATABASE_URL)("sugestões", () => {
     expect((await request(app).post("/api/sugestoes").send({ modulo: "agenda", mensagem: "Sem login nenhum aqui." })).status).toBe(401);
     expect((await request(app).get(`/api/admin/oficinas/${oficinas[0]}/sugestoes`)).status).toBe(401);
   });
+
+  describe("lista geral no painel admin", () => {
+    // Marcador no texto isola estas sugestoes de qualquer outra que exista no banco.
+    const marca = `lista-${suffix}`;
+    const listar = (query: Record<string, string | number>) =>
+      request(app).get("/api/admin/sugestoes")
+        .set("Cookie", `${ADMIN_COOKIE}=${jwt.sign({ id: adminId, email: "a@example.com", nome: "A", tipo: "sistema", tv: 0 }, getJwtSecret(), { expiresIn: "5m" })}`)
+        .query({ q: marca, ...query });
+    const textos = (res: request.Response) => res.body.data.map((s: any) => s.mensagem.replace(` ${marca}`, ""));
+
+    beforeAll(async () => {
+      const criar = (oficina: number, usuario: number, modulo: any, texto: string, quando: string) =>
+        prisma.sugestao.create({ data: { oficina_id: oficina, usuario_id: usuario, modulo, mensagem: `${texto} ${marca}`, created_at: new Date(quando) } });
+      await criar(oficinas[0], usuarios[0], "agenda", "A", "2026-01-05T15:00:00Z");
+      await criar(oficinas[1], usuarios[1], "estoque", "B", "2026-01-08T15:00:00Z");
+      // 23h do dia 09/01 em Brasilia = 02h do dia 10/01 em UTC
+      await criar(oficinas[0], usuarios[0], "agenda", "C", "2026-01-10T02:00:00Z");
+      await criar(oficinas[1], usuarios[1], "outros", "D", "2026-01-12T15:00:00Z");
+    });
+
+    it("traz todas as oficinas, da mais recente para a mais antiga por padrão", async () => {
+      const res = await listar({});
+      expect(res.status).toBe(200);
+      expect(res.body.total).toBe(4);
+      expect(textos(res)).toEqual(["D", "C", "B", "A"]);
+      expect(res.body.data[0]).toMatchObject({ oficina: { id: oficinas[1] }, usuario: { nome: "Cliente Dois" } });
+    });
+
+    it("inverte a ordem e pagina sem repetir itens", async () => {
+      expect(textos(await listar({ ordem: "asc" }))).toEqual(["A", "B", "C", "D"]);
+      const p1 = await listar({ pageSize: 3, page: 1 });
+      const p2 = await listar({ pageSize: 3, page: 2 });
+      expect(textos(p1)).toEqual(["D", "C", "B"]);
+      expect(textos(p2)).toEqual(["A"]);
+      expect(p2.body.total).toBe(4);
+    });
+
+    it("filtra por módulo e por oficina", async () => {
+      expect(textos(await listar({ modulo: "agenda" }))).toEqual(["C", "A"]);
+      expect(textos(await listar({ oficina_id: oficinas[1] }))).toEqual(["D", "B"]);
+    });
+
+    it("filtra por período no horário de Brasília, com o último dia inteiro", async () => {
+      expect(textos(await listar({ de: "2026-01-08", ate: "2026-01-09" }))).toEqual(["C", "B"]);
+      expect(textos(await listar({ de: "2026-01-10" }))).toEqual(["D"]);
+      expect(textos(await listar({ ate: "2026-01-05" }))).toEqual(["A"]);
+    });
+
+    it("busca no texto, no nome da oficina e em quem enviou", async () => {
+      const busca = (q: string) => request(app).get("/api/admin/sugestoes")
+        .set("Cookie", `${ADMIN_COOKIE}=${jwt.sign({ id: adminId, email: "a@example.com", nome: "A", tipo: "sistema", tv: 0 }, getJwtSecret(), { expiresIn: "5m" })}`)
+        .query({ q, de: "2026-01-01", ate: "2026-01-31" });
+      expect((await busca(`B ${marca}`)).body.data.map((s: any) => s.mensagem)).toEqual([`B ${marca}`]);
+      expect((await busca(`Oficina Sugestao 2 ${suffix}`)).body.total).toBeGreaterThanOrEqual(2);
+      expect((await busca("Cliente Dois")).body.data.every((s: any) => s.usuario.nome === "Cliente Dois")).toBe(true);
+    });
+
+    it("recusa filtros inválidos e exige sessão de admin", async () => {
+      expect((await listar({ de: "2026-13-40" })).status).toBe(400);
+      expect((await listar({ de: "2026-01-10", ate: "2026-01-01" })).body.message).toBe("A data inicial deve ser anterior à final.");
+      expect((await listar({ modulo: "inexistente" })).body.message).toBe("Módulo inválido.");
+      expect((await request(app).get("/api/admin/sugestoes")).status).toBe(401);
+    });
+  });
 });

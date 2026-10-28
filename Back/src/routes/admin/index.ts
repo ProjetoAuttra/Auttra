@@ -5,6 +5,7 @@ import oficinasRouter from "./oficinas.routes.js";
 import usuariosRouter from "./usuarios.routes.js";
 import metricasRouter from "./metricas.routes.js";
 import adminsRouter from "./admins.routes.js";
+import sugestoesRouter from "./sugestoes.routes.js";
 
 const adminRouter = Router();
 
@@ -16,5 +17,6 @@ adminRouter.use("/oficinas", oficinasRouter);
 adminRouter.use("/usuarios", usuariosRouter);
 adminRouter.use("/metricas", metricasRouter);
 adminRouter.use("/admins", adminsRouter);
+adminRouter.use("/sugestoes", sugestoesRouter);
 
 export default adminRouter;

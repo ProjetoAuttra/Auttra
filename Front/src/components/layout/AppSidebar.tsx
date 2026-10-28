@@ -293,8 +293,8 @@ export default function AppSidebar({
       <Toolbar
         sx={{
           flexShrink: 0,
-          px: isCollapsed ? 0 : 2.5,
-          justifyContent: isCollapsed ? 'center' : 'flex-start',
+          px: 0,
+          justifyContent: 'center',
         }}
       >
         <BrandLogoPlaceholder compact={isCollapsed} />

@@ -17,6 +17,11 @@ model usuario {
   status   status_usuario @default(ativo)
   foto_url String?
 
+  // Dados pessoais do proprietario da oficina (gestor), preenchidos pelo painel admin.
+  cpf             String?
+  telefone        String?
+  data_nascimento DateTime? @db.Date
+
   totp_secret    String?
   failed_login_attempts Int      @default(0)
   locked_until          DateTime?
@@ -100,13 +105,17 @@ model oficina {
   id                Int     @id @default(autoincrement())
   gestor_usuario_id Int?    @unique
   nome              String  @unique
+  razao_social      String?
   cnpj              String? @unique
+  inscricao_estadual String?
   logradouro        String
   numero            String
   complemento       String?
+  bairro            String?
   cep               String
   cidade_id         Int
   telefone          String?
+  whatsapp          String?
   email             String? @unique
   logo_url          String?
   cor_principal     String?

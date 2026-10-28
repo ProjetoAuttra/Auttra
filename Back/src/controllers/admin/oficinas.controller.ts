@@ -3,7 +3,7 @@ import { OficinasAdminService } from "../../services/admin/oficinas.service.js";
 import { AdminAuditService } from "../../services/admin/audit.service.js";
 import { PasswordResetService } from "../../services/passwordReset.service.js";
 import { SugestoesService } from "../../services/sugestoes.service.js";
-import { criarOficinaSchema, primeiroErro, updateOficinaSchema } from "../../schemas/admin/oficinas.schema.js";
+import { criarOficinaSchema, primeiroErro, proprietarioSchema, updateOficinaSchema } from "../../schemas/admin/oficinas.schema.js";
 
 // Violacao de campo unico (nome, CNPJ ou e-mail ja usados por outra oficina) vira mensagem legivel.
 function mensagemDuplicado(err: any) {
@@ -48,6 +48,35 @@ export const OficinasAdminController = {
     } catch (err: any) {
       if (err.message === "Oficina não encontrada.") return res.status(404).json({ message: err.message });
       console.error("Erro ao buscar oficina:", err);
+      return res.status(500).json({ message: "Erro interno." });
+    }
+  },
+
+  async atualizarProprietario(req: Request, res: Response) {
+    const parsed = proprietarioSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: primeiroErro(parsed.error), issues: parsed.error.flatten() });
+    }
+
+    try {
+      const id = Number(req.params.id);
+      const usuario = await OficinasAdminService.atualizarProprietario(id, parsed.data);
+      await AdminAuditService.log({
+        req,
+        oficinaId: id,
+        action: "oficina.proprietario_update",
+        entityType: "oficina",
+        entityId: id,
+        message: `Proprietário atualizado: ${usuario.nome}.`,
+        metadata: { usuario_id: usuario.id },
+      });
+      return res.json(usuario);
+    } catch (err: any) {
+      if (err.message?.includes("Oficina não encontrada")) return res.status(404).json({ message: err.message });
+      if (err.message?.includes("Proprietário inválido") || err.message?.includes("em uso")) {
+        return res.status(400).json({ message: err.message });
+      }
+      console.error("Erro ao atualizar proprietário:", err);
       return res.status(500).json({ message: "Erro interno." });
     }
   },
@@ -131,11 +160,11 @@ export const OficinasAdminController = {
       });
       return res.json(oficina);
     } catch (err: any) {
-      // Antes das checagens por texto: a mensagem do Prisma traz trechos do codigo-fonte (que citam "Gestor inválido").
+      // Antes das checagens por texto: a mensagem do Prisma traz trechos do codigo-fonte (que citam "Proprietário inválido").
       const duplicado = mensagemDuplicado(err);
       if (duplicado) return res.status(400).json({ message: duplicado });
       if (err.message?.includes("Oficina não encontrada")) return res.status(404).json({ message: err.message });
-      if (err.message?.includes("Gestor inválido") || err.message?.includes("Cidade e UF")) return res.status(400).json({ message: err.message });
+      if (err.message?.includes("Proprietário inválido") || err.message?.includes("Cidade e UF")) return res.status(400).json({ message: err.message });
       console.error("Erro ao atualizar oficina:", err);
       return res.status(500).json({ message: "Erro interno." });
     }
