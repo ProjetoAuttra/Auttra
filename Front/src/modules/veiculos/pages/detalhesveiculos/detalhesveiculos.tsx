@@ -18,10 +18,8 @@ import LocalGasStationRoundedIcon from "@mui/icons-material/LocalGasStationRound
 import SpeedRoundedIcon from "@mui/icons-material/SpeedRounded";
 import { obterVeiculoDetalhes } from "./apidetalhes/api";
 import VeiculoDialog, { type VeiculoForm } from "../../dialog";
-import OrdemServicoDialog from "../../../tarefas/dialog";
-import { criarOrdem } from "../../../tarefas/api/api";
+import { paths } from "../../../../routes/paths";
 import api from "../../../../api/api";
-import { useToast } from "../../../../context/ToastContext";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -151,13 +149,11 @@ function HeaderSkeleton() {
 export default function VeiculoDetalhesPage() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { success, error } = useToast();
 
   const [tab, setTab] = React.useState(0);
   const [veiculo, setVeiculo] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [openEdit, setOpenEdit] = React.useState(false);
-  const [openOrdem, setOpenOrdem] = React.useState(false);
 
   React.useEffect(() => {
     (async () => {
@@ -182,21 +178,6 @@ export default function VeiculoDetalhesPage() {
     }
   };
 
-  const handleCreateOrdem = async (data: any) => {
-    try {
-      const nova = await criarOrdem({
-        ...data,
-        cliente_id: Number(veiculo.cliente_id),
-        veiculo_id: Number(veiculo.id),
-      });
-      setOpenOrdem(false);
-      success("Ordem de serviço criada!");
-      nav(`/ordens/${nova.id}`);
-    } catch (err) {
-      console.error("Erro ao criar ordem:", err);
-      error("Não foi possível criar a ordem de serviço.");
-    }
-  };
 
   const countOrdens = veiculo?.ordens?.length ?? 0;
 
@@ -348,7 +329,7 @@ export default function VeiculoDetalhesPage() {
                 ))}
               </Stack>
             ) : (
-              tab === 0 && <VeiculoOrdens ordens={veiculo?.ordens ?? []} onAdd={() => setOpenOrdem(true)} />
+              tab === 0 && <VeiculoOrdens ordens={veiculo?.ordens ?? []} onAdd={() => nav(paths.ordemNova, { state: { cliente_id: Number(veiculo.cliente_id), cliente: veiculo.cliente ? { id: Number(veiculo.cliente_id), nome: veiculo.cliente.nome } : undefined, veiculo_id: Number(veiculo.id) } })} />
             )}
           </Box>
         </Box>
@@ -379,20 +360,6 @@ export default function VeiculoDetalhesPage() {
         />
       )}
 
-      {veiculo && (
-        <OrdemServicoDialog
-          open={openOrdem}
-          mode="create"
-          initial={{
-            cliente_id: Number(veiculo.cliente_id),
-            cliente: veiculo.cliente ? { id: Number(veiculo.cliente_id), nome: veiculo.cliente.nome } : undefined,
-            veiculo_id: Number(veiculo.id),
-            veiculo: { id: Number(veiculo.id), marca: veiculo.marca, modelo: veiculo.modelo, placa: veiculo.placa },
-          }}
-          onClose={() => setOpenOrdem(false)}
-          onSubmit={handleCreateOrdem}
-        />
-      )}
     </>
   );
 }

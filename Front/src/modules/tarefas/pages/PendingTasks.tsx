@@ -10,13 +10,13 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
+import { paths } from "../../../routes/paths";
 import { useNavigate, useSearchParams } from "react-router-dom"; // ← useSearchParams adicionado
 import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
 import api from "../../../api/api";
-import { excluirOrdem, criarOrdem, atualizarOrdem, mudarStatusOrdem } from "../api/api";
+import { excluirOrdem, mudarStatusOrdem } from "../api/api";
 import { useListaPaginada } from "../../../hooks/useListaPaginada";
-import OrdemDialog from "../dialog";
 import TableSkeleton from "../../../components/common/TableSkeleton";
 import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationOS } from "../../../components/common/Illustrations";
@@ -36,7 +36,6 @@ type Ordem = {
   pagamentos?: { status: string }[];
 };
 
-type OrdemPayload = Record<string, unknown>;
 
 // ─── Componente ─────────────────────────────────────────────────────────────
 
@@ -50,9 +49,6 @@ export default function OrdensPage() {
   const [filtroFuncionario, setFiltroFuncionario] = React.useState("todos");
   const [filtroData, setFiltroData] = React.useState("");
   const [showFilters, setShowFilters] = React.useState(false);
-  const [openDialog, setOpenDialog] = React.useState(false);
-  const [mode, setMode] = React.useState<"create" | "edit">("create");
-  const [current, setCurrent] = React.useState<Ordem | null>(null);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [menuId, setMenuId] = React.useState<number | null>(null);
 
@@ -85,8 +81,8 @@ export default function OrdensPage() {
     });
   }, []);
 
-  const handleCreate = () => { setMode("create"); setCurrent(null); setOpenDialog(true); };
-  const handleEdit = (os: Ordem) => { setMode("edit"); setCurrent(os); setOpenDialog(true); };
+  const handleCreate = () => navigate(paths.ordemNova);
+  const handleEdit = (os: Ordem) => navigate(`/ordens/${os.id}/editar`);
   const handleMenuOpen = (e: React.MouseEvent<HTMLButtonElement>, id: number) => { setAnchorEl(e.currentTarget); setMenuId(id); };
   const handleMenuClose = () => { setAnchorEl(null); setMenuId(null); };
 
@@ -149,20 +145,6 @@ export default function OrdensPage() {
     }
   };
 
-  const handleSubmit = async (data: OrdemPayload) => {
-    try {
-      if (mode === "create") {
-        await criarOrdem(data);
-        recarregar();
-        success("Ordem de serviço criada!");
-      } else if (current) {
-        await atualizarOrdem(current.id, data);
-        recarregar();
-        success("Ordem atualizada com sucesso!");
-      }
-      setOpenDialog(false);
-    } catch { error("Não foi possível salvar a ordem."); }
-  };
 
   // ── Filtros ──
   const hasActiveFilters = filtroStatus !== "todos" || filtroFuncionario !== "todos" || !!filtroData;
@@ -375,13 +357,6 @@ export default function OrdensPage() {
         <MenuItem onClick={handleDelete} sx={{ color: "error.main" }}>Excluir</MenuItem>
       </Menu>
 
-      <OrdemDialog
-        open={openDialog}
-        mode={mode}
-        initial={current}
-        onClose={() => setOpenDialog(false)}
-        onSubmit={handleSubmit}
-      />
     </Box>
   );
 }

@@ -36,6 +36,8 @@ export const paths = {
     estoqueImportarXml: '/estoque/importar-xml',
     fornecedores: '/fornecedores',
     servicos: '/servicos',
+    ordemNova: '/ordens/nova',
+    ordemEditar: '/ordens/:id/editar',
     ordemServicoDetalhes: '/ordens/:id',
     recursosAdicionais: '/recursos-adicionais',
   } as const;
