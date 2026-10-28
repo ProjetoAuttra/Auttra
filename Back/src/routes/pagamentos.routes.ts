@@ -1,11 +1,18 @@
 import { Router } from "express";
 import { PagamentosService } from "../services/pagamentos.service.js";
 import { getRequiredOfficeId, requirePermission } from "../middlewares/ensureAuth.js";
+import { FinanceiroConfigService } from "../services/configuracoesOperacionais.service.js";
 import { PdfHtmlService } from "../services/pdfservice.service.js";
 import { sendServiceError } from "../utils/httpError.js";
 import { parsePaginacao, responderLista, textoQuery } from "../utils/paginacao.js";
 
 const router = Router();
+
+/** Indica ao front se deve abrir o recibo logo após a baixa: recebimento já quitado e opção "emitir recibos" ligada. */
+async function comFlagRecibo<T extends { tipo?: string | null; status?: string | null }>(result: T, oficinaId: number) {
+  const emitir = result.tipo === "receber" && result.status === "pago" && (await FinanceiroConfigService.get(oficinaId)).emitirRecibos;
+  return { ...result, emitir_recibo: emitir };
+}
 
 router.get("/", async (req, res) => {
   try {
@@ -87,10 +94,9 @@ router.post("/", async (req, res) => {
 
 router.post("/:id/pagar", async (req, res) => {
   try {
-    const result = await PagamentosService.pagar(
-      Number(req.params.id), req.body, getRequiredOfficeId(req), req.user?.id
-    );
-    res.json(result);
+    const oficinaId = getRequiredOfficeId(req);
+    const result = await PagamentosService.pagar(Number(req.params.id), req.body, oficinaId, req.user?.id);
+    res.json(await comFlagRecibo(result, oficinaId));
   } catch (err) {
     sendServiceError(res, err, "pagamentos");
   }
@@ -131,10 +137,9 @@ router.post("/:id/renegociar", async (req, res) => {
 
 router.post("/:id/pagamento-parcial", async (req, res) => {
   try {
-    const result = await PagamentosService.pagamentoParcial(
-      Number(req.params.id), req.body, getRequiredOfficeId(req), req.user?.id
-    );
-    res.json(result);
+    const oficinaId = getRequiredOfficeId(req);
+    const result = await PagamentosService.pagamentoParcial(Number(req.params.id), req.body, oficinaId, req.user?.id);
+    res.json(await comFlagRecibo(result, oficinaId));
   } catch (err) {
     sendServiceError(res, err, "pagamentos");
   }
