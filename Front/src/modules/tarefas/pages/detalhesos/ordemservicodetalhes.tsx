@@ -16,8 +16,7 @@ import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../../../api/api";
-import OrdemServicoDialog from "../../dialog";
-import { atualizarOrdem, mudarStatusOrdem } from "../../api/api";
+import { mudarStatusOrdem } from "../../api/api";
 import { STATUS_CONFIG, VALID_TRANSITIONS, type OrdemStatus } from "../../statusConfig";
 import { useToast } from "../../../../context/ToastContext";
 import { useConfirm } from "../../../../context/ConfirmContext";
@@ -29,7 +28,6 @@ export default function OrdemServicoDetalhes() {
   const confirm = useConfirm();
   const [ordem, setOrdem] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
-  const [openEdit, setOpenEdit] = React.useState(false);
   const [printing, setPrinting] = React.useState(false);
   const [mudandoStatus, setMudandoStatus] = React.useState(false);
 
@@ -303,7 +301,7 @@ export default function OrdemServicoDetalhes() {
         <Button
           variant="contained"
           color="primary"
-          onClick={() => setOpenEdit(true)}
+          onClick={() => nav(`/ordens/${id}/editar`)}
         >
           Editar OS
         </Button>
@@ -347,22 +345,6 @@ export default function OrdemServicoDetalhes() {
         )}
       </Stack>
 
-      <OrdemServicoDialog
-        open={openEdit}
-        mode="edit"
-        initial={ordem}
-        onClose={() => setOpenEdit(false)}
-        onSubmit={async (payload) => {
-          try {
-            const atualizada = await atualizarOrdem(Number(id), payload);
-            setOrdem(atualizada);
-            setOpenEdit(false);
-            success("OS atualizada com sucesso!");
-          } catch {
-            error("Não foi possível atualizar a OS.");
-          }
-        }}
-      />
     </Box>
   );
 }

@@ -20,8 +20,7 @@ import { obterClienteDetalhes } from "./apidetalhes/api";
 import ClientDialog, { type Client, type ClientForm } from "../../dialog";
 import VeiculoDialog, { type VeiculoForm } from "../../../veiculos/dialog";
 import { criarVeiculo } from "../../../veiculos/api/api";
-import OrdemServicoDialog from "../../../tarefas/dialog";
-import { criarOrdem } from "../../../tarefas/api/api";
+import { paths } from "../../../../routes/paths";
 import api from "../../../../api/api";
 import { useAuth } from "../../../../context/AuthContext";
 import { useToast } from "../../../../context/ToastContext";
@@ -72,7 +71,6 @@ export default function ClienteDetalhesPage() {
   const [openWhats, setOpenWhats] = React.useState(false);
   const [openEdit, setOpenEdit] = React.useState(false);
   const [openVeiculo, setOpenVeiculo] = React.useState(false);
-  const [openOrdem, setOpenOrdem] = React.useState(false);
   const [mensagem, setMensagem] = React.useState("");
   const [modelo, setModelo] = React.useState("");
 
@@ -132,17 +130,6 @@ export default function ClienteDetalhesPage() {
     }
   };
 
-  const handleCreateOrdem = async (data: any) => {
-    try {
-      const nova = await criarOrdem({ ...data, cliente_id: Number(cliente.id) });
-      setOpenOrdem(false);
-      success("Ordem de serviço criada!");
-      nav(`/ordens/${nova.id}`);
-    } catch (err) {
-      console.error("Erro ao criar ordem:", err);
-      error("Não foi possível criar a ordem de serviço.");
-    }
-  };
 
   const enviarWhats = () => {
     const numero = cliente?.telefone?.replace(/[^0-9]/g, "");
@@ -302,7 +289,7 @@ export default function ClienteDetalhesPage() {
             ) : (
               <>
                 {tab === 0 && <ClienteVeiculos veiculos={cliente?.veiculos ?? []} onAdd={() => setOpenVeiculo(true)} />}
-                {tab === 1 && <ClienteOrdens ordens={cliente?.ordens ?? []} onAdd={() => setOpenOrdem(true)} />}
+                {tab === 1 && <ClienteOrdens ordens={cliente?.ordens ?? []} onAdd={() => nav(paths.ordemNova, { state: { cliente_id: Number(cliente.id), cliente: { id: Number(cliente.id), nome: cliente.nome } } })} />}
                 {tab === 2 && <ClientePagamentos pagamentos={cliente?.pagamentos ?? []} clienteId={Number(cliente?.id)} clienteNome={cliente?.nome} oficinaId={user?.oficina_id ?? 0} />}
               </>
             )}
@@ -381,15 +368,6 @@ export default function ClienteDetalhesPage() {
         />
       )}
 
-      {cliente && (
-        <OrdemServicoDialog
-          open={openOrdem}
-          mode="create"
-          initial={{ cliente_id: Number(cliente.id), cliente: { id: Number(cliente.id), nome: cliente.nome } }}
-          onClose={() => setOpenOrdem(false)}
-          onSubmit={handleCreateOrdem}
-        />
-      )}
     </>
   );
 }

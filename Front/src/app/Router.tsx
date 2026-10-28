@@ -38,6 +38,7 @@ import Estoque from '../modules/estoque/pages/estoque';
 import ImportarXml from '../modules/estoque/pages/ImportarXml';
 import Fornecedores from '../modules/fornecedores/pages/fornecedores';
 import Servicos from '../modules/servicos/pages/servicos';
+import FormOrdemServico from '../modules/tarefas/pages/formordem/formordem';
 import OrdemServicoDetalhes from '../modules/tarefas/pages/detalhesos/ordemservicodetalhes';
 import type { AccessModule } from '../permissions/accessProfiles';
 import RecursosAdicionais from '../modules/recursos-adicionais/pages/RecursosAdicionais';
@@ -104,6 +105,8 @@ export default function Router() {
         <Route path={paths.estoque} element={<ModuleRoute module="estoque"><Estoque /></ModuleRoute>} />
         <Route path={paths.estoqueImportarXml} element={<ModuleRoute module="estoque"><ImportarXml /></ModuleRoute>} />
         <Route path={paths.fornecedores} element={<ModuleRoute module="fornecedores"><Fornecedores /></ModuleRoute>} />
+        <Route path={paths.ordemNova} element={<ModuleRoute module="ordens"><FormOrdemServico /></ModuleRoute>} />
+        <Route path={paths.ordemEditar} element={<ModuleRoute module="ordens"><FormOrdemServico /></ModuleRoute>} />
         <Route path={paths.ordemServicoDetalhes} element={<ModuleRoute module="ordens"><OrdemServicoDetalhes /></ModuleRoute>} />
         <Route element={<SettingsLayout />}>
           <Route path={paths.configuracoes} element={<ModuleRoute module="configuracoes"><Configuracoes /></ModuleRoute>} />

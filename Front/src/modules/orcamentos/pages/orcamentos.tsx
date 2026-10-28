@@ -20,7 +20,6 @@ import { useNavigate } from "react-router-dom";
 
 import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
-import OrdemServicoDialog from "../../tarefas/dialog";
 import { paths } from "../../../routes/paths";
 import api from "../../../api/api";
 import ListTableContainer from "../../../components/common/ListTableContainer";
@@ -71,9 +70,6 @@ export default function OrcamentosPage() {
 
   const [query, setQuery] = React.useState("");
   const [filtroStatus, setFiltroStatus] = React.useState<string>("analise");
-  const [osDialogOpen, setOsDialogOpen] = React.useState(false);
-  const [osInitial, setOsInitial] = React.useState<any>(null);
-  const [convertingOrcamento, setConvertingOrcamento] = React.useState<Orcamento | null>(null);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [selectedId, setSelectedId] = React.useState<number | null>(null);
 
@@ -170,39 +166,17 @@ export default function OrcamentosPage() {
           },
         ];
 
-    setConvertingOrcamento(orcamento);
-    setOsInitial({
-      cliente_id: orcamento.cliente.id,
-      veiculo_id: orcamento.veiculo.id,
-      funcionario_id: 0,
-      observacoes: `Convertido do orçamento #${orcamento.id}: ${orcamento.descricao}`,
-      itens: itensOrcamento,
+    nav(paths.ordemNova, {
+      state: {
+        cliente_id: orcamento.cliente.id,
+        cliente: { id: orcamento.cliente.id, nome: orcamento.cliente.nome },
+        veiculo_id: orcamento.veiculo.id,
+        funcionario_id: 0,
+        observacoes: `Convertido do orçamento #${orcamento.id}: ${orcamento.descricao}`,
+        itens: itensOrcamento,
+        orcamento_id: orcamento.id,
+      },
     });
-    setOsDialogOpen(true);
-  };
-
-  const criarOSConvertida = async (payload: any) => {
-    if (!convertingOrcamento) return;
-    try {
-      const novaOS = await api.post("/ordens", payload);
-      await api.patch(`/orcamentos/${convertingOrcamento.id}/status`, { status: "aprovado" });
-      recarregar();
-      setOsDialogOpen(false);
-      setOsInitial(null);
-      setConvertingOrcamento(null);
-
-      success(`O.S. criada com sucesso para ${convertingOrcamento.cliente?.nome}!`);
-      nav(`/ordens/${novaOS.data.id}`);
-    } catch (err) {
-      console.error("Erro ao converter em OS:", err);
-      error("Não foi possível converter o orçamento em O.S.");
-    }
-  };
-
-  const handleCloseOSDialog = () => {
-    setOsDialogOpen(false);
-    setOsInitial(null);
-    setConvertingOrcamento(null);
   };
 
   // ── Enviar WhatsApp com PDF ──
@@ -477,13 +451,6 @@ export default function OrcamentosPage() {
         </MenuItem>
       </Menu>
 
-      <OrdemServicoDialog
-        open={osDialogOpen}
-        mode="create"
-        initial={osInitial}
-        onClose={handleCloseOSDialog}
-        onSubmit={criarOSConvertida}
-      />
     </Box>
   );
 }

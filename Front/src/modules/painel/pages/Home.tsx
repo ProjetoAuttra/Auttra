@@ -8,7 +8,6 @@ import DirectionsCarRoundedIcon from "@mui/icons-material/DirectionsCarRounded";
 import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
 import RequestQuoteRoundedIcon from "@mui/icons-material/RequestQuoteRounded";
 
-import DialogAgendamento from "../../tarefas/dialog/";
 import DialogCarro from "../../veiculos/dialog/";
 import DialogCliente from "../../clientes/dialog/";
 import { useAuth } from "../../../context/AuthContext";
@@ -118,7 +117,6 @@ export default function Home() {
   const [loading, setLoading] = React.useState(true);
   const [erro,    setErro]    = React.useState(false);
 
-  const [openOS,      setOpenOS]      = React.useState(false);
   const [openCliente, setOpenCliente] = React.useState(false);
   const [openVeiculo, setOpenVeiculo] = React.useState(false);
   const [menuEl,      setMenuEl]      = React.useState<HTMLElement | null>(null);
@@ -140,7 +138,7 @@ export default function Home() {
   }, []);
 
   const novos = [
-    { icon: <AssignmentRoundedIcon fontSize="small" />,    label: "Nova O.S.",         onClick: () => setOpenOS(true) },
+    { icon: <AssignmentRoundedIcon fontSize="small" />,    label: "Nova O.S.",         onClick: () => navigate(paths.ordemNova) },
     { icon: <RequestQuoteRoundedIcon fontSize="small" />,  label: "Novo orçamento",    onClick: () => navigate(paths.orcamentoNovo) },
     { icon: <PersonAddRoundedIcon fontSize="small" />,     label: "Cadastrar cliente", onClick: () => setOpenCliente(true) },
     { icon: <DirectionsCarRoundedIcon fontSize="small" />, label: "Cadastrar veículo", onClick: () => setOpenVeiculo(true) },
@@ -294,14 +292,6 @@ export default function Home() {
       </Stack>
 
       {/* Dialogs */}
-      <DialogAgendamento
-        open={openOS}
-        onClose={() => setOpenOS(false)}
-        onSubmit={async (data: any) => {
-          try { await api.post("/ordens", data); } catch (err) { console.error(err); }
-          setOpenOS(false);
-        }}
-      />
       <DialogCarro
         open={openVeiculo}
         mode="create"
