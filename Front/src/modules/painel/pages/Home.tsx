@@ -227,9 +227,12 @@ export default function Home() {
                 <Stack spacing={4} justifyContent="center">
                   {financeiroCards?.map((f) => (
                     <Box key={f.label} component="button" onClick={() => navigate(f.to)}
-                      sx={{ textAlign: "left", border: 0, background: "none", p: 0, cursor: "pointer", fontFamily: "inherit" }}>
-                      <Typography sx={{ fontSize: 13, fontWeight: 600, color: MUTED }}>{f.label}</Typography>
-                      <Typography sx={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", color: brand.primary, lineHeight: 1.2 }}>{brl(f.valor)}</Typography>
+                      sx={{ textAlign: "left", border: 0, background: "none", p: 0, cursor: "pointer", fontFamily: "inherit", "&:hover .seta": { transform: "translateX(3px)", color: brand.primary }, "&:hover .valor": { textDecoration: "underline" } }}>
+                      <Stack direction="row" alignItems="center" spacing={0.25}>
+                        <Typography sx={{ fontSize: 13, fontWeight: 600, color: MUTED }}>{f.label}</Typography>
+                        <ChevronRightRoundedIcon className="seta" sx={{ fontSize: 18, color: MUTED, transition: "transform 0.15s, color 0.15s" }} />
+                      </Stack>
+                      <Typography className="valor" sx={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", color: brand.primary, lineHeight: 1.2, textDecorationThickness: "2px", textUnderlineOffset: 4 }}>{brl(f.valor)}</Typography>
                       <Typography sx={{ fontSize: 13, color: MUTED }}>{f.detalhe}</Typography>
                     </Box>
                   ))}
