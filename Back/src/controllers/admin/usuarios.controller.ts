@@ -51,12 +51,14 @@ export const UsuariosAdminController = {
         action: "usuario.password_reset",
         entityType: "usuario",
         entityId: id,
-        message: "Senha redefinida pelo admin.",
+        message: "Link de redefinição de senha gerado pelo admin.",
+        metadata: { email_sent: resultado.email_sent },
       });
       return res.json({
-        message: "Senha redefinida com sucesso.",
         email: resultado.email,
-        senha: resultado.senha,
+        reset_url: resultado.reset_url,
+        email_sent: resultado.email_sent,
+        expires_at: resultado.expires_at,
       });
     } catch (err: any) {
       if (err.message.includes("não encontrado")) {

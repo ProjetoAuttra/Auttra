@@ -109,9 +109,7 @@ model oficina {
   email             String? @unique
   logo_url          String?
   cor_principal     String?
-  status_admin      status_oficina_admin @default(ativa)
   notas_internas    String?
-  implantacao_checklist Json @default("{\"dados_completos\":false,\"gestor_criado\":false,\"perfis_criados\":false,\"primeiro_acesso\":false,\"logo_cadastrada\":false,\"usuarios_convidados\":false}")
   recursos_adicionais Json @default("{\"agenda\":true,\"estoque\":true,\"fornecedores\":true}")
   notificacoes_config Json @default("{\"agenda\":{\"ativo\":true,\"diasAntecedencia\":1},\"financeiro\":{\"ativo\":true,\"diasVencimento\":3},\"estoque\":{\"ativo\":true,\"limiteBaixo\":3},\"ordens\":{\"ativo\":true,\"diasParada\":3,\"diasCritico\":7},\"orcamentos\":{\"ativo\":true,\"diasPendente\":2}}")
   agenda_config Json @default("{\"horarioInicio\":\"08:00\",\"horarioFim\":\"18:00\",\"dias\":\"Segunda a Sábado\",\"tempoMedio\":\"60 minutos\"}")
@@ -509,13 +507,6 @@ enum status_usuario {
   ativo
   inativo
   bloqueado
-}
-
-enum status_oficina_admin {
-  implantacao
-  ativa
-  suspensa
-  cancelada
 }
 
 enum tipo_pagamento {

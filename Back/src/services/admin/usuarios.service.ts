@@ -1,7 +1,5 @@
-import crypto from "node:crypto";
-import bcrypt from "bcrypt";
 import { prisma } from "../../prisma/client.js";
-import { invalidarTokens, limparCacheSessao } from "../sessao.service.js";
+import { PasswordResetService } from "../passwordReset.service.js";
 
 export const UsuariosAdminService = {
   async listar(oficina_id?: number) {
@@ -43,18 +41,11 @@ export const UsuariosAdminService = {
   async resetSenha(id: number) {
     const usuario = await prisma.usuario.findFirst({
       where: { id, deleted_at: null, tipo: { not: "sistema" } },
-      select: { id: true, email: true },
+      select: { id: true },
     });
     if (!usuario) throw new Error("Usuário não encontrado.");
 
-    const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-    const bytes = crypto.randomBytes(8);
-    const senha = Array.from(bytes, (b) => CHARS[b % CHARS.length]).join("");
-
-    const senhaHash = await bcrypt.hash(senha, 10);
-    await prisma.usuario.update({ where: { id }, data: { senha: senhaHash, ...invalidarTokens } });
-    limparCacheSessao(id);
-
-    return { email: usuario.email, senha };
+    // A senha atual vale ate o usuario usar o link; o proprio reset encerra as sessoes abertas.
+    return PasswordResetService.createResetForUser(id);
   },
 };

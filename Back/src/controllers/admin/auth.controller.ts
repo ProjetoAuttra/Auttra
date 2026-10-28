@@ -5,6 +5,9 @@ import { generateSecret, verifySync as totpVerify, generateURI } from "otplib";
 import { prisma } from "../../prisma/client.js";
 import { getJwtSecret } from "../../config/env.js";
 import { AdminAuditService } from "../../services/admin/audit.service.js";
+import { clearAdminCookie, setAdminCookie } from "../../utils/adminCookie.js";
+import { SENHA_FORTE_MENSAGEM, senhaForte } from "../../utils/senhaForte.js";
+import { invalidarTokens, limparCacheSessao } from "../../services/sessao.service.js";
 
 const APP_NAME = "Auttra Admin";
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -40,7 +43,8 @@ async function registerFailedLogin(usuario: { id: number; failed_login_attempts?
   return lockedUntil;
 }
 
-async function completeAdminLogin(req: Request, usuario: { id: number; email: string; nome: string; tipo: string }) {
+// Grava a sessao no cookie httpOnly e devolve so os dados publicos do usuario.
+async function completeAdminLogin(req: Request, res: Response, usuario: { id: number; email: string; nome: string; tipo: string }) {
   const updated = await prisma.usuario.update({
     where: { id: usuario.id },
     data: {
@@ -62,7 +66,9 @@ async function completeAdminLogin(req: Request, usuario: { id: number; email: st
     message: "Login administrativo concluído.",
   });
 
-  return signAdminToken(updated as any);
+  const { token, usuario: publico } = signAdminToken(updated as any);
+  setAdminCookie(res, token);
+  return { usuario: publico };
 }
 
 export const AdminAuthController = {
@@ -173,7 +179,7 @@ export const AdminAuthController = {
         return res.status(401).json({ message: "Código inválido ou expirado." });
       }
 
-      return res.json(await completeAdminLogin(req, usuario));
+      return res.json(await completeAdminLogin(req, res, usuario));
     } catch (err) {
       console.error("Erro ao verificar 2FA:", err);
       return res.status(500).json({ message: "Erro interno." });
@@ -229,7 +235,7 @@ export const AdminAuthController = {
         message: "2FA administrativo configurado.",
       });
 
-      return res.json(await completeAdminLogin(req, usuario));
+      return res.json(await completeAdminLogin(req, res, usuario));
     } catch (err) {
       console.error("Erro ao completar setup de 2FA:", err);
       return res.status(500).json({ message: "Erro interno." });
@@ -368,15 +374,19 @@ export const AdminAuthController = {
       const senhaOk = await bcrypt.compare(senha_atual, usuario.senha);
       if (!senhaOk) return res.status(400).json({ message: "Senha atual incorreta." });
 
-      const complexidade = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
-      if (!complexidade.test(nova_senha)) {
-        return res.status(400).json({
-          message: "A nova senha deve ter no mínimo 8 caracteres com maiúscula, minúscula, número e caractere especial.",
-        });
+      if (!senhaForte(nova_senha)) {
+        return res.status(400).json({ message: SENHA_FORTE_MENSAGEM });
       }
 
+      // Invalida todas as sessoes (outros navegadores) e emite um cookie novo para a sessao atual.
       const hash = await bcrypt.hash(nova_senha, 10);
-      await (prisma.usuario as any).update({ where: { id: userId }, data: { senha: hash } });
+      const atualizado = await prisma.usuario.update({
+        where: { id: userId },
+        data: { senha: hash, ...invalidarTokens },
+        select: { id: true, email: true, nome: true, tipo: true, last_login_at: true, token_version: true },
+      });
+      limparCacheSessao(userId);
+      setAdminCookie(res, signAdminToken(atualizado).token);
 
       await AdminAuditService.log({
         req,
@@ -391,6 +401,11 @@ export const AdminAuthController = {
       console.error("Erro ao alterar senha:", err);
       return res.status(500).json({ message: "Erro interno." });
     }
+  },
+
+  logout(_req: Request, res: Response) {
+    clearAdminCookie(res);
+    return res.status(204).send();
   },
 
   async me(req: Request, res: Response) {

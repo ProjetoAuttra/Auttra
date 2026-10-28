@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { OficinasAdminService } from "../../services/admin/oficinas.service.js";
 import { AdminAuditService } from "../../services/admin/audit.service.js";
+import { PasswordResetService } from "../../services/passwordReset.service.js";
 import { criarOficinaSchema, updateOficinaSchema } from "../../schemas/admin/oficinas.schema.js";
 
 function queryNumber(value: unknown) {
@@ -59,6 +60,10 @@ export const OficinasAdminController = {
 
     try {
       const resultado = await OficinasAdminService.criarOficinaCompleta(parsed.data);
+      // Fora da transacao: falha no envio do e-mail nao deve desfazer a criacao da oficina.
+      const convite = resultado.gestorNovo
+        ? await PasswordResetService.createResetForUser(resultado.usuario.id, { convite: true })
+        : null;
       await AdminAuditService.log({
         req,
         oficinaId: resultado.oficina.id,
@@ -71,6 +76,9 @@ export const OficinasAdminController = {
       return res.status(201).json({
         oficina: { id: resultado.oficina.id, nome: resultado.oficina.nome },
         usuario: { id: resultado.usuario.id, email: resultado.usuario.email },
+        convite: convite
+          ? { reset_url: convite.reset_url, email_sent: convite.email_sent, expires_at: convite.expires_at }
+          : null,
       });
     } catch (err: any) {
       console.error("Erro ao criar oficina:", err);

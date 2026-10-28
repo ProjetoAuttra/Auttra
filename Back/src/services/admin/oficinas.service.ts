@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import bcrypt from "bcrypt";
 import { prisma } from "../../prisma/client.js";
 
@@ -101,13 +102,12 @@ export type CriarOficinaInput = {
   gestor: {
     nome: string;
     email: string;
-    senha: string;
   };
 };
 
 export type ListarOficinasParams = {
   q?: string;
-  status?: "ativas" | "inativas" | "todas" | "implantacao" | "ativa" | "suspensa" | "cancelada";
+  status?: "ativas" | "inativas" | "todas";
   cidade?: string;
   gestor?: string;
   page?: number;
@@ -137,7 +137,6 @@ function mapOficina(o: any) {
     total_usuarios: o._count?.acessos ?? 0,
     total_os_abertas: o._count?.ordens_servico ?? 0,
     criada_em: o.created_at,
-    status_admin: o.status_admin,
     deleted_at: o.deleted_at ?? null,
   };
 }
@@ -150,10 +149,6 @@ export const OficinasAdminService = {
 
     if (!params.status || params.status === "ativas") where.deleted_at = null;
     if (params.status === "inativas") where.deleted_at = { not: null };
-    if (params.status && ["implantacao", "ativa", "suspensa", "cancelada"].includes(params.status)) {
-      where.deleted_at = null;
-      where.status_admin = params.status;
-    }
 
     if (params.q) {
       where.OR = [
@@ -251,9 +246,8 @@ export const OficinasAdminService = {
           cidade_id: cidade.id,
           telefone: oficinaData.telefone ?? null,
           email: oficinaData.email ?? null,
-          status_admin: "implantacao",
           deleted_at: null,
-        } as any,
+        },
         create: {
           nome: oficinaData.nome,
           cnpj: oficinaData.cnpj || null,
@@ -264,25 +258,26 @@ export const OficinasAdminService = {
           cidade_id: cidade.id,
           telefone: oficinaData.telefone ?? null,
           email: oficinaData.email ?? null,
-          status_admin: "implantacao",
-        } as any,
+        },
       });
 
       const perfil = await ensureProfiles(tx, oficina.id);
-      const senhaHash = await bcrypt.hash(gestor.senha, 10);
+      const email = gestor.email.toLowerCase();
+      const gestorNovo = !(await tx.usuario.findUnique({ where: { email }, select: { id: true } }));
+      // Gestor novo recebe senha aleatoria descartavel e define a propria pelo link de convite.
+      const senhaHash = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10);
 
       const usuario = await tx.usuario.upsert({
-        where: { email: gestor.email.toLowerCase() },
+        where: { email },
         update: {
           nome: gestor.nome,
-          senha: senhaHash,
           tipo: "gestoroficina",
           status: "ativo",
           deleted_at: null,
         },
         create: {
           nome: gestor.nome,
-          email: gestor.email.toLowerCase(),
+          email,
           senha: senhaHash,
           tipo: "gestoroficina",
           status: "ativo",
@@ -297,20 +292,10 @@ export const OficinasAdminService = {
 
       await tx.oficina.update({
         where: { id: oficina.id },
-        data: {
-          gestor_usuario_id: usuario.id,
-          implantacao_checklist: {
-            dados_completos: true,
-            gestor_criado: true,
-            perfis_criados: true,
-            primeiro_acesso: false,
-            logo_cadastrada: false,
-            usuarios_convidados: false,
-          },
-        } as any,
+        data: { gestor_usuario_id: usuario.id },
       });
 
-      return { oficina, usuario };
+      return { oficina, usuario, gestorNovo };
     });
   },
 
@@ -326,9 +311,7 @@ export const OficinasAdminService = {
     email: string | null;
     complemento: string | null;
     gestor_usuario_id: number | null;
-    status_admin: "implantacao" | "ativa" | "suspensa" | "cancelada";
     notas_internas: string | null;
-    implantacao_checklist: Record<string, boolean>;
   }>) {
     const oficina = await prisma.oficina.findFirst({ where: { id } });
     if (!oficina) throw new Error("Oficina não encontrada.");
@@ -371,7 +354,7 @@ export const OficinasAdminService = {
         where: { oficina_id: id, deleted_at: null },
         data: { deleted_at: new Date() },
       });
-      return tx.oficina.update({ where: { id }, data: { deleted_at: new Date(), status_admin: "suspensa" } as any });
+      return tx.oficina.update({ where: { id }, data: { deleted_at: new Date() } });
     });
   },
 
@@ -385,7 +368,7 @@ export const OficinasAdminService = {
         where: { oficina_id: id },
         data: { deleted_at: null, status: "ativo" },
       });
-      return tx.oficina.update({ where: { id }, data: { deleted_at: null, status_admin: "ativa" } as any });
+      return tx.oficina.update({ where: { id }, data: { deleted_at: null } });
     });
   },
 };

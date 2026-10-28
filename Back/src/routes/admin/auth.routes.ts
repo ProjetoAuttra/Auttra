@@ -14,6 +14,7 @@ const router = Router();
 router.post("/login", loginLimiter, AdminAuthController.login);
 router.post("/2fa/verify", loginLimiter, AdminAuthController.verify2fa);
 router.post("/2fa/first-setup", loginLimiter, AdminAuthController.completeFirstSetup2fa);
+router.post("/logout", AdminAuthController.logout);
 
 // rotas abaixo exigem token completo
 router.get("/me", requireSistema, AdminAuthController.me);

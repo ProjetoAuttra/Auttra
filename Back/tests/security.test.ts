@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { describe, expect, it } from "vitest";
 import { app } from "../src/app.js";
 import { getJwtSecret } from "../src/config/env.js";
+import { ADMIN_COOKIE } from "../src/utils/adminCookie.js";
 
 describe("security baseline", () => {
   it("exposes health without auth", async () => {
@@ -48,9 +49,23 @@ describe("security baseline", () => {
 
     const response = await request(app)
       .get("/api/admin/oficinas")
-      .set("Authorization", `Bearer ${token}`);
+      .set("Cookie", `${ADMIN_COOKIE}=${token}`);
 
     expect(response.status).toBe(403);
+  });
+
+  it("ignores the Authorization header on admin routes (session lives in an httpOnly cookie)", async () => {
+    const token = jwt.sign(
+      { id: 1, email: "admin@example.com", nome: "Admin", tipo: "sistema" },
+      getJwtSecret(),
+      { expiresIn: "5m" }
+    );
+
+    const response = await request(app)
+      .get("/api/admin/oficinas")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(401);
   });
 
   it("rejects insecure JWT secrets in production", () => {
@@ -92,7 +107,7 @@ describe("security baseline", () => {
 
   it("rejects office tokens with tipo sistema on admin routes", async () => {
     const token = jwt.sign({ id: 1, tipo: "sistema", oficinaId: 1 }, getJwtSecret());
-    const response = await request(app).get("/api/admin/oficinas").set("Authorization", `Bearer ${token}`);
+    const response = await request(app).get("/api/admin/oficinas").set("Cookie", `${ADMIN_COOKIE}=${token}`);
 
     expect(response.status).toBe(403);
   });
