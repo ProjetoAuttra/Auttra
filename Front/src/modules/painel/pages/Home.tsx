@@ -232,7 +232,7 @@ export default function Home() {
                         <Typography sx={{ fontSize: 13, fontWeight: 600, color: MUTED }}>{f.label}</Typography>
                         <ChevronRightRoundedIcon className="seta" sx={{ fontSize: 18, color: MUTED, transition: "transform 0.15s, color 0.15s" }} />
                       </Stack>
-                      <Typography className="valor" sx={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", color: brand.primary, lineHeight: 1.2, textDecorationThickness: "2px", textUnderlineOffset: 4 }}>{brl(f.valor)}</Typography>
+                      <Typography className="valor" sx={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", color: INK, lineHeight: 1.2, textDecorationThickness: "2px", textUnderlineOffset: 4 }}>{brl(f.valor)}</Typography>
                       <Typography sx={{ fontSize: 13, color: MUTED }}>{f.detalhe}</Typography>
                     </Box>
                   ))}
