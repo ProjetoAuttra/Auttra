@@ -96,14 +96,35 @@ export type CriarOficinaInput = {
     cidade: string;
     uf: string;
     complemento?: string | null;
+    bairro?: string | null;
     telefone?: string | null;
+    whatsapp?: string | null;
     email?: string | null;
+    razao_social?: string | null;
+    inscricao_estadual?: string | null;
   };
-  gestor: {
-    nome: string;
-    email: string;
-  };
+  // Proprietario da oficina (no banco e na API continua "gestor").
+  gestor: DadosProprietario & { nome: string; email: string };
 };
+
+export type DadosProprietario = {
+  nome?: string;
+  email?: string;
+  cpf?: string | null;
+  telefone?: string | null;
+  data_nascimento?: Date | null;
+};
+
+const CAMPOS_PROPRIETARIO = {
+  id: true, nome: true, email: true, cpf: true, telefone: true, data_nascimento: true,
+} as const;
+
+// So grava o que veio: undefined = nao mexe; null = apaga.
+function dadosPessoais(d: DadosProprietario) {
+  return Object.fromEntries(
+    (["cpf", "telefone", "data_nascimento"] as const).filter((k) => d[k] !== undefined).map((k) => [k, d[k]])
+  );
+}
 
 export type ListarOficinasParams = {
   q?: string;
@@ -210,10 +231,10 @@ export const OficinasAdminService = {
       where: { id },
       include: {
         cidade: true,
-        gestor: { select: { id: true, nome: true, email: true } },
+        gestor: { select: CAMPOS_PROPRIETARIO },
         acessos: {
           where: { deleted_at: null },
-          include: { usuario: { select: { id: true, nome: true, email: true, tipo: true, status: true, last_login_at: true } as any } },
+          include: { usuario: { select: { ...CAMPOS_PROPRIETARIO, tipo: true, status: true, last_login_at: true } } },
         },
         _count: {
           select: {
@@ -249,7 +270,11 @@ export const OficinasAdminService = {
           cep: oficinaData.cep,
           cidade_id: cidade.id,
           telefone: oficinaData.telefone ?? null,
+          whatsapp: oficinaData.whatsapp ?? null,
           email: oficinaData.email ?? null,
+          bairro: oficinaData.bairro ?? null,
+          razao_social: oficinaData.razao_social ?? null,
+          inscricao_estadual: oficinaData.inscricao_estadual ?? null,
           deleted_at: null,
         },
         create: {
@@ -261,14 +286,18 @@ export const OficinasAdminService = {
           cep: oficinaData.cep,
           cidade_id: cidade.id,
           telefone: oficinaData.telefone ?? null,
+          whatsapp: oficinaData.whatsapp ?? null,
           email: oficinaData.email ?? null,
+          bairro: oficinaData.bairro ?? null,
+          razao_social: oficinaData.razao_social ?? null,
+          inscricao_estadual: oficinaData.inscricao_estadual ?? null,
         },
       });
 
       const perfil = await ensureProfiles(tx, oficina.id);
       const email = gestor.email.toLowerCase();
       const gestorNovo = !(await tx.usuario.findUnique({ where: { email }, select: { id: true } }));
-      // Gestor novo recebe senha aleatoria descartavel e define a propria pelo link de convite.
+      // Proprietario novo recebe senha aleatoria descartavel e define a propria pelo link de convite.
       const senhaHash = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10);
 
       const usuario = await tx.usuario.upsert({
@@ -278,6 +307,7 @@ export const OficinasAdminService = {
           tipo: "gestoroficina",
           status: "ativo",
           deleted_at: null,
+          ...dadosPessoais(gestor),
         },
         create: {
           nome: gestor.nome,
@@ -285,6 +315,7 @@ export const OficinasAdminService = {
           senha: senhaHash,
           tipo: "gestoroficina",
           status: "ativo",
+          ...dadosPessoais(gestor),
         },
       });
 
@@ -312,8 +343,12 @@ export const OficinasAdminService = {
     cidade: string;
     uf: string;
     telefone: string | null;
+    whatsapp: string | null;
     email: string | null;
     complemento: string | null;
+    bairro: string | null;
+    razao_social: string | null;
+    inscricao_estadual: string | null;
     gestor_usuario_id: number | null;
     notas_internas: string | null;
   }>) {
@@ -343,10 +378,46 @@ export const OficinasAdminService = {
           acessos: { some: { oficina_id: id, deleted_at: null, status: "ativo" } },
         },
       });
-      if (!gestor) throw new Error("Gestor inválido para esta oficina.");
+      if (!gestor) throw new Error("Proprietário inválido para esta oficina.");
     }
 
     return prisma.oficina.update({ where: { id }, data: updateData });
+  },
+
+  /**
+   * Define quem e o proprietario (gestor) da oficina e atualiza os dados pessoais dele.
+   * Pode ser o atual ou outro usuario com acesso ativo a oficina (nunca um usuario do painel).
+   */
+  async atualizarProprietario(oficinaId: number, { usuario_id, ...dados }: DadosProprietario & { usuario_id: number; nome: string; email: string }) {
+    const oficina = await prisma.oficina.findFirst({ where: { id: oficinaId }, select: { gestor_usuario_id: true } });
+    if (!oficina) throw new Error("Oficina não encontrada.");
+
+    if (usuario_id !== oficina.gestor_usuario_id) {
+      const elegivel = await prisma.usuario.findFirst({
+        where: {
+          id: usuario_id,
+          deleted_at: null,
+          tipo: { not: "sistema" },
+          acessos: { some: { oficina_id: oficinaId, deleted_at: null, status: "ativo" } },
+        },
+        select: { id: true },
+      });
+      if (!elegivel) throw new Error("Proprietário inválido para esta oficina.");
+    }
+
+    const email = dados.email.trim().toLowerCase();
+    const emUso = await prisma.usuario.findFirst({ where: { email, id: { not: usuario_id } }, select: { id: true } });
+    if (emUso) throw new Error("E-mail já está em uso por outro usuário.");
+
+    return prisma.$transaction(async (tx) => {
+      const usuario = await tx.usuario.update({
+        where: { id: usuario_id },
+        data: { nome: dados.nome, email, ...dadosPessoais(dados) },
+        select: CAMPOS_PROPRIETARIO,
+      });
+      await tx.oficina.update({ where: { id: oficinaId }, data: { gestor_usuario_id: usuario_id } });
+      return usuario;
+    });
   },
 
   async softDelete(id: number) {

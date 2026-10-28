@@ -9,6 +9,7 @@ router.get("/:id", OficinasAdminController.getById);
 router.get("/:id/historico", OficinasAdminController.historico);
 router.get("/:id/sugestoes", OficinasAdminController.sugestoes);
 router.patch("/:id", OficinasAdminController.update);
+router.patch("/:id/proprietario", OficinasAdminController.atualizarProprietario);
 router.delete("/:id", OficinasAdminController.softDelete);
 router.post("/:id/reativar", OficinasAdminController.reativar);
 

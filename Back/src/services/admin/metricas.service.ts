@@ -87,7 +87,7 @@ export const MetricasAdminService = {
         id: oficina.id,
         nome: oficina.nome,
         pendencias: [
-          !oficina.gestor_usuario_id ? "sem gestor" : null,
+          !oficina.gestor_usuario_id ? "sem proprietário" : null,
           !oficina.telefone ? "sem telefone" : null,
           !oficina.email ? "sem e-mail" : null,
           !oficina.cnpj ? "sem CNPJ" : null,
