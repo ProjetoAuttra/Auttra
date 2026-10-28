@@ -16,6 +16,7 @@ import ContasReceber from '../modules/pagamentos/pages/contasreceber/contasreceb
 import UserPage from '../modules/usuarios/pages/UserForm';
 import ClientDetails from '../modules/clientes/pages/detalhesclientes/detalhesclientes';
 import Orcamentos from '../modules/orcamentos/pages/orcamentos';
+import NovoOrcamento from '../modules/orcamentos/pages/novoorcamento/novoorcamento';
 import OrcamentoDetalhes from '../modules/orcamentos/pages/detalhesorcamento/detalhesorcamento';
 import Relatorios from '../modules/relatorios/pages/relatorios';
 import ClientesRelatorio from '../modules/relatorios/pages/clientes/clientesrelatorio';
@@ -84,6 +85,7 @@ export default function Router() {
         <Route path={paths.contasReceber} element={<ModuleRoute module="financeiro"><ContasReceber /></ModuleRoute>} />
         <Route path={paths.clientDetails} element={<ModuleRoute module="clientes"><ClientDetails /></ModuleRoute>} />
         <Route path={paths.orcamentos} element={<ModuleRoute module="orcamentos"><Orcamentos /></ModuleRoute>} />
+        <Route path={paths.orcamentoNovo} element={<ModuleRoute module="orcamentos"><NovoOrcamento /></ModuleRoute>} />
         <Route path={paths.orcamentoDetails} element={<ModuleRoute module="orcamentos"><OrcamentoDetalhes /></ModuleRoute>} />
         <Route path={paths.relatorios} element={<ModuleRoute module="relatorios"><Relatorios /></ModuleRoute>} />
         <Route path={paths.clientesRelatorio} element={<ModuleRoute module="relatorios"><ClientesRelatorio /></ModuleRoute>} />

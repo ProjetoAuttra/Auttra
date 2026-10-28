@@ -15,6 +15,7 @@ export const paths = {
     contasReceber: '/contas-receber',
     clientDetails: '/clientes/:id',
     orcamentos: '/orcamentos',
+    orcamentoNovo: '/orcamentos/novo',
     orcamentoDetails: '/orcamentos/:id',
     relatorios: '/relatorios',
     clientesRelatorio: '/relatorios/clientes',
