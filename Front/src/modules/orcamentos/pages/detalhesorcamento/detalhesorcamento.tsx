@@ -53,7 +53,8 @@ function money(value: unknown) {
 }
 
 function date(value?: string | null) {
-  return value ? new Date(value).toLocaleDateString("pt-BR") : "-";
+  // Datas só-dia são gravadas à meia-noite UTC: no fuso do Brasil apareceriam um dia antes.
+  return value ? new Date(value).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "-";
 }
 
 function itemName(item: OrcamentoItem) {

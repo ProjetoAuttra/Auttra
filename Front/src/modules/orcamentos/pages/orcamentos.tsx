@@ -20,8 +20,8 @@ import { useNavigate } from "react-router-dom";
 
 import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
-import DialogOrcamento from "../dialog";
 import OrdemServicoDialog from "../../tarefas/dialog";
+import { paths } from "../../../routes/paths";
 import api from "../../../api/api";
 import ListTableContainer from "../../../components/common/ListTableContainer";
 import EmptyState from "../../../components/common/EmptyState";
@@ -71,7 +71,6 @@ export default function OrcamentosPage() {
 
   const [query, setQuery] = React.useState("");
   const [filtroStatus, setFiltroStatus] = React.useState<string>("analise");
-  const [dialogOpen, setDialogOpen] = React.useState(false);
   const [osDialogOpen, setOsDialogOpen] = React.useState(false);
   const [osInitial, setOsInitial] = React.useState<any>(null);
   const [convertingOrcamento, setConvertingOrcamento] = React.useState<Orcamento | null>(null);
@@ -273,17 +272,6 @@ export default function OrcamentosPage() {
     }
   };
 
-  const criarOrcamento = async (data: any) => {
-    try {
-      const res = await api.post("/orcamentos", data);
-      nav(`/orcamentos/${res.data.id}`);
-      success("Orçamento criado com sucesso!");
-    } catch (err) {
-      console.error(err);
-      error("Não foi possível criar o orçamento.");
-    }
-  };
-
   if (carregandoInicial) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
 
   return (
@@ -295,7 +283,7 @@ export default function OrcamentosPage() {
         subtitle="Controle de orçamentos, aprovações e conversão em O.S."
         icon={<RequestQuoteRoundedIcon />}
         actionLabel="Novo Orçamento"
-        onAction={() => setDialogOpen(true)}
+        onAction={() => nav(paths.orcamentoNovo)}
       />
 
       {/* ── Filtros ── */}
@@ -424,7 +412,7 @@ export default function OrcamentosPage() {
                       title={filtroStatus === "todos" ? "Nenhum orçamento cadastrado" : `Nenhum orçamento ${STATUS_CONFIG[filtroStatus as keyof typeof STATUS_CONFIG]?.label?.toLowerCase() ?? filtroStatus}`}
                       description="Crie o primeiro orçamento e acompanhe sua conversão em ordem de serviço."
                       actionLabel="Novo Orçamento"
-                      onAction={() => setDialogOpen(true)}
+                      onAction={() => nav(paths.orcamentoNovo)}
                       isFiltered={filtroStatus !== "todos"}
                       onClearFilter={() => setFiltroStatus("todos")}
                     />
@@ -488,14 +476,6 @@ export default function OrcamentosPage() {
           Excluir
         </MenuItem>
       </Menu>
-
-      {/* ── Dialog de criação ── */}
-      <DialogOrcamento
-        open={dialogOpen}
-        mode="create"
-        onClose={() => setDialogOpen(false)}
-        onSubmit={criarOrcamento}
-      />
 
       <OrdemServicoDialog
         open={osDialogOpen}
