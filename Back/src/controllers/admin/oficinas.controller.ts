@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { OficinasAdminService } from "../../services/admin/oficinas.service.js";
 import { AdminAuditService } from "../../services/admin/audit.service.js";
 import { PasswordResetService } from "../../services/passwordReset.service.js";
+import { SugestoesService } from "../../services/sugestoes.service.js";
 import { criarOficinaSchema, primeiroErro, updateOficinaSchema } from "../../schemas/admin/oficinas.schema.js";
 
 // Violacao de campo unico (nome, CNPJ ou e-mail ja usados por outra oficina) vira mensagem legivel.
@@ -58,6 +59,15 @@ export const OficinasAdminController = {
       return res.json(await AdminAuditService.listarPorOficina(id, take));
     } catch (err) {
       console.error("Erro ao buscar histórico da oficina:", err);
+      return res.status(500).json({ message: "Erro interno." });
+    }
+  },
+
+  async sugestoes(req: Request, res: Response) {
+    try {
+      return res.json(await SugestoesService.listarPorOficina(Number(req.params.id)));
+    } catch (err) {
+      console.error("Erro ao listar sugestões da oficina:", err);
       return res.status(500).json({ message: "Erro interno." });
     }
   },

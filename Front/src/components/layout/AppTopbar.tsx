@@ -26,6 +26,7 @@ import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import BusinessRoundedIcon from "@mui/icons-material/BusinessRounded";
 import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
+import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
@@ -34,6 +35,7 @@ import { useNavigate } from "react-router-dom";
 import NotificationsMenu from "./NotificationsMenu";
 import EmpresaModal from "./EmpresaModal";
 import MeuPerfilModal from "./MeuPerfilModal";
+import SugestaoModal from "./SugestaoModal";
 import BrandLogoPlaceholder from "./BrandLogoPlaceholder";
 import { brand } from "../../app/theme";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../common/AppDialog";
@@ -71,6 +73,7 @@ export default function AppTopbar({
 
   const [empresaOpen, setEmpresaOpen] = useState(false);
   const [meuPerfilOpen, setMeuPerfilOpen] = useState(false);
+  const [sugestaoOpen, setSugestaoOpen] = useState(false);
   const [trocaSenhaOpen, setTrocaSenhaOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [senhaForm, setSenhaForm] = useState({ senha_atual: "", nova_senha: "", confirmar: "" });
@@ -393,6 +396,14 @@ export default function AppTopbar({
               <Typography variant="body2">Trocar senha</Typography>
             </MenuItem>
 
+            <MenuItem
+              onClick={() => { setAnchorEl(null); setSugestaoOpen(true); }}
+              sx={{ py: 1.25 }}
+            >
+              <ListItemIcon><LightbulbOutlinedIcon fontSize="small" /></ListItemIcon>
+              <Typography variant="body2">Envie sua sugestão</Typography>
+            </MenuItem>
+
             <Divider sx={{ my: 0.5 }} />
 
             <MenuItem
@@ -410,6 +421,7 @@ export default function AppTopbar({
       </AppBar>
 
       <EmpresaModal open={empresaOpen} onClose={() => setEmpresaOpen(false)} />
+      <SugestaoModal open={sugestaoOpen} onClose={() => setSugestaoOpen(false)} />
       <MeuPerfilModal
         open={meuPerfilOpen}
         onClose={() => setMeuPerfilOpen(false)}
