@@ -229,7 +229,7 @@ export default function Home() {
                     <Box key={f.label} component="button" onClick={() => navigate(f.to)}
                       sx={{ textAlign: "left", border: 0, background: "none", p: 0, cursor: "pointer", fontFamily: "inherit" }}>
                       <Typography sx={{ fontSize: 13, fontWeight: 600, color: MUTED }}>{f.label}</Typography>
-                      <Typography sx={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", color: INK, lineHeight: 1.2 }}>{brl(f.valor)}</Typography>
+                      <Typography sx={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", color: brand.primary, lineHeight: 1.2 }}>{brl(f.valor)}</Typography>
                       <Typography sx={{ fontSize: 13, color: MUTED }}>{f.detalhe}</Typography>
                     </Box>
                   ))}
