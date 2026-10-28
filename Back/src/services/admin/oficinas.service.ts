@@ -89,15 +89,15 @@ async function ensureProfiles(tx: any, oficinaId: number) {
 export type CriarOficinaInput = {
   oficina: {
     nome: string;
-    cnpj?: string;
+    cnpj?: string | null;
     logradouro: string;
     numero: string;
     cep: string;
     cidade: string;
     uf: string;
-    complemento?: string;
-    telefone?: string;
-    email?: string;
+    complemento?: string | null;
+    telefone?: string | null;
+    email?: string | null;
   };
   gestor: {
     nome: string;
@@ -234,6 +234,10 @@ export const OficinasAdminService = {
       const cidade =
         (await tx.cidade.findFirst({ where: { nome: oficinaData.cidade, uf: oficinaData.uf.toUpperCase() } })) ??
         (await tx.cidade.create({ data: { nome: oficinaData.cidade, uf: oficinaData.uf.toUpperCase() } }));
+
+      // Nome repetido so e aceito para reaproveitar uma oficina desativada; ativa nunca e sobrescrita.
+      const mesmoNome = await tx.oficina.findUnique({ where: { nome: oficinaData.nome }, select: { deleted_at: true } });
+      if (mesmoNome && !mesmoNome.deleted_at) throw new Error("Já existe uma oficina com este nome.");
 
       const oficina = await tx.oficina.upsert({
         where: { nome: oficinaData.nome },

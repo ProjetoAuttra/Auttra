@@ -32,6 +32,7 @@ model usuario {
   movimentos_pagamento pagamento_movimento[]
   password_reset_tokens password_reset_token[]
   admin_audit_logs admin_audit_log[] @relation("AdminAuditActor")
+  sugestoes       sugestao[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -133,6 +134,7 @@ model oficina {
   veiculos               veiculo[]
   notas_fiscais_importadas nota_fiscal_importada[]
   admin_audit_logs admin_audit_log[] @relation("AdminAuditOficina")
+  sugestoes        sugestao[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -719,4 +721,34 @@ model pagamento_movimento {
   @@index([pagamento_id])
   @@index([oficina_id])
   @@index([estorno_de_id])
+}
+
+// Sugestoes enviadas pelos clientes no app ("Envie sua sugestao", menu do perfil).
+// O modulo segue os itens do menu lateral do app, mais "outros".
+enum modulo_sugestao {
+  inicio
+  agenda
+  clientes
+  veiculos
+  orcamentos
+  ordens
+  financeiro
+  estoque
+  relatorios
+  configuracoes
+  outros
+}
+
+model sugestao {
+  id         Int             @id @default(autoincrement())
+  oficina_id Int
+  usuario_id Int?
+  modulo     modulo_sugestao
+  mensagem   String
+  created_at DateTime        @default(now())
+
+  oficina oficina  @relation(fields: [oficina_id], references: [id], onDelete: Cascade)
+  usuario usuario? @relation(fields: [usuario_id], references: [id], onDelete: SetNull)
+
+  @@index([oficina_id, created_at])
 }
