@@ -5,7 +5,7 @@ import { brand } from "../../../app/theme";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../../api/api";
 import { paths } from "../../../routes/paths";
-import logo from "../../../assets/logo.png";
+const logo = "/brand/svg/auttra-logo-azul.svg";
 
 const BLUE_MAIN = brand.primary;
 const BLUE_DARK = brand.primaryDark;

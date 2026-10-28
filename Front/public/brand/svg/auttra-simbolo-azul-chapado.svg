@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 569 628" width="142" height="157" role="img" aria-label="Auttra">
+<title>Auttra</title>
+<g transform="translate(-67 -58)">
+<defs>
+<linearGradient id="scv" gradientUnits="userSpaceOnUse" x1="0" y1="380" x2="0" y2="480"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset="1" stop-color="#fff"/></linearGradient>
+<linearGradient id="sch" gradientUnits="userSpaceOnUse" x1="395" y1="602" x2="510" y2="640"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset="1" stop-color="#fff"/></linearGradient>
+<mask id="scmv" maskUnits="userSpaceOnUse" x="0" y="0" width="720" height="720"><rect width="720" height="720" fill="url(#scv)"/></mask>
+<mask id="scmh" maskUnits="userSpaceOnUse" x="0" y="0" width="720" height="720"><rect width="720" height="720" fill="url(#sch)"/></mask>
+<mask id="scg" maskUnits="userSpaceOnUse" x="0" y="0" width="720" height="720"><rect width="720" height="720" fill="#fff"/><path d="M253.23 122.52 L76.13 534.09 A107.08 107.08 0 0 0 225.75 670.43 L432.45 557.73 A199.94 199.94 0 0 0 522.49 308.18 L449.58 125.19 A106.27 106.27 0 0 0 253.23 122.52 Z" fill="#000" stroke="#000" stroke-width="30" stroke-linejoin="round"/></mask>
+</defs>
+<g mask="url(#scg)"><g mask="url(#scmv)"><path d="M526.22 306.66 L625.43 536.13 A105.74 105.74 0 0 1 479.60 671.91 L257.79 556.59 L290.83 493.96 L513.92 606.80 A32.10 32.10 0 0 0 557.97 565.64 L460.53 335.41 Z" fill="#1D4ED8" mask="url(#scmh)"/></g></g>
+<path d="M253.23 122.52 L76.13 534.09 A107.08 107.08 0 0 0 225.75 670.43 L432.45 557.73 A199.94 199.94 0 0 0 522.49 308.18 L449.58 125.19 A106.27 106.27 0 0 0 253.23 122.52 Z M319.28 150.94 L142.18 562.51 A35.18 35.18 0 0 0 191.33 607.30 L398.03 494.61 A128.05 128.05 0 0 0 455.70 334.79 L382.79 151.80 A34.38 34.38 0 0 0 319.28 150.94 Z" fill="#1D4ED8" fill-rule="evenodd"/>
+</g>
+</svg>

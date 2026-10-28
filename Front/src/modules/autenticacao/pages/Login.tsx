@@ -26,7 +26,7 @@ import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import { paths } from "../../../routes/paths";
-import logo from "../../../assets/logo.png";
+const logo = "/brand/svg/auttra-logo-azul.svg";
 import api, { turnstileSiteKey } from "../../../api/api";
 import { brand } from "../../../app/theme";
 import TurnstileWidget, { type TurnstileWidgetHandle } from "../../../components/common/TurnstileWidget";
