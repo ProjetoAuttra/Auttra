@@ -8,6 +8,7 @@ import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
+import GavelRoundedIcon from "@mui/icons-material/GavelRounded";
 import SellRoundedIcon from "@mui/icons-material/SellRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
@@ -25,7 +26,7 @@ import CampoData from "../../../../components/common/CampoData";
 import TextoLimitado from "../../../../components/common/TextoLimitado";
 import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
-import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../components/common/AppDialog";
+import { AppDrawer, DrawerSection } from "../../../../components/common/AppDrawer";
 import api from "../../../../api/api";
 import { type Conta, brl, isVencido, valorLiquido, formatarData, METODO_OPTIONS, criarPagamento, atualizarPagamento, marcarComoPago, estornarPagamento, parcelar, cancelarPagamento, resumoPagamentos, type ResumoContas } from "../../api/api";
 import {
@@ -212,6 +213,11 @@ export default function ContasPagar() {
                             <SellRoundedIcon sx={{ fontSize: 13, color: "success.main" }} />
                           </Tooltip>
                         )}
+                        {Number(conta.multa) > 0 && (
+                          <Tooltip title={`Multa de ${brl(Number(conta.multa))}`}>
+                            <GavelRoundedIcon sx={{ fontSize: 13, color: "error.main" }} />
+                          </Tooltip>
+                        )}
                       </Stack>
                     </TableCell>
                     <TableCell align="center">
@@ -229,7 +235,7 @@ export default function ContasPagar() {
                         <Button
                           size="small"
                           variant="text"
-                          color="success"
+                          color="primary"
                           onClick={() => handlePagarDireto(conta)}
                           disabled={conta.status === "pago" || conta.status === "cancelado"}
                           sx={{
@@ -237,7 +243,7 @@ export default function ContasPagar() {
                             letterSpacing: 0.6,
                             px: 1.75,
                             // Já pago: continua visível, mas bem mais apagado.
-                            "&.Mui-disabled": { color: "success.main", opacity: 0.35 },
+                            "&.Mui-disabled": { color: "primary.main", opacity: 0.35 },
                           }}
                         >
                           PAGAR
@@ -390,31 +396,49 @@ function NovaContaPagarDialog({ open, onClose, fornecedores, onConfirm }: {
 
   const valido = form.descricao.trim() && parseFloat(form.valor) > 0 && form.data_vencimento;
 
+  const linha = { display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 } as const;
+
+  const footer = (
+    <>
+      <Box />
+      <Stack direction="row" spacing={1.5}>
+        <Button onClick={onClose} variant="outlined">Cancelar</Button>
+        <Button variant="contained" disableElevation disabled={!valido} sx={{ fontWeight: 700 }}
+          onClick={() => onConfirm({ ...form, valor: parseFloat(form.valor), fornecedor_id: form.fornecedor_id ? Number(form.fornecedor_id) : null, status: "pendente" })}>
+          Salvar
+        </Button>
+      </Stack>
+    </>
+  );
+
   return (
-    <AppDialog open={open} onClose={onClose} onCloseClick={onClose} closeOnBackdrop={false} maxWidth="sm" title="Nova conta a pagar" icon={<TrendingDownRoundedIcon />} variant="entity">
-      <AppDialogContent>
+    <AppDrawer open={open} onClose={onClose} title="Nova conta a pagar" subtitle="Cadastre um título a pagar a um fornecedor" icon={<TrendingDownRoundedIcon />} footer={footer}>
+      <DrawerSection title="Dados da conta">
         <Stack spacing={2}>
           <TextField select label="Fornecedor (opcional)" value={form.fornecedor_id} onChange={(e) => set("fornecedor_id", e.target.value)} size="small" fullWidth>
             <MenuItem value="">Sem fornecedor</MenuItem>
             {fornecedores.map((f) => <MenuItem key={f.id} value={f.id}>{f.nome}</MenuItem>)}
           </TextField>
-          <TextField label="Descrição *" value={form.descricao} onChange={(e) => set("descricao", e.target.value)} size="small" fullWidth />
+          <TextField label="Descrição *" value={form.descricao} onChange={(e) => set("descricao", e.target.value)} size="small" fullWidth autoFocus />
           <TextField label="Categoria" value={form.categoria} onChange={(e) => set("categoria", e.target.value)} size="small" fullWidth />
-          <TextField label="Valor *" type="number" value={form.valor} onChange={(e) => set("valor", e.target.value)} size="small" fullWidth InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }} />
-          <CampoData label="Vencimento *" value={form.data_vencimento} onChange={(v) => set("data_vencimento", v)} />
+        </Stack>
+      </DrawerSection>
+
+      <DrawerSection title="Valor e vencimento">
+        <Stack spacing={2}>
+          <Box sx={linha}>
+            <TextField label="Valor *" type="number" value={form.valor} onChange={(e) => set("valor", e.target.value)} size="small" fullWidth InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }} />
+            <CampoData label="Vencimento *" value={form.data_vencimento} onChange={(v) => set("data_vencimento", v)} />
+          </Box>
           <TextField select label="Método" value={form.metodo} onChange={(e) => set("metodo", e.target.value)} size="small" fullWidth>
             {METODO_OPTIONS.map((m) => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
           </TextField>
-          <TextField label="Observação" value={form.observacao} onChange={(e) => set("observacao", e.target.value)} size="small" fullWidth multiline rows={2} />
         </Stack>
-      </AppDialogContent>
-      <AppDialogActions>
-        <Button onClick={onClose} variant="outlined">Cancelar</Button>
-        <Button variant="contained" disableElevation disabled={!valido} sx={{ textTransform: "none" }}
-          onClick={() => onConfirm({ ...form, valor: parseFloat(form.valor), fornecedor_id: form.fornecedor_id ? Number(form.fornecedor_id) : null, status: "pendente" })}>
-          Salvar
-        </Button>
-      </AppDialogActions>
-    </AppDialog>
+      </DrawerSection>
+
+      <DrawerSection title="Observações">
+        <TextField placeholder="Anotações sobre a conta" inputProps={{ "aria-label": "Observação" }} value={form.observacao} onChange={(e) => set("observacao", e.target.value)} size="small" fullWidth multiline rows={3} />
+      </DrawerSection>
+    </AppDrawer>
   );
 }

@@ -537,6 +537,40 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
       await definirEmitir(true);
     });
 
+    it("multa soma ao valor: baixa com multa, multa avulsa, parcial e validacoes", async () => {
+      const titulo = (id: number) => prisma.pagamento.findUniqueOrThrow({ where: { id } });
+
+      // multa informada na propria baixa: o saldo passa a ser original - desconto + multa
+      const a = await novoPagamento(100);
+      const quitado = await post(`/api/pagamentos/${a}/pagar`, { metodo: "pix", multa: 20, desconto: 10, motivo_desconto: "fidelidade" }).expect(200);
+      expect(Number(quitado.body.valor_pago)).toBe(110);
+      expect(Number((await titulo(a)).multa)).toBe(20);
+      expect((await post(`/api/pagamentos/${a}/pagar`, { metodo: "pix", valor: 1 })).status).toBe(400);
+
+      // excedente continua barrado, agora contando a multa
+      const b = await novoPagamento(100);
+      await post(`/api/pagamentos/${b}/multa`, { multa: 15 }).expect(200);
+      expect((await post(`/api/pagamentos/${b}/pagar`, { metodo: "pix", valor: 116 })).status).toBe(400);
+
+      // parcial: o titulo pago vale o que foi pago e o saldo nasce ja com a multa embutida
+      const parcial = await post(`/api/pagamentos/${b}/pagar`, { metodo: "pix", valor: 50 }).expect(200);
+      const pago = await titulo(b);
+      expect([Number(pago.valor_original), Number(pago.multa), Number(pago.valor_pago)]).toEqual([50, 0, 50]);
+      expect(Number(parcial.body.titulo_saldo.valor_original)).toBe(65);
+
+      // validacoes: negativa, invalida, titulo pago
+      const c = await novoPagamento(100);
+      expect((await post(`/api/pagamentos/${c}/multa`, { multa: -1 })).status).toBe(400);
+      expect((await post(`/api/pagamentos/${c}/multa`, { multa: "abc" })).status).toBe(400);
+      expect((await post(`/api/pagamentos/${c}/pagar`, { metodo: "pix", multa: -5 })).status).toBe(400);
+      expect((await post(`/api/pagamentos/${a}/multa`, { multa: 5 })).status).toBe(400);
+
+      // multa 0 remove a multa anterior
+      await post(`/api/pagamentos/${c}/multa`, { multa: 30 }).expect(200);
+      await post(`/api/pagamentos/${c}/pagar`, { metodo: "pix", multa: 0 }).expect(200);
+      expect(Number((await titulo(c)).valor_pago)).toBe(100);
+    });
+
     it("dois estornos simultaneos: so um acontece", async () => {
       const id = await novoPagamento(100);
       await post(`/api/pagamentos/${id}/pagar`, { metodo: "pix" }).expect(200);

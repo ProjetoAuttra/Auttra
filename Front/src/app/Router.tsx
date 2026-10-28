@@ -16,6 +16,7 @@ import ContasReceber from '../modules/pagamentos/pages/contasreceber/contasreceb
 import UserPage from '../modules/usuarios/pages/UserForm';
 import ClientDetails from '../modules/clientes/pages/detalhesclientes/detalhesclientes';
 import Orcamentos from '../modules/orcamentos/pages/orcamentos';
+import NovoOrcamento from '../modules/orcamentos/pages/novoorcamento/novoorcamento';
 import OrcamentoDetalhes from '../modules/orcamentos/pages/detalhesorcamento/detalhesorcamento';
 import Relatorios from '../modules/relatorios/pages/relatorios';
 import ClientesRelatorio from '../modules/relatorios/pages/clientes/clientesrelatorio';
@@ -37,6 +38,7 @@ import Estoque from '../modules/estoque/pages/estoque';
 import ImportarXml from '../modules/estoque/pages/ImportarXml';
 import Fornecedores from '../modules/fornecedores/pages/fornecedores';
 import Servicos from '../modules/servicos/pages/servicos';
+import FormOrdemServico from '../modules/tarefas/pages/formordem/formordem';
 import OrdemServicoDetalhes from '../modules/tarefas/pages/detalhesos/ordemservicodetalhes';
 import type { AccessModule } from '../permissions/accessProfiles';
 import RecursosAdicionais from '../modules/recursos-adicionais/pages/RecursosAdicionais';
@@ -84,6 +86,7 @@ export default function Router() {
         <Route path={paths.contasReceber} element={<ModuleRoute module="financeiro"><ContasReceber /></ModuleRoute>} />
         <Route path={paths.clientDetails} element={<ModuleRoute module="clientes"><ClientDetails /></ModuleRoute>} />
         <Route path={paths.orcamentos} element={<ModuleRoute module="orcamentos"><Orcamentos /></ModuleRoute>} />
+        <Route path={paths.orcamentoNovo} element={<ModuleRoute module="orcamentos"><NovoOrcamento /></ModuleRoute>} />
         <Route path={paths.orcamentoDetails} element={<ModuleRoute module="orcamentos"><OrcamentoDetalhes /></ModuleRoute>} />
         <Route path={paths.relatorios} element={<ModuleRoute module="relatorios"><Relatorios /></ModuleRoute>} />
         <Route path={paths.clientesRelatorio} element={<ModuleRoute module="relatorios"><ClientesRelatorio /></ModuleRoute>} />
@@ -102,6 +105,8 @@ export default function Router() {
         <Route path={paths.estoque} element={<ModuleRoute module="estoque"><Estoque /></ModuleRoute>} />
         <Route path={paths.estoqueImportarXml} element={<ModuleRoute module="estoque"><ImportarXml /></ModuleRoute>} />
         <Route path={paths.fornecedores} element={<ModuleRoute module="fornecedores"><Fornecedores /></ModuleRoute>} />
+        <Route path={paths.ordemNova} element={<ModuleRoute module="ordens"><FormOrdemServico /></ModuleRoute>} />
+        <Route path={paths.ordemEditar} element={<ModuleRoute module="ordens"><FormOrdemServico /></ModuleRoute>} />
         <Route path={paths.ordemServicoDetalhes} element={<ModuleRoute module="ordens"><OrdemServicoDetalhes /></ModuleRoute>} />
         <Route element={<SettingsLayout />}>
           <Route path={paths.configuracoes} element={<ModuleRoute module="configuracoes"><Configuracoes /></ModuleRoute>} />

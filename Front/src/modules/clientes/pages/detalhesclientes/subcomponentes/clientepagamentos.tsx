@@ -11,6 +11,7 @@ import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
+import GavelRoundedIcon from "@mui/icons-material/GavelRounded";
 import SellRoundedIcon from "@mui/icons-material/SellRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
@@ -265,6 +266,11 @@ export default function ClientePagamentos({
                           <SellRoundedIcon sx={{ fontSize: 13, color: "success.main" }} />
                         </Tooltip>
                       )}
+                      {Number(conta.multa) > 0 && (
+                        <Tooltip title={`Multa de ${brl(Number(conta.multa))}`}>
+                          <GavelRoundedIcon sx={{ fontSize: 13, color: "error.main" }} />
+                        </Tooltip>
+                      )}
                     </Stack>
                   </TableCell>
                   <TableCell align="center">
@@ -280,7 +286,7 @@ export default function ClientePagamentos({
                       <Button
                         size="small"
                         variant="text"
-                        color="success"
+                        color="primary"
                         onClick={() => handleReceberDireto(conta)}
                         disabled={conta.status === "pago" || conta.status === "cancelado"}
                         sx={{
@@ -288,7 +294,7 @@ export default function ClientePagamentos({
                           letterSpacing: 0.6,
                           px: 1.75,
                           // Já recebido: continua visível, mas bem mais apagado.
-                          "&.Mui-disabled": { color: "success.main", opacity: 0.35 },
+                          "&.Mui-disabled": { color: "primary.main", opacity: 0.35 },
                         }}
                       >
                         RECEBER

@@ -4,7 +4,6 @@ import {
   TextField,
   Button,
   Typography,
-  Grid,
   InputAdornment,
   MenuItem,
   Collapse,
@@ -15,13 +14,10 @@ import {
   Chip,
 } from "@mui/material";
 import BuildRoundedIcon from "@mui/icons-material/BuildRounded";
-import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
-import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
-import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ToggleOffRoundedIcon from "@mui/icons-material/ToggleOffRounded";
 import ToggleOnRoundedIcon from "@mui/icons-material/ToggleOnRounded";
-import { AppDialog, AppDialogActions, AppDialogContent, SectionLabel } from "../../../components/common/AppDialog";
+import { AppDrawer, DrawerSection } from "../../../components/common/AppDrawer";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -158,44 +154,58 @@ export default function ServicoDialog({ open, mode, initial, onClose, onSubmit, 
     onClose();
   };
 
+  const linha = { display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 } as const;
+
+  const footer = (
+    <>
+      <Box>
+        {isEdit && onDelete && initial && (
+          !confirmDelete ? (
+            <Button color="error" startIcon={<DeleteOutlineRoundedIcon />} onClick={() => setConfirmDelete(true)}>
+              Excluir serviço
+            </Button>
+          ) : (
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Typography variant="body2" color="error" fontWeight={600}>Confirmar exclusão?</Typography>
+              <Button color="error" variant="contained" size="small" disableElevation onClick={() => onDelete(initial)}>
+                Sim, excluir
+              </Button>
+              <Button size="small" onClick={() => setConfirmDelete(false)}>Cancelar</Button>
+            </Stack>
+          )
+        )}
+      </Box>
+      <Stack direction="row" spacing={1.5}>
+        <Button onClick={onClose} variant="outlined">Cancelar</Button>
+        <Button variant="contained" onClick={handleSubmit} disableElevation sx={{ fontWeight: 700 }}>
+          {isEdit ? "Salvar alterações" : "Cadastrar serviço"}
+        </Button>
+      </Stack>
+    </>
+  );
+
   return (
-    <AppDialog
+    <AppDrawer
       open={open}
       onClose={onClose}
-      onCloseClick={onClose}
-      closeOnBackdrop={false}
-      maxWidth="sm"
       title={isEdit ? "Editar serviço" : "Novo serviço"}
+      subtitle={isEdit ? initial?.nome : "Cadastre o serviço, o preço e a disponibilidade"}
       icon={<BuildRoundedIcon />}
-      variant="entity"
+      footer={footer}
     >
-      <AppDialogContent>
-        <Grid container spacing={2}>
-          <Grid size={12}>
-            <SectionLabel>Informações do serviço</SectionLabel>
-          </Grid>
-
-          <Grid size={12}>
-            <TextField
-              label="Nome do serviço *"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              size="small"
-              fullWidth
-              autoFocus
-              error={!!errors.nome}
-              helperText={errors.nome}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <BuildRoundedIcon fontSize="small" color={errors.nome ? "error" : "action"} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6 }}>
+      <DrawerSection title="Informações do serviço">
+        <Stack spacing={2}>
+          <TextField
+            label="Nome do serviço *"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            size="small"
+            fullWidth
+            autoFocus
+            error={!!errors.nome}
+            helperText={errors.nome}
+          />
+          <Box sx={linha}>
             <TextField
               select
               label="Categoria"
@@ -203,22 +213,12 @@ export default function ServicoDialog({ open, mode, initial, onClose, onSubmit, 
               onChange={(e) => setCategoria(e.target.value)}
               size="small"
               fullWidth
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <CategoryRoundedIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
-              }}
             >
               <MenuItem value=""><em>Sem categoria</em></MenuItem>
               {CATEGORIAS.map((c) => (
                 <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>
               ))}
             </TextField>
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               label="Preço *"
               value={precoFormatado}
@@ -236,32 +236,22 @@ export default function ServicoDialog({ open, mode, initial, onClose, onSubmit, 
               }}
               sx={{ "& input": { fontWeight: 700, color: (t) => parsePreco(precoFormatado) > 0 ? t.palette.success.main : undefined } }}
             />
-          </Grid>
+          </Box>
+          <TextField
+            label="Descrição"
+            value={descricao}
+            onChange={(e) => setDescricao(e.target.value)}
+            size="small"
+            fullWidth
+            multiline
+            rows={2}
+          />
+        </Stack>
+      </DrawerSection>
 
-          <Grid size={12}>
-            <TextField
-              label="Descrição"
-              value={descricao}
-              onChange={(e) => setDescricao(e.target.value)}
-              size="small"
-              fullWidth
-              multiline
-              rows={2}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start" sx={{ alignSelf: "flex-start", mt: 1 }}>
-                    <DescriptionRoundedIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-
-          <Grid size={12}>
-            <SectionLabel>Detalhes operacionais</SectionLabel>
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6 }}>
+      <DrawerSection title="Detalhes operacionais">
+        <Box sx={linha}>
+          <Box>
             <TextField
               label="Tempo estimado"
               type="number"
@@ -271,11 +261,6 @@ export default function ServicoDialog({ open, mode, initial, onClose, onSubmit, 
               fullWidth
               helperText={tempoEstimado ? `≈ ${formatTempo(Number(tempoEstimado))}` : undefined}
               InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <AccessTimeRoundedIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
                 endAdornment: (
                   <InputAdornment position="end">
                     <Typography variant="caption" color="text.disabled">min</Typography>
@@ -294,9 +279,9 @@ export default function ServicoDialog({ open, mode, initial, onClose, onSubmit, 
                 />
               ))}
             </Stack>
-          </Grid>
+          </Box>
 
-          <Grid size={{ xs: 12, sm: 6 }}>
+          <Box>
             <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={1}>
               Disponibilidade
             </Typography>
@@ -320,60 +305,15 @@ export default function ServicoDialog({ open, mode, initial, onClose, onSubmit, 
                 </Stack>
               </ToggleButton>
             </ToggleButtonGroup>
-          </Grid>
-        </Grid>
-
-        <Collapse in={submitAttempted && Object.keys(errors).length > 0}>
-          <Alert severity="error" sx={{ mt: 0.5, borderRadius: 1.5 }}>
-            Corrija os campos destacados antes de salvar.
-          </Alert>
-        </Collapse>
-      </AppDialogContent>
-
-      <AppDialogActions sx={{ justifyContent: "space-between" }}>
-        <Box>
-          {isEdit && onDelete && initial && (
-            <>
-              {!confirmDelete ? (
-                <Button
-                  color="error"
-                  startIcon={<DeleteOutlineRoundedIcon />}
-                  onClick={() => setConfirmDelete(true)}
-                >
-                  Excluir serviço
-                </Button>
-              ) : (
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography variant="body2" color="error" fontWeight={600}>Confirmar exclusão?</Typography>
-                  <Button
-                    color="error" variant="contained" size="small" disableElevation
-                    onClick={() => onDelete(initial)}
-                  >
-                    Sim, excluir
-                  </Button>
-                  <Button size="small" onClick={() => setConfirmDelete(false)}>
-                    Cancelar
-                  </Button>
-                </Stack>
-              )}
-            </>
-          )}
+          </Box>
         </Box>
+      </DrawerSection>
 
-        <Stack direction="row" spacing={1.5}>
-          <Button onClick={onClose} variant="outlined">
-            Cancelar
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleSubmit}
-            disableElevation
-            sx={{ fontWeight: 700 }}
-          >
-            {isEdit ? "Salvar alterações" : "Cadastrar serviço"}
-          </Button>
-        </Stack>
-      </AppDialogActions>
-    </AppDialog>
+      <Collapse in={submitAttempted && Object.keys(errors).length > 0}>
+        <Alert severity="error" sx={{ mt: 3, borderRadius: 1.5 }}>
+          Corrija os campos destacados antes de salvar.
+        </Alert>
+      </Collapse>
+    </AppDrawer>
   );
 }

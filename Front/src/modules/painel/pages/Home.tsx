@@ -8,10 +8,8 @@ import DirectionsCarRoundedIcon from "@mui/icons-material/DirectionsCarRounded";
 import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
 import RequestQuoteRoundedIcon from "@mui/icons-material/RequestQuoteRounded";
 
-import DialogAgendamento from "../../tarefas/dialog/";
 import DialogCarro from "../../veiculos/dialog/";
 import DialogCliente from "../../clientes/dialog/";
-import DialogOrcamento from "../../orcamentos/dialog/";
 import { useAuth } from "../../../context/AuthContext";
 import { useAdditionalResources } from "../../../context/AdditionalResourcesContext";
 import api from "../../../api/api";
@@ -119,8 +117,6 @@ export default function Home() {
   const [loading, setLoading] = React.useState(true);
   const [erro,    setErro]    = React.useState(false);
 
-  const [openOS,      setOpenOS]      = React.useState(false);
-  const [openOrc,     setOpenOrc]     = React.useState(false);
   const [openCliente, setOpenCliente] = React.useState(false);
   const [openVeiculo, setOpenVeiculo] = React.useState(false);
   const [menuEl,      setMenuEl]      = React.useState<HTMLElement | null>(null);
@@ -142,8 +138,8 @@ export default function Home() {
   }, []);
 
   const novos = [
-    { icon: <AssignmentRoundedIcon fontSize="small" />,    label: "Nova O.S.",         onClick: () => setOpenOS(true) },
-    { icon: <RequestQuoteRoundedIcon fontSize="small" />,  label: "Novo orçamento",    onClick: () => setOpenOrc(true) },
+    { icon: <AssignmentRoundedIcon fontSize="small" />,    label: "Nova O.S.",         onClick: () => navigate(paths.ordemNova) },
+    { icon: <RequestQuoteRoundedIcon fontSize="small" />,  label: "Novo orçamento",    onClick: () => navigate(paths.orcamentoNovo) },
     { icon: <PersonAddRoundedIcon fontSize="small" />,     label: "Cadastrar cliente", onClick: () => setOpenCliente(true) },
     { icon: <DirectionsCarRoundedIcon fontSize="small" />, label: "Cadastrar veículo", onClick: () => setOpenVeiculo(true) },
   ];
@@ -296,14 +292,6 @@ export default function Home() {
       </Stack>
 
       {/* Dialogs */}
-      <DialogAgendamento
-        open={openOS}
-        onClose={() => setOpenOS(false)}
-        onSubmit={async (data: any) => {
-          try { await api.post("/ordens", data); } catch (err) { console.error(err); }
-          setOpenOS(false);
-        }}
-      />
       <DialogCarro
         open={openVeiculo}
         mode="create"
@@ -315,15 +303,6 @@ export default function Home() {
         mode="create"
         onClose={() => setOpenCliente(false)}
         onSubmit={() => setOpenCliente(false)}
-      />
-      <DialogOrcamento
-        open={openOrc}
-        mode="create"
-        onClose={() => setOpenOrc(false)}
-        onSubmit={async (data: any) => {
-          try { await api.post("/orcamentos", data); } catch (err) { console.error(err); }
-          setOpenOrc(false);
-        }}
       />
     </Box>
   );

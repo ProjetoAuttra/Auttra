@@ -3,7 +3,6 @@ import {
   Stack,
   TextField,
   Button,
-  Grid,
   InputAdornment,
   Collapse,
   Alert,
@@ -12,18 +11,10 @@ import {
   Typography,
 } from "@mui/material";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
-import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
-import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
-import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
-import CalendarTodayRoundedIcon from "@mui/icons-material/CalendarTodayRounded";
-import NotesRoundedIcon from "@mui/icons-material/NotesRounded";
-import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded";
-import NumbersRoundedIcon from "@mui/icons-material/NumbersRounded";
-import LocationCityRoundedIcon from "@mui/icons-material/LocationCityRounded";
-import FmdGoodRoundedIcon from "@mui/icons-material/FmdGoodRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import { AppDialog, AppDialogActions, AppDialogContent, SectionLabel } from "../../../components/common/AppDialog";
+import { AppDrawer, DrawerSection } from "../../../components/common/AppDrawer";
+import CampoData from "../../../components/common/CampoData";
 import { useCep } from "../../../hooks/useCep";
 import api from "../../../api/api";
 import { maskCpf, maskCnpj, maskTelefone, maskCep } from "../../../utils/masks";
@@ -221,45 +212,64 @@ export default function ClientDialog({
     onClose();
   };
 
+  const check = (ok: boolean) =>
+    ok ? (
+      <InputAdornment position="end">
+        <CheckCircleOutlineRoundedIcon fontSize="small" color="success" />
+      </InputAdornment>
+    ) : undefined;
+  const linha = { display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 } as const;
+
+  const footer = (
+    <>
+      <Box>
+        {isEdit && onDelete && initial && (
+          !confirmDelete ? (
+            <Button color="error" startIcon={<DeleteOutlineRoundedIcon />} onClick={() => setConfirmDelete(true)}>
+              Excluir cliente
+            </Button>
+          ) : (
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Typography variant="body2" color="error" fontWeight={600}>Confirmar exclusão?</Typography>
+              <Button color="error" variant="contained" size="small" disableElevation onClick={() => onDelete(initial)}>
+                Sim, excluir
+              </Button>
+              <Button size="small" onClick={() => setConfirmDelete(false)}>Cancelar</Button>
+            </Stack>
+          )
+        )}
+      </Box>
+      <Stack direction="row" spacing={1.5}>
+        <Button onClick={onClose} variant="outlined">Cancelar</Button>
+        <Button variant="contained" onClick={handleSubmit} disableElevation sx={{ fontWeight: 700 }}>
+          {isEdit ? "Salvar alterações" : "Cadastrar cliente"}
+        </Button>
+      </Stack>
+    </>
+  );
+
   return (
-    <AppDialog
+    <AppDrawer
       open={open}
       onClose={onClose}
-      onCloseClick={onClose}
-      closeOnBackdrop={false}
-      maxWidth="md"
       title={isEdit ? "Editar cliente" : "Novo cliente"}
+      subtitle={isEdit ? initial?.nome : "Cadastre os dados de contato e o endereço"}
       icon={<PersonRoundedIcon />}
-      variant="entity"
+      footer={footer}
     >
-      <AppDialogContent>
-        <Grid container spacing={2}>
-          <Grid size={12}>
-            <SectionLabel>Informações gerais</SectionLabel>
-          </Grid>
-
-          {/* ── Informações principais ── */}
-          <Grid size={12}>
-            <TextField
-              label="Nome / Razão social *"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              size="small"
-              fullWidth
-              error={!!errors.nome}
-              helperText={errors.nome}
-              autoFocus
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <PersonRoundedIcon fontSize="small" color={errors.nome ? "error" : "action"} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6 }}>
+      <DrawerSection title="Dados do cliente">
+        <Stack spacing={2}>
+          <TextField
+            label="Nome / Razão social *"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            size="small"
+            fullWidth
+            error={!!errors.nome}
+            helperText={errors.nome}
+            autoFocus
+          />
+          <Box sx={linha}>
             <TextField
               label="Telefone / WhatsApp"
               value={telefone}
@@ -267,17 +277,7 @@ export default function ClientDialog({
               size="small"
               fullWidth
               inputProps={{ maxLength: 15 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <PhoneRoundedIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
-              }}
             />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               label="E-mail"
               value={email}
@@ -286,24 +286,10 @@ export default function ClientDialog({
               fullWidth
               error={!!errors.email}
               helperText={errors.email}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <EmailRoundedIcon fontSize="small" color={errors.email ? "error" : "action"} />
-                  </InputAdornment>
-                ),
-                endAdornment:
-                  email && isEmailValido(email) ? (
-                    <InputAdornment position="end">
-                      <CheckCircleOutlineRoundedIcon fontSize="small" color="success" />
-                    </InputAdornment>
-                  ) : undefined,
-              }}
+              InputProps={{ endAdornment: check(!!email && isEmailValido(email)) }}
             />
-          </Grid>
-
-          {/* Documento + data */}
-          <Grid size={{ xs: 12, sm: 6 }}>
+          </Box>
+          <Box sx={linha}>
             <TextField
               label="CPF/CNPJ"
               value={cpf}
@@ -313,47 +299,16 @@ export default function ClientDialog({
               error={!!errors.cpf}
               helperText={errors.cpf}
               inputProps={{ maxLength: 18 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <BadgeRoundedIcon fontSize="small" color={errors.cpf ? "error" : "action"} />
-                  </InputAdornment>
-                ),
-                endAdornment:
-                  cpf && isDocumentoValido(cpf) ? (
-                    <InputAdornment position="end">
-                      <CheckCircleOutlineRoundedIcon fontSize="small" color="success" />
-                    </InputAdornment>
-                  ) : undefined,
-              }}
+              InputProps={{ endAdornment: check(!!cpf && isDocumentoValido(cpf)) }}
             />
-          </Grid>
+            <CampoData label="Nascimento / Fundação" value={dataNascimento} onChange={setDataNascimento} />
+          </Box>
+        </Stack>
+      </DrawerSection>
 
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField
-              label="Nascimento / Fundação"
-              type="date"
-              value={dataNascimento}
-              onChange={(e) => setDataNascimento(e.target.value)}
-              size="small"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <CalendarTodayRoundedIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-
-          <Grid size={12}>
-            <SectionLabel>Endereço</SectionLabel>
-          </Grid>
-
-          {/* linha 1: CEP / Nº / Complemento / Logradouro */}
-          <Grid size={{ xs: 12, sm: 3 }}>
+      <DrawerSection title="Endereço">
+        <Stack spacing={2}>
+          <Box sx={linha}>
             <TextField
               label="CEP"
               value={maskCep(cep)}
@@ -361,68 +316,14 @@ export default function ClientDialog({
               fullWidth
               error={!!cepErro}
               helperText={cepErro}
-              onChange={(e) => {
-                const raw = e.target.value.replace(/\D/g, "").slice(0, 8);
-                handleCepChange(raw);
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    {cepLoading
-                      ? <CircularProgress size={14} />
-                      : <FmdGoodRoundedIcon fontSize="small" color="action" />}
-                  </InputAdornment>
-                ),
-              }}
+              onChange={(e) => handleCepChange(e.target.value.replace(/\D/g, "").slice(0, 8))}
+              InputProps={{ endAdornment: cepLoading ? <InputAdornment position="end"><CircularProgress size={14} /></InputAdornment> : undefined }}
             />
-          </Grid>
-
-          <Grid size={{ xs: 6, sm: 2 }}>
-            <TextField
-              label="Número"
-              value={numero}
-              size="small"
-              fullWidth
-              onChange={(e) => setNumero(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <NumbersRoundedIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 6, sm: 3 }}>
-            <TextField
-              label="Complemento"
-              value={complemento}
-              size="small"
-              fullWidth
-              onChange={(e) => setComplemento(e.target.value)}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <TextField
-              label="Logradouro"
-              value={logradouro}
-              size="small"
-              fullWidth
-              onChange={(e) => setLogradouro(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <PlaceRoundedIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-
-          {/* linha 2: Cidade / UF */}
-          <Grid size={{ xs: 12, sm: 9 }}>
+            <TextField label="Número" value={numero} size="small" fullWidth onChange={(e) => setNumero(e.target.value)} />
+          </Box>
+          <TextField label="Logradouro" value={logradouro} size="small" fullWidth onChange={(e) => setLogradouro(e.target.value)} />
+          <TextField label="Complemento" value={complemento} size="small" fullWidth onChange={(e) => setComplemento(e.target.value)} />
+          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 90px", gap: 2 }}>
             <TextField
               label="Cidade"
               value={cidadeNome}
@@ -431,104 +332,30 @@ export default function ClientDialog({
               disabled
               error={cep.length === 8 && !cidadeNome}
               helperText={cep.length === 8 && !cidadeNome ? "CEP não encontrou a cidade" : undefined}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LocationCityRoundedIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
             />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 3 }}>
-            <TextField
-              label="UF"
-              value={uf}
-              size="small"
-              fullWidth
-              disabled
-              inputProps={{ maxLength: 2 }}
-            />
-          </Grid>
-
-          <Grid size={12}>
-            <TextField
-              label="Observações"
-              value={observacao}
-              onChange={(e) => setObservacao(e.target.value)}
-              size="small"
-              fullWidth
-              multiline
-              rows={2}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start" sx={{ alignSelf: "flex-start", mt: 1 }}>
-                    <NotesRoundedIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-        </Grid>
-
-        {/* ── Alerta de erros ── */}
-        <Collapse in={submitAttempted && Object.keys(errors).length > 0}>
-          <Alert severity="error" sx={{ mt: 0.5, borderRadius: 1.5 }}>
-            Corrija os campos destacados antes de salvar.
-          </Alert>
-        </Collapse>
-      </AppDialogContent>
-
-      <AppDialogActions sx={{ justifyContent: "space-between" }}>
-        <Box>
-          {isEdit && onDelete && initial && (
-            <>
-              {!confirmDelete ? (
-                <Button
-                  color="error"
-                  startIcon={<DeleteOutlineRoundedIcon />}
-                  onClick={() => setConfirmDelete(true)}
-                >
-                  Excluir cliente
-                </Button>
-              ) : (
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography variant="body2" color="error" fontWeight={600}>
-                    Confirmar exclusão?
-                  </Typography>
-                  <Button
-                    color="error"
-                    variant="contained"
-                    size="small"
-                    disableElevation
-                    onClick={() => onDelete(initial)}
-                  >
-                    Sim, excluir
-                  </Button>
-                  <Button size="small" onClick={() => setConfirmDelete(false)}>
-                    Cancelar
-                  </Button>
-                </Stack>
-              )}
-            </>
-          )}
-        </Box>
-
-        <Stack direction="row" spacing={1.5}>
-          <Button onClick={onClose} variant="outlined">
-            Cancelar
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleSubmit}
-            disableElevation
-            sx={{ fontWeight: 700 }}
-          >
-            {isEdit ? "Salvar alterações" : "Cadastrar cliente"}
-          </Button>
+            <TextField label="UF" value={uf} size="small" fullWidth disabled inputProps={{ maxLength: 2 }} />
+          </Box>
         </Stack>
-      </AppDialogActions>
-    </AppDialog>
+      </DrawerSection>
+
+      <DrawerSection title="Observações">
+        <TextField
+          placeholder="Anotações sobre o cliente"
+          inputProps={{ "aria-label": "Observações" }}
+          value={observacao}
+          onChange={(e) => setObservacao(e.target.value)}
+          size="small"
+          fullWidth
+          multiline
+          rows={3}
+        />
+      </DrawerSection>
+
+      <Collapse in={submitAttempted && Object.keys(errors).length > 0}>
+        <Alert severity="error" sx={{ mt: 3, borderRadius: 1.5 }}>
+          Corrija os campos destacados antes de salvar.
+        </Alert>
+      </Collapse>
+    </AppDrawer>
   );
 }

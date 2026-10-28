@@ -70,8 +70,17 @@ const relacoes = {
   ordem_servico: { select: { id: true, status: true } },
 } as const;
 
-const valorLiquido = (p: { valor_original: Prisma.Decimal.Value; desconto: Prisma.Decimal.Value }) =>
-  D(p.valor_original).minus(D(p.desconto));
+/** Valor do título: original - desconto + multa. */
+const valorLiquido = (p: { valor_original: Prisma.Decimal.Value; desconto: Prisma.Decimal.Value; multa: Prisma.Decimal.Value }) =>
+  D(p.valor_original).minus(D(p.desconto)).plus(D(p.multa));
+
+/** Lê um valor monetário opcional (desconto/multa): vazio = não informado; inválido ou negativo = erro. */
+function valorOpcional(bruto: unknown, nome: string) {
+  if (bruto === undefined || bruto === null || bruto === "") return null;
+  const n = Number(bruto);
+  if (!Number.isFinite(n) || n < 0) throw new Error(`${nome} invalida.`);
+  return D(n);
+}
 
 type PagamentoInput = {
   cliente_id?: number | null;
@@ -144,7 +153,8 @@ async function registrarEntrada(
   const totalPago = D(existing.valor_pago).plus(entrada);
   const quitado = entrada.greaterThanOrEqualTo(restante);
 
-  // Parcial: o titulo passa a valer exatamente o que foi pago (o desconto ja dado fica nele).
+  // Parcial: o titulo passa a valer exatamente o que foi pago (o desconto ja dado fica nele e a multa vai
+  // para o titulo de saldo, ja embutida no valor dele).
   const novoOriginal = quitado ? undefined : totalPago.plus(D(existing.desconto));
 
   const atualizado = await tx.pagamento.update({
@@ -154,7 +164,7 @@ async function registrarEntrada(
       valor_pago: totalPago,
       metodo: metodo as any,
       data_pagamento: dataPagamento,
-      ...(novoOriginal ? { valor_original: novoOriginal, valor: novoOriginal } : {}),
+      ...(novoOriginal ? { valor_original: novoOriginal, valor: novoOriginal, multa: 0 } : {}),
     },
     include: relacoes,
   });
@@ -249,10 +259,10 @@ export const PagamentosService = {
       }>
     >`
       SELECT
-        COALESCE(SUM(CASE WHEN status IN ('pendente','parcial') THEN valor_original - desconto - valor_pago END), 0) AS total_aberto,
-        COALESCE(SUM(CASE WHEN status = 'pago' AND data_pagamento >= ${inicioMes} THEN valor_original - desconto END), 0) AS pago_mes,
-        COALESCE(SUM(CASE WHEN status IN ('pendente','parcial') AND data_vencimento < ${hoje} THEN valor_original - desconto - valor_pago END), 0) AS vencidos,
-        COALESCE(SUM(CASE WHEN status IN ('pendente','parcial') AND data_vencimento >= ${hoje} AND data_vencimento <= ${fimMes} THEN valor_original - desconto - valor_pago END), 0) AS a_vencer,
+        COALESCE(SUM(CASE WHEN status IN ('pendente','parcial') THEN valor_original - desconto + multa - valor_pago END), 0) AS total_aberto,
+        COALESCE(SUM(CASE WHEN status = 'pago' AND data_pagamento >= ${inicioMes} THEN valor_original - desconto + multa END), 0) AS pago_mes,
+        COALESCE(SUM(CASE WHEN status IN ('pendente','parcial') AND data_vencimento < ${hoje} THEN valor_original - desconto + multa - valor_pago END), 0) AS vencidos,
+        COALESCE(SUM(CASE WHEN status IN ('pendente','parcial') AND data_vencimento >= ${hoje} AND data_vencimento <= ${fimMes} THEN valor_original - desconto + multa - valor_pago END), 0) AS a_vencer,
         COUNT(*) AS qtd_total,
         COUNT(*) FILTER (WHERE status IN ('pendente','parcial') AND data_vencimento < ${hoje}) AS qtd_vencidos,
         COUNT(*) FILTER (WHERE status = 'pendente') AS qtd_pendentes
@@ -431,6 +441,8 @@ export const PagamentosService = {
       /** Desconto do titulo (substitui o atual), aplicado na mesma transacao antes de calcular o saldo. */
       desconto?: number | string | null;
       motivo_desconto?: string | null;
+      /** Multa do titulo (substitui a atual). */
+      multa?: number | string | null;
     },
     oficinaId: number,
     usuarioId?: number | null
@@ -440,17 +452,23 @@ export const PagamentosService = {
       if (existing.status === "pago") throw new Error("Este pagamento já foi registrado como pago.");
       if (existing.status === "cancelado") throw new Error("Não é possível pagar um título cancelado.");
 
-      if (data.desconto !== undefined && data.desconto !== null && data.desconto !== "") {
-        const desconto = D(Number(data.desconto));
-        if (!Number.isFinite(Number(data.desconto)) || desconto.isNegative()) throw new Error("Desconto invalido.");
-        if (desconto.greaterThan(D(existing.valor_original))) throw new Error("Desconto não pode ser maior que o valor original.");
-        if (D(existing.valor_original).minus(desconto).lessThan(D(existing.valor_pago)))
-          throw new Error("Desconto deixaria o valor abaixo do que ja foi pago.");
+      // Desconto e multa (cada um substitui o atual) entram na mesma transacao, antes de calcular o saldo.
+      const desconto = valorOpcional(data.desconto, "Desconto");
+      const multa = valorOpcional(data.multa, "Multa");
+      if (desconto || multa) {
+        const novoDesconto = desconto ?? D(existing.desconto);
+        const novaMulta = multa ?? D(existing.multa);
+        if (novoDesconto.greaterThan(D(existing.valor_original))) throw new Error("Desconto não pode ser maior que o valor original.");
+        if (D(existing.valor_original).minus(novoDesconto).plus(novaMulta).lessThan(D(existing.valor_pago)))
+          throw new Error("O desconto deixaria o valor abaixo do que ja foi pago.");
         const motivo = String(data.motivo_desconto ?? "").trim();
-        if (desconto.greaterThan(0) && !motivo) throw new Error("Motivo do desconto é obrigatório.");
+        if (desconto?.greaterThan(0) && !motivo) throw new Error("Motivo do desconto é obrigatório.");
         existing = await tx.pagamento.update({
           where: { id },
-          data: { desconto, motivo_desconto: desconto.greaterThan(0) ? motivo : null },
+          data: {
+            ...(desconto ? { desconto, motivo_desconto: desconto.greaterThan(0) ? motivo : null } : {}),
+            ...(multa ? { multa } : {}),
+          },
         });
       }
 
@@ -483,7 +501,7 @@ export const PagamentosService = {
         throw new Error("Desconto invalido.");
       if (desconto.greaterThan(D(existing.valor_original)))
         throw new Error("Desconto não pode ser maior que o valor original.");
-      if (D(existing.valor_original).minus(desconto).lessThan(D(existing.valor_pago)))
+      if (D(existing.valor_original).minus(desconto).plus(D(existing.multa)).lessThan(D(existing.valor_pago)))
         throw new Error("Desconto deixaria o valor abaixo do que ja foi pago.");
       if (!data.motivo_desconto?.trim())
         throw new Error("Motivo do desconto é obrigatório.");
@@ -492,6 +510,17 @@ export const PagamentosService = {
         data: { desconto, motivo_desconto: data.motivo_desconto },
         include: relacoes,
       });
+    });
+  },
+
+  async aplicarMulta(id: number, data: { multa: number }, oficinaId: number) {
+    return prisma.$transaction(async (tx) => {
+      const existing = await lockPagamento(tx, id, oficinaId);
+      if (existing.status === "pago" || existing.status === "cancelado")
+        throw new Error("Não é possível aplicar multa em pagamentos pagos ou cancelados.");
+      const multa = valorOpcional(data.multa, "Multa");
+      if (!multa) throw new Error("Multa invalida.");
+      return tx.pagamento.update({ where: { id }, data: { multa }, include: relacoes });
     });
   },
 

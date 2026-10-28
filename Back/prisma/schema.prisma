@@ -401,6 +401,7 @@ model pagamento {
   valor_original           Decimal
   desconto                 Decimal   @default(0)
   motivo_desconto          String?
+  multa                    Decimal   @default(0)
   data_vencimento_original DateTime?
   vezes_renegociado        Int       @default(0)
   valor_pago               Decimal   @default(0)

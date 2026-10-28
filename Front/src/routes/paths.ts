@@ -15,6 +15,7 @@ export const paths = {
     contasReceber: '/contas-receber',
     clientDetails: '/clientes/:id',
     orcamentos: '/orcamentos',
+    orcamentoNovo: '/orcamentos/novo',
     orcamentoDetails: '/orcamentos/:id',
     relatorios: '/relatorios',
     clientesRelatorio: '/relatorios/clientes',
@@ -35,6 +36,8 @@ export const paths = {
     estoqueImportarXml: '/estoque/importar-xml',
     fornecedores: '/fornecedores',
     servicos: '/servicos',
+    ordemNova: '/ordens/nova',
+    ordemEditar: '/ordens/:id/editar',
     ordemServicoDetalhes: '/ordens/:id',
     recursosAdicionais: '/recursos-adicionais',
   } as const;
