@@ -1,8 +1,8 @@
+import crypto from "node:crypto";
 import bcrypt from "bcrypt";
 import { prisma } from "../../prisma/client.js";
 import { limparCacheSessao } from "../sessao.service.js";
-
-const MAX_ACTIVE_ADMINS = 2;
+import { PasswordResetService } from "../passwordReset.service.js";
 
 export const AdminsService = {
   async listar() {
@@ -21,20 +21,39 @@ export const AdminsService = {
     });
   },
 
-  async criar({ nome, email, senha }: { nome: string; email: string; senha: string }) {
-    const activeAdmins = await prisma.usuario.count({ where: { tipo: "sistema", status: "ativo", deleted_at: null } });
-    if (activeAdmins >= MAX_ACTIVE_ADMINS) throw new Error("Limite de 2 administradores ativos atingido.");
-
+  // O novo usuario recebe por e-mail um convite para criar a propria senha; quem cadastra nunca a conhece.
+  async criar({ nome, email }: { nome: string; email: string }) {
     const existing = await prisma.usuario.findFirst({ where: { email: email.toLowerCase() } });
     if (existing) throw new Error("Já existe um usuário com este e-mail.");
-    const senhaOk = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(senha);
-    if (!senhaOk) throw new Error("A senha deve ter no mínimo 8 caracteres, incluindo maiúscula, minúscula, número e caractere especial.");
 
-    const senhaHash = await bcrypt.hash(senha, 10);
-    return prisma.usuario.create({
-      data: { nome, email: email.toLowerCase(), senha: senhaHash, tipo: "sistema", status: "ativo" },
+    const senhaDescartavel = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10);
+    const usuario = await prisma.usuario.create({
+      data: { nome, email: email.toLowerCase(), senha: senhaDescartavel, tipo: "sistema", status: "ativo" },
       select: { id: true, nome: true, email: true, status: true, created_at: true },
     });
+    const convite = await PasswordResetService.createResetForUser(usuario.id, { convite: true });
+    return { usuario, convite };
+  },
+
+  async atualizar(id: number, { nome, email }: { nome: string; email: string }) {
+    const usuario = await prisma.usuario.findFirst({ where: { id, tipo: "sistema", deleted_at: null } });
+    if (!usuario) throw new Error("Usuário não encontrado.");
+
+    const normalizado = email.trim().toLowerCase();
+    const emUso = await prisma.usuario.findFirst({ where: { email: normalizado, id: { not: id } } });
+    if (emUso) throw new Error("Já existe um usuário com este e-mail.");
+
+    return prisma.usuario.update({
+      where: { id },
+      data: { nome: nome.trim(), email: normalizado },
+      select: { id: true, nome: true, email: true, status: true },
+    });
+  },
+
+  async linkSenha(id: number) {
+    const usuario = await prisma.usuario.findFirst({ where: { id, tipo: "sistema", deleted_at: null, status: "ativo" } });
+    if (!usuario) throw new Error("Usuário não encontrado ou inativo.");
+    return PasswordResetService.createResetForUser(id);
   },
 
   async desativar(id: number, actorId?: number) {
@@ -52,9 +71,6 @@ export const AdminsService = {
   },
 
   async reativar(id: number) {
-    const activeAdmins = await prisma.usuario.count({ where: { tipo: "sistema", status: "ativo", deleted_at: null } });
-    if (activeAdmins >= MAX_ACTIVE_ADMINS) throw new Error("Limite de 2 administradores ativos atingido.");
-
     const admin = await prisma.usuario.findFirst({ where: { id, tipo: "sistema", deleted_at: null } });
     if (!admin) throw new Error("Administrador não encontrado.");
     return prisma.usuario.update({ where: { id }, data: { status: "ativo" } });

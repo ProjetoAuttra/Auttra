@@ -6,8 +6,13 @@ import { AdminAuditService } from "../../services/admin/audit.service.js";
 const criarAdminSchema = z.object({
   nome: z.string().trim().min(2),
   email: z.string().email(),
-  senha: z.string().min(8),
 });
+
+const atualizarAdminSchema = criarAdminSchema;
+
+function linkPublico(link: { email: string; reset_url: string; email_sent: boolean; expires_at: Date }) {
+  return { email: link.email, reset_url: link.reset_url, email_sent: link.email_sent, expires_at: link.expires_at };
+}
 
 export const AdminsController = {
   async listar(_req: Request, res: Response) {
@@ -23,17 +28,55 @@ export const AdminsController = {
     const parsed = criarAdminSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Dados inválidos.", issues: parsed.error.flatten() });
     try {
-      const admin = await AdminsService.criar(parsed.data);
+      const { usuario, convite } = await AdminsService.criar(parsed.data);
       await AdminAuditService.log({
         req,
         action: "admin.create",
         entityType: "usuario",
-        entityId: admin.id,
-        message: `Administrador ${admin.email} criado.`,
+        entityId: usuario.id,
+        message: `Usuário do painel ${usuario.email} criado.`,
+        metadata: { convite_email_sent: convite.email_sent },
       });
-      return res.status(201).json(admin);
+      return res.status(201).json({ usuario, convite: linkPublico(convite) });
     } catch (err: any) {
       return res.status(400).json({ message: err.message ?? "Erro ao criar administrador." });
+    }
+  },
+
+  async atualizar(req: Request, res: Response) {
+    const parsed = atualizarAdminSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Dados inválidos.", issues: parsed.error.flatten() });
+    try {
+      const id = Number(req.params.id);
+      const usuario = await AdminsService.atualizar(id, parsed.data);
+      await AdminAuditService.log({
+        req,
+        action: "admin.update",
+        entityType: "usuario",
+        entityId: id,
+        message: `Usuário do painel ${usuario.email} atualizado.`,
+      });
+      return res.json(usuario);
+    } catch (err: any) {
+      return res.status(400).json({ message: err.message ?? "Erro ao atualizar usuário." });
+    }
+  },
+
+  async linkSenha(req: Request, res: Response) {
+    try {
+      const id = Number(req.params.id);
+      const link = await AdminsService.linkSenha(id);
+      await AdminAuditService.log({
+        req,
+        action: "admin.password_link",
+        entityType: "usuario",
+        entityId: id,
+        message: "Link de redefinição de senha gerado para usuário do painel.",
+        metadata: { email_sent: link.email_sent },
+      });
+      return res.json(linkPublico(link));
+    } catch (err: any) {
+      return res.status(400).json({ message: err.message ?? "Erro ao gerar link." });
     }
   },
 

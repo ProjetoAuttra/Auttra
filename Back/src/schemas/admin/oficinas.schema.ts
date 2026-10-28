@@ -16,7 +16,6 @@ export const criarOficinaSchema = z.object({
   gestor: z.object({
     nome: z.string().trim().min(1, "Nome do gestor é obrigatório."),
     email: z.string().email("E-mail do gestor inválido."),
-    senha: z.string().min(6, "Senha deve ter pelo menos 6 caracteres."),
   }),
 });
 
@@ -32,7 +31,5 @@ export const updateOficinaSchema = z.object({
   telefone: z.string().trim().nullable().optional(),
   email: z.string().email().nullable().optional(),
   gestor_usuario_id: z.number().int().positive().nullable().optional(),
-  status_admin: z.enum(["implantacao", "ativa", "suspensa", "cancelada"]).optional(),
   notas_internas: z.string().trim().nullable().optional(),
-  implantacao_checklist: z.record(z.string(), z.boolean()).optional(),
 });

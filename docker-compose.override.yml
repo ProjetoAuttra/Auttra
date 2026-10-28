@@ -14,6 +14,9 @@ services:
     environment:
       NODE_ENV: development
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      # Bind mount do Windows nao dispara eventos de arquivo no Linux: sem polling o tsx watch nao recarrega.
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "1000"
     volumes:
       - ./Back:/app
       - /app/node_modules
@@ -24,6 +27,7 @@ services:
     command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8080"]
     environment:
       VITE_PROXY_TARGET: http://api:4000
+      CHOKIDAR_USEPOLLING: "true"
     ports: !override
       - "8080:8080"
     volumes:
@@ -36,6 +40,7 @@ services:
     command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8081"]
     environment:
       VITE_PROXY_TARGET: http://api:4000
+      CHOKIDAR_USEPOLLING: "true"
     ports: !override
       - "8081:8081"
     volumes:
