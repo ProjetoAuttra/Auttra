@@ -13,6 +13,20 @@ function assertTipoPermitido(tipo: unknown): asserts tipo is tipo_usuario {
   }
 }
 
+// Nunca sai nas respostas do app: credenciais, controle de sessao/login e dados pessoais do proprietario.
+const CAMPOS_PRIVADOS = {
+  senha: true,
+  totp_secret: true,
+  token_version: true,
+  failed_login_attempts: true,
+  locked_until: true,
+  last_login_ip: true,
+  last_login_user_agent: true,
+  cpf: true,
+  telefone: true,
+  data_nascimento: true,
+} as const;
+
 export const UsuarioService = {
   async create(data: {
     email: string;
@@ -107,6 +121,7 @@ export const UsuarioService = {
 
   async list(oficinaId: number) {
     return prisma.usuario.findMany({
+      omit: CAMPOS_PRIVADOS,
       where: {
         deleted_at: null,
         acessos: { some: { oficina_id: oficinaId, deleted_at: null } },
@@ -123,6 +138,7 @@ export const UsuarioService = {
 
   async getById(id: number, oficinaId: number) {
     const usuario = await prisma.usuario.findFirst({
+      omit: CAMPOS_PRIVADOS,
       where: {
         id,
         deleted_at: null,
@@ -175,7 +191,7 @@ export const UsuarioService = {
     }
 
     if (patch.senha) Object.assign(patch, invalidarTokens);
-    const atualizado = await prisma.usuario.update({ where: { id }, data: patch });
+    const atualizado = await prisma.usuario.update({ where: { id }, data: patch, omit: CAMPOS_PRIVADOS });
     limparCacheSessao(id);
     return atualizado;
   },
@@ -205,6 +221,7 @@ export const UsuarioService = {
 
     limparCacheSessao(id);
     return prisma.usuario.update({
+      omit: CAMPOS_PRIVADOS,
       where: { id },
       data: {
         deleted_at: new Date(),
