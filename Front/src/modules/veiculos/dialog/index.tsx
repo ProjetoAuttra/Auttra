@@ -2,21 +2,16 @@ import * as React from "react";
 import {
   Box,
   Stack, TextField,
-  Button, IconButton, Typography, Grid, InputAdornment,
+  Button, IconButton, Typography, InputAdornment,
   MenuItem, Chip, Tooltip, Autocomplete,
 } from "@mui/material";
 import DirectionsCarRoundedIcon from "@mui/icons-material/DirectionsCarRounded";
-import CreditCardRoundedIcon from "@mui/icons-material/CreditCardRounded";
-import CalendarTodayRoundedIcon from "@mui/icons-material/CalendarTodayRounded";
-import LocalGasStationRoundedIcon from "@mui/icons-material/LocalGasStationRounded";
-import SpeedRoundedIcon from "@mui/icons-material/SpeedRounded";
-import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import { listarClientes } from "../../../api/client";
 import ClientDialog, { type ClientForm } from "../../clientes/dialog";
 import api from "../../../api/api";
-import { AppDialog, AppDialogActions, AppDialogContent, SectionLabel } from "../../../components/common/AppDialog";
+import { AppDrawer, DrawerSection } from "../../../components/common/AppDrawer";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -175,24 +170,37 @@ export default function VeiculoDialog({ open, mode, initial, defaultCliente, onC
     });
   };
 
-  return (
-    <AppDialog
-      open={open}
-      onClose={onClose}
-      onCloseClick={onClose}
-      closeOnBackdrop={false}
-      maxWidth="sm"
-      title={isEdit ? "Editar veículo" : "Novo veículo"}
-      icon={<DirectionsCarRoundedIcon />}
-      variant="entity"
-    >
-      {/* ── Body ── */}
-      <AppDialogContent>
-        <Grid container spacing={2}>
+  const linha = { display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 } as const;
 
-          {/* Cliente (só no criar) */}
-          {!isEdit && (
-            <Grid size={12}>
+  const footer = (
+    <>
+      <Box />
+      <Stack direction="row" spacing={1.5}>
+        <Button onClick={onClose} variant="outlined">Cancelar</Button>
+        <Button variant="contained" onClick={handleSubmit} disableElevation sx={{ fontWeight: 700 }}>
+          {isEdit ? "Salvar alterações" : "Cadastrar veículo"}
+        </Button>
+      </Stack>
+    </>
+  );
+
+  return (
+    <>
+      <AppDrawer
+        open={open}
+        onClose={onClose}
+        title={isEdit ? "Editar veículo" : "Novo veículo"}
+        subtitle={
+          isEdit
+            ? [initial?.marca, initial?.modelo, initial?.placa].filter(Boolean).join(" ")
+            : "Cadastre o veículo e vincule ao proprietário"
+        }
+        icon={<DirectionsCarRoundedIcon />}
+        footer={footer}
+      >
+        <DrawerSection title="Dados do veículo">
+          <Stack spacing={2}>
+            {!isEdit && (
               <Autocomplete
                 fullWidth
                 size="small"
@@ -211,11 +219,6 @@ export default function VeiculoDialog({ open, mode, initial, defaultCliente, onC
                     helperText={errors.clienteId}
                     InputProps={{
                       ...params.InputProps,
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <PersonRoundedIcon fontSize="small" color={errors.clienteId ? "error" : "action"} />
-                        </InputAdornment>
-                      ),
                       endAdornment: (
                         <>
                           {params.InputProps.endAdornment}
@@ -239,172 +242,113 @@ export default function VeiculoDialog({ open, mode, initial, defaultCliente, onC
                   />
                 )}
               />
-            </Grid>
-          )}
+            )}
 
-          {/* Marca + Modelo */}
-          <Grid size={6}>
-            <TextField
-              fullWidth size="small" label="Marca *"
-              value={marca} onChange={(e) => setMarca(e.target.value)}
-              error={!!errors.marca} helperText={errors.marca}
-            />
-          </Grid>
-          <Grid size={6}>
-            <TextField
-              fullWidth size="small" label="Modelo *"
-              value={modelo} onChange={(e) => setModelo(e.target.value)}
-              error={!!errors.modelo} helperText={errors.modelo}
-            />
-          </Grid>
+            <Box sx={linha}>
+              <TextField
+                fullWidth size="small" label="Marca *"
+                value={marca} onChange={(e) => setMarca(e.target.value)}
+                error={!!errors.marca} helperText={errors.marca}
+              />
+              <TextField
+                fullWidth size="small" label="Modelo *"
+                value={modelo} onChange={(e) => setModelo(e.target.value)}
+                error={!!errors.modelo} helperText={errors.modelo}
+              />
+            </Box>
 
-          {/* Placa + Ano */}
-          <Grid size={5}>
-            <TextField
-              fullWidth size="small" label="Placa *"
-              value={placa}
-              onChange={(e) => setPlaca(formatPlaca(e.target.value))}
-              error={!!errors.placa} helperText={errors.placa}
-              inputProps={{
-                maxLength: 8,
-                style: { fontFamily: "monospace", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" },
-              }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <CreditCardRoundedIcon fontSize="small" color={errors.placa ? "error" : "action"} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: isPlacaValida(placa) ? (
-                    <InputAdornment position="end">
-                      <CheckCircleOutlineRoundedIcon fontSize="small" color="success" />
-                    </InputAdornment>
-                  ) : undefined,
-                },
-              }}
-            />
-          </Grid>
-          <Grid size={3}>
-            <TextField
-              fullWidth size="small" label="Ano" type="number"
-              value={ano}
-              onChange={(e) => setAno(e.target.value === "" ? "" : parseInt(e.target.value, 10))}
-              inputProps={{ min: 1900, max: currentYear + 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <CalendarTodayRoundedIcon fontSize="small" color="action" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-          </Grid>
+            <Box sx={linha}>
+              <TextField
+                fullWidth size="small" label="Placa *"
+                value={placa}
+                onChange={(e) => setPlaca(formatPlaca(e.target.value))}
+                error={!!errors.placa} helperText={errors.placa}
+                inputProps={{
+                  maxLength: 8,
+                  style: { fontFamily: "monospace", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" },
+                }}
+                slotProps={{
+                  input: {
+                    endAdornment: isPlacaValida(placa) ? (
+                      <InputAdornment position="end">
+                        <CheckCircleOutlineRoundedIcon fontSize="small" color="success" />
+                      </InputAdornment>
+                    ) : undefined,
+                  },
+                }}
+              />
+              <TextField
+                fullWidth size="small" label="Ano" type="number"
+                value={ano}
+                onChange={(e) => setAno(e.target.value === "" ? "" : parseInt(e.target.value, 10))}
+                inputProps={{ min: 1900, max: currentYear + 1 }}
+              />
+            </Box>
+          </Stack>
+        </DrawerSection>
 
-          <Grid size={12}>
-            <SectionLabel>Dados adicionais</SectionLabel>
-          </Grid>
+        <DrawerSection title="Dados adicionais">
+          <Stack spacing={2}>
+            <Box>
+              <TextField
+                fullWidth size="small" label="Cor"
+                value={cor} onChange={(e) => setCor(e.target.value)}
+              />
+              <Stack direction="row" flexWrap="wrap" gap={0.5} mt={0.5}>
+                {CORES.map((c) => (
+                  <Chip
+                    key={c} label={c} size="small"
+                    variant={cor === c ? "filled" : "outlined"}
+                    color={cor === c ? "primary" : "default"}
+                    onClick={() => setCor(cor === c ? "" : c)}
+                    sx={{ fontSize: 12, height: 20, cursor: "pointer" }}
+                  />
+                ))}
+              </Stack>
+            </Box>
 
-          {/* Cor + chips */}
-          <Grid size={12}>
-            <TextField
-              fullWidth size="small" label="Cor"
-              value={cor} onChange={(e) => setCor(e.target.value)}
-            />
-            <Stack direction="row" flexWrap="wrap" gap={0.5} mt={0.5}>
-              {CORES.map((c) => (
-                <Chip
-                  key={c} label={c} size="small"
-                  variant={cor === c ? "filled" : "outlined"}
-                  color={cor === c ? "primary" : "default"}
-                  onClick={() => setCor(cor === c ? "" : c)}
-                  sx={{ fontSize: 12, height: 20, cursor: "pointer" }}
-                />
-              ))}
-            </Stack>
-          </Grid>
+            <Box sx={linha}>
+              <TextField
+                select fullWidth size="small" label="Combustível"
+                value={combustivel} onChange={(e) => setCombustivel(e.target.value)}
+              >
+                <MenuItem value=""><em>Não informado</em></MenuItem>
+                {COMBUSTIVEIS.map((c) => (
+                  <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                fullWidth size="small" label="Quilometragem" type="number"
+                value={quilometragem}
+                onChange={(e) => setQuilometragem(e.target.value === "" ? "" : parseInt(e.target.value, 10))}
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Typography variant="caption" color="text.disabled">km</Typography>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+            </Box>
 
-          {/* Combustível + Quilometragem */}
-          <Grid size={6}>
-            <TextField
-              select fullWidth size="small" label="Combustível"
-              value={combustivel} onChange={(e) => setCombustivel(e.target.value)}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LocalGasStationRoundedIcon fontSize="small" color="action" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            >
-              <MenuItem value=""><em>Não informado</em></MenuItem>
-              {COMBUSTIVEIS.map((c) => (
-                <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          <Grid size={6}>
-            <TextField
-              fullWidth size="small" label="Quilometragem" type="number"
-              value={quilometragem}
-              onChange={(e) => setQuilometragem(e.target.value === "" ? "" : parseInt(e.target.value, 10))}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SpeedRoundedIcon fontSize="small" color="action" />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <Typography variant="caption" color="text.disabled">km</Typography>
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-          </Grid>
-
-          {/* Observações */}
-          <Grid size={12}>
             <TextField
               fullWidth size="small" label="Observações"
               value={observacao} onChange={(e) => setObservacao(e.target.value)}
               multiline rows={2}
             />
-          </Grid>
-        </Grid>
-      </AppDialogContent>
+          </Stack>
+        </DrawerSection>
+      </AppDrawer>
 
-      {/* ── Footer ── */}
-      <AppDialogActions>
-        <Button
-          onClick={onClose}
-          variant="outlined"
-        >
-          Cancelar
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleSubmit}
-          disableElevation
-          sx={{ fontWeight: 700 }}
-        >
-          {isEdit ? "Salvar alterações" : "Cadastrar veículo"}
-        </Button>
-      </AppDialogActions>
-
-      {/* ── Dialog: criar cliente rápido ── */}
+      {/* ── Drawer: criar cliente rápido ── */}
       <ClientDialog
         open={openNovoCliente}
         mode="create"
         onClose={() => setOpenNovoCliente(false)}
         onSubmit={handleClienteCriado}
       />
-    </AppDialog>
+    </>
   );
 }

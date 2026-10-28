@@ -1,14 +1,8 @@
 import * as React from "react";
-import {
-  Box, Stack, TextField,
-  Button, Typography, Grid, InputAdornment, CircularProgress,
-} from "@mui/material";
+import { Box, Stack, TextField, Button, Typography, CircularProgress } from "@mui/material";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
-import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
-import PaidRoundedIcon from "@mui/icons-material/PaidRounded";
-import NumbersRoundedIcon from "@mui/icons-material/NumbersRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import { AppDialog, AppDialogActions, AppDialogContent, SectionLabel } from "../../../components/common/AppDialog";
+import { AppDrawer, DrawerSection } from "../../../components/common/AppDrawer";
 
 export type EstoqueItem = {
   id: number;
@@ -65,60 +59,73 @@ export default function EstoqueDialog({ open, mode, initial, onClose, onSubmit, 
     }
   };
 
+  const linha = { display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 } as const;
+
+  const footer = (
+    <>
+      <Box>
+        {isEdit && onDelete && initial && (
+          !confirmDelete ? (
+            <Button color="error" startIcon={<DeleteOutlineRoundedIcon />} onClick={() => setConfirmDelete(true)}>
+              Excluir peça
+            </Button>
+          ) : (
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Typography variant="body2" color="error" fontWeight={600}>Confirmar exclusão?</Typography>
+              <Button
+                color="error" variant="contained" size="small" disableElevation
+                onClick={() => { onDelete(initial); onClose(); }}
+              >
+                Sim, excluir
+              </Button>
+              <Button size="small" onClick={() => setConfirmDelete(false)}>Cancelar</Button>
+            </Stack>
+          )
+        )}
+      </Box>
+      <Stack direction="row" spacing={1.5}>
+        <Button onClick={onClose} variant="outlined">Cancelar</Button>
+        <Button onClick={handleSubmit} variant="contained" disableElevation disabled={saving} sx={{ fontWeight: 700 }}>
+          {saving ? <CircularProgress size={18} /> : (isEdit ? "Salvar alterações" : "Cadastrar peça")}
+        </Button>
+      </Stack>
+    </>
+  );
+
   return (
-    <AppDialog
+    <AppDrawer
       open={open}
       onClose={onClose}
-      onCloseClick={onClose}
-      closeOnBackdrop={false}
-      maxWidth="sm"
       title={isEdit ? "Editar peça" : "Nova peça"}
+      subtitle={isEdit ? initial?.nome : "Cadastre a peça com preços e quantidade em estoque"}
       icon={<Inventory2RoundedIcon />}
-      variant="entity"
+      footer={footer}
     >
-      <AppDialogContent>
-        <Grid container spacing={2}>
-          <Grid size={12}>
-            <SectionLabel>Informações da peça</SectionLabel>
-          </Grid>
+      <DrawerSection title="Dados da peça">
+        <Stack spacing={2}>
+          <TextField
+            label="Nome *"
+            value={form.nome}
+            onChange={(e) => handleChange("nome", e.target.value)}
+            size="small"
+            fullWidth
+            autoFocus
+          />
+          <TextField
+            label="Descrição"
+            value={form.descricao}
+            onChange={(e) => handleChange("descricao", e.target.value)}
+            size="small"
+            fullWidth
+            multiline
+            rows={3}
+          />
+        </Stack>
+      </DrawerSection>
 
-          <Grid size={12}>
-            <TextField
-              label="Nome *"
-              value={form.nome}
-              onChange={(e) => handleChange("nome", e.target.value)}
-              size="small"
-              fullWidth
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Inventory2RoundedIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-
-          <Grid size={12}>
-            <TextField
-              label="Descrição"
-              value={form.descricao}
-              onChange={(e) => handleChange("descricao", e.target.value)}
-              size="small"
-              fullWidth
-              multiline
-              rows={2}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start" sx={{ alignSelf: "flex-start", mt: 1 }}>
-                    <DescriptionRoundedIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6 }}>
+      <DrawerSection title="Preços e estoque">
+        <Stack spacing={2}>
+          <Box sx={linha}>
             <TextField
               label="Preço de custo (R$)"
               type="number"
@@ -126,17 +133,7 @@ export default function EstoqueDialog({ open, mode, initial, onClose, onSubmit, 
               onChange={(e) => handleChange("preco_custo", parseFloat(e.target.value))}
               size="small"
               fullWidth
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <PaidRoundedIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
             />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               label="Preço de venda (R$)"
               type="number"
@@ -144,17 +141,9 @@ export default function EstoqueDialog({ open, mode, initial, onClose, onSubmit, 
               onChange={(e) => handleChange("preco_venda", parseFloat(e.target.value))}
               size="small"
               fullWidth
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <PaidRoundedIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
             />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 4 }}>
+          </Box>
+          <Box sx={linha}>
             <TextField
               label="Estoque atual"
               type="number"
@@ -162,63 +151,10 @@ export default function EstoqueDialog({ open, mode, initial, onClose, onSubmit, 
               onChange={(e) => handleChange("estoque", parseInt(e.target.value))}
               size="small"
               fullWidth
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <NumbersRoundedIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
             />
-          </Grid>
-        </Grid>
-      </AppDialogContent>
-
-      <AppDialogActions sx={{ justifyContent: "space-between" }}>
-        <Box>
-          {isEdit && onDelete && initial && (
-            <>
-              {!confirmDelete ? (
-                <Button
-                  color="error"
-                  startIcon={<DeleteOutlineRoundedIcon />}
-                  onClick={() => setConfirmDelete(true)}
-                >
-                  Excluir peça
-                </Button>
-              ) : (
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography variant="body2" color="error" fontWeight={600}>Confirmar exclusão?</Typography>
-                  <Button
-                    color="error" variant="contained" size="small" disableElevation
-                    onClick={() => { onDelete(initial); onClose(); }}
-                  >
-                    Sim, excluir
-                  </Button>
-                  <Button size="small" onClick={() => setConfirmDelete(false)}>
-                    Cancelar
-                  </Button>
-                </Stack>
-              )}
-            </>
-          )}
-        </Box>
-
-        <Stack direction="row" spacing={1.5}>
-          <Button onClick={onClose} variant="outlined">
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            disableElevation
-            disabled={saving}
-            sx={{ fontWeight: 700 }}
-          >
-            {saving ? <CircularProgress size={18} /> : (isEdit ? "Salvar alterações" : "Cadastrar peça")}
-          </Button>
+          </Box>
         </Stack>
-      </AppDialogActions>
-    </AppDialog>
+      </DrawerSection>
+    </AppDrawer>
   );
 }

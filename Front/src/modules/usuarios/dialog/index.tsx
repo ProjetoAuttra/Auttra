@@ -1,18 +1,11 @@
 import * as React from "react";
-import {
-  Grid, TextField, Button,
-  MenuItem, InputAdornment, CircularProgress,
-} from "@mui/material";
+import { Box, Stack, TextField, Button, MenuItem, CircularProgress } from "@mui/material";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
-import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
-import PhoneIphoneRoundedIcon from "@mui/icons-material/PhoneIphoneRounded";
-import WorkRoundedIcon from "@mui/icons-material/WorkRounded";
-import LockRoundedIcon from "@mui/icons-material/LockRounded";
-import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import { useToast } from "../../../context/ToastContext";
 import { listarPerfisAcesso, type PerfilAcesso } from "../../configuracoes/api/perfisAcesso";
 import { maskTelefone } from "../../../utils/masks";
-import { AppDialog, AppDialogActions, AppDialogContent, SectionLabel } from "../../../components/common/AppDialog";
+import { AppDrawer, DrawerSection } from "../../../components/common/AppDrawer";
+import CampoData from "../../../components/common/CampoData";
 
 // O valor enviado à API continua sem acento (enum do backend); só o rótulo exibido é acentuado.
 const cargos = ["Mecanico", "Atendente", "Gerente", "Administrador"];
@@ -99,41 +92,40 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
     }
   };
 
+  const linha = { display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 } as const;
+
+  const footer = (
+    <>
+      <Box />
+      <Stack direction="row" spacing={1.5}>
+        <Button onClick={onClose} variant="outlined">Cancelar</Button>
+        <Button onClick={handleSubmit} variant="contained" disableElevation disabled={saving} sx={{ fontWeight: 700 }}>
+          {saving ? <CircularProgress size={18} /> : (isEdit ? "Salvar alterações" : "Cadastrar funcionário")}
+        </Button>
+      </Stack>
+    </>
+  );
+
   return (
-    <AppDialog
+    <AppDrawer
       open={open}
       onClose={onClose}
-      onCloseClick={onClose}
-      closeOnBackdrop={false}
-      maxWidth="sm"
       title={isEdit ? "Editar funcionário" : "Novo funcionário"}
+      subtitle={isEdit ? initial?.nome : "Cadastre os dados pessoais e o acesso ao sistema"}
       icon={<PersonRoundedIcon />}
-      variant="entity"
+      footer={footer}
     >
-      <AppDialogContent>
-        <Grid container spacing={2}>
-          <Grid size={12}>
-            <SectionLabel>Dados pessoais</SectionLabel>
-          </Grid>
-
-          <Grid size={12}>
-            <TextField
-              label="Nome completo *"
-              fullWidth
-              size="small"
-              value={form.nome}
-              onChange={(e) => setForm({ ...form, nome: e.target.value })}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <PersonRoundedIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 7 }}>
+      <DrawerSection title="Dados pessoais">
+        <Stack spacing={2}>
+          <TextField
+            label="Nome completo *"
+            fullWidth
+            size="small"
+            value={form.nome}
+            onChange={(e) => setForm({ ...form, nome: e.target.value })}
+            autoFocus
+          />
+          <Box sx={linha}>
             <TextField
               label="E-mail *"
               fullWidth
@@ -141,17 +133,7 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <EmailRoundedIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
             />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 5 }}>
             <TextField
               label="Telefone *"
               fullWidth
@@ -159,21 +141,14 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
               value={form.telefone}
               onChange={(e) => setForm({ ...form, telefone: maskTelefone(e.target.value) })}
               inputProps={{ maxLength: 16 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <PhoneIphoneRoundedIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
             />
-          </Grid>
+          </Box>
+        </Stack>
+      </DrawerSection>
 
-          <Grid size={12}>
-            <SectionLabel>Acesso ao sistema</SectionLabel>
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6 }}>
+      <DrawerSection title="Acesso ao sistema">
+        <Stack spacing={2}>
+          <Box sx={linha}>
             <TextField
               select
               label="Cargo"
@@ -181,19 +156,9 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
               size="small"
               value={form.cargo}
               onChange={(e) => setForm({ ...form, cargo: e.target.value })}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <WorkRoundedIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
             >
               {cargos.map((c) => <MenuItem key={c} value={c}>{cargoLabel(c)}</MenuItem>)}
             </TextField>
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               select
               label="Perfil de acesso"
@@ -201,19 +166,11 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
               size="small"
               value={form.perfil_acesso_id ?? ""}
               onChange={(e) => setForm({ ...form, perfil_acesso_id: Number(e.target.value) })}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <WorkRoundedIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
             >
               {perfis.map((perfil) => <MenuItem key={perfil.id} value={perfil.id}>{perfil.nome}</MenuItem>)}
             </TextField>
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 7 }}>
+          </Box>
+          <Box sx={linha}>
             <TextField
               label={isEdit ? "Nova senha (opcional)" : "Senha de acesso *"}
               fullWidth
@@ -222,51 +179,15 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
               value={form.senha}
               onChange={(e) => setForm({ ...form, senha: e.target.value })}
               placeholder={isEdit ? "Deixe em branco para não alterar" : ""}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LockRoundedIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
             />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 5 }}>
-            <TextField
+            <CampoData
               label="Data de contratação"
-              type="date"
-              fullWidth
-              size="small"
-              InputLabelProps={{ shrink: true }}
               value={form.data_contratacao.split("T")[0]}
-              onChange={(e) => setForm({ ...form, data_contratacao: new Date(e.target.value).toISOString() })}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <CalendarMonthRoundedIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
+              onChange={(v) => { if (v) setForm({ ...form, data_contratacao: new Date(v).toISOString() }); }}
             />
-          </Grid>
-        </Grid>
-      </AppDialogContent>
-
-      <AppDialogActions>
-        <Button onClick={onClose} variant="outlined">
-          Cancelar
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          disableElevation
-          disabled={saving}
-          sx={{ fontWeight: 700 }}
-        >
-          {saving ? <CircularProgress size={18} /> : (isEdit ? "Salvar alterações" : "Cadastrar funcionário")}
-        </Button>
-      </AppDialogActions>
-    </AppDialog>
+          </Box>
+        </Stack>
+      </DrawerSection>
+    </AppDrawer>
   );
 }
