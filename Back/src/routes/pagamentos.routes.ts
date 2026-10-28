@@ -24,6 +24,11 @@ router.get("/", async (req, res) => {
         cliente_id: cliente_id ? Number(cliente_id) : undefined,
         tipo: textoQuery(req.query.tipo) || undefined,
         status: textoQuery(req.query.status) || undefined,
+        metodo: textoQuery(req.query.metodo) || undefined,
+        fornecedor_id: req.query.fornecedor_id ? Number(req.query.fornecedor_id) : undefined,
+        vencimento_de: textoQuery(req.query.vencimento_de) || undefined,
+        vencimento_ate: textoQuery(req.query.vencimento_ate) || undefined,
+        hoje: textoQuery(req.query.hoje) || undefined,
         search: textoQuery(req.query.search) || undefined,
       },
       parsePaginacao(req.query)

@@ -28,10 +28,11 @@ import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
 import { AppDrawer, DrawerSection } from "../../../../components/common/AppDrawer";
 import api from "../../../../api/api";
-import { type Conta, brl, isVencido, valorLiquido, formatarData, METODO_OPTIONS, criarPagamento, atualizarPagamento, marcarComoPago, estornarPagamento, parcelar, cancelarPagamento, resumoPagamentos, type ResumoContas } from "../../api/api";
+import { type Conta, brl, isVencido, valorLiquido, formatarData, METODO_OPTIONS, hojeInput, criarPagamento, atualizarPagamento, marcarComoPago, estornarPagamento, parcelar, cancelarPagamento, resumoPagamentos, type ResumoContas } from "../../api/api";
 import {
   EstornarDialog, DetalhesDialog,
 } from "../../dialogs/index";
+import FiltrosContas, { FILTROS_AVANCADOS_VAZIOS, contarFiltrosAvancados, type FiltrosAvancados, type StatusConta } from "../../components/FiltrosContas";
 import { ReceberTituloDialog, RenegociarTituloDialog } from "../../dialogs/TituloDialogs";
 import { EditarContaDialog } from "../../dialogs/EditarContaDialog";
 
@@ -58,10 +59,23 @@ export default function ContasPagar() {
   const [acao, setAcao] = React.useState<Acao>(null);
   const [dialogNova, setDialogNova] = React.useState(false);
   const [query, setQuery] = React.useState("");
+  const [status, setStatus] = React.useState<StatusConta>("todos");
+  const [avancados, setAvancados] = React.useState<FiltrosAvancados>(FILTROS_AVANCADOS_VAZIOS);
+  const filtrado = !!query || status !== "todos" || contarFiltrosAvancados(avancados) > 0;
+  const limparFiltros = () => { setQuery(""); setStatus("todos"); setAvancados(FILTROS_AVANCADOS_VAZIOS); };
 
   const { rows: contas, total, carregandoInicial, page, setPage, rowsPerPage, setRowsPerPage, recarregar } =
     useListaPaginada<Conta>("/pagamentos", {
-      filtros: { tipo: "pagar", search: query },
+      filtros: {
+        tipo: "pagar",
+        search: query,
+        status,
+        hoje: status === "vencido" ? hojeInput() : "",
+        vencimento_de: avancados.de,
+        vencimento_ate: avancados.ate,
+        metodo: avancados.metodo,
+        fornecedor_id: avancados.parceiroId,
+      },
       onError: (err) => console.error("Erro ao carregar contas:", err),
     });
   const [resumoApi, setResumoApi] = React.useState<ResumoContas | null>(null);
@@ -152,6 +166,16 @@ export default function ContasPagar() {
           <StatCard key={r.label} label={r.label} value={r.value} icon={r.icon} tone={r.tone} />
         ))}
       </StatGroup>
+
+      <FiltrosContas
+        status={status}
+        onStatusChange={setStatus}
+        avancados={avancados}
+        onAvancadosChange={setAvancados}
+        rotuloPago="Pagos"
+        rotuloParceiro="Fornecedor"
+        parceiros={fornecedores}
+      />
 
       {/* Tabela */}
       <Fade in timeout={400}>
@@ -264,8 +288,8 @@ export default function ContasPagar() {
                       description="Registre contas a fornecedores para acompanhar as despesas."
                       actionLabel="Nova Conta"
                       onAction={() => setDialogNova(true)}
-                      isFiltered={!!query}
-                      onClearFilter={() => setQuery("")}
+                      isFiltered={filtrado}
+                      onClearFilter={limparFiltros}
                     />
                   </TableCell>
                 </TableRow>
