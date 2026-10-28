@@ -209,5 +209,60 @@ describe.skipIf(!process.env.DATABASE_URL)("painel admin", () => {
       expect((await busca("ativas")).body.data.map((o: any) => o.id)).not.toContain(id);
       expect((await busca("inativas")).body.data.map((o: any) => o.id)).toContain(id);
     });
+
+    it("recusa os dados inválidos do formulário (CNPJ zerado, CEP e telefone gigantes, UF inexistente)", async () => {
+      const cookie = cookieDe(await adminAtual());
+      const enviar = (oficina: Record<string, unknown>) =>
+        request(app).post("/api/admin/oficinas").set("Cookie", cookie)
+          .send({ oficina: { ...dadosOficina("invalida"), ...oficina }, gestor: { nome: "Gestor", email: email("gestor-invalida") } });
+
+      expect((await enviar({ cnpj: "00000000000000000000000000000" })).body.message).toBe("CNPJ inválido.");
+      expect((await enviar({ cep: "000000000000000000000000" })).body.message).toBe("CEP deve ter 8 dígitos.");
+      expect((await enviar({ telefone: "1199999999999999" })).body.message).toMatch(/^Telefone deve ter 10 ou 11/);
+      expect((await enviar({ uf: "XX" })).body.message).toBe("UF inválida.");
+      expect((await enviar({ nome: "x".repeat(121) })).status).toBe(400);
+      expect(await prisma.oficina.count({ where: { nome: dadosOficina("invalida").nome } })).toBe(0);
+    });
+
+    it("grava CNPJ, CEP e telefone só com dígitos, como o app das oficinas", async () => {
+      const cookie = cookieDe(await adminAtual());
+      const res = await request(app).post("/api/admin/oficinas").set("Cookie", cookie).send({
+        oficina: { ...dadosOficina("digitos"), cnpj: "11.222.333/0001-81", cep: "01001-000", telefone: "(11) 99999-9999" },
+        gestor: { nome: "Gestor", email: email("gestor-digitos") },
+      });
+      expect(res.status).toBe(201);
+      oficinasCriadas.push(res.body.oficina.id);
+      usuariosCriados.push(res.body.usuario.id);
+
+      const salva = await prisma.oficina.findUniqueOrThrow({ where: { id: res.body.oficina.id } });
+      expect(salva).toMatchObject({ cnpj: "11222333000181", cep: "01001000", telefone: "11999999999" });
+
+      const duplicado = await request(app).patch(`/api/admin/oficinas/${oficinasCriadas[0]}`).set("Cookie", cookie)
+        .send({ cnpj: "11222333000181" });
+      expect(duplicado.status).toBe(400);
+      expect(duplicado.body.message).toBe("Já existe uma oficina com este CNPJ.");
+    });
+
+    it("não sobrescreve uma oficina ativa com o mesmo nome", async () => {
+      const original = await criarOficina("nome-unico", email("gestor-nome-1"));
+      const res = await request(app).post("/api/admin/oficinas").set("Cookie", cookieDe(await adminAtual()))
+        .send({ oficina: { ...dadosOficina("nome-unico"), logradouro: "Rua Sobrescrita" }, gestor: { nome: "Outro", email: email("gestor-nome-2") } });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe("Já existe uma oficina com este nome.");
+      const salva = await prisma.oficina.findUniqueOrThrow({ where: { id: original.oficina.id } });
+      expect(salva.logradouro).toBe("Rua A");
+    });
+
+    it("edita uma oficina cujo gestor é usuário do painel sem reenviar o gestor", async () => {
+      const body = await criarOficina("gestor-painel", email("gestor-painel"));
+      await prisma.oficina.update({ where: { id: body.oficina.id }, data: { gestor_usuario_id: adminId } });
+
+      const res = await request(app).patch(`/api/admin/oficinas/${body.oficina.id}`).set("Cookie", cookieDe(await adminAtual()))
+        .send({ telefone: "1133334444" });
+      expect(res.status).toBe(200);
+      const salva = await prisma.oficina.findUniqueOrThrow({ where: { id: body.oficina.id } });
+      expect(salva).toMatchObject({ telefone: "1133334444", gestor_usuario_id: adminId });
+    });
   });
 });
