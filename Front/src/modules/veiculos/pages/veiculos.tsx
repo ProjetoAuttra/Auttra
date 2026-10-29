@@ -123,7 +123,7 @@ export default function VeiculosPage() {
                 <TableCell>Combustível</TableCell>
                 <TableCell>Quilometragem</TableCell>
                 <TableCell>Proprietário</TableCell>
-                <TableCell align="right">Ações</TableCell>
+                <TableCell align="right" aria-label="Ações" />
               </TableRow>
             </TableHead>
             <TableBody>

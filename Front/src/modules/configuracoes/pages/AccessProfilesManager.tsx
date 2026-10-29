@@ -179,7 +179,7 @@ export default function AccessProfilesManager() {
               <TableCell>Descrição</TableCell>
               <TableCell>Permissões</TableCell>
               <TableCell>Usuários</TableCell>
-              <TableCell align="right">Ações</TableCell>
+              <TableCell align="right" aria-label="Ações" />
             </TableRow>
           </TableHead>
           <TableBody>
