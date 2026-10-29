@@ -10,7 +10,6 @@ import {
   type Theme,
 } from "@mui/material";
 import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
-import CampoData from "../../../components/common/CampoData";
 
 export const LIMITE_ESTOQUE_BAIXO = 3;
 
@@ -24,13 +23,22 @@ export const dateBr = (value?: string | null) => {
   return date.toLocaleDateString("pt-BR");
 };
 
-export const todayISO = () => new Date().toISOString().slice(0, 10);
+const isoLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+export const todayISO = () => isoLocal(new Date());
 
 export const firstDayOfMonthISO = () => {
   const date = new Date();
-  date.setDate(1);
-  return date.toISOString().slice(0, 10);
+  return isoLocal(new Date(date.getFullYear(), date.getMonth(), 1));
 };
+
+export const lastDayOfMonthISO = () => {
+  const date = new Date();
+  return isoLocal(new Date(date.getFullYear(), date.getMonth() + 1, 0));
+};
+
+/** Período padrão dos relatórios: do dia 1 ao último dia do mês atual. */
+export const periodoMesAtual = () => ({ de: firstDayOfMonthISO(), ate: lastDayOfMonthISO() });
 
 export const daysBetween = (from?: string | null, to = new Date()) => {
   if (!from) return 0;
@@ -87,30 +95,6 @@ export function ReportHeader({
         Exportar CSV
       </Button>
     </Stack>
-  );
-}
-
-export function PeriodFilter({
-  dataInicio,
-  dataFim,
-  onDataInicio,
-  onDataFim,
-  children,
-}: {
-  dataInicio: string;
-  dataFim: string;
-  onDataInicio: (value: string) => void;
-  onDataFim: (value: string) => void;
-  children?: React.ReactNode;
-}) {
-  return (
-    <Box sx={{ mb: 2.5 }}>
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }} flexWrap="wrap">
-        <Box sx={{ width: 170 }}><CampoData label="De" value={dataInicio} onChange={onDataInicio} /></Box>
-        <Box sx={{ width: 170 }}><CampoData label="Até" value={dataFim} onChange={onDataFim} /></Box>
-        {children}
-      </Stack>
-    </Box>
   );
 }
 

@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client.js";
 import { HttpError } from "../utils/httpError.js";
 
@@ -37,12 +38,23 @@ export function periodoDe(from?: unknown, to?: unknown): Periodo {
   return { inicio, fim, inicioISO, fimISO, anterior: { inicio: new Date(inicio.getTime() - duracao), fim: inicio } };
 }
 
+/** "1,2" -> [1,2]; ignora o que não for inteiro positivo. */
+export function idsDe(valor: unknown): number[] {
+  return String(valor ?? "").split(",").map((v) => Number(v.trim())).filter((n) => Number.isInteger(n) && n > 0);
+}
+
+/** `AND coluna IN (...)` quando há ids; nada quando a lista é vazia (sem filtro). */
+const emLista = (coluna: Prisma.Sql, ids: number[]) => (ids.length ? Prisma.sql`AND ${coluna} IN (${Prisma.join(ids)})` : Prisma.empty);
+
+export type FiltrosFaturamento = { mecanicos?: number[]; clientes?: number[] };
+
 const variacao = (atual: number, anterior: number) => (anterior > 0 ? arred(((atual - anterior) / anterior) * 100) : null);
 
 export const RelatoriosService = {
   /** Contas a receber vencidas, por faixa de atraso e por cliente. */
-  async inadimplencia(oficinaId: number) {
+  async inadimplencia(oficinaId: number, filtroClientes: number[] = []) {
     const hoje = hojeISO();
+    const filtroCliente = emLista(Prisma.sql`p.cliente_id`, filtroClientes);
 
     const faixas = await prisma.$queryRaw<Array<{ faixa: string; quantidade: bigint; valor: unknown }>>`
       SELECT
@@ -56,7 +68,7 @@ export const RelatoriosService = {
         SUM(p.valor_original - p.desconto + p.multa - p.valor_pago) AS valor
       FROM pagamento p
       WHERE p.oficina_id = ${oficinaId} AND p.deleted_at IS NULL AND p.tipo = 'receber'
-        AND p.status IN ('pendente', 'parcial') AND p.data_vencimento::date < ${hoje}::date
+        AND p.status IN ('pendente', 'parcial') AND p.data_vencimento::date < ${hoje}::date ${filtroCliente}
       GROUP BY 1
     `;
 
@@ -67,7 +79,7 @@ export const RelatoriosService = {
       FROM pagamento p
       LEFT JOIN cliente c ON c.id = p.cliente_id
       WHERE p.oficina_id = ${oficinaId} AND p.deleted_at IS NULL AND p.tipo = 'receber'
-        AND p.status IN ('pendente', 'parcial') AND p.data_vencimento::date < ${hoje}::date
+        AND p.status IN ('pendente', 'parcial') AND p.data_vencimento::date < ${hoje}::date ${filtroCliente}
       GROUP BY p.cliente_id, c.nome
       ORDER BY valor DESC
       LIMIT 20
@@ -77,7 +89,7 @@ export const RelatoriosService = {
       SELECT SUM(p.valor_original - p.desconto + p.multa - p.valor_pago) AS total,
              COUNT(DISTINCT p.cliente_id) FILTER (WHERE p.data_vencimento::date < ${hoje}::date) AS clientes
       FROM pagamento p
-      WHERE p.oficina_id = ${oficinaId} AND p.deleted_at IS NULL AND p.tipo = 'receber' AND p.status IN ('pendente', 'parcial')
+      WHERE p.oficina_id = ${oficinaId} AND p.deleted_at IS NULL AND p.tipo = 'receber' AND p.status IN ('pendente', 'parcial') ${filtroCliente}
     `;
 
     const ordem = ["1-30", "31-60", "61-90", "90+"];
@@ -106,12 +118,16 @@ export const RelatoriosService = {
   },
 
   /** Faturamento = valor das OS concluidas no periodo (data de fechamento). */
-  async faturamento(oficinaId: number, p: Periodo) {
+  async faturamento(oficinaId: number, p: Periodo, f: FiltrosFaturamento = {}) {
+    const mec = emLista(Prisma.sql`funcionario_id`, f.mecanicos ?? []);
+    const cli = emLista(Prisma.sql`cliente_id`, f.clientes ?? []);
+    const mecO = emLista(Prisma.sql`o.funcionario_id`, f.mecanicos ?? []);
+    const cliO = emLista(Prisma.sql`o.cliente_id`, f.clientes ?? []);
     const base = (ini: Date, fim: Date) => prisma.$queryRaw<Array<{ total: unknown; qtd: bigint }>>`
       SELECT COALESCE(SUM(valor_total), 0) AS total, COUNT(*) AS qtd
       FROM ordem_servico
       WHERE oficina_id = ${oficinaId} AND deleted_at IS NULL AND status = 'concluida'
-        AND COALESCE(data_fechamento, updated_at) >= ${ini} AND COALESCE(data_fechamento, updated_at) < ${fim}
+        AND COALESCE(data_fechamento, updated_at) >= ${ini} AND COALESCE(data_fechamento, updated_at) < ${fim} ${mec} ${cli}
     `;
     const [[atual], [anterior]] = await Promise.all([base(p.inicio, p.fim), base(p.anterior.inicio, p.anterior.fim)]);
 
@@ -120,7 +136,7 @@ export const RelatoriosService = {
              SUM(valor_total) AS total, COUNT(*) AS qtd
       FROM ordem_servico
       WHERE oficina_id = ${oficinaId} AND deleted_at IS NULL AND status = 'concluida'
-        AND COALESCE(data_fechamento, updated_at) >= ${p.inicio} AND COALESCE(data_fechamento, updated_at) < ${p.fim}
+        AND COALESCE(data_fechamento, updated_at) >= ${p.inicio} AND COALESCE(data_fechamento, updated_at) < ${p.fim} ${mec} ${cli}
       GROUP BY 1 ORDER BY 1
     `;
 
@@ -129,7 +145,7 @@ export const RelatoriosService = {
       FROM item_ordem_servico i
       JOIN ordem_servico o ON o.id = i.ordem_servico_id
       WHERE o.oficina_id = ${oficinaId} AND o.deleted_at IS NULL AND o.status = 'concluida' AND i.deleted_at IS NULL
-        AND COALESCE(o.data_fechamento, o.updated_at) >= ${p.inicio} AND COALESCE(o.data_fechamento, o.updated_at) < ${p.fim}
+        AND COALESCE(o.data_fechamento, o.updated_at) >= ${p.inicio} AND COALESCE(o.data_fechamento, o.updated_at) < ${p.fim} ${mecO} ${cliO}
       GROUP BY 1
     `;
 
@@ -137,7 +153,7 @@ export const RelatoriosService = {
       SELECT c.nome, SUM(o.valor_total) AS total, COUNT(*) AS qtd
       FROM ordem_servico o LEFT JOIN cliente c ON c.id = o.cliente_id
       WHERE o.oficina_id = ${oficinaId} AND o.deleted_at IS NULL AND o.status = 'concluida'
-        AND COALESCE(o.data_fechamento, o.updated_at) >= ${p.inicio} AND COALESCE(o.data_fechamento, o.updated_at) < ${p.fim}
+        AND COALESCE(o.data_fechamento, o.updated_at) >= ${p.inicio} AND COALESCE(o.data_fechamento, o.updated_at) < ${p.fim} ${mecO} ${cliO}
       GROUP BY c.nome ORDER BY total DESC LIMIT 5
     `;
 

@@ -19,16 +19,16 @@ import {
   dateBr,
   EmptyReport,
   exportCsv,
-  firstDayOfMonthISO,
+  periodoMesAtual,
   inDateRange,
   MetricCard,
   StatGroup,
   percent,
-  PeriodFilter,
   ReportHeader,
   ReportPage,
-  todayISO, TituloSecao } from "../../shared/reportUtils";
+  TituloSecao } from "../../shared/reportUtils";
 import { GraficoBarrasHorizontais } from "../../shared/graficos";
+import FiltrosRelatorio, { type CampoFiltro } from "../../shared/FiltrosRelatorio";
 
 type ItemOrdem = {
   tipo_item?: "servico" | "peca" | string | null;
@@ -61,13 +61,17 @@ const lucro = (ordem: Ordem) => receita(ordem) - custoPecas(ordem);
 const margem = (ordem: Ordem) => receita(ordem) ? (lucro(ordem) / receita(ordem)) * 100 : 0;
 const dataConclusao = (ordem: Ordem) => ordem.data_fechamento ?? ordem.data_abertura;
 
+type FiltrosMargem = { de: string; ate: string; mecanicos: string[]; clientes: string[] };
+const PADRAO: FiltrosMargem = { ...periodoMesAtual(), mecanicos: [], clientes: [] };
+const SEM_MECANICO = "Sem mecânico";
+
 export default function RentabilidadeRelatorio() {
   const { user } = useAuth();
   const { error, warning } = useToast();
   const [ordens, setOrdens] = React.useState<Ordem[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [dataInicio, setDataInicio] = React.useState(firstDayOfMonthISO());
-  const [dataFim, setDataFim] = React.useState(todayISO());
+  const [filtros, setFiltros] = React.useState(PADRAO);
+  const { de: dataInicio, ate: dataFim } = filtros;
 
   React.useEffect(() => {
     (async () => {
@@ -83,8 +87,21 @@ export default function RentabilidadeRelatorio() {
     })();
   }, [error]);
 
-  const concluidas = ordens
-    .filter((o) => o.status === "concluida" && inDateRange(dataConclusao(o), dataInicio, dataFim))
+  const unicos = (nomes: (string | null | undefined)[]) =>
+    [...new Set(nomes.filter((n): n is string => !!n))].sort((a, b) => a.localeCompare(b, "pt-BR")).map((n) => ({ value: n, label: n }));
+  const doTipo = ordens.filter((o) => o.status === "concluida");
+  const campos: CampoFiltro<FiltrosMargem>[] = [
+    { id: "mecanicos", label: "Mecânico", multi: true, opcoes: unicos(doTipo.map((o) => o.funcionario?.nome ?? SEM_MECANICO)) },
+    { id: "clientes", label: "Cliente", multi: true, opcoes: unicos(doTipo.map((o) => o.cliente?.nome)) },
+  ];
+
+  const concluidas = doTipo
+    .filter(
+      (o) =>
+        inDateRange(dataConclusao(o), dataInicio, dataFim) &&
+        (!filtros.mecanicos.length || filtros.mecanicos.includes(o.funcionario?.nome ?? SEM_MECANICO)) &&
+        (!filtros.clientes.length || filtros.clientes.includes(o.cliente?.nome ?? ""))
+    )
     .sort((a, b) => margem(a) - margem(b));
 
   const faturamento = concluidas.reduce((sum, o) => sum + receita(o), 0);
@@ -104,7 +121,7 @@ export default function RentabilidadeRelatorio() {
   }, {});
 
   const porMecanico = concluidas.reduce<Record<string, { qtd: number; receita: number; lucro: number }>>((acc, o) => {
-    const nome = o.funcionario?.nome ?? "Sem mecânico";
+    const nome = o.funcionario?.nome ?? SEM_MECANICO;
     acc[nome] = acc[nome] ?? { qtd: 0, receita: 0, lucro: 0 };
     acc[nome].qtd += 1;
     acc[nome].receita += receita(o);
@@ -144,7 +161,7 @@ export default function RentabilidadeRelatorio() {
         onExport={handleExportarCSV}
       />
 
-      <PeriodFilter dataInicio={dataInicio} dataFim={dataFim} onDataInicio={setDataInicio} onDataFim={setDataFim} />
+      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} />
 
       <StatGroup espalhar>
         <MetricCard label="OS concluídas" value={concluidas.length} />

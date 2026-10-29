@@ -1,12 +1,13 @@
 import * as React from 'react';
 import {
   Box, Stack, Typography, Table, TableBody, TableCell,
-  TableHead, TableRow, Button, CircularProgress
+  TableHead, TableRow, Button, CircularProgress, TextField
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
 import FileDownloadRoundedIcon from '@mui/icons-material/FileDownloadRounded';
 import api from '../../../../api/api';
 import { useAuth } from '../../../../context/AuthContext';
+import FiltrosRelatorio from '../../shared/FiltrosRelatorio';
+import { inDateRange } from '../../shared/reportUtils';
 
 type Cliente = {
   id: number;
@@ -16,10 +17,14 @@ type Cliente = {
   created_at?: string;
 };
 
+/** Sem período por padrão: o relatório lista todos os clientes; o período filtra pela data de cadastro. */
+const PADRAO = { de: '', ate: '', busca: '' };
+
 export default function RelatorioClientes() {
   const { user } = useAuth();
   const [clientes, setClientes] = React.useState<Cliente[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [filtros, setFiltros] = React.useState(PADRAO);
 
   React.useEffect(() => {
     if (!user?.oficina_id) return;
@@ -37,10 +42,17 @@ export default function RelatorioClientes() {
     })();
   }, [user?.oficina_id]);
 
+  const busca = filtros.busca.trim().toLowerCase();
+  const filtrados = clientes.filter(
+    (c) =>
+      (!filtros.de && !filtros.ate ? true : inDateRange(c.created_at, filtros.de || '0000-01-01', filtros.ate || '9999-12-31')) &&
+      (!busca || c.nome.toLowerCase().includes(busca) || (c.email ?? '').toLowerCase().includes(busca) || (c.telefone ?? '').includes(busca))
+  );
+
   const handleExportarCSV = () => {
-    if (!clientes.length) return alert('Nenhum cliente encontrado para exportar.');
+    if (!filtrados.length) return alert('Nenhum cliente encontrado para exportar.');
     const header = ['Nome', 'Email', 'Telefone', 'Data de Cadastro'];
-    const rows = clientes.map((c) => [
+    const rows = filtrados.map((c) => [
       c.nome,
       c.email,
       c.telefone ?? '',
@@ -85,8 +97,12 @@ export default function RelatorioClientes() {
         </Button>
       </Stack>
 
+      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO}>
+        <TextField size="small" label="Buscar cliente" value={filtros.busca} onChange={(e) => setFiltros({ ...filtros, busca: e.target.value })} sx={{ minWidth: 240 }} />
+      </FiltrosRelatorio>
+
       <Box>
-        {clientes.length ? (
+        {filtrados.length ? (
           <Table>
             <TableHead>
               <TableRow>
@@ -97,7 +113,7 @@ export default function RelatorioClientes() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {clientes.map((c) => (
+              {filtrados.map((c) => (
                 <TableRow key={c.id} hover>
                   <TableCell sx={{ fontWeight: 600 }}>{c.nome}</TableCell>
                   <TableCell>{c.email}</TableCell>

@@ -28,6 +28,7 @@ import {
   ReportHeader,
   ReportPage, TituloSecao } from "../../shared/reportUtils";
 import { GraficoBarrasHorizontais } from "../../shared/graficos";
+import FiltrosRelatorio, { type CampoFiltro } from "../../shared/FiltrosRelatorio";
 
 type Ordem = {
   id: number;
@@ -53,12 +54,17 @@ const statusColor = (status?: string | null) => {
   return "warning" as const;
 };
 
+type FiltrosOrdens = { situacao: string[]; mecanicos: string[]; clientes: string[] };
+const PADRAO: FiltrosOrdens = { situacao: [], mecanicos: [], clientes: [] };
+const SEM_MECANICO = "Sem mecânico";
+
 export default function OrdensParadasRelatorio() {
   const { user } = useAuth();
   const { error, warning } = useToast();
   const [ordens, setOrdens] = React.useState<Ordem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [diasMinimos, setDiasMinimos] = React.useState("3");
+  const [filtros, setFiltros] = React.useState(PADRAO);
 
   React.useEffect(() => {
     (async () => {
@@ -74,7 +80,20 @@ export default function OrdensParadasRelatorio() {
     })();
   }, [error]);
 
-  const abertas = ordens.filter((o) => o.status !== "concluida" && o.status !== "cancelada");
+  const emAberto = ordens.filter((o) => o.status !== "concluida" && o.status !== "cancelada");
+  const abertas = emAberto.filter(
+    (o) =>
+      (!filtros.situacao.length || filtros.situacao.includes(o.status ?? "")) &&
+      (!filtros.mecanicos.length || filtros.mecanicos.includes(o.funcionario?.nome ?? SEM_MECANICO)) &&
+      (!filtros.clientes.length || filtros.clientes.includes(o.cliente?.nome ?? ""))
+  );
+  const unicos = (nomes: (string | null | undefined)[]) =>
+    [...new Set(nomes.filter((n): n is string => !!n))].sort((a, b) => a.localeCompare(b, "pt-BR")).map((n) => ({ value: n, label: n }));
+  const campos: CampoFiltro<FiltrosOrdens>[] = [
+    { id: "situacao", label: "Situação", multi: true, vazio: "Todas as situações", opcoes: [{ value: "aberta", label: STATUS_LABEL.aberta }, { value: "em_andamento", label: STATUS_LABEL.em_andamento }] },
+    { id: "mecanicos", label: "Mecânico", multi: true, opcoes: unicos(emAberto.map((o) => o.funcionario?.nome ?? SEM_MECANICO)) },
+    { id: "clientes", label: "Cliente", multi: true, opcoes: unicos(emAberto.map((o) => o.cliente?.nome)) },
+  ];
   const paradas = abertas
     .filter((o) => daysBetween(o.data_abertura) >= Number(diasMinimos))
     .sort((a, b) => daysBetween(b.data_abertura) - daysBetween(a.data_abertura));
@@ -122,8 +141,8 @@ export default function OrdensParadasRelatorio() {
         onExport={handleExportarCSV}
       />
 
-      <Box sx={{ mb: 2.5 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }}>
+      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} periodo={false}>
+        <Stack direction="row" spacing={1.5} alignItems="center">
           <Typography variant="body2" fontWeight={600}>Considerar parada a partir de</Typography>
           <Select size="small" value={diasMinimos} onChange={(e: SelectChangeEvent) => setDiasMinimos(e.target.value)} sx={{ minWidth: 150 }}>
             <MenuItem value="1">1 dia</MenuItem>
@@ -132,7 +151,7 @@ export default function OrdensParadasRelatorio() {
             <MenuItem value="7">7 dias</MenuItem>
           </Select>
         </Stack>
-      </Box>
+      </FiltrosRelatorio>
 
       <StatGroup espalhar>
         <MetricCard label="OS abertas" value={abertas.length} tone="info" />

@@ -3,16 +3,13 @@ import {
   Box,
   Chip,
   CircularProgress,
-  MenuItem,
-  Select,
-  Stack,
+    Stack,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableRow,
   Typography,
-  type SelectChangeEvent,
 } from "@mui/material";
 import api from "../../../../api/api";
 import { useAuth } from "../../../../context/AuthContext";
@@ -23,16 +20,16 @@ import {
   daysBetween,
   EmptyReport,
   exportCsv,
-  firstDayOfMonthISO,
+  periodoMesAtual,
   inDateRange,
   MetricCard,
   StatGroup,
   percent,
-  PeriodFilter,
   ReportHeader,
   ReportPage,
-  todayISO, TituloSecao } from "../../shared/reportUtils";
+  TituloSecao } from "../../shared/reportUtils";
 import { GraficoBarrasHorizontais } from "../../shared/graficos";
+import FiltrosRelatorio, { type CampoFiltro } from "../../shared/FiltrosRelatorio";
 
 type Orcamento = {
   id: number;
@@ -57,14 +54,16 @@ const statusColor = (status: string) => {
   return "warning" as const;
 };
 
+type FiltrosOrcamentos = { de: string; ate: string; situacao: string[]; clientes: string[] };
+const PADRAO: FiltrosOrcamentos = { ...periodoMesAtual(), situacao: [], clientes: [] };
+
 export default function OrcamentosPerdidosRelatorio() {
   const { user } = useAuth();
   const { error, warning } = useToast();
   const [orcamentos, setOrcamentos] = React.useState<Orcamento[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [dataInicio, setDataInicio] = React.useState(firstDayOfMonthISO());
-  const [dataFim, setDataFim] = React.useState(todayISO());
-  const [statusFiltro, setStatusFiltro] = React.useState("perdidos");
+  const [filtros, setFiltros] = React.useState(PADRAO);
+  const { de: dataInicio, ate: dataFim } = filtros;
 
   React.useEffect(() => {
     (async () => {
@@ -80,7 +79,22 @@ export default function OrcamentosPerdidosRelatorio() {
     })();
   }, [error]);
 
-  const noPeriodo = orcamentos.filter((o) => inDateRange(o.data, dataInicio, dataFim));
+  const noPeriodo = orcamentos.filter(
+    (o) => inDateRange(o.data, dataInicio, dataFim) && (!filtros.clientes.length || filtros.clientes.includes(o.cliente?.nome ?? ""))
+  );
+  const clientesOpcoes = [...new Set(orcamentos.map((o) => o.cliente?.nome).filter((n): n is string => !!n))]
+    .sort((a, b) => a.localeCompare(b, "pt-BR"))
+    .map((n) => ({ value: n, label: n }));
+  const campos: CampoFiltro<FiltrosOrcamentos>[] = [
+    {
+      id: "situacao",
+      label: "Situação",
+      multi: true,
+      vazio: "Todas as situações",
+      opcoes: [{ value: "analise", label: "Em análise" }, { value: "aprovado", label: "Aprovados" }, { value: "recusado", label: "Recusados" }],
+    },
+    { id: "clientes", label: "Cliente", multi: true, opcoes: clientesOpcoes },
+  ];
   const perdidos = noPeriodo.filter((o) => o.status === "recusado");
   const pendentes = noPeriodo.filter((o) => o.status === "analise");
   const aprovados = noPeriodo.filter((o) => o.status === "aprovado");
@@ -90,11 +104,7 @@ export default function OrcamentosPerdidosRelatorio() {
   const taxaConversao = noPeriodo.length ? (aprovados.length / noPeriodo.length) * 100 : 0;
 
   const linhas = noPeriodo
-    .filter((o) => {
-      if (statusFiltro === "perdidos") return o.status === "recusado";
-      if (statusFiltro === "pendentes") return o.status === "analise";
-      return true;
-    })
+    .filter((o) => !filtros.situacao.length || filtros.situacao.includes(o.status))
     .sort((a, b) => {
       if (a.status === "analise" && b.status !== "analise") return -1;
       if (a.status !== "analise" && b.status === "analise") return 1;
@@ -144,13 +154,7 @@ export default function OrcamentosPerdidosRelatorio() {
         onExport={handleExportarCSV}
       />
 
-      <PeriodFilter dataInicio={dataInicio} dataFim={dataFim} onDataInicio={setDataInicio} onDataFim={setDataFim}>
-        <Select size="small" value={statusFiltro} onChange={(e: SelectChangeEvent) => setStatusFiltro(e.target.value)} sx={{ minWidth: 180 }}>
-          <MenuItem value="perdidos">Perdidos</MenuItem>
-          <MenuItem value="pendentes">Pendentes</MenuItem>
-          <MenuItem value="todos">Todos</MenuItem>
-        </Select>
-      </PeriodFilter>
+      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} />
 
       <StatGroup espalhar>
         <MetricCard label="Orçamentos" value={noPeriodo.length} />
@@ -186,7 +190,7 @@ export default function OrcamentosPerdidosRelatorio() {
         </Box>
       </Box>
 
-      <TituloSecao>Orçamentos perdidos</TituloSecao>
+      <TituloSecao>Orçamentos</TituloSecao>
       <Box sx={{ overflowX: "auto" }}>
         {linhas.length ? (
           <Table>

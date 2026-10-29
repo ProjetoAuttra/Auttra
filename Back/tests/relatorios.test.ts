@@ -19,6 +19,10 @@ describe.skipIf(!process.env.DATABASE_URL)("relatorios agregados", () => {
   let auth: string;
   let authSemPermissao: string;
   let authOutra: string;
+  let mecAId: number;
+  let mecBId: number;
+  let cliUmId: number;
+  let cliDoisId: number;
   const get = (url: string, token = auth) => request(app).get(url).set("Authorization", token);
 
   beforeAll(async () => {
@@ -40,6 +44,7 @@ describe.skipIf(!process.env.DATABASE_URL)("relatorios agregados", () => {
     const veiculo = (await prisma.veiculo.create({ data: { marca: "Fiat", modelo: "Uno", placa: `REL${suffix % 10000}`, oficina_id: oficinaId, cliente_id: c1 } })).id;
     const mecA = (await prisma.funcionario.create({ data: { nome: "Mecanico A", cargo: "mecanico", data_contratacao: new Date(), oficina_id: oficinaId } })).id;
     const mecB = (await prisma.funcionario.create({ data: { nome: "Mecanico B", cargo: "mecanico", data_contratacao: new Date(), oficina_id: oficinaId } })).id;
+    [mecAId, mecBId, cliUmId, cliDoisId] = [mecA, mecB, c1, c2];
     const servico = (await prisma.servico.create({ data: { oficina_id: oficinaId, nome: `Servico ${suffix}`, preco: 100 } })).id;
     const peca = (await prisma.peca.create({ data: { oficina_id: oficinaId, nome: `Peca ${suffix}`, preco_custo: 60, preco_venda: 100, estoque: 50 } })).id;
 
@@ -128,6 +133,27 @@ describe.skipIf(!process.env.DATABASE_URL)("relatorios agregados", () => {
     });
     expect(r.body.semanas.reduce((s: number, x: any) => s + x.total, 0)).toBe(800);
     expect(r.body.clientes.map((c: any) => [c.nome, c.total])).toEqual([["Cliente Um", 500], ["Cliente Dois", 300]]);
+  });
+
+  it("faturamento filtra por mecanico e por cliente (varios ids)", async () => {
+    const q = "from=2026-03-01&to=2026-03-31";
+    const porMec = await get(`/api/relatorios/faturamento?${q}&mecanico_id=${mecAId}`);
+    expect(porMec.body).toMatchObject({ total: 500, ordens_concluidas: 1, periodo_anterior: { total: 200 }, composicao: { servicos: 300, pecas: 200 } });
+    const porCli = await get(`/api/relatorios/faturamento?${q}&cliente_id=${cliDoisId}`);
+    expect(porCli.body).toMatchObject({ total: 300, ordens_concluidas: 1, periodo_anterior: { total: 0 } });
+    expect(porCli.body.clientes.map((c: any) => c.nome)).toEqual(["Cliente Dois"]);
+    const ambos = await get(`/api/relatorios/faturamento?${q}&mecanico_id=${mecAId},${mecBId}&cliente_id=${cliUmId}`);
+    expect(ambos.body.total).toBe(500);
+    expect((await get(`/api/relatorios/faturamento?${q}&mecanico_id=abc,-1`)).body.total).toBe(800);
+  });
+
+  it("inadimplencia filtra por cliente", async () => {
+    const r = await get(`/api/relatorios/inadimplencia?cliente_id=${cliDoisId}`);
+    expect(r.body.clientes.map((c: any) => c.nome)).toEqual(["Cliente Dois"]);
+    expect(r.body.total_vencido).toBe(300);
+    expect(r.body.total_a_receber).toBeGreaterThanOrEqual(300); // inclui o que ainda vai vencer, só deste cliente
+    const todos = await get("/api/relatorios/inadimplencia");
+    expect(r.body.total_a_receber).toBeLessThan(todos.body.total_a_receber);
   });
 
   it("faturamento sem periodo anterior com dados nao inventa variacao", async () => {
