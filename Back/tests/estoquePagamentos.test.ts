@@ -843,6 +843,12 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
       expect(await ids({ vencimento_de: "2026-04-01", vencimento_ate: "2026-12-10" })).toEqual([futuro, pago].sort());
       expect(await ids({ vencimento_ate: "2026-03-10" })).toEqual([atrasado]);
       expect(await ids({ metodo: "boleto" })).toEqual([pago]);
+      const hojeIso = new Date().toISOString().slice(0, 10);
+      expect(await ids({ pagamento_de: hojeIso, pagamento_ate: hojeIso })).toEqual([pago]);
+      // pago agora: com o fuso de Brasília (offset 180) o dia local é o de "agora - 3h"
+      const hojeBrt = new Date(Date.now() - 180 * 60_000).toISOString().slice(0, 10);
+      expect(await ids({ pagamento_de: hojeBrt, pagamento_ate: hojeBrt, tz_offset: "180" })).toEqual([pago]);
+      expect(await ids({ pagamento_de: "2000-01-01", pagamento_ate: "2000-12-31" })).toEqual([]);
       expect(await ids({ status: "pago,vencido", hoje: "2026-06-01" })).toEqual([atrasado, pago].sort());
       expect(await ids({ status: "pendente,cancelado" })).toEqual([atrasado, futuro].sort());
       expect(await ids({ status: "vencido", vencimento_de: "2026-04-01", hoje: "2027-01-01" })).toEqual([futuro]);

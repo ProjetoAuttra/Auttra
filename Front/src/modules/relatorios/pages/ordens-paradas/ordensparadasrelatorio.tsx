@@ -98,7 +98,7 @@ export default function OrdensParadasRelatorio() {
     }
     exportCsv(
       `relatorio_ordens_de_servico_${new Date().toISOString().slice(0, 10)}.csv`,
-      ["OS", "Cliente", "Veículo", "Mecânico", "Status", "Data abertura", "Dias aberta", "Valor"],
+      ["OS", "Cliente", "Veículo", "Mecânico", "Situação", "Data abertura", "Dias aberta", "Valor"],
       paradas.map((o) => [
         `#${o.id}`,
         o.cliente?.nome ?? "",
@@ -173,7 +173,7 @@ export default function OrdensParadasRelatorio() {
                 <TableCell>Cliente</TableCell>
                 <TableCell>Veículo</TableCell>
                 <TableCell>Mecânico</TableCell>
-                <TableCell>Status</TableCell>
+                <TableCell>Situação</TableCell>
                 <TableCell>Abertura</TableCell>
                 <TableCell align="right">Dias</TableCell>
                 <TableCell align="right">Valor</TableCell>

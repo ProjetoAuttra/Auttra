@@ -28,11 +28,11 @@ import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
 import { AppDrawer, DrawerSection } from "../../../../components/common/AppDrawer";
 import api from "../../../../api/api";
-import { type Conta, brl, isVencido, valorLiquido, formatarData, METODO_OPTIONS, hojeInput, criarPagamento, atualizarPagamento, marcarComoPago, estornarPagamento, parcelar, cancelarPagamento, resumoPagamentos, type ResumoContas } from "../../api/api";
+import { type Conta, brl, isVencido, valorLiquido, formatarData, METODO_OPTIONS, criarPagamento, atualizarPagamento, marcarComoPago, estornarPagamento, parcelar, cancelarPagamento, resumoPagamentos, type ResumoContas } from "../../api/api";
 import {
   EstornarDialog, DetalhesDialog,
 } from "../../dialogs/index";
-import FiltrosContas, { filtrosPadrao, temFiltroAtivo, type FiltrosConta } from "../../components/FiltrosContas";
+import FiltrosContas, { filtrosPadrao, paramsFiltros, temFiltroAtivo, type FiltrosConta } from "../../components/FiltrosContas";
 import { ReceberTituloDialog, RenegociarTituloDialog } from "../../dialogs/TituloDialogs";
 import { EditarContaDialog } from "../../dialogs/EditarContaDialog";
 
@@ -68,12 +68,7 @@ export default function ContasPagar() {
       filtros: {
         tipo: "pagar",
         search: query,
-        status: filtros.status.join(","),
-        hoje: filtros.status.includes("vencido") ? hojeInput() : "",
-        vencimento_de: filtros.de,
-        vencimento_ate: filtros.ate,
-        metodo: filtros.metodos.join(","),
-        fornecedor_id: filtros.parceiroId,
+        ...paramsFiltros(filtros, "fornecedor_id"),
       },
       onError: (err) => console.error("Erro ao carregar contas:", err),
     });
@@ -169,7 +164,7 @@ export default function ContasPagar() {
       <FiltrosContas
         filtros={filtros}
         onChange={setFiltros}
-        rotuloPago="Pagos"
+        tipo="pagar"
         rotuloParceiro="Fornecedor"
         parceiros={fornecedores}
       />
@@ -185,7 +180,7 @@ export default function ContasPagar() {
                 <TableCell align="center">Vencimento</TableCell>
                 <TableCell align="center">Valor</TableCell>
                 <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>Valor pago</TableCell>
-                <TableCell align="center">Status</TableCell>
+                <TableCell align="center">Situação</TableCell>
                 <TableCell align="right">Ações</TableCell>
               </TableRow>
             </TableHead>

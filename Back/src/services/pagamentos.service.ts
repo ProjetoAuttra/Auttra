@@ -223,6 +223,11 @@ export const PagamentosService = {
       metodo?: string;
       vencimento_de?: string;
       vencimento_ate?: string;
+      /** Período em que o título foi pago/recebido (data_pagamento); exclui os ainda em aberto. */
+      pagamento_de?: string;
+      pagamento_ate?: string;
+      /** Minutos de diferença entre UTC e o fuso do usuário (Date.getTimezoneOffset), para os limites do dia de pagamento. */
+      tz_offset?: string;
       hoje?: string;
       search?: string;
     } = {},
@@ -248,6 +253,18 @@ export const PagamentosService = {
     const de = dataIso(filtros.vencimento_de);
     const ate = dataIso(filtros.vencimento_ate);
     if (de || ate) and.push({ data_vencimento: { ...(de ? { gte: de } : {}), ...(ate ? { lte: ate } : {}) } });
+    // data_pagamento guarda o instante do pagamento: o dia inteiro, no fuso do usuário, vai de 00:00 do início a 00:00 do dia seguinte ao fim.
+    const deslocamento = (Number(filtros.tz_offset) || 0) * 60_000;
+    const pagDe = dataIso(filtros.pagamento_de);
+    const pagAte = dataIso(filtros.pagamento_ate);
+    if (pagDe || pagAte) {
+      and.push({
+        data_pagamento: {
+          ...(pagDe ? { gte: new Date(pagDe.getTime() + deslocamento) } : {}),
+          ...(pagAte ? { lt: new Date(pagAte.getTime() + 86_400_000 + deslocamento) } : {}),
+        },
+      });
+    }
     if (and.length) where.AND = and;
     if (filtros.search) {
       const contains = { contains: filtros.search, mode: "insensitive" };

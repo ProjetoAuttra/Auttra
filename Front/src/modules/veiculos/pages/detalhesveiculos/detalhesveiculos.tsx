@@ -91,7 +91,7 @@ function VeiculoOrdens({ ordens, onAdd }: { ordens: any[]; onAdd?: () => void })
             <TableCell>Data</TableCell>
             <TableCell>Mecânico</TableCell>
             <TableCell>Total</TableCell>
-            <TableCell>Status</TableCell>
+            <TableCell>Situação</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>

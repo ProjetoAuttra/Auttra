@@ -127,13 +127,13 @@ export default function OrdemServicoDetalhes() {
       if (novoStatus === "concluida" && toNumber(atualizada.valor_total) > 0) {
         success("OS concluída! Cobrança gerada automaticamente em Contas a Receber.");
       } else {
-        success("Status da OS atualizado com sucesso!");
+        success("Situação da OS atualizada com sucesso!");
       }
     } catch (err: any) {
       error(
         err?.response?.data?.error ??
           err?.response?.data?.message ??
-          "Não foi possível atualizar o status da OS."
+          "Não foi possível atualizar a situação da OS."
       );
     } finally {
       setMudandoStatus(false);

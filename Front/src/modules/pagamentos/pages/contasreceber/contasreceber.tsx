@@ -29,11 +29,11 @@ import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
 import { AppDrawer, DrawerSection } from "../../../../components/common/AppDrawer";
 import api from "../../../../api/api";
-import { type Conta, brl, isVencido, valorLiquido, formatarData, METODO_OPTIONS, hojeInput, criarPagamento, atualizarPagamento, marcarComoPago, estornarPagamento, abrirRecibo, parcelar, cancelarPagamento, resumoPagamentos, type ResumoContas } from "../../api/api";
+import { type Conta, brl, isVencido, valorLiquido, formatarData, METODO_OPTIONS, criarPagamento, atualizarPagamento, marcarComoPago, estornarPagamento, abrirRecibo, parcelar, cancelarPagamento, resumoPagamentos, type ResumoContas } from "../../api/api";
 import {
   EstornarDialog, DetalhesDialog,
 } from "../../dialogs/index";
-import FiltrosContas, { filtrosPadrao, temFiltroAtivo, type FiltrosConta } from "../../components/FiltrosContas";
+import FiltrosContas, { filtrosPadrao, paramsFiltros, temFiltroAtivo, type FiltrosConta } from "../../components/FiltrosContas";
 import { ReceberTituloDialog, RenegociarTituloDialog } from "../../dialogs/TituloDialogs";
 import { EditarContaDialog } from "../../dialogs/EditarContaDialog";
 
@@ -69,12 +69,7 @@ export default function ContasReceber() {
       filtros: {
         tipo: "receber",
         search: query,
-        status: filtros.status.join(","),
-        hoje: filtros.status.includes("vencido") ? hojeInput() : "",
-        vencimento_de: filtros.de,
-        vencimento_ate: filtros.ate,
-        metodo: filtros.metodos.join(","),
-        cliente_id: filtros.parceiroId,
+        ...paramsFiltros(filtros, "cliente_id"),
       },
       onError: (err) => console.error("Erro ao carregar contas:", err),
     });
@@ -180,7 +175,7 @@ export default function ContasReceber() {
       <FiltrosContas
         filtros={filtros}
         onChange={setFiltros}
-        rotuloPago="Recebidos"
+        tipo="receber"
         rotuloParceiro="Cliente"
         parceiros={clientes}
       />
@@ -196,7 +191,7 @@ export default function ContasReceber() {
                 <TableCell align="center">Vencimento</TableCell>
                 <TableCell align="center">Valor</TableCell>
                 <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>Valor recebido</TableCell>
-                <TableCell align="center">Status</TableCell>
+                <TableCell align="center">Situação</TableCell>
                 <TableCell align="right">Ações</TableCell>
               </TableRow>
             </TableHead>

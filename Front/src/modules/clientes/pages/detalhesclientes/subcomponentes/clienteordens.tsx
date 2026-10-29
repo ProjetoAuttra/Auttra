@@ -53,7 +53,7 @@ export default function ClienteOrdens({ ordens, onAdd }: { ordens: any[]; onAdd?
               <TableCell>Mecânico</TableCell>
               <TableCell>Data</TableCell>
               <TableCell>Total</TableCell>
-              <TableCell>Status</TableCell>
+              <TableCell>Situação</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>

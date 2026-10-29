@@ -119,7 +119,7 @@ export default function OrcamentosPerdidosRelatorio() {
     }
     exportCsv(
       `relatorio_orcamentos_perdidos_${dataInicio}_${dataFim}.csv`,
-      ["Orçamento", "Cliente", "Telefone", "Veículo", "Status", "Data", "Dias sem resposta", "Valor", "Descrição"],
+      ["Orçamento", "Cliente", "Telefone", "Veículo", "Situação", "Data", "Dias sem resposta", "Valor", "Descrição"],
       linhas.map((o) => [
         `#${o.id}`,
         o.cliente?.nome ?? "",
@@ -196,7 +196,7 @@ export default function OrcamentosPerdidosRelatorio() {
                 <TableCell>Cliente</TableCell>
                 <TableCell>Telefone</TableCell>
                 <TableCell>Veículo</TableCell>
-                <TableCell>Status</TableCell>
+                <TableCell>Situação</TableCell>
                 <TableCell>Data</TableCell>
                 <TableCell align="right">Valor</TableCell>
               </TableRow>

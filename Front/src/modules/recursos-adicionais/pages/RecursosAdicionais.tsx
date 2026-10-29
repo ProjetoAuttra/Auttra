@@ -26,7 +26,7 @@ const resourceConfigs: ResourceConfig[] = [
   {
     id: "agenda",
     label: "Agenda",
-    description: "Calendário de serviços, vínculo com clientes e veículos e status de atendimento.",
+    description: "Calendário de serviços, vínculo com clientes e veículos e situação de atendimento.",
     icon: <EventOutlinedIcon />,
   },
   {

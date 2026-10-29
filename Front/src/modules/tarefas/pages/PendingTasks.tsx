@@ -134,13 +134,13 @@ export default function OrdensPage() {
       if (novoStatus === "concluida" && Number(atualizada.valor_total) > 0) {
         success("OS concluída! Cobrança gerada automaticamente em Contas a Receber.");
       } else {
-        success("Status da OS atualizado com sucesso!");
+        success("Situação da OS atualizada com sucesso!");
       }
     } catch (err: any) {
       error(
         err?.response?.data?.error ??
           err?.response?.data?.message ??
-          "Não foi possível atualizar o status da OS."
+          "Não foi possível atualizar a situação da OS."
       );
     }
   };
@@ -194,9 +194,9 @@ export default function OrdensPage() {
           <Paper elevation={0} sx={{ p: 2.5, mb: 2.5, borderRadius: 2, border: 0, bgcolor: (t) => alpha(t.palette.primary.main, 0.02) }}>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <FormControl size="small" sx={{ minWidth: 160 }}>
-                <InputLabel>Status</InputLabel>
-                <Select value={filtroStatus} label="Status" onChange={(e: SelectChangeEvent) => { setFiltroStatus(e.target.value); }}>
-                  <MenuItem value="todos">Todos os status</MenuItem>
+                <InputLabel>Situação</InputLabel>
+                <Select value={filtroStatus} label="Situação" onChange={(e: SelectChangeEvent) => { setFiltroStatus(e.target.value); }}>
+                  <MenuItem value="todos">Todas as situações</MenuItem>
                   {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                     <MenuItem key={k} value={k}>{v.label}</MenuItem>
                   ))}
@@ -241,7 +241,7 @@ export default function OrdensPage() {
                   <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Veículo</TableCell>
                   <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Mecânico</TableCell>
                   <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Valor</TableCell>
-                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Situação</TableCell>
                   <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Pagamento</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 600, fontSize: 12 }}></TableCell>
                 </TableRow>
