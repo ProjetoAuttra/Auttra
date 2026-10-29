@@ -32,7 +32,7 @@ import { type Conta, brl, isVencido, valorLiquido, formatarData, METODO_OPTIONS,
 import {
   EstornarDialog, DetalhesDialog,
 } from "../../dialogs/index";
-import FiltrosContas, { FILTROS_AVANCADOS_VAZIOS, contarFiltrosAvancados, type FiltrosAvancados, type StatusConta } from "../../components/FiltrosContas";
+import FiltrosContas, { filtrosPadrao, temFiltroAtivo, type FiltrosConta } from "../../components/FiltrosContas";
 import { ReceberTituloDialog, RenegociarTituloDialog } from "../../dialogs/TituloDialogs";
 import { EditarContaDialog } from "../../dialogs/EditarContaDialog";
 
@@ -59,22 +59,21 @@ export default function ContasPagar() {
   const [acao, setAcao] = React.useState<Acao>(null);
   const [dialogNova, setDialogNova] = React.useState(false);
   const [query, setQuery] = React.useState("");
-  const [status, setStatus] = React.useState<StatusConta>("todos");
-  const [avancados, setAvancados] = React.useState<FiltrosAvancados>(FILTROS_AVANCADOS_VAZIOS);
-  const filtrado = !!query || status !== "todos" || contarFiltrosAvancados(avancados) > 0;
-  const limparFiltros = () => { setQuery(""); setStatus("todos"); setAvancados(FILTROS_AVANCADOS_VAZIOS); };
+  const [filtros, setFiltros] = React.useState<FiltrosConta>(() => filtrosPadrao());
+  const filtrado = !!query || temFiltroAtivo(filtros);
+  const limparFiltros = () => { setQuery(""); setFiltros(filtrosPadrao()); };
 
   const { rows: contas, total, carregandoInicial, page, setPage, rowsPerPage, setRowsPerPage, recarregar } =
     useListaPaginada<Conta>("/pagamentos", {
       filtros: {
         tipo: "pagar",
         search: query,
-        status,
-        hoje: status === "vencido" ? hojeInput() : "",
-        vencimento_de: avancados.de,
-        vencimento_ate: avancados.ate,
-        metodo: avancados.metodo,
-        fornecedor_id: avancados.parceiroId,
+        status: filtros.status.join(","),
+        hoje: filtros.status.includes("vencido") ? hojeInput() : "",
+        vencimento_de: filtros.de,
+        vencimento_ate: filtros.ate,
+        metodo: filtros.metodos.join(","),
+        fornecedor_id: filtros.parceiroId,
       },
       onError: (err) => console.error("Erro ao carregar contas:", err),
     });
@@ -168,10 +167,8 @@ export default function ContasPagar() {
       </StatGroup>
 
       <FiltrosContas
-        status={status}
-        onStatusChange={setStatus}
-        avancados={avancados}
-        onAvancadosChange={setAvancados}
+        filtros={filtros}
+        onChange={setFiltros}
         rotuloPago="Pagos"
         rotuloParceiro="Fornecedor"
         parceiros={fornecedores}

@@ -1,82 +1,119 @@
 import * as React from "react";
-import { alpha, Autocomplete, Badge, Box, Button, MenuItem, Stack, TextField, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { Autocomplete, Badge, Box, Button, Checkbox, ListItemText, MenuItem, Stack, TextField } from "@mui/material";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import { AppDrawer, DrawerSection } from "../../../components/common/AppDrawer";
 import CampoData from "../../../components/common/CampoData";
-import { brand } from "../../../app/theme";
 import { METODO_OPTIONS } from "../api/api";
 
-export type StatusConta = "todos" | "pendente" | "vencido" | "pago" | "cancelado";
+export type StatusConta = "pendente" | "vencido" | "pago" | "cancelado";
 
-/** Filtros do painel lateral; os de status ficam sempre visíveis na tela. */
-export type FiltrosAvancados = { de: string; ate: string; parceiroId: string; metodo: string };
+export type FiltrosConta = {
+  /** Vazio = todos os status. */
+  status: StatusConta[];
+  /** Período de vencimento (YYYY-MM-DD); o padrão é o mês atual. */
+  de: string;
+  ate: string;
+  parceiroId: string;
+  /** Vazio = todas as formas de pagamento. */
+  metodos: string[];
+};
 
-export const FILTROS_AVANCADOS_VAZIOS: FiltrosAvancados = { de: "", ate: "", parceiroId: "", metodo: "" };
+const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-export const contarFiltrosAvancados = (f: FiltrosAvancados) => Object.values(f).filter(Boolean).length;
+/** Do dia 1 ao último dia do mês atual, sem filtro de status nem de detalhes. */
+export function filtrosPadrao(hoje = new Date()): FiltrosConta {
+  return {
+    status: [],
+    de: iso(new Date(hoje.getFullYear(), hoje.getMonth(), 1)),
+    ate: iso(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0)),
+    parceiroId: "",
+    metodos: [],
+  };
+}
 
-const STATUS: { value: StatusConta; label: string; cor?: string }[] = [
-  { value: "todos", label: "Todos" },
-  { value: "pendente", label: "Pendentes", cor: brand.amber },
-  { value: "vencido", label: "Vencidos", cor: brand.error },
-  { value: "pago", label: "Pagos", cor: brand.success },
-  { value: "cancelado", label: "Cancelados" },
-];
+/** Filtros do painel lateral (os que não ficam visíveis na tela). */
+export const contarFiltrosAvancados = (f: FiltrosConta) => (f.parceiroId ? 1 : 0) + (f.metodos.length ? 1 : 0);
+
+/** Algum filtro difere do padrão (mês atual, sem status nem detalhes). */
+export function temFiltroAtivo(f: FiltrosConta, padrao = filtrosPadrao()) {
+  return f.status.length > 0 || contarFiltrosAvancados(f) > 0 || f.de !== padrao.de || f.ate !== padrao.ate;
+}
 
 type Parceiro = { id: number; nome: string };
 
 type Props = {
-  status: StatusConta;
-  onStatusChange: (s: StatusConta) => void;
-  avancados: FiltrosAvancados;
-  onAvancadosChange: (f: FiltrosAvancados) => void;
+  filtros: FiltrosConta;
+  onChange: (f: FiltrosConta) => void;
   /** Rótulo do status "pago": Recebidos nas contas a receber, Pagos nas a pagar. */
   rotuloPago: string;
   rotuloParceiro: "Cliente" | "Fornecedor";
   parceiros: Parceiro[];
 };
 
-/** Linha de filtros das contas: status direto na tela e o restante (período, cliente/fornecedor, método) num painel lateral. */
-export default function FiltrosContas({ status, onStatusChange, avancados, onAvancadosChange, rotuloPago, rotuloParceiro, parceiros }: Props) {
+/** Linha de filtros das contas: status e período na tela; cliente/fornecedor e forma de pagamento num painel lateral. */
+export default function FiltrosContas({ filtros, onChange, rotuloPago, rotuloParceiro, parceiros }: Props) {
   const [aberto, setAberto] = React.useState(false);
-  const [rascunho, setRascunho] = React.useState(avancados);
-  const ativos = contarFiltrosAvancados(avancados);
+  const [rascunho, setRascunho] = React.useState(filtros);
+  const ativosAvancados = contarFiltrosAvancados(filtros);
+  const set = (parcial: Partial<FiltrosConta>) => onChange({ ...filtros, ...parcial });
+  const setRascunhoCampo = (parcial: Partial<FiltrosConta>) => setRascunho((r) => ({ ...r, ...parcial }));
 
-  const abrir = () => { setRascunho(avancados); setAberto(true); };
-  const set = (campo: keyof FiltrosAvancados, valor: string) => setRascunho((r) => ({ ...r, [campo]: valor }));
-  const aplicar = () => { onAvancadosChange(rascunho); setAberto(false); };
-  const periodoInvalido = !!rascunho.de && !!rascunho.ate && rascunho.de > rascunho.ate;
+  const statusOpcoes: { value: StatusConta; label: string }[] = [
+    { value: "pendente", label: "Pendentes" },
+    { value: "vencido", label: "Vencidos" },
+    { value: "pago", label: rotuloPago },
+    { value: "cancelado", label: "Cancelados" },
+  ];
+  const rotuloStatus = (selecionados: string[]) =>
+    selecionados.length === 0
+      ? "Todos os status"
+      : selecionados.length <= 2
+        ? statusOpcoes.filter((o) => selecionados.includes(o.value)).map((o) => o.label).join(", ")
+        : `${selecionados.length} status`;
+  const rotuloMetodos = (selecionados: string[]) =>
+    selecionados.length === 0 ? "Todas" : METODO_OPTIONS.filter((m) => selecionados.includes(m.value)).map((m) => m.label).join(", ");
+
+  const periodoInvalido = !!filtros.de && !!filtros.ate && filtros.de > filtros.ate;
   const parceiro = parceiros.find((p) => String(p.id) === rascunho.parceiroId) ?? null;
+  const padrao = filtrosPadrao();
+  const ativo = temFiltroAtivo(filtros, padrao);
 
   return (
-    <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} mb={2.5} alignItems={{ sm: "center" }} flexWrap="wrap" useFlexGap>
-      <ToggleButtonGroup
-        value={status}
-        exclusive
-        onChange={(_, v) => { if (v !== null) onStatusChange(v); }}
+    <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} mb={2.5} alignItems={{ md: "flex-start" }} useFlexGap>
+      <TextField
+        select
         size="small"
-        sx={{ flexWrap: "wrap", "& .MuiToggleButton-root": { textTransform: "none", fontWeight: 600, px: 2, borderRadius: "999px !important", border: (t) => `1px solid ${t.palette.divider} !important`, mx: 0.25 } }}
+        label="Status"
+        value={filtros.status}
+        onChange={(e) => set({ status: e.target.value as unknown as StatusConta[] })}
+        sx={{ minWidth: 220 }}
+        InputLabelProps={{ shrink: true }}
+        SelectProps={{ multiple: true, displayEmpty: true, renderValue: (v) => rotuloStatus(v as string[]) }}
       >
-        {STATUS.map((s) => (
-          <ToggleButton
-            key={s.value}
-            value={s.value}
-            sx={s.cor ? { "&.Mui-selected": { bgcolor: alpha(s.cor, 0.1), color: s.cor } } : undefined}
-          >
-            {s.value === "pago" ? rotuloPago : s.label}
-          </ToggleButton>
+        {statusOpcoes.map((o) => (
+          <MenuItem key={o.value} value={o.value} dense>
+            <Checkbox size="small" checked={filtros.status.includes(o.value)} />
+            <ListItemText primary={o.label} />
+          </MenuItem>
         ))}
-      </ToggleButtonGroup>
+      </TextField>
+
+      <Box sx={{ width: { xs: "100%", md: 170 } }}>
+        <CampoData label="Vencimento de" value={filtros.de} onChange={(v) => set({ de: v })} />
+      </Box>
+      <Box sx={{ width: { xs: "100%", md: 170 } }}>
+        <CampoData label="Vencimento até" value={filtros.ate} onChange={(v) => set({ ate: v })} error={periodoInvalido} helperText={periodoInvalido ? "Antes da data inicial" : undefined} />
+      </Box>
 
       <Box sx={{ flex: 1 }} />
 
-      {ativos > 0 && (
-        <Button size="small" onClick={() => onAvancadosChange(FILTROS_AVANCADOS_VAZIOS)} sx={{ textTransform: "none", fontWeight: 600 }}>
+      {ativo && (
+        <Button size="small" onClick={() => onChange(padrao)} sx={{ textTransform: "none", fontWeight: 600, alignSelf: { md: "center" } }}>
           Limpar filtros
         </Button>
       )}
-      <Badge badgeContent={ativos} color="primary" invisible={!ativos}>
-        <Button variant="outlined" startIcon={<TuneRoundedIcon />} onClick={abrir} sx={{ textTransform: "none", fontWeight: 600, borderRadius: "999px" }}>
+      <Badge badgeContent={ativosAvancados} color="primary" invisible={!ativosAvancados} sx={{ alignSelf: { md: "center" } }}>
+        <Button variant="outlined" startIcon={<TuneRoundedIcon />} onClick={() => { setRascunho(filtros); setAberto(true); }} sx={{ textTransform: "none", fontWeight: 600, borderRadius: "999px" }}>
           Filtros
         </Button>
       </Badge>
@@ -91,36 +128,41 @@ export default function FiltrosContas({ status, onStatusChange, avancados, onAva
         confirmDiscard={false}
         footer={
           <>
-            <Button onClick={() => setRascunho(FILTROS_AVANCADOS_VAZIOS)} disabled={!contarFiltrosAvancados(rascunho)}>Limpar</Button>
+            <Button onClick={() => setRascunhoCampo({ parceiroId: "", metodos: [] })} disabled={!contarFiltrosAvancados(rascunho)}>Limpar</Button>
             <Stack direction="row" spacing={1.5}>
               <Button onClick={() => setAberto(false)} variant="outlined">Cancelar</Button>
-              <Button onClick={aplicar} variant="contained" disableElevation disabled={periodoInvalido} sx={{ fontWeight: 700 }}>Aplicar</Button>
+              <Button onClick={() => { set({ parceiroId: rascunho.parceiroId, metodos: rascunho.metodos }); setAberto(false); }} variant="contained" disableElevation sx={{ fontWeight: 700 }}>Aplicar</Button>
             </Stack>
           </>
         }
       >
-        <DrawerSection title="Vencimento">
-          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-            <CampoData label="De" value={rascunho.de} onChange={(v) => set("de", v)} />
-            <CampoData label="Até" value={rascunho.ate} onChange={(v) => set("ate", v)} error={periodoInvalido} helperText={periodoInvalido ? "Antes da data inicial" : undefined} />
-          </Box>
-        </DrawerSection>
-
         <DrawerSection title="Detalhes">
           <Stack spacing={2}>
             <Autocomplete
               size="small"
               options={parceiros}
               value={parceiro}
-              onChange={(_, v) => set("parceiroId", v ? String(v.id) : "")}
+              onChange={(_, v) => setRascunhoCampo({ parceiroId: v ? String(v.id) : "" })}
               getOptionLabel={(p) => p.nome}
               isOptionEqualToValue={(a, b) => a.id === b.id}
               noOptionsText={`Nenhum ${rotuloParceiro.toLowerCase()} encontrado`}
               renderInput={(params) => <TextField {...params} label={rotuloParceiro} />}
             />
-            <TextField select size="small" label="Forma de pagamento" value={rascunho.metodo} InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true }} onChange={(e) => set("metodo", e.target.value)}>
-              <MenuItem value="">Todas</MenuItem>
-              {METODO_OPTIONS.map((m) => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+            <TextField
+              select
+              size="small"
+              label="Forma de pagamento"
+              value={rascunho.metodos}
+              onChange={(e) => setRascunhoCampo({ metodos: e.target.value as unknown as string[] })}
+              InputLabelProps={{ shrink: true }}
+              SelectProps={{ multiple: true, displayEmpty: true, renderValue: (v) => rotuloMetodos(v as string[]) }}
+            >
+              {METODO_OPTIONS.map((m) => (
+                <MenuItem key={m.value} value={m.value} dense>
+                  <Checkbox size="small" checked={rascunho.metodos.includes(m.value)} />
+                  <ListItemText primary={m.label} />
+                </MenuItem>
+              ))}
             </TextField>
           </Stack>
         </DrawerSection>

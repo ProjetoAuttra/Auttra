@@ -843,6 +843,10 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
       expect(await ids({ vencimento_de: "2026-04-01", vencimento_ate: "2026-12-10" })).toEqual([futuro, pago].sort());
       expect(await ids({ vencimento_ate: "2026-03-10" })).toEqual([atrasado]);
       expect(await ids({ metodo: "boleto" })).toEqual([pago]);
+      expect(await ids({ status: "pago,vencido", hoje: "2026-06-01" })).toEqual([atrasado, pago].sort());
+      expect(await ids({ status: "pendente,cancelado" })).toEqual([atrasado, futuro].sort());
+      expect(await ids({ status: "vencido", vencimento_de: "2026-04-01", hoje: "2027-01-01" })).toEqual([futuro]);
+      expect(await ids({ metodo: "pix,boleto" })).toEqual([pago]);
       expect(await ids({ metodo: "invalido" })).toEqual([atrasado, futuro, pago].sort());
       expect(await ids({ cliente_id: String(clienteId) })).not.toContain(atrasado);
 

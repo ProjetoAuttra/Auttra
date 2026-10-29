@@ -200,6 +200,11 @@ async function registrarEntrada(
 
 const METODOS = ["dinheiro", "pix", "cartao", "boleto", "transferencia"];
 
+/** "a,b" -> ["a","b"], sem vazios. */
+function listaCsv(valor?: string) {
+  return (valor ?? "").split(",").map((v) => v.trim()).filter(Boolean);
+}
+
 /** YYYY-MM-DD em Date UTC à meia-noite (como o vencimento é gravado); qualquer outra coisa vira undefined. */
 function dataIso(valor?: string) {
   return valor && /^\d{4}-\d{2}-\d{2}$/.test(valor) ? new Date(`${valor}T00:00:00.000Z`) : undefined;
@@ -212,8 +217,9 @@ export const PagamentosService = {
       cliente_id?: number;
       fornecedor_id?: number;
       tipo?: string;
-      /** pendente, pago, cancelado ou "vencido" (em aberto com vencimento anterior a `hoje`). */
+      /** Lista separada por vírgula: pendente, pago, cancelado e/ou "vencido" (em aberto com vencimento anterior a `hoje`). */
       status?: string;
+      /** Lista separada por vírgula. */
       metodo?: string;
       vencimento_de?: string;
       vencimento_ate?: string;
@@ -227,18 +233,22 @@ export const PagamentosService = {
     if (filtros.cliente_id) where.cliente_id = filtros.cliente_id;
     if (filtros.tipo) where.tipo = filtros.tipo;
     if (filtros.fornecedor_id) where.fornecedor_id = filtros.fornecedor_id;
-    if (filtros.metodo && METODOS.includes(filtros.metodo)) where.metodo = filtros.metodo;
-    if (filtros.status === "vencido") {
-      where.status = { in: ["pendente", "parcial"] };
-      where.data_vencimento = { lt: dataIso(filtros.hoje) ?? new Date() };
-    } else if (filtros.status) {
-      where.status = filtros.status;
+    const metodos = listaCsv(filtros.metodo).filter((m) => METODOS.includes(m));
+    if (metodos.length) where.metodo = { in: metodos };
+
+    const and: any[] = [];
+    // Vários status se combinam com OU; "vencido" é um pendente/parcial com vencimento anterior a `hoje`.
+    const statuses = listaCsv(filtros.status);
+    if (statuses.length) {
+      const hoje = dataIso(filtros.hoje) ?? new Date();
+      const ou: any[] = statuses.filter((st) => st !== "vencido").map((st) => ({ status: st }));
+      if (statuses.includes("vencido")) ou.push({ status: { in: ["pendente", "parcial"] }, data_vencimento: { lt: hoje } });
+      and.push({ OR: ou });
     }
     const de = dataIso(filtros.vencimento_de);
     const ate = dataIso(filtros.vencimento_ate);
-    if (de || ate) {
-      where.data_vencimento = { ...(where.data_vencimento ?? {}), ...(de ? { gte: de } : {}), ...(ate ? { lte: ate } : {}) };
-    }
+    if (de || ate) and.push({ data_vencimento: { ...(de ? { gte: de } : {}), ...(ate ? { lte: ate } : {}) } });
+    if (and.length) where.AND = and;
     if (filtros.search) {
       const contains = { contains: filtros.search, mode: "insensitive" };
       where.OR = [
