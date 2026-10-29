@@ -198,17 +198,74 @@ async function registrarEntrada(
   return { ...atualizado, titulo_saldo: tituloSaldo };
 }
 
+const METODOS = ["dinheiro", "pix", "cartao", "boleto", "transferencia"];
+
+/** "a,b" -> ["a","b"], sem vazios. */
+function listaCsv(valor?: string) {
+  return (valor ?? "").split(",").map((v) => v.trim()).filter(Boolean);
+}
+
+/** YYYY-MM-DD em Date UTC à meia-noite (como o vencimento é gravado); qualquer outra coisa vira undefined. */
+function dataIso(valor?: string) {
+  return valor && /^\d{4}-\d{2}-\d{2}$/.test(valor) ? new Date(`${valor}T00:00:00.000Z`) : undefined;
+}
+
 export const PagamentosService = {
   async list(
     oficina_id: number,
-    filtros: { cliente_id?: number; tipo?: string; status?: string; search?: string } = {},
+    filtros: {
+      cliente_id?: number;
+      fornecedor_id?: number;
+      tipo?: string;
+      /** Lista separada por vírgula: pendente, pago, cancelado e/ou "vencido" (em aberto com vencimento anterior a `hoje`). */
+      status?: string;
+      /** Lista separada por vírgula. */
+      metodo?: string;
+      vencimento_de?: string;
+      vencimento_ate?: string;
+      /** Período em que o título foi pago/recebido (data_pagamento); exclui os ainda em aberto. */
+      pagamento_de?: string;
+      pagamento_ate?: string;
+      /** Minutos de diferença entre UTC e o fuso do usuário (Date.getTimezoneOffset), para os limites do dia de pagamento. */
+      tz_offset?: string;
+      hoje?: string;
+      search?: string;
+    } = {},
     pag: Paginacao | null = null
   ) {
     if (!oficina_id) throw new Error("oficina_id e obrigatorio.");
     const where: any = { oficina_id, deleted_at: null };
     if (filtros.cliente_id) where.cliente_id = filtros.cliente_id;
     if (filtros.tipo) where.tipo = filtros.tipo;
-    if (filtros.status) where.status = filtros.status;
+    if (filtros.fornecedor_id) where.fornecedor_id = filtros.fornecedor_id;
+    const metodos = listaCsv(filtros.metodo).filter((m) => METODOS.includes(m));
+    if (metodos.length) where.metodo = { in: metodos };
+
+    const and: any[] = [];
+    // Vários status se combinam com OU; "vencido" é um pendente/parcial com vencimento anterior a `hoje`.
+    const statuses = listaCsv(filtros.status);
+    if (statuses.length) {
+      const hoje = dataIso(filtros.hoje) ?? new Date();
+      const ou: any[] = statuses.filter((st) => st !== "vencido").map((st) => ({ status: st }));
+      if (statuses.includes("vencido")) ou.push({ status: { in: ["pendente", "parcial"] }, data_vencimento: { lt: hoje } });
+      and.push({ OR: ou });
+    }
+    const de = dataIso(filtros.vencimento_de);
+    const ate = dataIso(filtros.vencimento_ate);
+    if (de || ate) and.push({ data_vencimento: { ...(de ? { gte: de } : {}), ...(ate ? { lte: ate } : {}) } });
+    // data_pagamento guarda o instante do pagamento: o dia inteiro, no fuso do usuário, vai de 00:00 do início a 00:00 do dia seguinte ao fim.
+    const deslocamento = (Number(filtros.tz_offset) || 0) * 60_000;
+    const pagDe = dataIso(filtros.pagamento_de);
+    const pagAte = dataIso(filtros.pagamento_ate);
+    if (pagDe || pagAte) {
+      and.push({
+        data_pagamento: {
+          ...(pagDe ? { gte: new Date(pagDe.getTime() + deslocamento) } : {}),
+          ...(pagAte ? { lt: new Date(pagAte.getTime() + 86_400_000 + deslocamento) } : {}),
+        },
+      });
+    }
+    if (and.length) where.AND = and;
     if (filtros.search) {
       const contains = { contains: filtros.search, mode: "insensitive" };
       where.OR = [

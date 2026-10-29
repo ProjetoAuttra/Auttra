@@ -127,7 +127,7 @@ export default function RelatorioFinanceiro() {
     }
     exportCsv(
       `relatorio_fluxo_de_caixa_${dataInicio}_${dataFim}.csv`,
-      ["Tipo", "Status", "Cliente/Fornecedor", "Descrição", "Valor", "Valor pago", "Vencimento", "Pagamento", "Método"],
+      ["Tipo", "Situação", "Cliente/Fornecedor", "Descrição", "Valor", "Valor pago", "Vencimento", "Pagamento", "Método"],
       filtrados.map((p) => [
         isReceber(p) ? "Receber" : "Pagar",
         p.status ?? "",
@@ -186,7 +186,7 @@ export default function RelatorioFinanceiro() {
                 <TableCell align="center">Vencimento</TableCell>
                 <TableCell align="center">Valor</TableCell>
                 <TableCell align="center">Pagamento</TableCell>
-                <TableCell align="center">Status</TableCell>
+                <TableCell align="center">Situação</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>

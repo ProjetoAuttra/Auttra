@@ -820,4 +820,45 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
       expect(parcelar.body.parcelas.every((p: any) => p.cliente?.id === clienteId)).toBe(true);
     });
   });
+
+  describe("filtros da listagem", () => {
+    it("filtra por status, vencido, periodo de vencimento, metodo e cliente", async () => {
+      const outro = await prisma.cliente.create({ data: { nome: "Cliente Filtro", oficina_id: oficinaId } });
+      const criar = async (extra: Record<string, unknown>) =>
+        (await request(app).post("/api/pagamentos").set("Authorization", auth).send({ tipo: "receber", valor: 50, descricao: "Filtro", ...extra })).body.id as number;
+      const atrasado = await criar({ cliente_id: outro.id, data_vencimento: "2026-03-10" });
+      const futuro = await criar({ cliente_id: outro.id, data_vencimento: "2026-12-10" });
+      const pago = await criar({ cliente_id: outro.id, data_vencimento: "2026-05-10" });
+      await request(app).post(`/api/pagamentos/${pago}/pagar`).set("Authorization", auth).send({ metodo: "boleto" });
+
+      const ids = async (q: Record<string, string>) =>
+        ((await request(app).get("/api/pagamentos").set("Authorization", auth).query({ tipo: "receber", cliente_id: String(outro.id), ...q })).body as any[])
+          .map((p) => p.id)
+          .sort();
+
+      expect(await ids({})).toEqual([atrasado, futuro, pago].sort());
+      expect(await ids({ status: "pago" })).toEqual([pago]);
+      expect(await ids({ status: "vencido", hoje: "2026-06-01" })).toEqual([atrasado]);
+      expect(await ids({ status: "vencido", hoje: "2027-01-01" })).toEqual([atrasado, futuro].sort());
+      expect(await ids({ vencimento_de: "2026-04-01", vencimento_ate: "2026-12-10" })).toEqual([futuro, pago].sort());
+      expect(await ids({ vencimento_ate: "2026-03-10" })).toEqual([atrasado]);
+      expect(await ids({ metodo: "boleto" })).toEqual([pago]);
+      const hojeIso = new Date().toISOString().slice(0, 10);
+      expect(await ids({ pagamento_de: hojeIso, pagamento_ate: hojeIso })).toEqual([pago]);
+      // pago agora: com o fuso de Brasília (offset 180) o dia local é o de "agora - 3h"
+      const hojeBrt = new Date(Date.now() - 180 * 60_000).toISOString().slice(0, 10);
+      expect(await ids({ pagamento_de: hojeBrt, pagamento_ate: hojeBrt, tz_offset: "180" })).toEqual([pago]);
+      expect(await ids({ pagamento_de: "2000-01-01", pagamento_ate: "2000-12-31" })).toEqual([]);
+      expect(await ids({ status: "pago,vencido", hoje: "2026-06-01" })).toEqual([atrasado, pago].sort());
+      expect(await ids({ status: "pendente,cancelado" })).toEqual([atrasado, futuro].sort());
+      expect(await ids({ status: "vencido", vencimento_de: "2026-04-01", hoje: "2027-01-01" })).toEqual([futuro]);
+      expect(await ids({ metodo: "pix,boleto" })).toEqual([pago]);
+      expect(await ids({ metodo: "invalido" })).toEqual([atrasado, futuro, pago].sort());
+      expect(await ids({ cliente_id: String(clienteId) })).not.toContain(atrasado);
+
+      await prisma.pagamento_movimento.deleteMany({ where: { pagamento_id: { in: [atrasado, futuro, pago] } } });
+      await prisma.pagamento.deleteMany({ where: { id: { in: [atrasado, futuro, pago] } } });
+      await prisma.cliente.delete({ where: { id: outro.id } });
+    });
+  });
 });

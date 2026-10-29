@@ -32,6 +32,7 @@ import { type Conta, brl, isVencido, valorLiquido, formatarData, METODO_OPTIONS,
 import {
   EstornarDialog, DetalhesDialog,
 } from "../../dialogs/index";
+import FiltrosContas, { filtrosPadrao, paramsFiltros, temFiltroAtivo, type FiltrosConta } from "../../components/FiltrosContas";
 import { ReceberTituloDialog, RenegociarTituloDialog } from "../../dialogs/TituloDialogs";
 import { EditarContaDialog } from "../../dialogs/EditarContaDialog";
 
@@ -58,10 +59,17 @@ export default function ContasPagar() {
   const [acao, setAcao] = React.useState<Acao>(null);
   const [dialogNova, setDialogNova] = React.useState(false);
   const [query, setQuery] = React.useState("");
+  const [filtros, setFiltros] = React.useState<FiltrosConta>(() => filtrosPadrao());
+  const filtrado = !!query || temFiltroAtivo(filtros);
+  const limparFiltros = () => { setQuery(""); setFiltros(filtrosPadrao()); };
 
   const { rows: contas, total, carregandoInicial, page, setPage, rowsPerPage, setRowsPerPage, recarregar } =
     useListaPaginada<Conta>("/pagamentos", {
-      filtros: { tipo: "pagar", search: query },
+      filtros: {
+        tipo: "pagar",
+        search: query,
+        ...paramsFiltros(filtros, "fornecedor_id"),
+      },
       onError: (err) => console.error("Erro ao carregar contas:", err),
     });
   const [resumoApi, setResumoApi] = React.useState<ResumoContas | null>(null);
@@ -153,6 +161,14 @@ export default function ContasPagar() {
         ))}
       </StatGroup>
 
+      <FiltrosContas
+        filtros={filtros}
+        onChange={setFiltros}
+        tipo="pagar"
+        rotuloParceiro="Fornecedor"
+        parceiros={fornecedores}
+      />
+
       {/* Tabela */}
       <Fade in timeout={400}>
         <ListTableContainer>
@@ -164,7 +180,7 @@ export default function ContasPagar() {
                 <TableCell align="center">Vencimento</TableCell>
                 <TableCell align="center">Valor</TableCell>
                 <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>Valor pago</TableCell>
-                <TableCell align="center">Status</TableCell>
+                <TableCell align="center">Situação</TableCell>
                 <TableCell align="right">Ações</TableCell>
               </TableRow>
             </TableHead>
@@ -264,8 +280,8 @@ export default function ContasPagar() {
                       description="Registre contas a fornecedores para acompanhar as despesas."
                       actionLabel="Nova Conta"
                       onAction={() => setDialogNova(true)}
-                      isFiltered={!!query}
-                      onClearFilter={() => setQuery("")}
+                      isFiltered={filtrado}
+                      onClearFilter={limparFiltros}
                     />
                   </TableCell>
                 </TableRow>
