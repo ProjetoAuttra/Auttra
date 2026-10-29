@@ -230,7 +230,7 @@ export default function ClientePagamentos({
               <TableCell align="center">Valor</TableCell>
               <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>Valor recebido</TableCell>
               <TableCell align="center">Situação</TableCell>
-              <TableCell align="right">Ações</TableCell>
+              <TableCell align="right" aria-label="Ações" />
             </TableRow>
           </TableHead>
           <TableBody>

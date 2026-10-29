@@ -238,7 +238,7 @@ export default function EstoquePage() {
                     Estoque
                   </TableSortLabel>
                 </TableCell>
-                <TableCell align="right">Ações</TableCell>
+                <TableCell align="right" aria-label="Ações" />
               </TableRow>
             </TableHead>
 

@@ -151,7 +151,7 @@ export default function ServicosPage() {
                 <TableCell>Preço</TableCell>
                 <TableCell>Tempo</TableCell>
                 <TableCell>Disponível</TableCell>
-                <TableCell align="right">Ações</TableCell>
+                <TableCell align="right" aria-label="Ações" />
               </TableRow>
             </TableHead>
             <TableBody>

@@ -144,7 +144,7 @@ export default function FuncionariosPage() {
                 <TableCell>Cargo</TableCell>
                 <TableCell>Email</TableCell>
                 <TableCell>Telefone</TableCell>
-                <TableCell align="right">Ações</TableCell>
+                <TableCell align="right" aria-label="Ações" />
               </TableRow>
             </TableHead>
             <TableBody>

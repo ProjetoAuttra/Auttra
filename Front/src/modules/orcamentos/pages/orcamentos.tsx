@@ -288,7 +288,7 @@ export default function OrcamentosPage() {
                 <TableCell>Valor</TableCell>
                 <TableCell>Data</TableCell>
                 <TableCell>Situação</TableCell>
-                <TableCell align="right">Ações</TableCell>
+                <TableCell align="right" aria-label="Ações" />
               </TableRow>
             </TableHead>
             <TableBody>
