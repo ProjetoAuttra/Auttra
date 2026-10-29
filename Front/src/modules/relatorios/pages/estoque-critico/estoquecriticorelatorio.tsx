@@ -24,6 +24,7 @@ import {
   ReportHeader,
   ReportPage, TituloSecao } from "../../shared/reportUtils";
 import { GraficoBarrasHorizontais } from "../../shared/graficos";
+import FiltrosRelatorio, { type CampoFiltro } from "../../shared/FiltrosRelatorio";
 
 type Peca = {
   id: number;
@@ -51,12 +52,16 @@ const acaoSugerida = (p: Peca) => {
   return "OK";
 };
 
+type FiltrosEstoque = { busca: string; acoes: string[] };
+const PADRAO: FiltrosEstoque = { busca: "", acoes: [] };
+const ACOES = ["Comprar", "Corrigir preço", "Revisar margem", "Avaliar capital parado", "OK"];
+
 export default function EstoqueCriticoRelatorio() {
   const { user } = useAuth();
   const { error, warning } = useToast();
   const [pecas, setPecas] = React.useState<Peca[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [query, setQuery] = React.useState("");
+  const [filtros, setFiltros] = React.useState(PADRAO);
 
   React.useEffect(() => {
     (async () => {
@@ -72,9 +77,11 @@ export default function EstoqueCriticoRelatorio() {
     })();
   }, [error]);
 
-  const q = query.trim().toLowerCase();
+  const q = filtros.busca.trim().toLowerCase();
+  const campos: CampoFiltro<FiltrosEstoque>[] = [{ id: "acoes", label: "Ação sugerida", multi: true, vazio: "Todas", opcoes: ACOES.map((a) => ({ value: a, label: a })) }];
   const filtradas = pecas
     .filter((p) => !q || p.nome.toLowerCase().includes(q) || (p.descricao ?? "").toLowerCase().includes(q))
+    .filter((p) => !filtros.acoes.length || filtros.acoes.includes(acaoSugerida(p)))
     .sort((a, b) => {
       const prioridade = (item: Peca) => {
         if (Number(item.estoque ?? 0) <= LIMITE_ESTOQUE_BAIXO) return 0;
@@ -121,6 +128,10 @@ export default function EstoqueCriticoRelatorio() {
         onExport={handleExportarCSV}
       />
 
+      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} periodo={false}>
+        <TextField size="small" label="Buscar peça" value={filtros.busca} onChange={(e) => setFiltros({ ...filtros, busca: e.target.value })} sx={{ minWidth: 240 }} />
+      </FiltrosRelatorio>
+
       <StatGroup espalhar>
         <MetricCard label="Peças cadastradas" value={pecas.length} />
         <MetricCard label="Comprar urgente" value={criticas.length} tone={criticas.length ? "error" : "default"} helper={`Estoque <= ${LIMITE_ESTOQUE_BAIXO}`} />
@@ -129,25 +140,12 @@ export default function EstoqueCriticoRelatorio() {
         <MetricCard label="Margem baixa" value={margemBaixa.length} tone={margemBaixa.length ? "warning" : "default"} helper="< 20%" />
       </StatGroup>
 
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: { xs: 3, lg: 6 }, mb: 4 }}>
-        <Box sx={{ flex: 1 }}>
-          <TituloSecao>Maior dinheiro parado</TituloSecao>
-          <GraficoBarrasHorizontais
-            itens={topCapital.map((p) => ({ rotulo: p.nome, valor: valorEstoque(p) }))}
-            semDados="Nenhuma peça cadastrada."
-          />
-        </Box>
-
-        <Box sx={{ flex: 1 }}>
-          <TituloSecao>Filtro</TituloSecao>
-          <TextField
-            size="small"
-            fullWidth
-            label="Buscar peça"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </Box>
+      <Box sx={{ mb: 4 }}>
+        <TituloSecao>Maior dinheiro parado</TituloSecao>
+        <GraficoBarrasHorizontais
+          itens={topCapital.map((p) => ({ rotulo: p.nome, valor: valorEstoque(p) }))}
+          semDados="Nenhuma peça cadastrada."
+        />
       </Box>
 
       <TituloSecao>Peças em estoque crítico</TituloSecao>

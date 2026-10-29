@@ -1,8 +1,9 @@
 import * as React from "react";
 import { Box, CircularProgress, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
-import { EmptyReport, MetricCard, PeriodFilter, ReportHeader, ReportPage, StatGroup, TituloSecao, brl, exportCsv, firstDayOfMonthISO, percent, todayISO } from "../../shared/reportUtils";
+import { EmptyReport, MetricCard, ReportHeader, ReportPage, StatGroup, TituloSecao, brl, exportCsv, periodoMesAtual, percent } from "../../shared/reportUtils";
 import { GraficoBarrasHorizontais, GraficoPizza } from "../../shared/graficos";
 import { useRelatorio } from "../../shared/useRelatorio";
+import FiltrosRelatorio from "../../shared/FiltrosRelatorio";
 
 type Categoria = { categoria: string; valor: number };
 type Resultado = {
@@ -18,9 +19,11 @@ type Resultado = {
 
 const variacaoTexto = (v: number | null) => (v === null ? "" : `${v > 0 ? "+" : ""}${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% vs. anterior`);
 
+const PADRAO = periodoMesAtual();
+
 export default function ResultadoRelatorio() {
-  const [dataInicio, setDataInicio] = React.useState(firstDayOfMonthISO());
-  const [dataFim, setDataFim] = React.useState(todayISO());
+  const [filtros, setFiltros] = React.useState(PADRAO);
+  const { de: dataInicio, ate: dataFim } = filtros;
   const { dados, carregando } = useRelatorio<Resultado>("/relatorios/resultado", { from: dataInicio, to: dataFim });
 
   const linhas = React.useMemo(() => {
@@ -42,7 +45,7 @@ export default function ResultadoRelatorio() {
   return (
     <ReportPage>
       <ReportHeader title="Resultado do mês" subtitle="Receitas, despesas e resultado do período, pelo que entrou e saiu de fato no caixa." onExport={exportar} />
-      <PeriodFilter dataInicio={dataInicio} dataFim={dataFim} onDataInicio={setDataInicio} onDataFim={setDataFim} />
+      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} />
 
       {carregando && !dados ? (
         <Box sx={{ textAlign: "center", mt: 6 }}><CircularProgress /></Box>

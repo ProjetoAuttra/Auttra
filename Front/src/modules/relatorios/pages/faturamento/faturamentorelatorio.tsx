@@ -1,8 +1,10 @@
 import * as React from "react";
 import { Box, CircularProgress, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
-import { EmptyReport, MetricCard, PeriodFilter, ReportHeader, ReportPage, StatGroup, TituloSecao, brl, exportCsv, firstDayOfMonthISO, todayISO } from "../../shared/reportUtils";
+import { EmptyReport, MetricCard, ReportHeader, ReportPage, StatGroup, TituloSecao, brl, exportCsv, periodoMesAtual } from "../../shared/reportUtils";
 import { GraficoBarrasHorizontais, GraficoColunas, GraficoPizza, chaveSemana, rotuloSemana, semanasDoPeriodo } from "../../shared/graficos";
 import { useRelatorio } from "../../shared/useRelatorio";
+import FiltrosRelatorio, { type CampoFiltro } from "../../shared/FiltrosRelatorio";
+import { useOpcoesRelatorio } from "../../shared/useOpcoesRelatorio";
 
 type Faturamento = {
   periodo: { de: string; ate: string };
@@ -19,10 +21,23 @@ type Faturamento = {
 export const textoVariacao = (v: number | null) =>
   v === null ? "—" : `${v > 0 ? "+" : ""}${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
 
+type FiltrosFaturamento = { de: string; ate: string; mecanicos: string[]; clientes: string[] };
+const PADRAO: FiltrosFaturamento = { ...periodoMesAtual(), mecanicos: [], clientes: [] };
+
 export default function FaturamentoRelatorio() {
-  const [dataInicio, setDataInicio] = React.useState(firstDayOfMonthISO());
-  const [dataFim, setDataFim] = React.useState(todayISO());
-  const { dados, carregando } = useRelatorio<Faturamento>("/relatorios/faturamento", { from: dataInicio, to: dataFim });
+  const [filtros, setFiltros] = React.useState<FiltrosFaturamento>(PADRAO);
+  const { de: dataInicio, ate: dataFim } = filtros;
+  const opcoes = useOpcoesRelatorio({ mecanicos: true, clientes: true });
+  const campos: CampoFiltro<FiltrosFaturamento>[] = [
+    { id: "mecanicos", label: "Mecânico", multi: true, opcoes: opcoes.mecanicos },
+    { id: "clientes", label: "Cliente", multi: true, opcoes: opcoes.clientes },
+  ];
+  const { dados, carregando } = useRelatorio<Faturamento>("/relatorios/faturamento", {
+    from: dataInicio,
+    to: dataFim,
+    mecanico_id: filtros.mecanicos.join(","),
+    cliente_id: filtros.clientes.join(","),
+  });
 
   const semanas = React.useMemo(() => {
     if (!dados) return [];
@@ -42,7 +57,7 @@ export default function FaturamentoRelatorio() {
   return (
     <ReportPage>
       <ReportHeader title="Faturamento" subtitle="Valor das ordens de serviço concluídas no período, comparado com o período anterior." onExport={exportar} />
-      <PeriodFilter dataInicio={dataInicio} dataFim={dataFim} onDataInicio={setDataInicio} onDataFim={setDataFim} />
+      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} />
 
       {carregando && !dados ? (
         <Box sx={{ textAlign: "center", mt: 6 }}><CircularProgress /></Box>

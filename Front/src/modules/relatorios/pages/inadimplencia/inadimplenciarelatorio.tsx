@@ -2,6 +2,9 @@ import { Box, CircularProgress, Table, TableBody, TableCell, TableHead, TableRow
 import { EmptyReport, MetricCard, ReportHeader, ReportPage, StatGroup, TituloSecao, brl, exportCsv, percent } from "../../shared/reportUtils";
 import { GraficoBarrasHorizontais } from "../../shared/graficos";
 import { useRelatorio } from "../../shared/useRelatorio";
+import FiltrosRelatorio, { type CampoFiltro } from "../../shared/FiltrosRelatorio";
+import { useOpcoesRelatorio } from "../../shared/useOpcoesRelatorio";
+import * as React from "react";
 
 type Inadimplencia = {
   total_vencido: number;
@@ -15,8 +18,14 @@ type Inadimplencia = {
 
 const ROTULO_FAIXA: Record<string, string> = { "1-30": "1 a 30 dias", "31-60": "31 a 60 dias", "61-90": "61 a 90 dias", "90+": "Mais de 90 dias" };
 
+type FiltrosInadimplencia = { clientes: string[] };
+const PADRAO: FiltrosInadimplencia = { clientes: [] };
+
 export default function InadimplenciaRelatorio() {
-  const { dados, carregando } = useRelatorio<Inadimplencia>("/relatorios/inadimplencia");
+  const [filtros, setFiltros] = React.useState(PADRAO);
+  const opcoes = useOpcoesRelatorio({ clientes: true });
+  const campos: CampoFiltro<FiltrosInadimplencia>[] = [{ id: "clientes", label: "Cliente", multi: true, opcoes: opcoes.clientes }];
+  const { dados, carregando } = useRelatorio<Inadimplencia>("/relatorios/inadimplencia", { cliente_id: filtros.clientes.join(",") });
 
   const exportar = () => {
     if (!dados?.clientes.length) return;
@@ -33,6 +42,7 @@ export default function InadimplenciaRelatorio() {
   return (
     <ReportPage>
       <ReportHeader title="Inadimplência" subtitle="Contas a receber vencidas, há quanto tempo e quem deve." onExport={exportar} />
+      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} periodo={false} />
 
       <StatGroup espalhar>
         <MetricCard label="Total vencido" value={brl(dados.total_vencido)} />

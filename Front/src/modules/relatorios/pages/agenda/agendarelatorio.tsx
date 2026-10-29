@@ -14,6 +14,8 @@ import {
 import FileDownloadRoundedIcon from '@mui/icons-material/FileDownloadRounded';
 import api from '../../../../api/api';
 import { useAuth } from '../../../../context/AuthContext';
+import FiltrosRelatorio, { type CampoFiltro } from '../../shared/FiltrosRelatorio';
+import { inDateRange, periodoMesAtual } from '../../shared/reportUtils';
 
 type Agendamento = {
   id: number;
@@ -23,10 +25,14 @@ type Agendamento = {
   horario: string;
 };
 
+type FiltrosAgenda = { de: string; ate: string; clientes: string[]; servicos: string[] };
+const PADRAO: FiltrosAgenda = { ...periodoMesAtual(), clientes: [], servicos: [] };
+
 export default function RelatorioAgenda() {
   const { user } = useAuth();
   const [agenda, setAgenda] = React.useState<Agendamento[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [filtros, setFiltros] = React.useState(PADRAO);
 
   React.useEffect(() => {
     if (!user?.oficina_id) return;
@@ -63,11 +69,24 @@ export default function RelatorioAgenda() {
     })();
   }, [user?.oficina_id]);
 
+  const unicos = (nomes: string[]) =>
+    [...new Set(nomes.filter((n) => n && n !== '—'))].sort((a, b) => a.localeCompare(b, 'pt-BR')).map((n) => ({ value: n, label: n }));
+  const campos: CampoFiltro<FiltrosAgenda>[] = [
+    { id: 'clientes', label: 'Cliente', multi: true, opcoes: unicos(agenda.map((a) => a.cliente)) },
+    { id: 'servicos', label: 'Serviço', multi: true, opcoes: unicos(agenda.map((a) => a.servico)) },
+  ];
+  const filtrada = agenda.filter(
+    (a) =>
+      inDateRange(a.data_agendamento, filtros.de, filtros.ate) &&
+      (!filtros.clientes.length || filtros.clientes.includes(a.cliente)) &&
+      (!filtros.servicos.length || filtros.servicos.includes(a.servico))
+  );
+
   const handleExportarCSV = () => {
-    if (!agenda.length) return alert('Nenhum agendamento encontrado para exportar.');
+    if (!filtrada.length) return alert('Nenhum agendamento encontrado para exportar.');
 
     const header = ['Cliente', 'Serviço', 'Data', 'Horário'];
-    const rows = agenda.map((a) => [
+    const rows = filtrada.map((a) => [
       a.cliente,
       a.servico,
       new Date(a.data_agendamento).toLocaleDateString('pt-BR'),
@@ -116,8 +135,10 @@ export default function RelatorioAgenda() {
         </Button>
       </Stack>
 
+      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} />
+
       <Box>
-        {agenda.length ? (
+        {filtrada.length ? (
           <Table>
             <TableHead>
               <TableRow>
@@ -129,7 +150,7 @@ export default function RelatorioAgenda() {
             </TableHead>
 
             <TableBody>
-              {agenda.map((a) => (
+              {filtrada.map((a) => (
                 <TableRow key={a.id} hover>
                   <TableCell sx={{ fontWeight: 600 }}>{a.cliente}</TableCell>
                   <TableCell>{a.servico}</TableCell>

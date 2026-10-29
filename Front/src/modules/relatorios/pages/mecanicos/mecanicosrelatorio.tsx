@@ -1,8 +1,9 @@
 import * as React from "react";
 import { Box, CircularProgress, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
-import { EmptyReport, MetricCard, PeriodFilter, ReportHeader, ReportPage, StatGroup, TituloSecao, brl, exportCsv, firstDayOfMonthISO, percent, todayISO } from "../../shared/reportUtils";
+import { EmptyReport, MetricCard, ReportHeader, ReportPage, StatGroup, TituloSecao, brl, exportCsv, periodoMesAtual, percent } from "../../shared/reportUtils";
 import { GraficoBarrasHorizontais } from "../../shared/graficos";
 import { useRelatorio } from "../../shared/useRelatorio";
+import FiltrosRelatorio from "../../shared/FiltrosRelatorio";
 
 type Mecanico = {
   id: number;
@@ -17,9 +18,11 @@ type Mecanico = {
 };
 type Dados = { totais: { ordens_concluidas: number; faturamento: number; ticket_medio: number }; mecanicos: Mecanico[] };
 
+const PADRAO = periodoMesAtual();
+
 export default function MecanicosRelatorio() {
-  const [dataInicio, setDataInicio] = React.useState(firstDayOfMonthISO());
-  const [dataFim, setDataFim] = React.useState(todayISO());
+  const [filtros, setFiltros] = React.useState(PADRAO);
+  const { de: dataInicio, ate: dataFim } = filtros;
   const { dados, carregando } = useRelatorio<Dados>("/relatorios/mecanicos", { from: dataInicio, to: dataFim });
 
   const exportar = () => {
@@ -43,7 +46,7 @@ export default function MecanicosRelatorio() {
   return (
     <ReportPage>
       <ReportHeader title="Desempenho por mecânico" subtitle="Ordens concluídas, faturamento, ticket médio e margem de cada mecânico no período." onExport={exportar} />
-      <PeriodFilter dataInicio={dataInicio} dataFim={dataFim} onDataInicio={setDataInicio} onDataFim={setDataFim} />
+      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} />
 
       {carregando && !dados ? (
         <Box sx={{ textAlign: "center", mt: 6 }}><CircularProgress /></Box>

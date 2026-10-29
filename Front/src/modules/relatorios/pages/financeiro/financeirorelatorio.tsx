@@ -17,14 +17,14 @@ import {
   dateBr,
   EmptyReport,
   exportCsv,
-  firstDayOfMonthISO,
+  periodoMesAtual,
   inDateRange,
   MetricCard,
   StatGroup,
-  PeriodFilter,
   ReportHeader,
   ReportPage,
   todayISO, TituloSecao } from "../../shared/reportUtils";
+import FiltrosRelatorio, { type CampoFiltro } from "../../shared/FiltrosRelatorio";
 import { GraficoPizza, GraficoEntradasSaidas, chaveSemana, rotuloSemana, semanasDoPeriodo } from "../../shared/graficos";
 
 type Pagamento = {
@@ -50,11 +50,16 @@ const valorPago = (p: Pagamento) => Number(p.valor_pago ?? 0) || (isPago(p) ? Nu
 const valorAberto = (p: Pagamento) => Math.max(0, Number(p.valor ?? 0) - Number(p.valor_pago ?? 0));
 const dataReferencia = (p: Pagamento) => p.data_pagamento ?? p.data_vencimento;
 
+type FiltrosFluxo = { de: string; ate: string; tipo: string; situacao: string[]; metodos: string[]; parceiros: string[] };
+const PADRAO: FiltrosFluxo = { ...periodoMesAtual(), tipo: "", situacao: [], metodos: [], parceiros: [] };
+
+const nomeParceiro = (p: Pagamento) => p.cliente?.nome ?? p.fornecedor?.nome ?? "";
+
 export default function RelatorioFinanceiro() {
   const { user } = useAuth();
   const { warning, error } = useToast();
-  const [dataInicio, setDataInicio] = React.useState(firstDayOfMonthISO());
-  const [dataFim, setDataFim] = React.useState(todayISO());
+  const [filtros, setFiltros] = React.useState(PADRAO);
+  const { de: dataInicio, ate: dataFim } = filtros;
   const [dados, setDados] = React.useState<Pagamento[]>([]);
   const [loading, setLoading] = React.useState(true);
 
@@ -81,12 +86,44 @@ export default function RelatorioFinanceiro() {
     })();
   }, [user?.oficina_id, error]);
 
+  const hoje = new Date(`${todayISO()}T23:59:59`);
+  const vencida = (p: Pagamento) => isPendente(p) && !!p.data_vencimento && new Date(p.data_vencimento) < hoje;
+
   const filtrados = React.useMemo(
-    () => dados.filter((p) => inDateRange(dataReferencia(p), dataInicio, dataFim)),
-    [dados, dataInicio, dataFim]
+    () =>
+      dados.filter((p) => {
+        if (!inDateRange(dataReferencia(p), dataInicio, dataFim)) return false;
+        if (filtros.tipo === "receber" && !isReceber(p)) return false;
+        if (filtros.tipo === "pagar" && !isPagar(p)) return false;
+        if (filtros.metodos.length && !filtros.metodos.includes(p.metodo ?? "")) return false;
+        if (filtros.parceiros.length && !filtros.parceiros.includes(nomeParceiro(p))) return false;
+        if (filtros.situacao.length) {
+          const bate = filtros.situacao.some((s) => (s === "vencido" ? vencida(p) : s === "pendente" ? isPendente(p) && !vencida(p) : p.status === s));
+          if (!bate) return false;
+        }
+        return true;
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dados, filtros]
   );
 
-  const hoje = new Date(`${todayISO()}T23:59:59`);
+  const parceirosOpcoes = React.useMemo(
+    () => [...new Set(dados.map(nomeParceiro).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR")).map((n) => ({ value: n, label: n })),
+    [dados]
+  );
+  const campos: CampoFiltro<FiltrosFluxo>[] = [
+    { id: "tipo", label: "Tipo", opcoes: [{ value: "receber", label: "Entradas (a receber)" }, { value: "pagar", label: "Saídas (a pagar)" }] },
+    {
+      id: "situacao",
+      label: "Situação",
+      multi: true,
+      vazio: "Todas as situações",
+      opcoes: [{ value: "pendente", label: "Pendentes" }, { value: "vencido", label: "Vencidos" }, { value: "pago", label: "Pagos" }, { value: "cancelado", label: "Cancelados" }],
+    },
+    { id: "metodos", label: "Forma de pagamento", multi: true, vazio: "Todas", opcoes: METODO_OPTIONS.map((m) => ({ value: m.value, label: m.label })) },
+    { id: "parceiros", label: "Cliente/Fornecedor", multi: true, opcoes: parceirosOpcoes },
+  ];
+
   const recebido = filtrados.filter((p) => isReceber(p) && isPago(p)).reduce((sum, p) => sum + valorPago(p), 0);
   const aReceber = filtrados.filter((p) => isReceber(p) && isPendente(p)).reduce((sum, p) => sum + valorAberto(p), 0);
   const pago = filtrados.filter((p) => isPagar(p) && isPago(p)).reduce((sum, p) => sum + valorPago(p), 0);
@@ -152,7 +189,7 @@ export default function RelatorioFinanceiro() {
         onExport={handleExportarCSV}
       />
 
-      <PeriodFilter dataInicio={dataInicio} dataFim={dataFim} onDataInicio={setDataInicio} onDataFim={setDataFim} />
+      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} />
 
       <StatGroup espalhar>
         <MetricCard label="Recebido" value={brl(recebido)} />
@@ -191,7 +228,7 @@ export default function RelatorioFinanceiro() {
             </TableHead>
             <TableBody>
               {filtrados.map((p) => {
-                const vencido = isReceber(p) && isPendente(p) && p.data_vencimento && new Date(p.data_vencimento) < hoje;
+                const vencido = isReceber(p) && vencida(p);
                 const status = vencido ? "Vencido" : p.status ? p.status.charAt(0).toUpperCase() + p.status.slice(1) : "-";
                 return (
                   <TableRow key={p.id} hover>
