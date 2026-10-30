@@ -285,7 +285,7 @@ export default function Login() {
                 lineHeight: 1.2,
               }}
             >
-              {selectionToken ? "Entrar no sistema" : "Bem-vindo(a) de volta 👋"}
+              {selectionToken ? "Entrar no sistema" : "Bem-vindo(a) de volta"}
             </Typography>
             <Typography sx={{ fontSize: 14, color: alpha(INK, 0.6) }}>
               {selectionToken
@@ -351,8 +351,8 @@ export default function Login() {
                 </>
               ) : (
                 <>
-                  <Stack direction="row" alignItems="center" justifyContent="space-between">
-                    <Typography sx={{ fontSize: 13, color: alpha(INK, 0.62) }}>
+                  <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
+                    <Typography sx={{ fontSize: 13, color: alpha(INK, 0.62), minWidth: 0, overflowWrap: "anywhere" }}>
                       Entrando como <b>{email}</b>
                     </Typography>
                     <Button
@@ -361,6 +361,7 @@ export default function Login() {
                       sx={{
                         textTransform: "none", fontWeight: 500, fontSize: 13,
                         color: BLUE_MAIN, p: 0, minWidth: 0,
+                        whiteSpace: "nowrap", flexShrink: 0,
                         "&:hover": { color: BLUE_DARK, bgcolor: "transparent" },
                       }}
                     >
