@@ -222,10 +222,13 @@ model ordem_servico {
   status          status_os @default(aberta)
   observacoes     String?
   valor_total     Decimal   @default(0.00)
+  // Orçamento que originou a OS (no máximo uma OS ativa por orçamento, garantido no service).
+  orcamento_id    Int?
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
   deleted_at      DateTime?
 
+  orcamento   orcamento?  @relation(fields: [orcamento_id], references: [id])
   cliente     cliente     @relation(fields: [cliente_id], references: [id])
   funcionario funcionario @relation(fields: [funcionario_id], references: [id])
   oficina     oficina     @relation(fields: [oficina_id], references: [id])
@@ -242,6 +245,7 @@ model ordem_servico {
   @@index([data_abertura])
   @@index([deleted_at])
   @@index([oficina_id, deleted_at, created_at])
+  @@index([orcamento_id])
 }
 
 model item_ordem_servico {
@@ -555,6 +559,7 @@ model orcamento {
   veiculo    veiculo @relation(fields: [veiculo_id], references: [id])
   itens      item_orcamento[]
   links_publicos link_publico[]
+  ordens     ordem_servico[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt

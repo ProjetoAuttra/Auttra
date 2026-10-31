@@ -10,7 +10,13 @@ export class OrcamentoController {
   async listar(req: Request, res: Response) {
     const data = await service.listarTodos(
       getRequiredOfficeId(req),
-      { status: textoQuery(req.query.status) || undefined, search: textoQuery(req.query.search) || undefined },
+      {
+        status: textoQuery(req.query.status) || undefined,
+        search: textoQuery(req.query.search) || undefined,
+        data_de: textoQuery(req.query.data_de) || undefined,
+        data_ate: textoQuery(req.query.data_ate) || undefined,
+        ordem_servico: textoQuery(req.query.ordem_servico) || undefined,
+      },
       parsePaginacao(req.query)
     );
     return responderLista(res, data);

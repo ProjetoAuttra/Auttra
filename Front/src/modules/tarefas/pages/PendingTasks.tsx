@@ -238,7 +238,7 @@ export default function OrdensPage() {
                 <TableRow sx={{ bgcolor: (t) => alpha(t.palette.primary.main, 0.03) }}>
                   <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>OS</TableCell>
                   <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Cliente</TableCell>
-                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Veículo</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 600, fontSize: 12 }}>Veículo</TableCell>
                   <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Mecânico</TableCell>
                   <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Valor</TableCell>
                   <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>Situação</TableCell>
@@ -260,7 +260,7 @@ export default function OrdensPage() {
                       <TableCell>
                         <Typography variant="body2" fontWeight={600}>{r.cliente?.nome ?? "—"}</Typography>
                       </TableCell>
-                      <TableCell>
+                      <TableCell align="center">
                         <Typography variant="body2">{r.veiculo?.modelo ?? "—"}</Typography>
                         <Typography variant="caption" color="text.disabled">{r.veiculo?.placa ?? "—"}</Typography>
                       </TableCell>

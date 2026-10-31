@@ -262,6 +262,8 @@ export default function FormOrdemServico() {
       funcionario_id: funcionarioId,
       observacoes,
       valor_total: total,
+      // Vindo de um orçamento: o back vincula a OS e aprova o orçamento.
+      ...(!isEdit && preset?.orcamento_id ? { orcamento_id: preset.orcamento_id } : {}),
       itens: itens.map((i) => ({
         tipo_item: i.tipo_item,
         servico_id: i.servico_id ?? null,
@@ -279,13 +281,15 @@ export default function FormOrdemServico() {
         nav(`/ordens/${id}`, { replace: true });
       } else {
         const nova = await criarOrdem(payload);
-        if (preset?.orcamento_id) await api.patch(`/orcamentos/${preset.orcamento_id}/status`, { status: "aprovado" });
         success(preset?.orcamento_id ? `O.S. criada com sucesso para ${clienteValue?.nome ?? "o cliente"}!` : "Ordem de serviço criada!");
         nav(`/ordens/${nova.id}`, { replace: true });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao salvar ordem:", err);
-      error(isEdit ? "Não foi possível atualizar a OS." : preset?.orcamento_id ? "Não foi possível converter o orçamento em O.S." : "Não foi possível criar a ordem de serviço.");
+      error(
+        err?.response?.data?.message ??
+          (isEdit ? "Não foi possível atualizar a OS." : preset?.orcamento_id ? "Não foi possível converter o orçamento em O.S." : "Não foi possível criar a ordem de serviço.")
+      );
       setSalvando(false);
     }
   };
