@@ -13,7 +13,8 @@
     "test:cov": "vitest run --coverage",
     "prisma": "npx prisma",
     "seed:admin": "node scripts/create-admin.mjs",
-    "seed:sistema": "node scripts/create-sistema-user.mjs"
+    "seed:sistema": "node scripts/create-sistema-user.mjs",
+    "seed:dev": "tsx scripts/seed-dev.ts"
   },
   "keywords": [],
   "author": "",
