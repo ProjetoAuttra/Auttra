@@ -115,6 +115,7 @@ export const OrdensService = {
 
   create: async (data: any) => {
     const { oficina_id, cliente_id, veiculo_id, funcionario_id, observacoes, itens } = data;
+    const orcamento_id = data.orcamento_id ? Number(data.orcamento_id) : null;
 
     if (!oficina_id || !cliente_id || !veiculo_id || !funcionario_id) {
       throw new Error("Campos obrigatórios não informados.");
@@ -126,6 +127,22 @@ export const OrdensService = {
     const pecaItens = (itens ?? []).filter((i: any) => (i.tipo_item ?? i.tipo) === "peca" && i.peca_id);
 
     return prisma.$transaction(async (tx) => {
+      // OS gerada de um orçamento: o orçamento passa a aprovado e não pode ter outra OS ativa.
+      if (orcamento_id) {
+        const orcamento = await tx.orcamento.findFirst({
+          where: { id: orcamento_id, deleted_at: null, cliente: { oficina_id } },
+        });
+        if (!orcamento) throw new Error("Orçamento não encontrado nesta oficina.");
+        if (orcamento.status === "recusado") throw new HttpError("Orçamento recusado não pode gerar O.S.", 409, "ORCAMENTO_RECUSADO");
+        const existente = await tx.ordem_servico.findFirst({
+          where: { orcamento_id, deleted_at: null, status: { not: "cancelada" } },
+        });
+        if (existente) throw new HttpError(`Este orçamento já gerou a O.S. #${existente.id}.`, 409, "ORCAMENTO_COM_OS");
+        if (orcamento.status !== "aprovado") {
+          await tx.orcamento.update({ where: { id: orcamento_id }, data: { status: "aprovado" } });
+        }
+      }
+
       for (const item of pecaItens) {
         await baixarEstoque(tx, Number(item.peca_id), oficina_id, item.quantidade);
       }
@@ -136,6 +153,7 @@ export const OrdensService = {
           cliente_id,
           veiculo_id,
           funcionario_id,
+          orcamento_id,
           observacoes: observacoes ?? "",
           status: "aberta",
           valor_total: calculo.total,

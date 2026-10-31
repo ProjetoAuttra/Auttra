@@ -1,20 +1,16 @@
 import * as React from "react";
 import {
-  Box, Stack, Typography,
+  Box, Stack, Typography, Button,
   IconButton, Table, TableBody, TableCell, TableHead,
   TableRow, Menu, MenuItem, Fade, Chip, TablePagination,
-  CircularProgress, Divider, ToggleButton, ToggleButtonGroup, Tooltip,
+  CircularProgress, Divider, Link,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
-import { brand } from "../../../app/theme";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
-import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
 import RequestQuoteRoundedIcon from "@mui/icons-material/RequestQuoteRounded";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
-import BuildRoundedIcon from "@mui/icons-material/BuildRounded";
 import PrintRoundedIcon from "@mui/icons-material/PrintRounded";
 import { useNavigate } from "react-router-dom";
 
@@ -27,6 +23,8 @@ import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationOrcamentos } from "../../../components/common/Illustrations";
 import { useListaPaginada } from "../../../hooks/useListaPaginada";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
+import FiltrosRelatorio, { type CampoFiltro } from "../../relatorios/shared/FiltrosRelatorio";
+import { periodoMesAtual } from "../../relatorios/shared/reportUtils";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -51,15 +49,37 @@ type Orcamento = {
     preco_unitario: number;
     subtotal: number;
   }>;
+  /** O.S. ativa gerada a partir do orçamento (no máximo uma). */
+  ordens?: Array<{ id: number; status: string }>;
 };
 
 // ─── Config de status ─────────────────────────────────────────────────────
 
 const STATUS_CONFIG = {
-  analise: { label: "Em análise", color: brand.amber, bg: alpha(brand.amber, 0.1), chipColor: "warning" as const },
-  aprovado: { label: "Aprovado", color: brand.success, bg: alpha(brand.success, 0.1), chipColor: "success" as const },
-  recusado: { label: "Recusado", color: brand.error, bg: alpha(brand.error, 0.1), chipColor: "error" as const },
+  analise: { label: "Em análise", chipColor: "warning" as const },
+  aprovado: { label: "Aprovado", chipColor: "success" as const },
+  recusado: { label: "Recusado", chipColor: "error" as const },
 };
+
+// ─── Filtros ──────────────────────────────────────────────────────────────
+
+type FiltrosOrcamentos = { de: string; ate: string; situacao: string[]; os: string };
+const filtrosPadrao = (): FiltrosOrcamentos => ({ ...periodoMesAtual(), situacao: [], os: "" });
+
+const CAMPOS_FILTRO: CampoFiltro<FiltrosOrcamentos>[] = [
+  {
+    id: "situacao",
+    label: "Situação",
+    multi: true,
+    vazio: "Todas as situações",
+    opcoes: [{ value: "analise", label: "Em análise" }, { value: "aprovado", label: "Aprovados" }, { value: "recusado", label: "Recusados" }],
+  },
+  {
+    id: "os",
+    label: "Ordem de serviço",
+    opcoes: [{ value: "com", label: "Com O.S. gerada" }, { value: "sem", label: "Sem O.S." }],
+  },
+];
 
 // ─── Componente ────────────────────────────────────────────────────────────
 
@@ -68,36 +88,47 @@ export default function OrcamentosPage() {
   const confirm = useConfirm();
   const nav = useNavigate();
 
-  const [query, setQuery] = React.useState("");
-  const [filtroStatus, setFiltroStatus] = React.useState<string>("analise");
+  const [padrao] = React.useState(filtrosPadrao);
+  const [filtros, setFiltros] = React.useState(padrao);
+  const filtrado = JSON.stringify(filtros) !== JSON.stringify(padrao);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [selectedId, setSelectedId] = React.useState<number | null>(null);
 
   const { rows: orcamentos, total, carregandoInicial, page, setPage, rowsPerPage, setRowsPerPage, recarregar } =
     useListaPaginada<Orcamento>("/orcamentos", {
-      filtros: { search: query, status: filtroStatus },
+      filtros: { status: filtros.situacao.join(","), data_de: filtros.de, data_ate: filtros.ate, ordem_servico: filtros.os },
       onError: () => error("Não foi possível carregar os orçamentos."),
     });
 
   // ── Carrega ──
   // ── Menu ──
   const handleMenuClick = (e: React.MouseEvent<HTMLElement>, id: number) => { setAnchorEl(e.currentTarget); setSelectedId(id); };
-  const handleMenuClose = () => { setAnchorEl(null); setSelectedId(null); };
+  // Mantém o selecionado ao fechar: limpar aqui faria o menu trocar de itens durante a animação de saída.
+  const handleMenuClose = () => { setAnchorEl(null); };
 
   const selectedOrcamento = React.useMemo(
     () => orcamentos.find((o) => o.id === selectedId) ?? null,
     [orcamentos, selectedId]
   );
 
-  // ── Aprovar ──
-  const handleAprovar = async () => {
-    if (!selectedId) return;
-    handleMenuClose();
+  // ── Aprovar (e oferecer gerar a O.S. em seguida) ──
+  const handleAprovar = async (orc: Orcamento) => {
     try {
-      await api.patch(`/orcamentos/${selectedId}/status`, { status: "aprovado" });
+      await api.patch(`/orcamentos/${orc.id}/status`, { status: "aprovado" });
       recarregar();
-      success("Orçamento aprovado!");
-    } catch { error("Não foi possível aprovar o orçamento."); }
+    } catch {
+      error("Não foi possível aprovar o orçamento.");
+      return;
+    }
+    const gerarAgora = await confirm({
+      title: "Orçamento aprovado!",
+      message: "Deseja gerar a ordem de serviço agora?",
+      confirmLabel: "Gerar O.S.",
+      cancelLabel: "Agora não",
+      variant: "info",
+    });
+    if (gerarAgora) handleConverterOS({ ...orc, status: "aprovado" });
+    else success("Orçamento aprovado!");
   };
 
   // ── Recusar ──
@@ -261,20 +292,13 @@ export default function OrcamentosPage() {
       />
 
       {/* ── Filtros ── */}
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} mb={2.5} alignItems="center">
-        <ToggleButtonGroup
-          value={filtroStatus}
-          exclusive
-          onChange={(_, v) => { if (v !== null) setFiltroStatus(v); }}
-          size="small"
-          sx={{ "& .MuiToggleButton-root": { textTransform: "none", fontWeight: 600, px: 2, borderRadius: "999px !important", border: (t) => `1px solid ${t.palette.divider} !important`, mx: 0.25 } }}
-        >
-          <ToggleButton value="todos">Todos</ToggleButton>
-          <ToggleButton value="analise" sx={{ "&.Mui-selected": { bgcolor: alpha(brand.amber, 0.1), color: brand.amber } }}>Em análise</ToggleButton>
-          <ToggleButton value="aprovado" sx={{ "&.Mui-selected": { bgcolor: alpha(brand.success, 0.1), color: brand.success } }}>Aprovados</ToggleButton>
-          <ToggleButton value="recusado" sx={{ "&.Mui-selected": { bgcolor: alpha(brand.error, 0.1), color: brand.error } }}>Recusados</ToggleButton>
-        </ToggleButtonGroup>
-      </Stack>
+      <FiltrosRelatorio
+        valores={filtros}
+        onChange={setFiltros}
+        padrao={padrao}
+        campos={CAMPOS_FILTRO}
+        subtitulo="Refine a lista de orçamentos"
+      />
 
       {/* ── Tabela ── */}
       <Fade in timeout={400}>
@@ -283,7 +307,7 @@ export default function OrcamentosPage() {
             <TableHead>
               <TableRow>
                 <TableCell>Cliente</TableCell>
-                <TableCell>Veículo</TableCell>
+                <TableCell align="center">Veículo</TableCell>
                 <TableCell>Descrição</TableCell>
                 <TableCell>Valor</TableCell>
                 <TableCell>Data</TableCell>
@@ -294,6 +318,13 @@ export default function OrcamentosPage() {
             <TableBody>
               {orcamentos.length > 0 ? orcamentos.map((o) => {
                 const st = STATUS_CONFIG[o.status] ?? STATUS_CONFIG.analise;
+                const os = o.ordens?.[0];
+                // Um botão por situação, com o próximo passo do orçamento; recusado não tem ação.
+                const acao =
+                  o.status === "analise" ? { label: "APROVAR", onClick: () => handleAprovar(o) }
+                  : o.status === "aprovado" && os ? { label: "VER O.S.", onClick: () => nav(`/ordens/${os.id}`) }
+                  : o.status === "aprovado" ? { label: "GERAR O.S.", onClick: () => handleConverterOS(o) }
+                  : null;
                 return (
                   <TableRow
                     key={o.id}
@@ -309,16 +340,9 @@ export default function OrcamentosPage() {
                     </TableCell>
 
                     {/* Veículo */}
-                    <TableCell>
-                      {o.veiculo ? (
-                        <Stack spacing={0.1}>
-                          <Typography variant="body2">{o.veiculo.modelo}</Typography>
-                          <Typography variant="caption" fontFamily="monospace" fontWeight={600}
-                            sx={{ px: 0.75, py: 0.1, borderRadius: 1, bgcolor: (t) => alpha(t.palette.text.primary, 0.06), display: "inline-block", width: "fit-content" }}>
-                            {o.veiculo.placa}
-                          </Typography>
-                        </Stack>
-                      ) : "—"}
+                    <TableCell align="center">
+                      <Typography variant="body2">{o.veiculo?.modelo ?? "—"}</Typography>
+                      <Typography variant="caption" color="text.disabled">{o.veiculo?.placa ?? "—"}</Typography>
                     </TableCell>
 
                     {/* Descrição */}
@@ -328,7 +352,7 @@ export default function OrcamentosPage() {
 
                     {/* Valor */}
                     <TableCell>
-                      <Typography variant="body2" fontWeight={600} color="success.main">
+                      <Typography variant="body2" fontWeight={600}>
                         R$ {Number(o.valor ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </Typography>
                     </TableCell>
@@ -347,33 +371,54 @@ export default function OrcamentosPage() {
                       </Stack>
                     </TableCell>
 
-                    {/* Status */}
+                    {/* Status + O.S. gerada */}
                     <TableCell>
-                      <Chip
-                        label={st.label}
-                        size="small"
-                        color={st.chipColor}
-                        sx={{ fontWeight: 600, fontSize: 12 }}
-                      />
+                      <Stack spacing={0.5} alignItems="flex-start">
+                        <Chip
+                          label={st.label}
+                          size="small"
+                          color={st.chipColor}
+                          sx={{ fontWeight: 600, fontSize: 12 }}
+                        />
+                        {os && (
+                          <Link
+                            component="button"
+                            variant="caption"
+                            fontWeight={600}
+                            underline="hover"
+                            onClick={(e) => { e.stopPropagation(); nav(`/ordens/${os.id}`); }}
+                          >
+                            O.S. #{os.id}
+                          </Link>
+                        )}
+                      </Stack>
                     </TableCell>
 
                     {/* Ações */}
                     <TableCell align="right">
-                      {/* Botão rápido: Converter em OS (só para aprovados ou em análise) */}
-                      {o.status !== "recusado" && (
-                        <Tooltip title="Converter em O.S.">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleConverterOS(o)}
-                            sx={{ mr: 0.5, color: "primary.main", "&:hover": { bgcolor: (t) => alpha(t.palette.primary.main, 0.08) } }}
-                          >
-                            <BuildRoundedIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                      <IconButton size="small" onClick={(e) => handleMenuClick(e, o.id)}>
-                        <MoreVertRoundedIcon fontSize="small" />
-                      </IconButton>
+                      <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                        <Button
+                          size="small"
+                          variant="text"
+                          color="primary"
+                          onClick={acao?.onClick}
+                          tabIndex={acao ? 0 : -1}
+                          aria-hidden={!acao}
+                          sx={{
+                            fontWeight: 700,
+                            letterSpacing: 0.6,
+                            px: 1.75,
+                            whiteSpace: "nowrap",
+                            // Sem ação (recusado): ocupa o espaço para os três pontos não mudarem de lugar.
+                            visibility: acao ? "visible" : "hidden",
+                          }}
+                        >
+                          {acao?.label ?? "GERAR O.S."}
+                        </Button>
+                        <IconButton size="small" aria-label="Mais ações" onClick={(e) => handleMenuClick(e, o.id)}>
+                          <MoreVertRoundedIcon fontSize="small" />
+                        </IconButton>
+                      </Stack>
                     </TableCell>
                   </TableRow>
                 );
@@ -383,12 +428,12 @@ export default function OrcamentosPage() {
                     <EmptyState
                       illustration={<IllustrationOrcamentos />}
                       icon={<RequestQuoteRoundedIcon />}
-                      title={filtroStatus === "todos" ? "Nenhum orçamento cadastrado" : `Nenhum orçamento ${STATUS_CONFIG[filtroStatus as keyof typeof STATUS_CONFIG]?.label?.toLowerCase() ?? filtroStatus}`}
+                      title={filtrado ? "Nenhum orçamento encontrado" : "Nenhum orçamento neste mês"}
                       description="Crie o primeiro orçamento e acompanhe sua conversão em ordem de serviço."
                       actionLabel="Novo Orçamento"
                       onAction={() => nav(paths.orcamentoNovo)}
-                      isFiltered={filtroStatus !== "todos"}
-                      onClearFilter={() => setFiltroStatus("todos")}
+                      isFiltered={filtrado}
+                      onClearFilter={() => setFiltros(padrao)}
                     />
                   </TableCell>
                 </TableRow>
@@ -415,39 +460,26 @@ export default function OrcamentosPage() {
       {/* ── Menu contextual ── */}
       <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={handleMenuClose}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }} transformOrigin={{ vertical: "top", horizontal: "right" }}
-        PaperProps={{ sx: { borderRadius: 2, minWidth: 180, boxShadow: "0 8px 24px rgba(0,0,0,0.10)" } }}
       >
-        {selectedOrcamento?.status !== "aprovado" && (
-          <MenuItem onClick={handleAprovar} sx={{ gap: 1.5 }}>
-            <CheckCircleOutlineRoundedIcon fontSize="small" color="success" />
-            Aprovar
-          </MenuItem>
-        )}
-        {selectedOrcamento?.status !== "recusado" && (
-          <MenuItem onClick={() => handleConverterOS()} sx={{ gap: 1.5, fontWeight: 600, color: "primary.main" }}>
-            <BuildRoundedIcon fontSize="small" />
-            Converter em O.S.
-          </MenuItem>
-        )}
-        <Divider />
-        <MenuItem onClick={handleWhatsApp} sx={{ gap: 1.5 }}>
-          <WhatsAppIcon fontSize="small" sx={{ color: "#25D366" }} />
-          Enviar WhatsApp
-        </MenuItem>
-        <MenuItem onClick={handlePrint} sx={{ gap: 1.5 }}>
-          <PrintRoundedIcon fontSize="small" />
-          Imprimir
+        <MenuItem onClick={() => { handleMenuClose(); if (selectedId) nav(`/orcamentos/${selectedId}`); }}>
+          <VisibilityRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "text.secondary" }} />Ver detalhes
         </MenuItem>
         <Divider />
         {selectedOrcamento?.status === "analise" && (
-          <MenuItem onClick={handleRecusar} sx={{ gap: 1.5, color: "error.main" }}>
-            <CancelRoundedIcon fontSize="small" color="error" />
-            Recusar
+          <MenuItem onClick={handleRecusar} sx={{ color: "error.main" }}>
+            <CancelRoundedIcon fontSize="small" sx={{ mr: 1.5 }} />Recusar
           </MenuItem>
         )}
-        <MenuItem onClick={handleExcluir} sx={{ gap: 1.5, color: "error.main" }}>
-          <DeleteOutlineRoundedIcon fontSize="small" />
-          Excluir
+        {selectedOrcamento?.status === "analise" && <Divider />}
+        <MenuItem onClick={handleWhatsApp}>
+          <WhatsAppIcon fontSize="small" sx={{ mr: 1.5, color: "#25D366" }} />Enviar WhatsApp
+        </MenuItem>
+        <MenuItem onClick={handlePrint}>
+          <PrintRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "text.secondary" }} />Imprimir
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={handleExcluir} sx={{ color: "error.main" }}>
+          <DeleteOutlineRoundedIcon fontSize="small" sx={{ mr: 1.5 }} />Excluir
         </MenuItem>
       </Menu>
 

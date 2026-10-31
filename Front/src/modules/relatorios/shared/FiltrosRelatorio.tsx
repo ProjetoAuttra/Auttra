@@ -28,12 +28,14 @@ type Props<F extends object> = {
   periodo?: boolean;
   /** Controles extras que ficam na tela, ao lado do período (ex.: campo de busca). */
   children?: React.ReactNode;
+  /** Subtítulo do painel lateral. */
+  subtitulo?: string;
 };
 
 const vazio = (v: unknown) => (Array.isArray(v) ? v.length === 0 : !v);
 
 /** Filtros dos relatórios: período na tela e os demais num painel lateral, igual às contas a receber/pagar. */
-export default function FiltrosRelatorio<F extends object>({ valores, onChange, padrao, campos = [], periodo = true, children }: Props<F>) {
+export default function FiltrosRelatorio<F extends object>({ valores, onChange, padrao, campos = [], periodo = true, children, subtitulo = "Refine o relatório" }: Props<F>) {
   const [aberto, setAberto] = React.useState(false);
   const [rascunho, setRascunho] = React.useState(valores);
 
@@ -81,7 +83,7 @@ export default function FiltrosRelatorio<F extends object>({ valores, onChange, 
         open={aberto}
         onClose={() => setAberto(false)}
         title="Filtros"
-        subtitle="Refine o relatório"
+        subtitle={subtitulo}
         icon={<TuneRoundedIcon />}
         width={440}
         confirmDiscard={false}

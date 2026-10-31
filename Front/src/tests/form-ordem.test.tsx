@@ -62,7 +62,7 @@ describe("FormOrdemServico (tela inteira)", () => {
     expect(post).not.toHaveBeenCalled();
   });
 
-  it("vindo de um orçamento, abre preenchida, cria a OS e aprova o orçamento", async () => {
+  it("vindo de um orçamento, abre preenchida e cria a OS vinculada ao orçamento", async () => {
     const user = setup({
       pathname: "/ordens/nova",
       state: {
@@ -84,8 +84,9 @@ describe("FormOrdemServico (tela inteira)", () => {
     await user.click(screen.getByRole("button", { name: /gerar ordem de serviço/i }));
 
     await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
-    expect(post.mock.calls[0][1]).toMatchObject({ cliente_id: 1, veiculo_id: 5, funcionario_id: 3, valor_total: 860 });
-    expect(patch).toHaveBeenCalledWith("/orcamentos/4/status", { status: "aprovado" });
+    expect(post.mock.calls[0][1]).toMatchObject({ cliente_id: 1, veiculo_id: 5, funcionario_id: 3, valor_total: 860, orcamento_id: 4 });
+    // A aprovação do orçamento é feita pelo back ao criar a OS vinculada.
+    expect(patch).not.toHaveBeenCalled();
     expect(await screen.findByText("Detalhe da OS")).toBeInTheDocument();
   });
 

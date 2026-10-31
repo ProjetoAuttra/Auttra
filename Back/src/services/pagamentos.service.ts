@@ -3,6 +3,7 @@ import { prisma } from "../prisma/client.js";
 import { HttpError } from "../utils/httpError.js";
 import { LIMITE_LISTAGEM } from "../utils/limites.js";
 import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
+import { dataIso, listaCsv } from "../utils/filtros.js";
 
 const D = (v: Prisma.Decimal.Value) => new Prisma.Decimal(v);
 
@@ -199,16 +200,6 @@ async function registrarEntrada(
 }
 
 const METODOS = ["dinheiro", "pix", "cartao", "boleto", "transferencia"];
-
-/** "a,b" -> ["a","b"], sem vazios. */
-function listaCsv(valor?: string) {
-  return (valor ?? "").split(",").map((v) => v.trim()).filter(Boolean);
-}
-
-/** YYYY-MM-DD em Date UTC à meia-noite (como o vencimento é gravado); qualquer outra coisa vira undefined. */
-function dataIso(valor?: string) {
-  return valor && /^\d{4}-\d{2}-\d{2}$/.test(valor) ? new Date(`${valor}T00:00:00.000Z`) : undefined;
-}
 
 export const PagamentosService = {
   async list(

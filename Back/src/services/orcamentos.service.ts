@@ -1,6 +1,7 @@
 import { prisma } from "../prisma/client.js";
 import { LIMITE_LISTAGEM } from "../utils/limites.js";
 import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
+import { dataIso, listaCsv } from "../utils/filtros.js";
 
 type OrcamentoItemInput = {
   tipo_item?: "servico" | "peca";
@@ -14,10 +15,14 @@ type OrcamentoItemInput = {
   subtotal?: number;
 };
 
+/** OS que conta como "gerada" a partir do orçamento: não excluída nem cancelada. */
+const osAtiva = { deleted_at: null, status: { not: "cancelada" } } as const;
+
 const orcamentoInclude = {
   cliente: true,
   veiculo: true,
   itens: { include: { servico: true, peca: true } },
+  ordens: { where: osAtiva, select: { id: true, status: true }, orderBy: { id: "desc" } },
 } as const;
 
 function mapItemOrcamento(item: OrcamentoItemInput) {
@@ -42,11 +47,21 @@ function mapItemOrcamento(item: OrcamentoItemInput) {
 export class OrcamentoService {
   async listarTodos(
     oficinaId: number,
-    filtros: { status?: string; search?: string } = {},
+    /**
+     * status: lista separada por vírgula; data_de/data_ate: período (YYYY-MM-DD) pela data do orçamento;
+     * ordem_servico: "com" ou "sem" O.S. gerada.
+     */
+    filtros: { status?: string; search?: string; data_de?: string; data_ate?: string; ordem_servico?: string } = {},
     pag: Paginacao | null = null
   ) {
     const where: any = { deleted_at: null, cliente: { oficina_id: oficinaId } };
-    if (filtros.status) where.status = filtros.status;
+    const statuses = listaCsv(filtros.status);
+    if (statuses.length) where.status = { in: statuses };
+    const de = dataIso(filtros.data_de);
+    const ate = dataIso(filtros.data_ate);
+    if (de || ate) where.data = { ...(de ? { gte: de } : {}), ...(ate ? { lte: ate } : {}) };
+    if (filtros.ordem_servico === "com") where.ordens = { some: osAtiva };
+    if (filtros.ordem_servico === "sem") where.ordens = { none: osAtiva };
     if (filtros.search) {
       const contains = { contains: filtros.search, mode: "insensitive" };
       where.OR = [
