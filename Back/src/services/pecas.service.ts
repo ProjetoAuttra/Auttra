@@ -2,6 +2,39 @@ import { prisma } from "../prisma/client.js";
 import { LIMITE_LISTAGEM } from "../utils/limites.js";
 import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
 
+const valorNaoNegativo = (valor: unknown, campo: string) => {
+  const n = Number(valor);
+  if (valor === null || valor === "" || !Number.isFinite(n) || n < 0) throw new Error(`Campo ${campo} inválido.`);
+  return n;
+};
+
+/**
+ * Campos que a edicao da peca pode alterar, montados um a um. Repassar o body deixava passar
+ * relacoes como oficina/compras/itens com connect, que moviam registros entre oficinas.
+ * O estoque continua editavel porque o formulario de estoque o envia (historico: auditoria I15).
+ */
+function camposEditaveisPeca(data: any) {
+  const patch: { nome?: string; descricao?: string | null; preco_custo?: number; preco_venda?: number; estoque?: number } = {};
+  if (!data || typeof data !== "object") return patch;
+
+  if (data.nome !== undefined) {
+    const nome = String(data.nome ?? "").trim();
+    if (!nome) throw new Error("O nome da peça é obrigatório.");
+    patch.nome = nome;
+  }
+  if (data.descricao !== undefined) {
+    patch.descricao = data.descricao === null || data.descricao === "" ? null : String(data.descricao);
+  }
+  if (data.preco_custo !== undefined) patch.preco_custo = valorNaoNegativo(data.preco_custo, "preco_custo");
+  if (data.preco_venda !== undefined) patch.preco_venda = valorNaoNegativo(data.preco_venda, "preco_venda");
+  if (data.estoque !== undefined) {
+    const estoque = valorNaoNegativo(data.estoque, "estoque");
+    if (!Number.isInteger(estoque)) throw new Error("Campo estoque inválido.");
+    patch.estoque = estoque;
+  }
+  return patch;
+}
+
 export const PecasService = {
   list: async (
     oficinaId: number,
@@ -68,11 +101,9 @@ export const PecasService = {
   update: async (id: number, data: any, oficinaId: number) => {
     const existing = await prisma.peca.findFirst({ where: { id, oficina_id: oficinaId, deleted_at: null } });
     if (!existing) throw new Error("Peca nao encontrada nesta oficina.");
-    const { oficina_id, oficinaId: _oficinaId, ...patch } = data;
-
     return prisma.peca.update({
       where: { id },
-      data: patch,
+      data: camposEditaveisPeca(data),
     });
   },
 

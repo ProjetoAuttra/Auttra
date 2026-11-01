@@ -17,6 +17,7 @@ describe.skipIf(!process.env.DATABASE_URL)("cadastros do estoque", () => {
   let auth: string;
 
   const post = (url: string, body: object) => request(app).post(url).set("Authorization", auth).send(body);
+  const put = (url: string, body: object) => request(app).put(url).set("Authorization", auth).send(body);
 
   beforeAll(async () => {
     cidadeId = (await prisma.cidade.create({ data: { nome: `Cidade Estoque ${suffix}`, uf: "SP" } })).id;
@@ -69,6 +70,31 @@ describe.skipIf(!process.env.DATABASE_URL)("cadastros do estoque", () => {
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({ id: p.id, deleted_at: null, estoque: 3 });
     });
+
+    // Auditoria V1, B4: o update repassava o body ao Prisma.
+    it("editar peça não move a peça para outra oficina nem aceita relações", async () => {
+      const p = await prisma.peca.create({ data: { oficina_id: oficinaId, nome: `Mover ${suffix}`, preco_custo: 1, preco_venda: 2 } });
+      const res = await put(`/api/pecas/${p.id}`, {
+        nome: `Movida ${suffix}`,
+        oficina: { connect: { id: outraOficinaId } },
+        itens: { create: [] },
+        deleted_at: "2020-01-01",
+      });
+      expect(res.status).toBe(200);
+      const depois = await prisma.peca.findUniqueOrThrow({ where: { id: p.id } });
+      expect(depois).toMatchObject({ nome: `Movida ${suffix}`, oficina_id: oficinaId, deleted_at: null });
+    });
+
+    it("editar peça aceita o formulário e recusa preço negativo", async () => {
+      const p = await prisma.peca.create({ data: { oficina_id: oficinaId, nome: `Editar ${suffix}`, preco_custo: 1, preco_venda: 2 } });
+      const ok = await put(`/api/pecas/${p.id}`, { nome: `Editada ${suffix}`, descricao: null, preco_custo: 10, preco_venda: 25.5, estoque: 7 });
+      expect(ok.status).toBe(200);
+      expect(ok.body).toMatchObject({ nome: `Editada ${suffix}`, estoque: 7 });
+      expect(Number(ok.body.preco_venda)).toBe(25.5);
+
+      const ruim = await put(`/api/pecas/${p.id}`, { preco_venda: -1 });
+      expect(ruim.status).toBe(400);
+    });
   });
 
   describe("fornecedores", () => {
@@ -85,6 +111,21 @@ describe.skipIf(!process.env.DATABASE_URL)("cadastros do estoque", () => {
       expect(res.status).toBe(201);
       expect(res.body).toMatchObject({ deleted_at: null, oficina_id: oficinaId });
       expect(res.body.id).not.toBe(999999);
+    });
+
+    // Auditoria V1, B4: o update repassava o body ao Prisma.
+    it("editar fornecedor não move para outra oficina nem aceita relações", async () => {
+      const f = await prisma.fornecedor.create({ data: { oficina_id: oficinaId, nome: `Forn Mover ${suffix}` } });
+      const res = await put(`/api/fornecedores/${f.id}`, {
+        nome: `Forn Movido ${suffix}`,
+        telefone: "",
+        oficina: { connect: { id: outraOficinaId } },
+        pagamentos: { create: [] },
+        deleted_at: "2020-01-01",
+      });
+      expect(res.status).toBe(200);
+      const depois = await prisma.fornecedor.findUniqueOrThrow({ where: { id: f.id } });
+      expect(depois).toMatchObject({ nome: `Forn Movido ${suffix}`, telefone: null, oficina_id: oficinaId, deleted_at: null });
     });
   });
 });
