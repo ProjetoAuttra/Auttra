@@ -29,3 +29,36 @@ export function maskCep(raw: string): string {
   if (d.length <= 5) return d;
   return `${d.slice(0, 5)}-${d.slice(5)}`;
 }
+
+// ─── Moeda ─────────────────────────────────────────────────────────────────
+// Máscara de dinheiro: os dígitos entram pela direita (centavos), então "1234" vira "12,34".
+// Campo de texto (não type="number"): a roda do mouse não muda o valor e a vírgula funciona em qualquer navegador.
+
+export function formatPreco(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  return (parseFloat(digits) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+export function parsePreco(formatted: string): number {
+  return parseFloat(formatted.replace(/\./g, "").replace(",", ".")) || 0;
+}
+
+/** Número em reais para o texto do campo com máscara (ex.: 1234.5 → "1.234,50"); zero ou negativo vira vazio. */
+export function precoParaCampo(valor: number): string {
+  return valor > 0 ? formatPreco(String(Math.round(valor * 100))) : "";
+}
+
+// ─── Decimal (ex.: percentual) ─────────────────────────────────────────────
+
+/** Mantém só dígitos e um separador decimal; aceita vírgula ou ponto e mostra vírgula. */
+export function maskDecimal(raw: string, casas = 2): string {
+  const limpo = raw.replace(/[^\d.,]/g, "").replace(".", ",");
+  const [inteiro, ...resto] = limpo.split(",");
+  if (resto.length === 0) return inteiro;
+  return `${inteiro},${resto.join("").replace(/\D/g, "").slice(0, casas)}`;
+}
+
+export function parseDecimal(texto: string): number {
+  return parseFloat(texto.replace(/\./g, "").replace(",", ".")) || 0;
+}

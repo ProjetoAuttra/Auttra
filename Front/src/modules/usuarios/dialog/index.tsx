@@ -11,6 +11,12 @@ import CampoData from "../../../components/common/CampoData";
 const cargos = ["Mecanico", "Atendente", "Gerente", "Administrador"];
 const cargoLabel = (c: string) => (c === "Mecanico" ? "Mecânico" : c);
 
+/** Hoje (dia local) como meia-noite UTC, o mesmo formato que o campo de data grava; toISOString puro viraria amanhã depois das 21h. */
+const hojeContratacao = () => {
+  const d = new Date();
+  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())).toISOString();
+};
+
 export type FuncionarioForm = {
   nome: string;
   email: string;
@@ -37,7 +43,7 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
 
   const [form, setForm] = React.useState<FuncionarioForm>({
     nome: "", email: "", telefone: "", cargo: "Mecanico",
-    senha: "", data_contratacao: new Date().toISOString(), oficina_id,
+    senha: "", data_contratacao: hojeContratacao(), oficina_id,
   });
   const [perfis, setPerfis] = React.useState<PerfilAcesso[]>([]);
   const [saving, setSaving] = React.useState(false);
@@ -45,28 +51,37 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
   React.useEffect(() => {
     if (!open) return;
 
+    // O formulário é preenchido na hora, a partir de `initial`; se os perfis falharem, não ficam os dados do funcionário anterior.
+    const editando = isEdit && initial;
+    setForm(
+      editando
+        ? {
+            nome: initial.nome ?? "",
+            email: initial.email ?? "",
+            telefone: maskTelefone(initial.telefone ?? ""),
+            cargo: initial.cargo ?? "Mecanico",
+            senha: "",
+            data_contratacao: initial.data_contratacao ?? hojeContratacao(),
+            oficina_id,
+            perfil_acesso_id: initial.perfil_acesso_id,
+          }
+        : {
+            nome: "", email: "", telefone: "", cargo: "Mecanico",
+            senha: "", data_contratacao: hojeContratacao(), oficina_id,
+          }
+    );
+
+    // Os perfis carregam em paralelo; no cadastro, o perfil padrão é escolhido quando chegam.
+    let vivo = true;
     listarPerfisAcesso().then((data) => {
+      if (!vivo) return;
       setPerfis(data);
-      if (isEdit && initial) {
-        setForm({
-          nome: initial.nome ?? "",
-          email: initial.email ?? "",
-          telefone: maskTelefone(initial.telefone ?? ""),
-          cargo: initial.cargo ?? "Mecanico",
-          senha: "",
-          data_contratacao: initial.data_contratacao ?? new Date().toISOString(),
-          oficina_id,
-          perfil_acesso_id: initial.perfil_acesso_id,
-        });
-      } else {
+      if (!editando) {
         const recepcao = data.find((p) => p.chave === "recepcao") ?? data.find((p) => p.padrao) ?? data[0];
-        setForm({
-          nome: "", email: "", telefone: "", cargo: "Mecanico",
-          senha: "", data_contratacao: new Date().toISOString(),
-          oficina_id, perfil_acesso_id: recepcao?.id,
-        });
+        setForm((prev) => (prev.perfil_acesso_id ? prev : { ...prev, perfil_acesso_id: recepcao?.id }));
       }
-    }).catch(() => setPerfis([]));
+    }).catch(() => { if (vivo) setPerfis([]); });
+    return () => { vivo = false; };
   }, [open, oficina_id, isEdit, initial]);
 
   const handleSubmit = async () => {
@@ -79,7 +94,8 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
       warning(isEdit ? "A nova senha deve ter pelo menos 6 caracteres." : "A senha deve ter pelo menos 6 caracteres.");
       return;
     }
-    const payload: FuncionarioForm = { ...form, data_contratacao: new Date().toISOString(), oficina_id };
+    // Envia a data escolhida no formulário; hoje só vale quando o cadastro não tem nenhuma.
+    const payload: FuncionarioForm = { ...form, data_contratacao: form.data_contratacao || hojeContratacao(), oficina_id };
     if (!form.senha) delete (payload as any).senha;
     setSaving(true);
     try {
@@ -161,7 +177,7 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
               label="Perfil de acesso"
               fullWidth
               size="small"
-              value={form.perfil_acesso_id ?? ""}
+              value={perfis.some((p) => p.id === form.perfil_acesso_id) ? form.perfil_acesso_id : ""}
               onChange={(e) => setForm({ ...form, perfil_acesso_id: Number(e.target.value) })}
             >
               {perfis.map((perfil) => <MenuItem key={perfil.id} value={perfil.id}>{perfil.nome}</MenuItem>)}

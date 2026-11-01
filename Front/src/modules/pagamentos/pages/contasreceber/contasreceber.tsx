@@ -36,6 +36,7 @@ import {
 import FiltrosContas, { filtrosPadrao, paramsFiltros, temFiltroAtivo, type FiltrosConta } from "../../components/FiltrosContas";
 import { ReceberTituloDialog, RenegociarTituloDialog } from "../../dialogs/TituloDialogs";
 import { EditarContaDialog } from "../../dialogs/EditarContaDialog";
+import { formatPreco, parsePreco } from "../../../../utils/masks";
 
 type Acao = "pagar" | "estornar" | "detalhes" | "renegociar" | "editar" | null;
 
@@ -425,8 +426,10 @@ export default function ContasReceber() {
 
 function NovaContaReceberDialog({ open, onClose, clientes, onConfirm }: {
   open: boolean; onClose: () => void; clientes: any[];
-  onConfirm: (data: any) => void;
+  onConfirm: (data: any) => void | Promise<void>;
 }) {
+  // Trava o botão enquanto salva: clique duplo não cadastra a conta duas vezes.
+  const [salvando, setSalvando] = React.useState(false);
   const [form, setForm] = React.useState({ descricao: "", valor: "", data_vencimento: "", metodo: "pix", cliente_id: "", categoria: "", observacao: "" });
   const set = (field: string, v: string) => setForm((p) => ({ ...p, [field]: v }));
 
@@ -434,7 +437,17 @@ function NovaContaReceberDialog({ open, onClose, clientes, onConfirm }: {
     if (open) setForm({ descricao: "", valor: "", data_vencimento: "", metodo: "pix", cliente_id: "", categoria: "", observacao: "" });
   }, [open]);
 
-  const valido = form.descricao.trim() && parseFloat(form.valor) > 0 && form.data_vencimento;
+  const valido = form.descricao.trim() && parsePreco(form.valor) > 0 && form.data_vencimento;
+
+  const salvar = async () => {
+    if (salvando || !valido) return;
+    setSalvando(true);
+    try {
+      await onConfirm({ ...form, valor: parsePreco(form.valor), cliente_id: form.cliente_id ? Number(form.cliente_id) : null, status: "pendente" });
+    } finally {
+      setSalvando(false);
+    }
+  };
 
   const linha = { display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 } as const;
 
@@ -443,8 +456,9 @@ function NovaContaReceberDialog({ open, onClose, clientes, onConfirm }: {
       <Box />
       <Stack direction="row" spacing={1.5}>
         <Button onClick={onClose} variant="outlined">Cancelar</Button>
-        <Button variant="contained" disableElevation disabled={!valido} sx={{ fontWeight: 700 }}
-          onClick={() => onConfirm({ ...form, valor: parseFloat(form.valor), cliente_id: form.cliente_id ? Number(form.cliente_id) : null, status: "pendente" })}>
+        <Button variant="contained" disableElevation disabled={!valido || salvando} sx={{ fontWeight: 700 }}
+          startIcon={salvando ? <CircularProgress size={16} color="inherit" /> : undefined}
+          onClick={salvar}>
           Salvar
         </Button>
       </Stack>
@@ -467,7 +481,7 @@ function NovaContaReceberDialog({ open, onClose, clientes, onConfirm }: {
       <DrawerSection title="Valor e vencimento">
         <Stack spacing={2}>
           <Box sx={linha}>
-            <TextField label="Valor *" type="number" value={form.valor} onChange={(e) => set("valor", e.target.value)} size="small" fullWidth InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }} />
+            <TextField label="Valor *" value={form.valor} onChange={(e) => set("valor", formatPreco(e.target.value))} size="small" fullWidth inputProps={{ inputMode: "decimal" }} InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }} />
             <CampoData label="Vencimento *" value={form.data_vencimento} onChange={(v) => set("data_vencimento", v)} />
           </Box>
           <TextField select label="Método" value={form.metodo} onChange={(e) => set("metodo", e.target.value)} size="small" fullWidth>

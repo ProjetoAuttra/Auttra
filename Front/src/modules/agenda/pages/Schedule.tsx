@@ -238,7 +238,22 @@ function NewAppointmentDialog({
               control={control}
               rules={{ required: 'Selecione o cliente' }}
               render={({ field }) => (
-                <TextField {...field} select label="Cliente" error={!!errors.clientId} helperText={errors.clientId?.message} fullWidth>
+                <TextField
+                  {...field}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    // Veículo e OS pertencem ao cliente: trocar o cliente limpa os dois, senão o agendamento sairia com o veículo de outro.
+                    if (e.target.value !== field.value) {
+                      setValue('vehicleId', '', { shouldValidate: true });
+                      setValue('ordemServicoId', '');
+                    }
+                  }}
+                  select
+                  label="Cliente"
+                  error={!!errors.clientId}
+                  helperText={errors.clientId?.message}
+                  fullWidth
+                >
                   {clients.length > 0 ? (
                     clients.map((client) => (
                       <MenuItem key={client.id} value={String(client.id)}>
@@ -535,7 +550,8 @@ function AppointmentDetailsDialog({
   } = useForm<FormValues>({ mode: 'onChange' });
   const start = useWatch({ control, name: 'start' });
 
-  useEffect(() => {
+  // Volta o formulário para o que está salvo no agendamento.
+  const restaurar = useCallback(() => {
     if (!appointment) return;
     reset({
       title: appointment.title,
@@ -546,8 +562,18 @@ function AppointmentDetailsDialog({
       clientId: '',
       vehicleId: '',
     });
-    setEditing(false);
   }, [appointment, reset]);
+
+  useEffect(() => {
+    restaurar();
+    setEditing(false);
+  }, [restaurar]);
+
+  // Cancelar a edição descarta o que não foi salvo; ao reabrir, aparecem os valores do agendamento.
+  const cancelarEdicao = () => {
+    restaurar();
+    setEditing(false);
+  };
 
   if (!appointment) return null;
 
@@ -668,7 +694,7 @@ function AppointmentDetailsDialog({
           Excluir
         </Button>
         <Stack direction="row" spacing={1}>
-          <Button onClick={editing ? () => setEditing(false) : onClose} variant="outlined">{editing ? 'Cancelar' : 'Fechar'}</Button>
+          <Button onClick={editing ? cancelarEdicao : onClose} variant="outlined">{editing ? 'Cancelar' : 'Fechar'}</Button>
           {editing ? (
             <Button variant="contained" onClick={handleSubmit(submit)} disabled={!isValid || isSubmitting} disableElevation>Salvar</Button>
           ) : (

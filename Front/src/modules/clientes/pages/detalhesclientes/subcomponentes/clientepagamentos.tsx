@@ -2,7 +2,7 @@ import * as React from "react";
 import {
   Table, TableHead, TableRow, TableCell, TableBody,
   Typography, Chip, Stack, Box, IconButton, Menu, MenuItem,
-  Divider, Tooltip, Button, TextField, InputAdornment,
+  Divider, Tooltip, Button, TextField, InputAdornment, CircularProgress,
 } from "@mui/material";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
@@ -36,6 +36,7 @@ import {
 import { EstornarDialog, DetalhesDialog } from "../../../../pagamentos/dialogs/index";
 import { ReceberTituloDialog, RenegociarTituloDialog } from "../../../../pagamentos/dialogs/TituloDialogs";
 import { EditarContaDialog } from "../../../../pagamentos/dialogs/EditarContaDialog";
+import { formatPreco, parsePreco } from "../../../../../utils/masks";
 
 type Acao = "pagar" | "estornar" | "detalhes" | "renegociar" | "editar" | null;
 
@@ -414,8 +415,10 @@ function NovoPagamentoClienteDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  onConfirm: (data: any) => void;
+  onConfirm: (data: any) => void | Promise<void>;
 }) {
+  // Trava o botão enquanto salva: clique duplo não cadastra o pagamento duas vezes.
+  const [salvando, setSalvando] = React.useState(false);
   const [form, setForm] = React.useState({
     descricao: "",
     valor: "",
@@ -432,7 +435,17 @@ function NovoPagamentoClienteDialog({
   }, [open]);
 
   const set = (field: string, value: string) => setForm((prev) => ({ ...prev, [field]: value }));
-  const valido = form.descricao.trim() && Number(form.valor) > 0 && form.data_vencimento;
+  const valido = form.descricao.trim() && parsePreco(form.valor) > 0 && form.data_vencimento;
+
+  const salvar = async () => {
+    if (salvando || !valido) return;
+    setSalvando(true);
+    try {
+      await onConfirm({ ...form, valor: parsePreco(form.valor), data_pagamento: null });
+    } finally {
+      setSalvando(false);
+    }
+  };
 
   return (
     <AppDialog
@@ -451,11 +464,11 @@ function NovoPagamentoClienteDialog({
           <TextField label="Categoria" value={form.categoria} onChange={(e) => set("categoria", e.target.value)} size="small" fullWidth />
           <TextField
             label="Valor *"
-            type="number"
             value={form.valor}
-            onChange={(e) => set("valor", e.target.value)}
+            onChange={(e) => set("valor", formatPreco(e.target.value))}
             size="small"
             fullWidth
+            inputProps={{ inputMode: "decimal" }}
             InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }}
           />
           <CampoData label="Vencimento *" value={form.data_vencimento} onChange={(v) => set("data_vencimento", v)} />
@@ -470,13 +483,10 @@ function NovoPagamentoClienteDialog({
         <Button
           variant="contained"
           disableElevation
-          disabled={!valido}
+          disabled={!valido || salvando}
+          startIcon={salvando ? <CircularProgress size={16} color="inherit" /> : undefined}
           sx={{ fontWeight: 700 }}
-          onClick={() => onConfirm({
-            ...form,
-            valor: Number(form.valor),
-            data_pagamento: null,
-          })}
+          onClick={salvar}
         >
           Salvar
         </Button>

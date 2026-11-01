@@ -118,6 +118,17 @@ describe.skipIf(!process.env.DATABASE_URL)("paginação das listagens", () => {
     expect(pagar).toMatchObject({ total_aberto: 10, qtd_total: 1 });
   });
 
+  it("agendamentos aceitam page/limit e informam o total (relatório da agenda busca todas as páginas)", async () => {
+    const paginado = await get("/api/agendamentos?page=1&limit=10");
+    expect(paginado.status).toBe(200);
+    expect(Array.isArray(paginado.body)).toBe(true);
+    expect(paginado.headers["x-total-count"]).toBe("0");
+
+    const semPaginacao = await get("/api/agendamentos");
+    expect(semPaginacao.status).toBe(200);
+    expect(Array.isArray(semPaginacao.body)).toBe(true);
+  });
+
   it("não vaza registros de outra oficina no total", async () => {
     const r = await get("/api/clientes?page=1&limit=100");
     expect(Number(r.headers["x-total-count"])).toBe(25);

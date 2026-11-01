@@ -11,8 +11,7 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import api from "../../../../api/api";
-import { useAuth } from "../../../../context/AuthContext";
+import { buscarTodas } from "../../shared/buscarTodas";
 import { useToast } from "../../../../context/ToastContext";
 import {
   brl,
@@ -66,7 +65,6 @@ const PADRAO: FiltrosMargem = { ...periodoMesAtual(), mecanicos: [], clientes: [
 const SEM_MECANICO = "Sem mecânico";
 
 export default function RentabilidadeRelatorio() {
-  const { user } = useAuth();
   const { error, warning } = useToast();
   const [ordens, setOrdens] = React.useState<Ordem[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -76,8 +74,8 @@ export default function RentabilidadeRelatorio() {
   React.useEffect(() => {
     (async () => {
       try {
-        const { data } = await api.get("/ordens", { params: { oficina_id: user?.oficina_id } });
-        setOrdens(data ?? []);
+        // Só as concluídas entram na rentabilidade; todas as páginas, para não parar no teto da listagem.
+        setOrdens(await buscarTodas<Ordem>("/ordens", { status: "concluida" }));
       } catch (err) {
         console.error("Erro ao carregar rentabilidade:", err);
         error("Não foi possível carregar a rentabilidade por OS.");

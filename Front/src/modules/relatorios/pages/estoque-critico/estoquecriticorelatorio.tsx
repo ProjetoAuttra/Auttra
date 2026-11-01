@@ -11,8 +11,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import api from "../../../../api/api";
-import { useAuth } from "../../../../context/AuthContext";
+import { buscarTodas } from "../../shared/buscarTodas";
 import { useToast } from "../../../../context/ToastContext";
 import {
   brl,
@@ -57,7 +56,6 @@ const PADRAO: FiltrosEstoque = { busca: "", acoes: [] };
 const ACOES = ["Comprar", "Corrigir preço", "Revisar margem", "Avaliar capital parado", "OK"];
 
 export default function EstoqueCriticoRelatorio() {
-  const { user } = useAuth();
   const { error, warning } = useToast();
   const [pecas, setPecas] = React.useState<Peca[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -66,8 +64,8 @@ export default function EstoqueCriticoRelatorio() {
   React.useEffect(() => {
     (async () => {
       try {
-        const { data } = await api.get("/pecas", { params: { oficina_id: user?.oficina_id } });
-        setPecas(data ?? []);
+        // Todas as páginas: os totais (capital parado, críticas) precisam do estoque inteiro, não só do teto da listagem.
+        setPecas(await buscarTodas<Peca>("/pecas"));
       } catch (err) {
         console.error("Erro ao carregar estoque crítico:", err);
         error("Não foi possível carregar o estoque.");

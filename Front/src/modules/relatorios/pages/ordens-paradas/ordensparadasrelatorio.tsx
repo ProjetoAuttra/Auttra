@@ -14,8 +14,7 @@ import {
   Typography,
   type SelectChangeEvent,
 } from "@mui/material";
-import api from "../../../../api/api";
-import { useAuth } from "../../../../context/AuthContext";
+import { buscarTodas } from "../../shared/buscarTodas";
 import { useToast } from "../../../../context/ToastContext";
 import {
   brl,
@@ -59,7 +58,6 @@ const PADRAO: FiltrosOrdens = { situacao: [], mecanicos: [], clientes: [] };
 const SEM_MECANICO = "Sem mecânico";
 
 export default function OrdensParadasRelatorio() {
-  const { user } = useAuth();
   const { error, warning } = useToast();
   const [ordens, setOrdens] = React.useState<Ordem[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -69,8 +67,12 @@ export default function OrdensParadasRelatorio() {
   React.useEffect(() => {
     (async () => {
       try {
-        const { data } = await api.get("/ordens", { params: { oficina_id: user?.oficina_id } });
-        setOrdens(data ?? []);
+        // Só as em aberto interessam; todas as páginas, para não parar no teto da listagem.
+        const [abertas, emAndamento] = await Promise.all([
+          buscarTodas<Ordem>("/ordens", { status: "aberta" }),
+          buscarTodas<Ordem>("/ordens", { status: "em_andamento" }),
+        ]);
+        setOrdens([...abertas, ...emAndamento]);
       } catch (err) {
         console.error("Erro ao carregar ordens paradas:", err);
         error("Não foi possível carregar as ordens de serviço.");

@@ -4,7 +4,7 @@ import {
   Box, Stack, Typography, IconButton, Menu, MenuItem, Divider,
   Avatar, Table, TableBody, TableCell, TableHead, TableRow,
   TablePagination, Fade, Chip, Button, TextField, InputAdornment,
-  TableSortLabel, Tooltip,
+  TableSortLabel, Tooltip, CircularProgress,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
@@ -53,7 +53,11 @@ export default function EstoquePage() {
 
   const [openAjuste, setOpenAjuste] = React.useState(false);
   const [tipoAjuste, setTipoAjuste] = React.useState<TipoAjuste>("entrada");
-  const [qtdAjuste, setQtdAjuste] = React.useState(1);
+  // A peça do ajuste fica guardada à parte: o menuId é limpo ao fechar o menu.
+  const [pecaAjuste, setPecaAjuste] = React.useState<EstoqueItem | null>(null);
+  // Quantidade guardada como texto: apagar o campo não volta para 1; a validação é feita ao confirmar.
+  const [qtdAjuste, setQtdAjuste] = React.useState("1");
+  const [erroQtd, setErroQtd] = React.useState("");
   const [loadingAjuste, setLoadingAjuste] = React.useState(false);
 
   const { rows, total, page, setPage, rowsPerPage, setRowsPerPage, recarregar: recarregarLista } =
@@ -116,21 +120,30 @@ export default function EstoquePage() {
     finally { handleMenuClose(); }
   };
 
-  const handleAbrirAjuste = (tipo: TipoAjuste, id: number) => {
-    setMenuId(id);
+  const handleAbrirAjuste = (tipo: TipoAjuste, peca: EstoqueItem) => {
+    setPecaAjuste(peca);
     setTipoAjuste(tipo);
-    setQtdAjuste(1);
+    setQtdAjuste("1");
+    setErroQtd("");
     setOpenAjuste(true);
     handleMenuClose();
   };
 
+  // Saída maior que o disponível já aparece como erro enquanto digita.
+  const qtdDigitada = /^\d+$/.test(qtdAjuste.trim()) ? Number(qtdAjuste.trim()) : NaN;
+  const excedeDisponivel = tipoAjuste === "saida" && !!pecaAjuste && qtdDigitada > Number(pecaAjuste.estoque);
+  const erroQuantidade = erroQtd || (excedeDisponivel ? `Máximo disponível: ${pecaAjuste?.estoque}` : "");
+
   const handleConfirmarAjuste = async () => {
-    if (!menuId && !current) return;
-    const id = menuId ?? current?.id;
-    if (!id) return;
+    if (loadingAjuste || !pecaAjuste) return;
+    if (!Number.isInteger(qtdDigitada) || qtdDigitada < 1) {
+      setErroQtd("Informe um número inteiro maior que zero");
+      return;
+    }
+    if (excedeDisponivel) return;
     setLoadingAjuste(true);
     try {
-      await ajustarEstoque(id, tipoAjuste, qtdAjuste);
+      await ajustarEstoque(pecaAjuste.id, tipoAjuste, qtdDigitada);
       recarregar();
       success(tipoAjuste === "entrada" ? "Entrada registrada!" : "Saída registrada!");
       setOpenAjuste(false);
@@ -164,7 +177,10 @@ export default function EstoquePage() {
       await excluirEstoque(id);
       recarregar();
       success("Peça excluída com sucesso.");
-    } catch { error("Não foi possível excluir a peça."); }
+    } catch (err) {
+      error("Não foi possível excluir a peça.");
+      throw err; // a gaveta continua aberta
+    }
   };
 
   return (
@@ -281,12 +297,12 @@ export default function EstoquePage() {
                       <TableCell align="right">
                         <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                           <Tooltip title="Registrar entrada">
-                            <IconButton size="small" onClick={() => handleAbrirAjuste("entrada", i.id)} sx={{ color: "success.main" }}>
+                            <IconButton size="small" onClick={() => handleAbrirAjuste("entrada", i)} sx={{ color: "success.main" }}>
                               <AddRoundedIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Registrar saída">
-                            <IconButton size="small" onClick={() => handleAbrirAjuste("saida", i.id)} sx={{ color: "error.main" }}>
+                            <IconButton size="small" onClick={() => handleAbrirAjuste("saida", i)} sx={{ color: "error.main" }}>
                               <RemoveRoundedIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
@@ -362,7 +378,7 @@ export default function EstoquePage() {
                 {tipoAjuste === "entrada" ? "Entrada de peças" : "Saída de peças"}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {rows.find((r) => r.id === menuId)?.nome ?? ""}
+                {pecaAjuste?.nome ?? ""}
               </Typography>
             </Stack>
           </Stack>
@@ -374,22 +390,20 @@ export default function EstoquePage() {
         <AppDialogContent>
           <TextField
             label="Quantidade"
-            type="number"
             value={qtdAjuste}
-            onChange={(e) => setQtdAjuste(Math.max(1, parseInt(e.target.value) || 1))}
+            onChange={(e) => { setQtdAjuste(e.target.value.replace(/\D/g, "")); setErroQtd(""); }}
             size="small"
             fullWidth
             autoFocus
-            inputProps={{ min: 1 }}
+            error={!!erroQuantidade}
+            helperText={erroQuantidade || undefined}
+            inputProps={{ inputMode: "numeric" }}
           />
-          {tipoAjuste === "saida" && (() => {
-            const peca = rows.find((r) => r.id === menuId);
-            return peca ? (
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
-                Disponível em estoque: <strong>{peca.estoque}</strong>
-              </Typography>
-            ) : null;
-          })()}
+          {tipoAjuste === "saida" && pecaAjuste && (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+              Disponível em estoque: <strong>{pecaAjuste.estoque}</strong>
+            </Typography>
+          )}
         </AppDialogContent>
 
         <AppDialogActions>
@@ -399,7 +413,8 @@ export default function EstoquePage() {
           <Button
             onClick={handleConfirmarAjuste}
             variant="contained"
-            disabled={loadingAjuste}
+            disabled={loadingAjuste || excedeDisponivel}
+            startIcon={loadingAjuste ? <CircularProgress size={16} color="inherit" /> : undefined}
             color={tipoAjuste === "entrada" ? "success" : "error"}
           >
             {loadingAjuste ? "Salvando..." : "Confirmar"}

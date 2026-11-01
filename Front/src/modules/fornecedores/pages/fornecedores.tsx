@@ -94,8 +94,9 @@ export default function SuppliersPage() {
       await api.delete(`/fornecedores/${id}`);
       setRows((prev) => prev.filter((x) => x.id !== id));
       success("Fornecedor excluído com sucesso.");
-    } catch {
+    } catch (err) {
       error("Não foi possível excluir o fornecedor.");
+      throw err; // a gaveta continua aberta
     }
   };
 
