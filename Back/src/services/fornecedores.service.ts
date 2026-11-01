@@ -1,5 +1,37 @@
 import { prisma } from "../prisma/client.js";
 
+const CAMPOS_TEXTO = ["contato", "telefone", "email", "logradouro", "numero", "complemento", "cep"] as const;
+type CampoTexto = (typeof CAMPOS_TEXTO)[number];
+
+/**
+ * Campos que a edicao do fornecedor pode alterar, montados um a um. Repassar o body deixava passar
+ * relacoes como oficina/compras/pagamentos com connect, que moviam registros entre oficinas.
+ */
+function camposEditaveisFornecedor(data: any) {
+  const patch: { nome?: string; cidade_id?: number | null } & Partial<Record<CampoTexto, string | null>> = {};
+  if (!data || typeof data !== "object") return patch;
+
+  if (data.nome !== undefined) {
+    const nome = String(data.nome ?? "").trim();
+    if (!nome) throw new Error("O nome do fornecedor é obrigatório.");
+    patch.nome = nome;
+  }
+  for (const campo of CAMPOS_TEXTO) {
+    if (data[campo] === undefined) continue;
+    patch[campo] = data[campo] === null || data[campo] === "" ? null : String(data[campo]).trim();
+  }
+  if (data.cidade_id !== undefined) {
+    if (data.cidade_id === null || data.cidade_id === "") {
+      patch.cidade_id = null;
+    } else {
+      const cidadeId = Number(data.cidade_id);
+      if (!Number.isInteger(cidadeId) || cidadeId <= 0) throw new Error("Campo cidade_id inválido.");
+      patch.cidade_id = cidadeId;
+    }
+  }
+  return patch;
+}
+
 export const FornecedoresService = {
   list: (oficinaId: number) =>
     prisma.fornecedor.findMany({
@@ -56,8 +88,7 @@ export const FornecedoresService = {
   update: async (id: number, data: any, oficinaId: number) => {
     const existing = await prisma.fornecedor.findFirst({ where: { id, oficina_id: oficinaId, deleted_at: null } });
     if (!existing) throw new Error("Fornecedor nao encontrado nesta oficina.");
-    const { oficina_id, oficinaId: _oficinaId, ...patch } = data;
-    return prisma.fornecedor.update({ where: { id }, data: patch });
+    return prisma.fornecedor.update({ where: { id }, data: camposEditaveisFornecedor(data) });
   },
 
   remove: async (id: number, oficinaId: number) => {
