@@ -1,23 +1,19 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client.js";
 import { HttpError } from "../utils/httpError.js";
+import { FUSO_OFICINA as FUSO, hojeISO } from "../utils/datas.js";
 
 /**
  * Relatorios agregados no banco, para nao depender de carregar todas as linhas no navegador.
  * Periodos sao datas de calendario (YYYY-MM-DD) no fuso de Brasilia, inclusive nas duas pontas.
  */
 
-const FUSO = "America/Sao_Paulo";
 const DIA_MS = 24 * 60 * 60 * 1000;
 
 const num = (v: unknown) => Number(v ?? 0);
 const arred = (v: number) => Math.round(v * 100) / 100;
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
-
-function hojeISO() {
-  return new Date().toLocaleDateString("en-CA", { timeZone: FUSO });
-}
 
 export type Periodo = { inicio: Date; fim: Date; inicioISO: string; fimISO: string; anterior: { inicio: Date; fim: Date } };
 

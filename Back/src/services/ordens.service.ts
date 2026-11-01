@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client.js";
 import { HttpError } from "../utils/httpError.js";
 import { calcularItens } from "../utils/totais.js";
+import { dataDoDia, hojeISO } from "../utils/datas.js";
 import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
 
 /**
@@ -35,6 +36,11 @@ async function validateOrdemRelations(data: any, oficinaId: number) {
   if (!funcionario) throw new Error("Funcionario nao encontrado nesta oficina.");
 
   await Promise.all((data.itens ?? []).map(async (item: any) => {
+    // Item de peça sem peça vinculada não dá baixa no estoque. Serviço sem servico_id continua
+    // valendo: é o item único de um orçamento convertido em OS.
+    if ((item.tipo_item ?? item.tipo) === "peca" && !item.peca_id) {
+      throw new Error("Selecione a peça do estoque para o item de peça.");
+    }
     if ((item.tipo_item ?? item.tipo) === "servico" && item.servico_id) {
       const servico = await prisma.servico.findFirst({
         where: { id: Number(item.servico_id), oficina_id: oficinaId, deleted_at: null },
@@ -280,7 +286,9 @@ export const OrdensService = {
       if (rest.status === "concluida" && existing.status !== "concluida") {
         const valorTotal = Number(osAtualizada.valor_total);
         if (valorTotal > 0) {
-          const hoje = new Date();
+          // Só o dia em Brasília, como o formulário de contas grava. Com data e hora, a OS
+          // concluída depois das 21h vencia no dia seguinte e não aparecia em "A receber hoje".
+          const hoje = dataDoDia(hojeISO());
           await tx.pagamento.create({
             data: {
               tipo:                     "receber",
@@ -294,6 +302,7 @@ export const OrdensService = {
               status:                   "pendente",
               data_vencimento:          hoje,
               data_vencimento_original: hoje,
+              descricao:                `OS #${osAtualizada.id}`,
             },
           });
         }
