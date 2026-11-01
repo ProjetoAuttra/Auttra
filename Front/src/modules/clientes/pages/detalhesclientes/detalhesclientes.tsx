@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Box, Typography, Stack, Tabs, Tab, CircularProgress, IconButton,
+  Box, Typography, Stack, Tabs, Tab, IconButton,
   Avatar, Chip, Divider, Button,
   TextField, MenuItem, Select, FormControl, InputLabel, Skeleton,
 } from "@mui/material";
@@ -24,6 +24,7 @@ import { paths } from "../../../../routes/paths";
 import api from "../../../../api/api";
 import { useAuth } from "../../../../context/AuthContext";
 import { useToast } from "../../../../context/ToastContext";
+import FalhaCarregamento, { motivoDaFalha, type MotivoFalha } from "../../../../components/common/FalhaCarregamento";
 import ClienteVeiculos from "./subcomponentes/clienteveiculos";
 import ClienteOrdens from "./subcomponentes/clienteordens";
 import ClientePagamentos from "./subcomponentes/clientepagamentos";
@@ -81,15 +82,22 @@ export default function ClienteDetalhesPage() {
     agradecimento: "Olá! Passando para agradecer pela preferência. Qualquer dúvida, estamos à disposição!",
   };
 
-  React.useEffect(() => {
-    (async () => {
-      try {
-        const data = await obterClienteDetalhes(Number(id));
-        setCliente(data);
-      } catch (err) { console.error("Erro ao carregar cliente:", err); }
-      finally { setLoading(false); }
-    })();
+  const [falha, setFalha] = React.useState<MotivoFalha | null>(null);
+
+  const carregar = React.useCallback(async () => {
+    setLoading(true);
+    setFalha(null);
+    try {
+      setCliente(await obterClienteDetalhes(Number(id)));
+    } catch (err) {
+      console.error("Erro ao carregar cliente:", err);
+      setFalha(motivoDaFalha(err));
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  React.useEffect(() => { carregar(); }, [carregar]);
 
   const handleEditSubmit = async (data: ClientForm) => {
     try {
@@ -106,10 +114,12 @@ export default function ClienteDetalhesPage() {
         complemento: data.complemento || null,
         cidade_id: data.cidade_id ?? null,
       });
-      setCliente(res.data);
+      setCliente((prev: any) => ({ ...prev, ...res.data }));
       setOpenEdit(false);
-    } catch (err) {
+      success("Cliente atualizado com sucesso!");
+    } catch (err: any) {
       console.error("Erro ao atualizar cliente:", err);
+      error(err?.response?.data?.message ?? "Não foi possível salvar as alterações do cliente.");
     }
   };
 
@@ -144,6 +154,17 @@ export default function ClienteDetalhesPage() {
   const countVeiculos = cliente?.veiculos?.length ?? 0;
   const countOrdens = cliente?.ordens?.length ?? 0;
   const countPagamentos = cliente?.pagamentos?.length ?? 0;
+
+  if (!loading && (falha || !cliente)) {
+    return (
+      <FalhaCarregamento
+        motivo={falha ?? "nao_encontrado"}
+        registro="Cliente"
+        onTentarNovamente={carregar}
+        onVoltar={() => nav(-1)}
+      />
+    );
+  }
 
   return (
     <>
