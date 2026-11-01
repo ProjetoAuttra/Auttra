@@ -12,6 +12,12 @@ import { invalidarTokens, limparCacheSessao } from "../../services/sessao.servic
 const APP_NAME = "Auttra Admin";
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_MINUTES = 15;
+// Aceita o código do intervalo anterior/seguinte (30 s): quem digita na virada não é recusado.
+const TOTP_TOLERANCIA_S = 30;
+
+function codigoValido(secret: string, code: unknown) {
+  return totpVerify({ token: String(code).replace(/\s/g, ""), secret, epochTolerance: TOTP_TOLERANCIA_S })?.valid === true;
+}
 
 function signAdminToken(usuario: { id: number; email: string; nome: string; tipo: string; last_login_at?: Date | null; token_version?: number }) {
   const payload = {
@@ -33,13 +39,17 @@ function requestIp(req: Request) {
   return req.ip ?? req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ?? null;
 }
 
-async function registerFailedLogin(usuario: { id: number; failed_login_attempts?: number | null }) {
-  const attempts = (usuario.failed_login_attempts ?? 0) + 1;
-  const lockedUntil = attempts >= MAX_LOGIN_ATTEMPTS ? new Date(Date.now() + LOCK_MINUTES * 60 * 1000) : null;
-  await prisma.usuario.update({
-    where: { id: usuario.id },
-    data: { failed_login_attempts: attempts, locked_until: lockedUntil } as any,
+// Incremento atômico no banco: tentativas simultâneas contam todas (ler e regravar perdia contagens).
+async function registerFailedLogin(usuarioId: number) {
+  const { failed_login_attempts: attempts } = await prisma.usuario.update({
+    where: { id: usuarioId },
+    data: { failed_login_attempts: { increment: 1 } },
+    select: { failed_login_attempts: true },
   });
+  if (attempts < MAX_LOGIN_ATTEMPTS) return null;
+
+  const lockedUntil = new Date(Date.now() + LOCK_MINUTES * 60 * 1000);
+  await prisma.usuario.update({ where: { id: usuarioId }, data: { locked_until: lockedUntil } });
   return lockedUntil;
 }
 
@@ -92,7 +102,7 @@ export const AdminAuthController = {
       if (!usuario || !(await bcrypt.compare(senha, usuario.senha))) {
         await bcrypt.compare(senha, "$2b$10$invalidsaltsimulatingcomparexxxxxxx");
         if (usuario) {
-          const lockedUntil = await registerFailedLogin(usuario as any);
+          const lockedUntil = await registerFailedLogin(usuario.id);
           await AdminAuditService.log({
             req,
             actorId: usuario.id,
@@ -165,9 +175,8 @@ export const AdminAuthController = {
       const activeSecret = raw && !raw.startsWith("pending:") ? raw : null;
       if (!activeSecret) return res.status(400).json({ message: "2FA não configurado." });
 
-      const result = totpVerify({ token: String(code).replace(/\s/g, ""), secret: activeSecret, epochTolerance: 30 });
-      if (!result?.valid) {
-        const lockedUntil = await registerFailedLogin(usuario as any);
+      if (!codigoValido(activeSecret, code)) {
+        const lockedUntil = await registerFailedLogin(usuario.id);
         await AdminAuditService.log({
           req,
           actorId: usuario.id,
@@ -209,6 +218,9 @@ export const AdminAuthController = {
       });
 
       if (!usuario) return res.status(401).json({ message: "Usuário não encontrado." });
+      if (usuario.locked_until && usuario.locked_until > new Date()) {
+        return res.status(423).json({ message: "Acesso bloqueado temporariamente. Tente novamente em alguns minutos." });
+      }
 
       const raw = (usuario as any).totp_secret as string | null;
       if (!raw?.startsWith("pending:")) {
@@ -216,8 +228,17 @@ export const AdminAuthController = {
       }
 
       const secret = raw.slice("pending:".length);
-      const result = totpVerify({ token: String(code).replace(/\s/g, ""), secret, epochTolerance: 30 });
-      if (!result?.valid) {
+      if (!codigoValido(secret, code)) {
+        // Conta como tentativa, igual ao verify2fa: o código errado aqui também é um palpite.
+        const lockedUntil = await registerFailedLogin(usuario.id);
+        await AdminAuditService.log({
+          req,
+          actorId: usuario.id,
+          action: lockedUntil ? "admin.2fa_locked" : "admin.2fa_failed",
+          entityType: "usuario",
+          entityId: usuario.id,
+          message: lockedUntil ? "Administrador bloqueado por códigos 2FA inválidos." : "Código 2FA administrativo inválido.",
+        });
         return res.status(400).json({ message: "Código inválido. Verifique o Google Authenticator." });
       }
 
@@ -290,8 +311,7 @@ export const AdminAuthController = {
       }
 
       const secret = raw.slice("pending:".length);
-      const r2 = totpVerify({ token: String(code).replace(/\s/g, ""), secret });
-      if (!r2?.valid) {
+      if (!codigoValido(secret, code)) {
         return res.status(400).json({ message: "Código inválido. Verifique o Google Authenticator." });
       }
 
@@ -331,8 +351,7 @@ export const AdminAuthController = {
       const activeSecret = totpSecret?.startsWith("pending:") ? null : totpSecret;
       if (!activeSecret) return res.status(400).json({ message: "2FA não está ativo." });
 
-      const r3 = totpVerify({ token: String(code).replace(/\s/g, ""), secret: activeSecret });
-      if (!r3?.valid) {
+      if (!codigoValido(activeSecret, code)) {
         return res.status(400).json({ message: "Código inválido." });
       }
 
