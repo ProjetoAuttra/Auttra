@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   CircularProgress,
@@ -27,7 +28,6 @@ import 'dayjs/locale/pt-br';
 
 dayjs.locale('pt-br');
 
-import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
@@ -704,11 +704,15 @@ export default function Schedule() {
   const [loading, setLoading] = useState(true);
   const oficinaId = user?.oficina_id ?? user?.oficinaId;
 
-  useEffect(() => {
+  // Falha ao carregar os agendamentos: o calendario vazio nao pode parecer "agenda livre".
+  const [falhaAgenda, setFalhaAgenda] = useState(false);
+
+  const carregarAgenda = useCallback(() => {
     if (!oficinaId) {
       setLoading(false);
       return;
     }
+    setFalhaAgenda(false);
 
     Promise.allSettled([
       api.get(`/agendamentos/oficina/${oficinaId}`),
@@ -724,6 +728,12 @@ export default function Schedule() {
           setAppointments(nextAppointments);
         } else {
           console.error('Erro ao carregar agendamentos:', appointmentsResult.reason);
+          setFalhaAgenda(true);
+        }
+
+        // Listas de apoio do formulario de agendamento: sem elas o cadastro fica incompleto.
+        if ([clientsResult, vehiclesResult, ordensResult].some((r) => r.status === 'rejected')) {
+          warning('Algumas listas (clientes, veículos ou O.S.) não carregaram. Recarregue antes de criar um agendamento.');
         }
 
         if (clientsResult.status === 'fulfilled') {
@@ -747,9 +757,12 @@ export default function Schedule() {
       })
       .catch((err) => {
         console.error('Erro inesperado ao carregar agenda:', err);
+        setFalhaAgenda(true);
       })
       .finally(() => setLoading(false));
-  }, [oficinaId]);
+  }, [oficinaId, warning]);
+
+  useEffect(() => { carregarAgenda(); }, [carregarAgenda]);
 
   const filteredAppointments = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -896,6 +909,20 @@ export default function Schedule() {
           actionLabel="Novo agendamento"
           onAction={() => openCreateAt(selectedDate)}
         />
+
+        {falhaAgenda && (
+          <Alert
+            severity="error"
+            sx={{ mb: 2 }}
+            action={
+              <Button color="inherit" size="small" onClick={carregarAgenda}>
+                Tentar novamente
+              </Button>
+            }
+          >
+            Não foi possível carregar os agendamentos. O calendário abaixo pode estar incompleto.
+          </Alert>
+        )}
 
         <Paper
           elevation={0}

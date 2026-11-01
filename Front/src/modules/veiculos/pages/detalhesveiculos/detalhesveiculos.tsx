@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Box, Typography, Stack, Paper, Tabs, Tab, CircularProgress,
+  Box, Typography, Stack, Paper, Tabs, Tab,
   IconButton, Avatar, Chip, Divider, Button, Skeleton,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
 } from "@mui/material";
@@ -20,6 +20,8 @@ import { obterVeiculoDetalhes } from "./apidetalhes/api";
 import VeiculoDialog, { type VeiculoForm } from "../../dialog";
 import { paths } from "../../../../routes/paths";
 import api from "../../../../api/api";
+import { useToast } from "../../../../context/ToastContext";
+import FalhaCarregamento, { motivoDaFalha, type MotivoFalha } from "../../../../components/common/FalhaCarregamento";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -155,31 +157,49 @@ export default function VeiculoDetalhesPage() {
   const [loading, setLoading] = React.useState(true);
   const [openEdit, setOpenEdit] = React.useState(false);
 
-  React.useEffect(() => {
-    (async () => {
-      try {
-        const data = await obterVeiculoDetalhes(Number(id));
-        setVeiculo(data);
-      } catch (err) {
-        console.error("Erro ao carregar veículo:", err);
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const { success, error } = useToast();
+  const [falha, setFalha] = React.useState<MotivoFalha | null>(null);
+
+  const carregar = React.useCallback(async () => {
+    setLoading(true);
+    setFalha(null);
+    try {
+      setVeiculo(await obterVeiculoDetalhes(Number(id)));
+    } catch (err) {
+      console.error("Erro ao carregar veículo:", err);
+      setFalha(motivoDaFalha(err));
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  React.useEffect(() => { carregar(); }, [carregar]);
 
   const handleEditSubmit = async (data: VeiculoForm) => {
     try {
       const res = await api.put(`/veiculos/${id}`, data);
       setVeiculo((prev: any) => ({ ...prev, ...res.data }));
       setOpenEdit(false);
-    } catch (err) {
+      success("Veículo atualizado com sucesso!");
+    } catch (err: any) {
       console.error("Erro ao atualizar veículo:", err);
+      error(err?.response?.data?.message ?? "Não foi possível salvar as alterações do veículo.");
     }
   };
 
 
   const countOrdens = veiculo?.ordens?.length ?? 0;
+
+  if (!loading && (falha || !veiculo)) {
+    return (
+      <FalhaCarregamento
+        motivo={falha ?? "nao_encontrado"}
+        registro="Veículo"
+        onTentarNovamente={carregar}
+        onVoltar={() => nav(-1)}
+      />
+    );
+  }
 
   return (
     <>
