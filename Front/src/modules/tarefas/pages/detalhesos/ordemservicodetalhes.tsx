@@ -17,7 +17,10 @@ import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../../../api/api";
 import { mudarStatusOrdem } from "../../api/api";
-import { STATUS_CONFIG, VALID_TRANSITIONS, type OrdemStatus } from "../../statusConfig";
+import { STATUS_CONFIG, VALID_TRANSITIONS, podeEditarOrdem, type OrdemStatus } from "../../statusConfig";
+import FalhaCarregamento, { motivoDaFalha, type MotivoFalha } from "../../../../components/common/FalhaCarregamento";
+import { useVoltar } from "../../../../hooks/useVoltar";
+import { paths } from "../../../../routes/paths";
 import { useToast } from "../../../../context/ToastContext";
 import { useConfirm } from "../../../../context/ConfirmContext";
 
@@ -30,6 +33,8 @@ export default function OrdemServicoDetalhes() {
   const [loading, setLoading] = React.useState(true);
   const [printing, setPrinting] = React.useState(false);
   const [mudandoStatus, setMudandoStatus] = React.useState(false);
+  const [falha, setFalha] = React.useState<MotivoFalha | null>(null);
+  const voltar = useVoltar(paths.tasks);
 
   const toNumber = (v: any): number => {
     if (v == null) return 0;
@@ -42,18 +47,21 @@ export default function OrdemServicoDetalhes() {
   const money = (v: any): string =>
     toNumber(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  React.useEffect(() => {
-    (async () => {
-      try {
-        const res = await api.get(`/ordens/${id}`);
-        setOrdem(res.data);
-      } catch (err) {
-        console.error("Erro ao carregar OS:", err);
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const carregar = React.useCallback(async () => {
+    setLoading(true);
+    setFalha(null);
+    try {
+      const res = await api.get(`/ordens/${id}`);
+      setOrdem(res.data);
+    } catch (err) {
+      console.error("Erro ao carregar OS:", err);
+      setFalha(motivoDaFalha(err));
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  React.useEffect(() => { carregar(); }, [carregar]);
 
   const handlePrint = async () => {
     if (!id) return;
@@ -148,20 +156,15 @@ export default function OrdemServicoDetalhes() {
     );
   }
 
-  if (!ordem) {
+  if (falha || !ordem) {
     return (
-      <Box sx={{ p: 6, textAlign: "center" }}>
-        <Typography color="text.secondary">
-          Ordem de Serviço não encontrada.
-        </Typography>
-        <Button
-          startIcon={<ArrowBackRoundedIcon />}
-          onClick={() => nav(-1)}
-          sx={{ mt: 2 }}
-        >
-          Voltar
-        </Button>
-      </Box>
+      <FalhaCarregamento
+        motivo={falha ?? "nao_encontrado"}
+        registro="Ordem de serviço"
+        feminino
+        onTentarNovamente={carregar}
+        onVoltar={voltar}
+      />
     );
   }
 
@@ -179,7 +182,7 @@ export default function OrdemServicoDetalhes() {
         mb={3}
       >
         <Stack direction="row" spacing={2} alignItems="center">
-          <IconButton aria-label="Voltar" onClick={() => nav(-1)}>
+          <IconButton aria-label="Voltar" onClick={voltar}>
             <ArrowBackRoundedIcon />
           </IconButton>
           <Typography variant="h5" fontWeight={700}>
@@ -287,7 +290,7 @@ export default function OrdemServicoDetalhes() {
       </Box>
 
       <Stack direction="row" justifyContent="flex-end" spacing={1} flexWrap="wrap" useFlexGap>
-        <Button variant="outlined" onClick={() => nav("/tarefas")}>
+        <Button variant="outlined" onClick={voltar}>
           Voltar
         </Button>
         <Button
@@ -298,13 +301,15 @@ export default function OrdemServicoDetalhes() {
         >
           Imprimir OS
         </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => nav(`/ordens/${id}/editar`)}
-        >
-          Editar OS
-        </Button>
+        {podeEditarOrdem(ordem.status) && (
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => nav(`/ordens/${id}/editar`)}
+          >
+            Editar OS
+          </Button>
+        )}
 
         {(VALID_TRANSITIONS[ordem.status as OrdemStatus] ?? []).includes("cancelada") && (
           <Button

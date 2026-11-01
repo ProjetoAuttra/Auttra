@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Box, Stack, Typography, IconButton, Menu, MenuItem, Divider,
   Avatar, Table, TableBody, TableCell, TableHead, TableRow,
@@ -43,7 +43,18 @@ export default function EstoquePage() {
   const confirm = useConfirm();
 
   const [query, setQuery] = React.useState("");
-  const [filtroBaixo, setFiltroBaixo] = React.useState(false);
+  // Filtro de estoque baixo na URL (?baixo=1): o alerta do painel abre a lista já filtrada.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filtroBaixo = searchParams.get("baixo") === "1";
+  const setFiltroBaixo = React.useCallback((valor: boolean | ((atual: boolean) => boolean)) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      const ligado = typeof valor === "function" ? valor(prev.get("baixo") === "1") : valor;
+      if (ligado) next.set("baixo", "1");
+      else next.delete("baixo");
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
   const [sortCampo, setSortCampo] = React.useState<SortCampo>(null);
   const [sortDir, setSortDir] = React.useState<SortDir>("asc");
 

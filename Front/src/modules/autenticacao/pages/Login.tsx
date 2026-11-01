@@ -23,9 +23,9 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
-import { paths } from "../../../routes/paths";
+import { destinoAposLogin } from "../../../routes/navegacao";
 const logo = "/brand/svg/auttra-logo-azul.svg";
 import api, { turnstileSiteKey } from "../../../api/api";
 import { brand } from "../../../app/theme";
@@ -58,6 +58,9 @@ const fieldSx = {
 
 export default function Login() {
   const nav = useNavigate();
+  const location = useLocation();
+  // Tela que o usuário tentou abrir antes de ser mandado ao login (só caminhos internos).
+  const destino = destinoAposLogin(location.state);
   const { signIn, selectOffice } = useAuth();
 
   const [show, setShow] = useState(false);
@@ -74,7 +77,8 @@ export default function Login() {
   const [selectionToken, setSelectionToken] = useState("");
   const [offices, setOffices] = useState<{ id: number; nome: string; perfil: string }[]>([]);
   const [officeId, setOfficeId] = useState("");
-  const [forgotOpen, setForgotOpen] = useState(false);
+  // Vindo de "Pedir novo link" (redefinição de senha com link inválido): já abre o pedido.
+  const [forgotOpen, setForgotOpen] = useState(() => !!(location.state as { esqueciSenha?: boolean } | null)?.esqueciSenha);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotMessage, setForgotMessage] = useState<string | null>(null);
@@ -87,8 +91,8 @@ export default function Login() {
     const token =
       localStorage.getItem("driveon:token") ??
       sessionStorage.getItem("driveon:token");
-    if (token) nav(paths.root, { replace: true });
-  }, [nav]);
+    if (token) nav(destino, { replace: true });
+  }, [nav, destino]);
 
   useEffect(() => {
     if (forgotCooldown <= 0) return;
@@ -136,7 +140,7 @@ export default function Login() {
         setOfficeId(String(result.oficinas[0]?.id ?? ""));
         return;
       }
-      nav(paths.root, { replace: true });
+      nav(destino, { replace: true });
     } catch (err: any) {
       if (err?.response?.data?.code === "EMAIL_VERIFICATION_REQUIRED") {
         resetToEmailStep();
@@ -164,7 +168,7 @@ export default function Login() {
     try {
       setLoading(true);
       await selectOffice(selectionToken, Number(officeId), remember);
-      nav(paths.root, { replace: true });
+      nav(destino, { replace: true });
     } catch (err: any) {
       setError(err.message || "Não foi possível selecionar a unidade.");
     } finally {

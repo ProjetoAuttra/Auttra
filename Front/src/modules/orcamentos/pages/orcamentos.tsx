@@ -12,7 +12,7 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import RequestQuoteRoundedIcon from "@mui/icons-material/RequestQuoteRounded";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import PrintRoundedIcon from "@mui/icons-material/PrintRounded";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
@@ -28,6 +28,7 @@ import { periodoMesAtual } from "../../relatorios/shared/reportUtils";
 import { linhaClicavel } from "../../../components/common/linhaClicavel";
 import { formatarData } from "../../pagamentos/api/api";
 import { brand } from "../../../app/theme";
+import { useAcoesOrcamento } from "../useAcoesOrcamento";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -68,6 +69,13 @@ const STATUS_CONFIG = {
 
 type FiltrosOrcamentos = { de: string; ate: string; situacao: string[]; os: string };
 const filtrosPadrao = (): FiltrosOrcamentos => ({ ...periodoMesAtual(), situacao: [], os: "" });
+const SITUACOES = ["analise", "aprovado", "recusado"];
+
+/** Situação vinda da URL (?status=analise): abre a lista já filtrada, sem limite de período. */
+function filtrosDaUrl(status: string | null, padrao: FiltrosOrcamentos): FiltrosOrcamentos {
+  const situacao = (status ?? "").split(",").filter((s) => SITUACOES.includes(s));
+  return situacao.length ? { ...padrao, de: "", ate: "", situacao } : padrao;
+}
 
 const CAMPOS_FILTRO: CampoFiltro<FiltrosOrcamentos>[] = [
   {
@@ -91,8 +99,18 @@ export default function OrcamentosPage() {
   const confirm = useConfirm();
   const nav = useNavigate();
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [padrao] = React.useState(filtrosPadrao);
-  const [filtros, setFiltros] = React.useState(padrao);
+  const [filtros, setFiltrosState] = React.useState(() => filtrosDaUrl(searchParams.get("status"), padrao));
+  const setFiltros = React.useCallback((f: FiltrosOrcamentos) => {
+    setFiltrosState(f);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (f.situacao.length) next.set("status", f.situacao.join(","));
+      else next.delete("status");
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
   const filtrado = JSON.stringify(filtros) !== JSON.stringify(padrao);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [selectedId, setSelectedId] = React.useState<number | null>(null);
@@ -114,42 +132,12 @@ export default function OrcamentosPage() {
     [orcamentos, selectedId]
   );
 
-  // ── Aprovar (e oferecer gerar a O.S. em seguida) ──
-  const handleAprovar = async (orc: Orcamento) => {
-    try {
-      await api.patch(`/orcamentos/${orc.id}/status`, { status: "aprovado" });
-      recarregar();
-    } catch {
-      error("Não foi possível aprovar o orçamento.");
-      return;
-    }
-    const gerarAgora = await confirm({
-      title: "Orçamento aprovado!",
-      message: "Deseja gerar a ordem de serviço agora?",
-      confirmLabel: "Gerar O.S.",
-      cancelLabel: "Agora não",
-      variant: "info",
-    });
-    if (gerarAgora) handleConverterOS({ ...orc, status: "aprovado" });
-    else success("Orçamento aprovado!");
-  };
+  // ── Aprovar, recusar e gerar O.S.: mesmas ações do detalhe do orçamento ──
+  const acoes = useAcoesOrcamento(recarregar);
 
-  // ── Recusar ──
-  const handleRecusar = async () => {
-    if (!selectedId) return;
+  const handleRecusar = () => {
     handleMenuClose();
-    const ok = await confirm({
-      title: "Recusar orçamento?",
-      message: "O cliente será marcado como recusado.",
-      confirmLabel: "Sim, recusar",
-      variant: "warning",
-    });
-    if (!ok) return;
-    try {
-      await api.patch(`/orcamentos/${selectedId}/status`, { status: "recusado" });
-      recarregar();
-      success("Orçamento recusado.");
-    } catch { error("Não foi possível recusar o orçamento."); }
+    if (selectedOrcamento) acoes.recusar(selectedOrcamento);
   };
 
   // ── Excluir ──
@@ -168,49 +156,6 @@ export default function OrcamentosPage() {
       recarregar();
       success("Orçamento excluído.");
     } catch { error("Não foi possível excluir o orçamento."); }
-  };
-
-  // ── Converter em O.S. ──
-  const handleConverterOS = (orc?: Orcamento) => {
-    const orcamento = orc ?? selectedOrcamento;
-    if (!orcamento) return;
-    handleMenuClose();
-
-    const itensOrcamento = orcamento.itens?.length
-      ? orcamento.itens.map((item) => ({
-          id: `orcamento-item-${item.id}`,
-          tipo_item: item.tipo_item,
-          nome: item.nome ?? item.servico?.nome ?? item.peca?.nome ?? "Item do orçamento",
-          servico_id: item.tipo_item === "servico" ? item.servico_id ?? item.servico?.id ?? null : null,
-          peca_id: item.tipo_item === "peca" ? item.peca_id ?? item.peca?.id ?? null : null,
-          quantidade: Number(item.quantidade ?? 1),
-          preco_unitario: Number(item.preco_unitario ?? 0),
-          subtotal: Number(item.subtotal ?? 0),
-        }))
-      : [
-          {
-            id: `orcamento-${orcamento.id}`,
-            tipo_item: "servico" as const,
-            nome: `Orçamento #${orcamento.id}`,
-            servico_id: null,
-            peca_id: null,
-            quantidade: 1,
-            preco_unitario: Number(orcamento.valor),
-            subtotal: Number(orcamento.valor),
-          },
-        ];
-
-    nav(paths.ordemNova, {
-      state: {
-        cliente_id: orcamento.cliente.id,
-        cliente: { id: orcamento.cliente.id, nome: orcamento.cliente.nome },
-        veiculo_id: orcamento.veiculo.id,
-        funcionario_id: 0,
-        observacoes: `Convertido do orçamento #${orcamento.id}: ${orcamento.descricao}`,
-        itens: itensOrcamento,
-        orcamento_id: orcamento.id,
-      },
-    });
   };
 
   // ── Enviar WhatsApp com PDF ──
@@ -323,11 +268,7 @@ export default function OrcamentosPage() {
                 const st = STATUS_CONFIG[o.status] ?? STATUS_CONFIG.analise;
                 const os = o.ordens?.[0];
                 // Um botão por situação, com o próximo passo do orçamento; recusado não tem ação.
-                const acao =
-                  o.status === "analise" ? { label: "APROVAR", onClick: () => handleAprovar(o) }
-                  : o.status === "aprovado" && os ? { label: "VER O.S.", onClick: () => nav(`/ordens/${os.id}`) }
-                  : o.status === "aprovado" ? { label: "GERAR O.S.", onClick: () => handleConverterOS(o) }
-                  : null;
+                const acao = acoes.acaoPrincipal(o);
                 return (
                   <TableRow
                     key={o.id}
@@ -415,7 +356,7 @@ export default function OrcamentosPage() {
                             visibility: acao ? "visible" : "hidden",
                           }}
                         >
-                          {acao?.label ?? "GERAR O.S."}
+                          {acao?.rotulo.toUpperCase() ?? "GERAR O.S."}
                         </Button>
                         <IconButton size="small" aria-label="Mais ações" onClick={(e) => handleMenuClick(e, o.id)}>
                           <MoreVertRoundedIcon fontSize="small" />
@@ -467,12 +408,12 @@ export default function OrcamentosPage() {
           <VisibilityRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "text.secondary" }} />Ver detalhes
         </MenuItem>
         <Divider />
-        {selectedOrcamento?.status === "analise" && (
+        {selectedOrcamento && acoes.podeRecusar(selectedOrcamento) && (
           <MenuItem onClick={handleRecusar} sx={{ color: "error.main" }}>
             <CancelRoundedIcon fontSize="small" sx={{ mr: 1.5 }} />Recusar
           </MenuItem>
         )}
-        {selectedOrcamento?.status === "analise" && <Divider />}
+        {selectedOrcamento && acoes.podeRecusar(selectedOrcamento) && <Divider />}
         <MenuItem onClick={handleWhatsApp}>
           <WhatsAppIcon fontSize="small" sx={{ mr: 1.5, color: brand.whatsapp }} />Enviar WhatsApp
         </MenuItem>

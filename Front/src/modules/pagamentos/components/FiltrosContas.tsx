@@ -1,5 +1,6 @@
 import * as React from "react";
-import { Autocomplete, Badge, Box, Button, Checkbox, ListItemText, MenuItem, Stack, TextField } from "@mui/material";
+import { Autocomplete, Badge, Box, Button, Checkbox, ListItemText, MenuItem, Stack, TextField, Typography } from "@mui/material";
+import { useSearchParams } from "react-router-dom";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import { AppDrawer, DrawerSection } from "../../../components/common/AppDrawer";
 import CampoData from "../../../components/common/CampoData";
@@ -44,18 +45,56 @@ export function temFiltroAtivo(f: FiltrosConta, padrao = filtrosPadrao()) {
   return contarFiltrosAvancados(f) > 0 || f.dataPor !== padrao.dataPor || f.de !== padrao.de || f.ate !== padrao.ate;
 }
 
+/**
+ * "Vencidos" com o período padrão (vencimento no mês atual) mostraria só os vencidos deste mês,
+ * enquanto o card "Vencidos" soma todos. Nesse caso o período de vencimento não vai para a API.
+ * Se o usuário mudar o período, ele volta a valer.
+ */
+export function vencidosSemPeriodo(f: FiltrosConta, padrao = filtrosPadrao()) {
+  return f.situacao.includes("vencido") && f.dataPor === "vencimento" && f.de === padrao.de && f.ate === padrao.ate;
+}
+
 /** Parâmetros de GET /pagamentos para os filtros (campo do parceiro: cliente_id ou fornecedor_id). */
-export function paramsFiltros(f: FiltrosConta, campoParceiro: "cliente_id" | "fornecedor_id") {
+export function paramsFiltros(f: FiltrosConta, campoParceiro: "cliente_id" | "fornecedor_id", padrao = filtrosPadrao()) {
   const porPagamento = f.dataPor === "pagamento";
+  const semPeriodo = vencidosSemPeriodo(f, padrao);
   return {
     status: f.situacao.join(","),
     hoje: f.situacao.includes("vencido") ? hojeInput() : "",
-    [porPagamento ? "pagamento_de" : "vencimento_de"]: f.de,
-    [porPagamento ? "pagamento_ate" : "vencimento_ate"]: f.ate,
+    [porPagamento ? "pagamento_de" : "vencimento_de"]: semPeriodo ? "" : f.de,
+    [porPagamento ? "pagamento_ate" : "vencimento_ate"]: semPeriodo ? "" : f.ate,
     tz_offset: porPagamento ? String(new Date().getTimezoneOffset()) : "",
     metodo: f.metodos.join(","),
     [campoParceiro]: f.parceiroId,
   };
+}
+
+const SITUACOES: StatusConta[] = ["pendente", "vencido", "pago", "cancelado"];
+
+/** Situações vindas da URL (?situacao=vencido ou ?situacao=vencido,pendente), ignorando valores desconhecidos. */
+export const situacaoDaUrl = (valor: string | null): StatusConta[] =>
+  (valor ?? "").split(",").filter((s): s is StatusConta => SITUACOES.includes(s as StatusConta));
+
+/**
+ * Filtros das contas com a situação na URL: links (ex.: alerta do painel) abrem a lista já filtrada
+ * e mudar a situação na tela atualiza o endereço, sem empilhar histórico.
+ */
+export function useFiltrosContas() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [filtros, setFiltrosState] = React.useState<FiltrosConta>(() => ({
+    ...filtrosPadrao(),
+    situacao: situacaoDaUrl(searchParams.get("situacao")),
+  }));
+  const setFiltros = React.useCallback((f: FiltrosConta) => {
+    setFiltrosState(f);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (f.situacao.length) next.set("situacao", f.situacao.join(","));
+      else next.delete("situacao");
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+  return [filtros, setFiltros] as const;
 }
 
 type Parceiro = { id: number; nome: string };
@@ -117,6 +156,12 @@ export default function FiltrosContas({ filtros, onChange, tipo, rotuloParceiro,
       <Box sx={{ width: { xs: "100%", md: 170 } }}>
         <CampoData label="Data final" value={filtros.ate} onChange={(v) => set({ ate: v })} error={periodoInvalido} helperText={periodoInvalido ? "Antes da data inicial" : undefined} />
       </Box>
+
+      {vencidosSemPeriodo(filtros, padrao) && (
+        <Typography variant="caption" color="text.secondary" sx={{ alignSelf: { md: "center" } }}>
+          Vencidos: todos os períodos
+        </Typography>
+      )}
 
       <Box sx={{ flex: 1 }} />
 

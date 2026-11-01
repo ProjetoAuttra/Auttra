@@ -33,7 +33,7 @@ import { type Conta, brl, isVencido, valorLiquido, formatarData, METODO_OPTIONS,
 import {
   EstornarDialog, DetalhesDialog,
 } from "../../dialogs/index";
-import FiltrosContas, { filtrosPadrao, paramsFiltros, temFiltroAtivo, type FiltrosConta } from "../../components/FiltrosContas";
+import FiltrosContas, { filtrosPadrao, paramsFiltros, temFiltroAtivo, useFiltrosContas } from "../../components/FiltrosContas";
 import { ReceberTituloDialog, RenegociarTituloDialog } from "../../dialogs/TituloDialogs";
 import { EditarContaDialog } from "../../dialogs/EditarContaDialog";
 import { formatPreco, parsePreco } from "../../../../utils/masks";
@@ -61,7 +61,7 @@ export default function ContasReceber() {
   const [acao, setAcao] = React.useState<Acao>(null);
   const [dialogNova, setDialogNova] = React.useState(false);
   const [query, setQuery] = React.useState("");
-  const [filtros, setFiltros] = React.useState<FiltrosConta>(() => filtrosPadrao());
+  const [filtros, setFiltros] = useFiltrosContas();
   const filtrado = !!query || temFiltroAtivo(filtros);
   const limparFiltros = () => { setQuery(""); setFiltros(filtrosPadrao()); };
 

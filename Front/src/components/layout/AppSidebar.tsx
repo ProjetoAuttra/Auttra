@@ -1,6 +1,6 @@
 import {
   Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText,
-  useTheme, Tooltip, Collapse, Toolbar, IconButton
+  useTheme, Tooltip, Collapse, Toolbar, IconButton, Menu, MenuItem
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import HomeOutlineIcon from '@mui/icons-material/HomeOutlined';
@@ -103,6 +103,18 @@ const moduleResourceMap: Partial<Record<AccessModule, 'agenda' | 'estoque' | 'fo
   fornecedores: 'fornecedores',
 };
 
+// Telas cujo caminho não começa pelo do item do menu, mas pertencem a ele.
+const prefixosExtras: Record<string, string[]> = {
+  [paths.tasks]: ['/ordens'],
+};
+
+/** Ativo na própria tela e nas filhas (/clientes/12, /orcamentos/novo, /ordens/5 → Ordens de serviço). */
+function caminhoAtivo(pathname: string, to: string) {
+  const base = to.split('?')[0];
+  if (base === paths.root) return pathname === paths.root;
+  return [base, ...(prefixosExtras[base] ?? [])].some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
 // Última tela visitada dentro de Configurações, para voltar nela ao reabrir o item da sidebar.
 let lastSettingsLocation: string = paths.settings;
 
@@ -114,10 +126,13 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
 
   const isSubSelected = (subTo: string) => {
     const [basePath, queryString] = subTo.split('?');
-    if (pathname !== basePath) return false;
-    if (!queryString) return !search; // sem query no subitem → só ativo quando URL também não tem query
-    return search === `?${queryString}`;
+    if (!caminhoAtivo(pathname, basePath)) return false;
+    // Subitem sem query fica ativo com qualquer filtro na URL (ex.: ?situacao=vencido).
+    return !queryString || search === `?${queryString}`;
   };
+
+  // Barra recolhida: o Collapse dos subitens não aparece, então eles abrem num menu ao lado do ícone.
+  const [submenu, setSubmenu] = useState<{ label: string; anchor: HTMLElement } | null>(null);
 
   useEffect(() => {
     if (settingsPaths.includes(pathname)) lastSettingsLocation = `${pathname}${search}`;
@@ -157,19 +172,22 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
         const allowedSubItems = getAllowedSubItems(subItems);
         const displayLabel = subItems?.length ? label : navLabels[to] ?? label;
         const selected =
-          (to === paths.root && pathname === '/') ||
-          (to === pathname && !to.startsWith('#')) ||
+          (!to.startsWith('#') && caminhoAtivo(pathname, to)) ||
           (to === paths.settings && settingsPaths.includes(pathname)) ||
-          allowedSubItems.some((s) => pathname === s.to.split('?')[0]);
+          allowedSubItems.some((s) => isSubSelected(s.to));
         const isOpen = !!openMenus[label];
 
         const button = (
           <ListItemButton
             key={to}
             selected={selected}
-            onClick={() => {
-              if (allowedSubItems.length > 0) toggleMenu(label);
-              else {
+            aria-haspopup={collapsed && allowedSubItems.length > 0 ? 'menu' : undefined}
+            aria-expanded={collapsed && allowedSubItems.length > 0 ? submenu?.label === label : undefined}
+            onClick={(e) => {
+              if (allowedSubItems.length > 0) {
+                if (collapsed) setSubmenu({ label, anchor: e.currentTarget });
+                else toggleMenu(label);
+              } else {
                 if (to === paths.settings) {
                   // Já dentro de Configurações: mantém a seção atual; fora: volta à última visitada.
                   if (!settingsPaths.includes(pathname)) nav(lastSettingsLocation);
@@ -219,6 +237,38 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
               </Tooltip>
             ) : (
               button
+            )}
+
+            {collapsed && allowedSubItems.length > 0 && (
+              <Menu
+                anchorEl={submenu?.label === label ? submenu.anchor : null}
+                open={submenu?.label === label}
+                onClose={() => setSubmenu(null)}
+                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                slotProps={{ paper: { sx: { ml: 1, minWidth: 180 } } }}
+              >
+                {allowedSubItems.map((sub) => (
+                  <MenuItem
+                    key={sub.label}
+                    selected={isSubSelected(sub.to)}
+                    onClick={() => {
+                      setSubmenu(null);
+                      nav(sub.to);
+                      onItemClick?.();
+                    }}
+                    sx={{
+                      fontSize: 13,
+                      gap: 1.5,
+                      '& svg': { fontSize: 18 },
+                      '&.Mui-selected': { bgcolor: alpha(brand.primary, 0.08), color: brand.primary },
+                    }}
+                  >
+                    {sub.icon}
+                    {navLabels[sub.to] ?? sub.label}
+                  </MenuItem>
+                ))}
+              </Menu>
             )}
 
             {!collapsed && allowedSubItems.length > 0 && (

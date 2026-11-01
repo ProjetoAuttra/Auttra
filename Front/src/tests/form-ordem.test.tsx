@@ -24,7 +24,7 @@ describe("FormOrdemServico (tela inteira)", () => {
   beforeEach(() => {
     [get, post, put, patch].forEach((m) => m.mockReset());
     get.mockImplementation(async (url: string) => {
-      if (url === "/funcionarios") return { data: [funcionario] };
+      if (url === "/ordens/responsaveis") return { data: [funcionario] };
       if (url === "/servicos") return { data: [{ id: 1, nome: "Troca de óleo", preco: 150 }] };
       if (url === "/veiculos") return { data: [veiculo] };
       if (url === "/ordens/9") return { data: { id: 9, cliente_id: 1, cliente: { id: 1, nome: "Ana Costa" }, veiculo_id: 5, funcionario_id: 3, observacoes: "Revisão", itens: [{ id: 1, tipo_item: "servico", nome: "Alinhamento", servico_id: 2, quantidade: 2, preco_unitario: 100, subtotal: 200 }] } };
@@ -101,5 +101,29 @@ describe("FormOrdemServico (tela inteira)", () => {
     expect(put.mock.calls[0][0]).toBe("/ordens/9");
     expect(put.mock.calls[0][1]).toMatchObject({ cliente_id: 1, veiculo_id: 5, funcionario_id: 3, valor_total: 200 });
     expect(await screen.findByText("Detalhe da OS")).toBeInTheDocument();
+  });
+
+  it("O.S. concluída não abre para edição: volta para o detalhe", async () => {
+    get.mockImplementation(async (url: string) => {
+      if (url === "/ordens/9") return { data: { id: 9, status: "concluida", cliente_id: 1, veiculo_id: 5, funcionario_id: 3, itens: [] } };
+      return { data: [] };
+    });
+    setup("/ordens/9/editar");
+    expect(await screen.findByText("Detalhe da OS")).toBeInTheDocument();
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it("responsáveis vêm de /ordens/responsaveis e a falha não derruba a lista de serviços", async () => {
+    get.mockImplementation(async (url: string) => {
+      if (url === "/ordens/responsaveis") throw new Error("falhou");
+      if (url === "/servicos") return { data: [{ id: 1, nome: "Troca de óleo", preco: 150 }] };
+      return { data: [] };
+    });
+    const user = setup("/ordens/nova");
+    expect(get).toHaveBeenCalledWith("/ordens/responsaveis");
+    expect(get).not.toHaveBeenCalledWith("/funcionarios", expect.anything());
+    await user.click(screen.getByRole("button", { name: /mão de obra/i }));
+    await user.click(await screen.findByLabelText("Pesquisar serviço"));
+    expect(await screen.findByRole("option", { name: /Troca de óleo/ })).toBeInTheDocument();
   });
 });

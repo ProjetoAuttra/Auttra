@@ -15,9 +15,13 @@ import DirectionsCarRoundedIcon from "@mui/icons-material/DirectionsCarRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import PrintRoundedIcon from "@mui/icons-material/PrintRounded";
 import RequestQuoteRoundedIcon from "@mui/icons-material/RequestQuoteRounded";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import api from "../../../../api/api";
 import { useToast } from "../../../../context/ToastContext";
+import FalhaCarregamento, { motivoDaFalha, type MotivoFalha } from "../../../../components/common/FalhaCarregamento";
+import { useVoltar } from "../../../../hooks/useVoltar";
+import { paths } from "../../../../routes/paths";
+import { useAcoesOrcamento } from "../../useAcoesOrcamento";
 
 type OrcamentoItem = {
   id: number | string;
@@ -40,6 +44,8 @@ type Orcamento = {
   cliente?: { id: number; nome: string; telefone?: string; email?: string; cpf?: string } | null;
   veiculo?: { id: number; marca?: string; modelo?: string; placa?: string; ano?: number } | null;
   itens?: OrcamentoItem[];
+  /** O.S. ativa gerada a partir do orçamento (no máximo uma). */
+  ordens?: Array<{ id: number; status: string }>;
 };
 
 const STATUS_CONFIG: Record<Orcamento["status"], { label: string; color: "warning" | "success" | "error" }> = {
@@ -63,27 +69,37 @@ function itemName(item: OrcamentoItem) {
 
 export default function OrcamentoDetalhes() {
   const { id } = useParams();
-  const nav = useNavigate();
   const { error } = useToast();
+  const voltar = useVoltar(paths.orcamentos);
   const [orcamento, setOrcamento] = React.useState<Orcamento | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [falha, setFalha] = React.useState<MotivoFalha | null>(null);
   const [printing, setPrinting] = React.useState(false);
+  const ativo = React.useRef(true);
+
+  // `silencioso` recarrega depois de uma ação sem trocar a tela pelo carregamento.
+  const carregar = React.useCallback(async (silencioso = false) => {
+    if (!silencioso) setLoading(true);
+    setFalha(null);
+    try {
+      const { data } = await api.get(`/orcamentos/${id}`);
+      if (ativo.current) setOrcamento(data);
+    } catch (err) {
+      console.error("Erro ao carregar orçamento:", err);
+      if (ativo.current) setFalha(motivoDaFalha(err));
+    } finally {
+      if (ativo.current) setLoading(false);
+    }
+  }, [id]);
 
   React.useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const { data } = await api.get(`/orcamentos/${id}`);
-        if (active) setOrcamento(data);
-      } catch (err) {
-        console.error("Erro ao carregar orçamento:", err);
-        if (active) setOrcamento(null);
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-    return () => { active = false; };
-  }, [id]);
+    ativo.current = true;
+    carregar();
+    return () => { ativo.current = false; };
+  }, [carregar]);
+
+  const recarregar = React.useCallback(() => { carregar(true); }, [carregar]);
+  const acoes = useAcoesOrcamento(recarregar);
 
   const handlePrint = async () => {
     if (!id) return;
@@ -118,25 +134,26 @@ export default function OrcamentoDetalhes() {
     );
   }
 
-  if (!orcamento) {
+  if (falha || !orcamento) {
     return (
-      <Box sx={{ p: 6, textAlign: "center" }}>
-        <Typography color="text.secondary">Orçamento não encontrado.</Typography>
-        <Button startIcon={<ArrowBackRoundedIcon />} onClick={() => nav("/orcamentos")} sx={{ mt: 2 }}>
-          Voltar
-        </Button>
-      </Box>
+      <FalhaCarregamento
+        motivo={falha ?? "nao_encontrado"}
+        registro="Orçamento"
+        onTentarNovamente={() => carregar()}
+        onVoltar={voltar}
+      />
     );
   }
 
   const status = STATUS_CONFIG[orcamento.status] ?? STATUS_CONFIG.analise;
   const itens = orcamento.itens ?? [];
+  const acao = acoes.acaoPrincipal(orcamento);
 
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto" }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3} gap={2}>
         <Stack direction="row" spacing={1.5} alignItems="center" minWidth={0}>
-          <IconButton aria-label="Voltar para orçamentos" onClick={() => nav("/orcamentos")} size="small" sx={{ bgcolor: "action.hover", borderRadius: 2 }}>
+          <IconButton aria-label="Voltar" onClick={voltar} size="small" sx={{ bgcolor: "action.hover", borderRadius: 2 }}>
             <ArrowBackRoundedIcon fontSize="small" />
           </IconButton>
           <Stack minWidth={0}>
@@ -149,18 +166,26 @@ export default function OrcamentoDetalhes() {
           </Stack>
         </Stack>
 
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap justifyContent="flex-end">
           <Chip label={status.label} color={status.color} sx={{ fontWeight: 700 }} />
           <Button
-            variant="contained"
+            variant="outlined"
             startIcon={<PrintRoundedIcon />}
             onClick={handlePrint}
             disabled={printing}
-            disableElevation
-            sx={{ fontWeight: 700 }}
           >
             Imprimir
           </Button>
+          {acoes.podeRecusar(orcamento) && (
+            <Button variant="outlined" color="error" onClick={() => acoes.recusar(orcamento)}>
+              Recusar
+            </Button>
+          )}
+          {acao && (
+            <Button variant="contained" disableElevation onClick={acao.onClick} sx={{ fontWeight: 700 }}>
+              {acao.rotulo}
+            </Button>
+          )}
         </Stack>
       </Stack>
 

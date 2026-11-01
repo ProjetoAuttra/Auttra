@@ -38,6 +38,7 @@ import LocationOnRoundedIcon from '@mui/icons-material/LocationOnRounded';
 import TodayRoundedIcon from '@mui/icons-material/TodayRounded';
 
 import api from '../../../api/api';
+import { STATUS_CONFIG, type OrdemStatus } from '../../tarefas/statusConfig';
 import ModuleHeader from '../../../components/layout/ModuleHeader';
 import { useAuth } from '../../../context/AuthContext';
 import { useConfirm } from '../../../context/ConfirmContext';
@@ -73,6 +74,11 @@ type FormValues = {
   ordemServicoId?: string;
 };
 type OrdemOption = { id: number; cliente_id: number; status: string; valor_total?: number | string };
+
+/** Situação da O.S. com o rótulo do sistema ("Em andamento"), não o valor cru da API. */
+const rotuloStatusOrdem = (status?: string) => STATUS_CONFIG[status as OrdemStatus]?.label ?? status ?? '';
+/** Só faz sentido vincular O.S. que ainda vai ser atendida. */
+const ORDEM_VINCULAVEL = ['aberta', 'em_andamento'];
 type CalendarView = 'month' | 'week' | 'day';
 type ClientOption = { id: number; nome: string };
 type VehicleOption = { id: number; placa?: string; modelo?: string; marca?: string; cliente_id?: number; clienteId?: number };
@@ -162,13 +168,17 @@ function NewAppointmentDialog({
   });
   const startTime = useWatch({ control, name: 'startTime' });
   const clientId = useWatch({ control, name: 'clientId' });
+  const ordemVinculada = useWatch({ control, name: 'ordemServicoId' });
   const availableVehicles = useMemo(
     () => vehicles.filter((vehicle) => !clientId || String(getVehicleClientId(vehicle)) === clientId),
     [clientId, vehicles]
   );
   const availableOrdens = useMemo(
-    () => ordens.filter((o) => !clientId || String(o.cliente_id) === clientId),
-    [clientId, ordens]
+    // Abertas ou em andamento do cliente; a já vinculada continua na lista para não sumir do campo.
+    () => ordens.filter((o) =>
+      String(o.id) === ordemVinculada ||
+      (ORDEM_VINCULAVEL.includes(o.status) && (!clientId || String(o.cliente_id) === clientId))),
+    [clientId, ordens, ordemVinculada]
   );
 
   useEffect(() => {
@@ -369,7 +379,7 @@ function NewAppointmentDialog({
                 <MenuItem value="">Nenhuma</MenuItem>
                 {availableOrdens.map((o) => (
                   <MenuItem key={o.id} value={String(o.id)}>
-                    OS #{o.id} — {o.status}
+                    OS #{o.id} — {rotuloStatusOrdem(o.status)}
                   </MenuItem>
                 ))}
               </TextField>
@@ -676,7 +686,7 @@ function AppointmentDetailsDialog({
                 <Typography variant="caption" color="text.secondary" fontWeight={600}>Ordem de Serviço vinculada</Typography>
                 <Typography fontWeight={700}>OS #{appointment.ordemServicoId}</Typography>
                 {appointment.ordemServicoStatus && (
-                  <Typography variant="body2" color="text.secondary">{appointment.ordemServicoStatus}</Typography>
+                  <Typography variant="body2" color="text.secondary">{rotuloStatusOrdem(appointment.ordemServicoStatus)}</Typography>
                 )}
               </Paper>
             )}
