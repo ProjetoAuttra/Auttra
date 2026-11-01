@@ -18,6 +18,7 @@ import ModuleHeader from "../../../components/layout/ModuleHeader";
 import ListTableContainer from "../../../components/common/ListTableContainer";
 import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationClientes } from "../../../components/common/Illustrations";
+import { linhaClicavel } from "../../../components/common/linhaClicavel";
 
 // ── helpers de mapeamento ──────────────────────────────────────────────────
 
@@ -161,9 +162,8 @@ export default function ClientsPage() {
               {rows.length > 0 ? rows.map((c) => (
                 <TableRow
                   key={c.id}
-                  hover
+                  {...linhaClicavel(() => navigate(`/clientes/${c.id}`))}
                   sx={{ height: 56, cursor: "pointer" }}
-                  onDoubleClick={() => navigate(`/clientes/${c.id}`)}
                 >
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={1.5}>
@@ -176,7 +176,7 @@ export default function ClientsPage() {
                   <TableCell>{c.email || "—"}</TableCell>
                   <TableCell>{c.telefone || "—"}</TableCell>
                   <TableCell align="right">
-                    <IconButton onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, c.id); }}>
+                    <IconButton aria-label="Mais ações" onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, c.id); }}>
                       <MoreVertRoundedIcon />
                     </IconButton>
                   </TableCell>

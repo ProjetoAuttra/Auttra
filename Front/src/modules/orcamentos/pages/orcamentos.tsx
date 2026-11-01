@@ -25,6 +25,7 @@ import { useListaPaginada } from "../../../hooks/useListaPaginada";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import FiltrosRelatorio, { type CampoFiltro } from "../../relatorios/shared/FiltrosRelatorio";
 import { periodoMesAtual } from "../../relatorios/shared/reportUtils";
+import { linhaClicavel } from "../../../components/common/linhaClicavel";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -328,8 +329,7 @@ export default function OrcamentosPage() {
                 return (
                   <TableRow
                     key={o.id}
-                    hover
-                    onDoubleClick={() => nav(`/orcamentos/${o.id}`)}
+                    {...linhaClicavel(() => nav(`/orcamentos/${o.id}`))}
                     sx={{ height: 56, cursor: "pointer" }}
                   >
                     {/* Cliente */}

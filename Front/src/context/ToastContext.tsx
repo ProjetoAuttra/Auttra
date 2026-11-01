@@ -140,7 +140,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                         </Stack>
 
                         {/* Fechar */}
-                        <IconButton
+                        <IconButton aria-label="Fechar aviso"
                             size="small"
                             onClick={() => setOpen(false)}
                             sx={{ color: "inherit", opacity: 0.75, mt: -0.25, mr: -0.5, p: 0.25 }}

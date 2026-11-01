@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "./utils";
@@ -64,6 +64,33 @@ describe("ClientDialog (painel lateral)", () => {
       expect.objectContaining({ nome: "Ana Costa", telefone: "11987654321", observacao: "Cliente antigo", email: undefined, cpf: undefined })
     );
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("trava o botão enquanto salva: clique duplo envia uma vez só", async () => {
+    let concluir!: () => void;
+    const onSubmit = vi.fn(() => new Promise<void>((resolve) => { concluir = resolve; }));
+    const { onClose, user } = setup({ onSubmit });
+    await user.type(screen.getByLabelText(/nome \/ razão social/i), "Ana");
+    const botao = screen.getByRole("button", { name: /cadastrar cliente/i });
+    await user.dblClick(botao);
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(botao).toBeDisabled();
+    expect(onClose).not.toHaveBeenCalled();
+
+    concluir();
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(botao).toBeEnabled();
+  });
+
+  it("se o salvamento falhar, o formulário continua aberto", async () => {
+    const onSubmit = vi.fn().mockRejectedValue(new Error("falhou"));
+    const { onClose, user } = setup({ onSubmit });
+    await user.type(screen.getByLabelText(/nome \/ razão social/i), "Ana");
+    await user.click(screen.getByRole("button", { name: /cadastrar cliente/i }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /cadastrar cliente/i })).toBeEnabled());
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("na edição mostra o nome no cabeçalho e exclui só depois de confirmar", async () => {

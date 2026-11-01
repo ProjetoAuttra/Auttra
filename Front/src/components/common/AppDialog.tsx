@@ -129,7 +129,7 @@ export function AppDialog({
             {title}
           </Typography>
         </Box>
-        <IconButton onClick={handleCloseButton} size="small">
+        <IconButton aria-label="Fechar" onClick={handleCloseButton} size="small">
           <CloseRoundedIcon />
         </IconButton>
       </Box>

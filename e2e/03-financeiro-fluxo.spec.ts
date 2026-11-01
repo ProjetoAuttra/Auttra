@@ -16,7 +16,7 @@ const runTag = String(Date.now());
 async function login(page: Page) {
   await page.goto("/login");
   await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill(password);
+  await page.getByLabel("Senha", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Entrar" }).click();
   await page.waitForURL((url) => !url.pathname.startsWith("/login"));
 }

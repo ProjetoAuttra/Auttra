@@ -20,6 +20,7 @@ import ModuleHeader from "../../../components/layout/ModuleHeader";
 import ListTableContainer from "../../../components/common/ListTableContainer";
 import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationVeiculos } from "../../../components/common/Illustrations";
+import { linhaClicavel } from "../../../components/common/linhaClicavel";
 
 const COMBUSTIVEL_LABEL: Record<string, string> = {
   gasolina: "Gasolina", etanol: "Etanol", flex: "Flex",
@@ -129,8 +130,8 @@ export default function VeiculosPage() {
             <TableBody>
               {rows.length > 0 ? rows.map((v) => (
                 <TableRow
-                  key={v.id} hover sx={{ height: 56, cursor: "pointer" }}
-                  onDoubleClick={() => nav(`/veiculos/${v.id}`)}
+                  key={v.id} sx={{ height: 56, cursor: "pointer" }}
+                  {...linhaClicavel(() => nav(`/veiculos/${v.id}`))}
                 >
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={1.5}>
@@ -180,7 +181,7 @@ export default function VeiculosPage() {
                     ) : "—"}
                   </TableCell>
                   <TableCell align="right">
-                    <IconButton
+                    <IconButton aria-label="Mais ações"
                       onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, v.id); }}
                     >
                       <MoreVertRoundedIcon />

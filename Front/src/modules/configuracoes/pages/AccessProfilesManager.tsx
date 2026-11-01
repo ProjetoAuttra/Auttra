@@ -42,6 +42,7 @@ import { useConfirm } from '../../../context/ConfirmContext';
 import { AppDialog, AppDialogActions, AppDialogContent } from '../../../components/common/AppDialog';
 import ListTableContainer from '../../../components/common/ListTableContainer';
 import ModuleHeader from '../../../components/layout/ModuleHeader';
+import { linhaClicavel } from '../../../components/common/linhaClicavel';
 
 const emptyPermissions = (): PermissionsMap =>
   Object.fromEntries(accessModules.map((module) => [module, []])) as PermissionsMap;
@@ -185,7 +186,7 @@ export default function AccessProfilesManager() {
           <TableBody>
             {profiles.length > 0 ? (
               profiles.map((profile) => (
-                <TableRow key={profile.id} hover sx={{ height: 56, cursor: 'pointer' }} onClick={() => startEdit(profile)}>
+                <TableRow key={profile.id} {...linhaClicavel(() => startEdit(profile))} sx={{ height: 56, cursor: 'pointer' }}>
                   <TableCell>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Typography fontWeight={600}>{profile.nome}</Typography>

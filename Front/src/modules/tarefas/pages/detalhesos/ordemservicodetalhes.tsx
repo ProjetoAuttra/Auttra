@@ -179,7 +179,7 @@ export default function OrdemServicoDetalhes() {
         mb={3}
       >
         <Stack direction="row" spacing={2} alignItems="center">
-          <IconButton onClick={() => nav(-1)}>
+          <IconButton aria-label="Voltar" onClick={() => nav(-1)}>
             <ArrowBackRoundedIcon />
           </IconButton>
           <Typography variant="h5" fontWeight={700}>

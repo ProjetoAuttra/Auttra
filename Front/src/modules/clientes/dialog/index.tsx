@@ -56,7 +56,7 @@ type Props = {
   mode: "create" | "edit";
   initial?: Client | null;
   onClose: () => void;
-  onSubmit: (data: ClientForm) => void;
+  onSubmit: (data: ClientForm) => void | Promise<void>;
   onDelete?: (client: Client) => void;
 };
 
@@ -139,6 +139,8 @@ export default function ClientDialog({
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [submitAttempted, setSubmitAttempted] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
+  // Trava o botão enquanto salva: clique duplo não cria registro repetido.
+  const [salvando, setSalvando] = React.useState(false);
 
   // ── Inicial ──
   React.useEffect(() => {
@@ -193,23 +195,31 @@ export default function ClientDialog({
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (salvando) return;
     setSubmitAttempted(true);
     if (!validate()) return;
-    onSubmit({
-      nome: nome.trim(),
-      email: email.trim() || undefined,
-      cpf: cpf.replace(/\D/g, "") || undefined,
-      telefone: telefone.replace(/\D/g, "") || undefined,
-      data_nascimento: dataNascimento || undefined,
-      observacao: observacao.trim() || undefined,
-      cep: cep || undefined,
-      logradouro: logradouro || undefined,
-      numero: numero || undefined,
-      complemento: complemento || undefined,
-      cidade_id: cidadeId,
-    });
-    onClose();
+    setSalvando(true);
+    try {
+      await onSubmit({
+        nome: nome.trim(),
+        email: email.trim() || undefined,
+        cpf: cpf.replace(/\D/g, "") || undefined,
+        telefone: telefone.replace(/\D/g, "") || undefined,
+        data_nascimento: dataNascimento || undefined,
+        observacao: observacao.trim() || undefined,
+        cep: cep || undefined,
+        logradouro: logradouro || undefined,
+        numero: numero || undefined,
+        complemento: complemento || undefined,
+        cidade_id: cidadeId,
+      });
+      onClose();
+    } catch {
+      // Quem chamou já avisou o erro; o formulário fica aberto com os dados preenchidos.
+    } finally {
+      setSalvando(false);
+    }
   };
 
   const check = (ok: boolean) =>
@@ -241,7 +251,10 @@ export default function ClientDialog({
       </Box>
       <Stack direction="row" spacing={1.5}>
         <Button onClick={onClose} variant="outlined">Cancelar</Button>
-        <Button variant="contained" onClick={handleSubmit} disableElevation sx={{ fontWeight: 700 }}>
+        <Button
+          variant="contained" onClick={handleSubmit} disableElevation sx={{ fontWeight: 700 }}
+          disabled={salvando} startIcon={salvando ? <CircularProgress size={16} color="inherit" /> : undefined}
+        >
           {isEdit ? "Salvar alterações" : "Cadastrar cliente"}
         </Button>
       </Stack>

@@ -153,7 +153,7 @@ export default function SuppliersPage() {
                   <TableCell>{s.email ? <Stack direction="row" spacing={1} alignItems="center"><EmailRoundedIcon sx={{ fontSize: 16, opacity: 0.7 }} />{s.email}</Stack> : "—"}</TableCell>
                   <TableCell>{s.telefone ? <Stack direction="row" spacing={1} alignItems="center"><PhoneRoundedIcon sx={{ fontSize: 16, opacity: 0.7 }} />{s.telefone}</Stack> : "—"}</TableCell>
                   <TableCell align="right">
-                    <IconButton onClick={(e) => handleMenuOpen(e, s.id)}><MoreVertRoundedIcon /></IconButton>
+                    <IconButton aria-label="Mais ações" onClick={(e) => handleMenuOpen(e, s.id)}><MoreVertRoundedIcon /></IconButton>
                   </TableCell>
                 </TableRow>
               )) : (
