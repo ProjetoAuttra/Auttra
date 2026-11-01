@@ -211,8 +211,16 @@ export const FuncionariosService = {
     // Sem senha informada, a conta nasce com uma senha aleatória inutilizável
     // e o funcionário define a própria senha pelo link enviado por e-mail.
     if (!contaExistente && !senhaInformada && funcionario.usuario?.id) {
-      const convite = await PasswordResetService.createResetForUser(funcionario.usuario.id);
-      return { ...funcionario, conta_existente: false, convite_enviado: convite.email_sent };
+      // Fluxo de convite (assunto "Seu acesso ao Auttra", link de 7 dias), nao o de redefinicao de senha.
+      // O link volta para o gestor poder repassar quando o e-mail nao sai.
+      const convite = await PasswordResetService.createResetForUser(funcionario.usuario.id, { convite: true });
+      return {
+        ...funcionario,
+        conta_existente: false,
+        convite_enviado: convite.email_sent,
+        convite_link: convite.reset_url,
+        convite_expira_em: convite.expires_at,
+      };
     }
 
     return { ...funcionario, conta_existente: contaExistente };

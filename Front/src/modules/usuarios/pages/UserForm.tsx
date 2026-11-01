@@ -4,17 +4,18 @@ import {
   Avatar, Chip, Menu, MenuItem, Fade, Table, TableBody, TableCell,
   TableHead, TableRow, TablePagination, Divider, CircularProgress,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
-import WorkRoundedIcon from "@mui/icons-material/WorkRounded";
 import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
 import FuncionarioDialog, { type FuncionarioForm } from "../dialog";
+import { AppDialog, AppDialogActions, AppDialogContent } from "../../../components/common/AppDialog";
+import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
+import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import { listarFuncionarios, criarFuncionario, atualizarFuncionario, deletarFuncionario } from "../api/api";
 import ListTableContainer from "../../../components/common/ListTableContainer";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
@@ -32,7 +33,7 @@ type Funcionario = {
 
 export default function FuncionariosPage() {
   const { user, can } = useAuth();
-  const { success, error } = useToast();
+  const { success, error, warning } = useToast();
   const confirm = useConfirm();
 
   const [rows, setRows] = React.useState<Funcionario[]>([]);
@@ -80,12 +81,38 @@ export default function FuncionariosPage() {
     }
   };
 
+  // Link do convite para o gestor repassar quando o e-mail não sai.
+  const [conviteLink, setConviteLink] = React.useState<string | null>(null);
+
+  const avisarCadastro = (novo: any, email: string) => {
+    if (novo?.conta_existente) {
+      success("Funcionário cadastrado. Ele já tem conta no Auttra e entra com a senha que já usa.");
+    } else if (novo?.convite_enviado === true) {
+      success(`Funcionário cadastrado. Enviamos um convite para ${email} criar a senha.`);
+    } else if (novo?.convite_enviado === false) {
+      warning("Funcionário cadastrado, mas o e-mail de convite não foi enviado. Copie o link e envie para ele.");
+      setConviteLink(novo.convite_link ?? null);
+    } else {
+      success("Funcionário cadastrado com sucesso!");
+    }
+  };
+
+  const copiarConvite = async () => {
+    if (!conviteLink) return;
+    try {
+      await navigator.clipboard.writeText(conviteLink);
+      success("Link copiado.");
+    } catch {
+      error("Não foi possível copiar. Selecione o link e copie manualmente.");
+    }
+  };
+
   const onSubmit = async (data: FuncionarioForm) => {
     try {
       if (mode === "create") {
         const novo = await criarFuncionario(data);
         setRows((p) => [novo, ...p]);
-        success("Funcionário cadastrado com sucesso!");
+        avisarCadastro(novo, data.email);
       } else if (current) {
         const atualizado = await atualizarFuncionario(current.id, data);
         setRows((p) => p.map((r) => (r.id === current.id ? atualizado : r)));
@@ -194,6 +221,38 @@ export default function FuncionariosPage() {
 
       <FuncionarioDialog open={openDialog} mode={mode} initial={current} onClose={() => setOpenDialog(false)}
         onSubmit={onSubmit} oficina_id={user?.oficina_id ?? 0} />
+
+      <AppDialog
+        open={!!conviteLink}
+        onClose={() => setConviteLink(null)}
+        onCloseClick={() => setConviteLink(null)}
+        confirmDiscard={false}
+        title="Link de convite"
+        icon={<LinkRoundedIcon />}
+        maxWidth="sm"
+        fullWidth
+      >
+        <AppDialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            O e-mail não foi enviado. Mande este link para o funcionário (WhatsApp, por exemplo): ele abre a
+            página para criar a senha. O link vale por 7 dias e só pode ser usado uma vez.
+          </Typography>
+          <TextField
+            value={conviteLink ?? ""}
+            fullWidth
+            size="small"
+            InputProps={{ readOnly: true }}
+            inputProps={{ "aria-label": "Link de convite" }}
+            onFocus={(e) => e.target.select()}
+          />
+        </AppDialogContent>
+        <AppDialogActions>
+          <Button onClick={() => setConviteLink(null)}>Fechar</Button>
+          <Button variant="contained" disableElevation startIcon={<ContentCopyRoundedIcon />} onClick={copiarConvite}>
+            Copiar link
+          </Button>
+        </AppDialogActions>
+      </AppDialog>
     </Box>
   );
 }

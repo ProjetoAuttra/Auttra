@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { prisma } from "../src/prisma/client.js";
 import { FuncionariosService } from "../src/services/funcionarios.service.js";
+import { sendEmail } from "../src/services/email.service.js";
 
 vi.mock("../src/services/email.service.js", () => ({
   EmailDeliveryError: class extends Error {},
@@ -68,8 +69,21 @@ describe.skipIf(!process.env.DATABASE_URL)("funcionários (convite e contas comp
 
     const u = await prisma.usuario.findUniqueOrThrow({ where: { email } });
     expect(await bcrypt.compare("123456", u.senha)).toBe(false);
-    const tokens = await prisma.password_reset_token.count({ where: { usuario_id: u.id, used_at: null } });
-    expect(tokens).toBe(1);
+    const tokens = await prisma.password_reset_token.findMany({ where: { usuario_id: u.id, used_at: null } });
+    expect(tokens).toHaveLength(1);
+
+    // Convite de verdade (link de 7 dias e assunto de convite), não o reset de senha de 60 minutos.
+    const dias = (tokens[0].expires_at.getTime() - Date.now()) / 86_400_000;
+    expect(dias).toBeGreaterThan(6.9);
+    expect(sendEmail).toHaveBeenLastCalledWith(expect.objectContaining({ to: email, subject: "Seu acesso ao Auttra" }));
+    expect(f.convite_link).toMatch(/token=/);
+  });
+
+  it("e-mail que não sai: avisa e devolve o link para o gestor repassar", async () => {
+    vi.mocked(sendEmail).mockRejectedValueOnce(new Error("smtp fora"));
+    const f: any = await criar(oficinaA, perfilA, { email: novoEmail("semenvio") });
+    expect(f.convite_enviado).toBe(false);
+    expect(f.convite_link).toMatch(/token=/);
   });
 
   it("com senha informada, usa a senha e não envia convite", async () => {
