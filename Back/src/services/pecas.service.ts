@@ -52,7 +52,16 @@ export const PecasService = {
       return { ...reativado, _reativado: true };
     }
 
-    const nova = await prisma.peca.create({ data });
+    const nova = await prisma.peca.create({
+      data: {
+        oficina_id: data.oficina_id,
+        nome: data.nome,
+        descricao: data.descricao ?? null,
+        preco_custo: data.preco_custo,
+        preco_venda: data.preco_venda,
+        estoque: data.estoque ?? 0,
+      },
+    });
     return { ...nova, _reativado: false };
   },
 
