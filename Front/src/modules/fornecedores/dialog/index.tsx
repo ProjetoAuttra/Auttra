@@ -43,7 +43,7 @@ type Props = {
   initial?: Supplier | null;
   onClose: () => void;
   onSubmit: (data: SupplierForm) => Promise<void>;
-  onDelete?: (supplier: Supplier) => void;
+  onDelete?: (supplier: Supplier) => void | Promise<void>;
 };
 
 export default function SupplierDialog({ open, mode, initial, onClose, onSubmit, onDelete }: Props) {
@@ -58,6 +58,8 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
   const [uf, setUf] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
+  // Trava o "Sim, excluir" enquanto exclui: clique duplo não dispara duas exclusões.
+  const [excluindo, setExcluindo] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) return;
@@ -107,6 +109,19 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
     }
   };
 
+  const handleExcluir = async () => {
+    if (excluindo || !initial || !onDelete) return;
+    setExcluindo(true);
+    try {
+      await onDelete(initial);
+      onClose();
+    } catch {
+      // Quem chamou já avisou o erro; a gaveta fica aberta.
+    } finally {
+      setExcluindo(false);
+    }
+  };
+
   const linha = { display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 } as const;
 
   const footer = (
@@ -122,7 +137,9 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
               <Typography variant="body2" color="error" fontWeight={600}>Confirmar exclusão?</Typography>
               <Button
                 color="error" variant="contained" size="small" disableElevation
-                onClick={() => { onDelete(initial); onClose(); }}
+                disabled={excluindo}
+                startIcon={excluindo ? <CircularProgress size={14} color="inherit" /> : undefined}
+                onClick={handleExcluir}
               >
                 Sim, excluir
               </Button>

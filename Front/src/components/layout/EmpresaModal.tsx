@@ -24,6 +24,7 @@ import { maskCnpj, maskTelefone, maskCep } from "../../utils/masks";
 import SeletorCor from "../common/SeletorCor";
 import { AppDialog, AppDialogActions, AppDialogContent, SectionLabel } from "../common/AppDialog";
 import { comoBotao } from "../common/linhaClicavel";
+import FalhaCarregamento from "../common/FalhaCarregamento";
 
 type Props = { open: boolean; onClose: () => void };
 
@@ -103,18 +104,27 @@ export default function EmpresaModal({ open, onClose }: Props) {
 
   const [form, setForm] = React.useState<Form>(EMPTY_FORM);
   const [loading, setLoading] = React.useState(false);
+  // Sem os dados carregados, o formulário ficaria vazio e salvar apagaria CNPJ e endereço: mostra o erro e trava o salvar.
+  const [falhou, setFalhou] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [uploadingLogo, setUploadingLogo] = React.useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
-  React.useEffect(() => {
-    if (!open) return;
+  const carregar = React.useCallback(() => {
     setLoading(true);
+    setFalhou(false);
     buscarEmpresa()
       .then((data) => setForm(empresaToForm(data)))
-      .catch(() => error("Não foi possível carregar os dados da empresa."))
+      .catch(() => {
+        setFalhou(true);
+        error("Não foi possível carregar os dados da empresa.");
+      })
       .finally(() => setLoading(false));
-  }, [open, error]);
+  }, [error]);
+
+  React.useEffect(() => {
+    if (open) carregar();
+  }, [open, carregar]);
 
   const set = (field: keyof Form, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -156,6 +166,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
   };
 
   const handleSave = async () => {
+    if (falhou || loading) return;
     if (!form.nome.trim()) { error("O nome da empresa é obrigatório."); return; }
     setSaving(true);
     try {
@@ -231,6 +242,8 @@ export default function EmpresaModal({ open, onClose }: Props) {
           <Box sx={{ display: "grid", placeItems: "center", py: 6 }}>
             <CircularProgress />
           </Box>
+        ) : falhou ? (
+          <FalhaCarregamento motivo="erro" registro="Dados da empresa" onTentarNovamente={carregar} onVoltar={onClose} />
         ) : (
           <Stack spacing={3}>
             {/* ── Informações gerais ─────────────────────────── */}
@@ -489,7 +502,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
           onClick={handleSave}
           variant="contained"
           disableElevation
-          disabled={saving || loading}
+          disabled={saving || loading || falhou}
           sx={{ fontWeight: 700, minWidth: 100 }}
         >
           {saving ? <CircularProgress size={18} /> : "Salvar"}

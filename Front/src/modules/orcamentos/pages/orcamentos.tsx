@@ -26,6 +26,7 @@ import ModuleHeader from "../../../components/layout/ModuleHeader";
 import FiltrosRelatorio, { type CampoFiltro } from "../../relatorios/shared/FiltrosRelatorio";
 import { periodoMesAtual } from "../../relatorios/shared/reportUtils";
 import { linhaClicavel } from "../../../components/common/linhaClicavel";
+import { formatarData } from "../../pagamentos/api/api";
 import { brand } from "../../../app/theme";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
@@ -362,11 +363,11 @@ export default function OrcamentosPage() {
                     <TableCell>
                       <Stack spacing={0.1}>
                         <Typography variant="body2" color="text.secondary">
-                          {new Date(o.data).toLocaleDateString("pt-BR")}
+                          {formatarData(o.data)}
                         </Typography>
                         {o.validade && (
                           <Typography variant="caption" color="text.secondary">
-                            Válido até {new Date(o.validade).toLocaleDateString("pt-BR")}
+                            Válido até {formatarData(o.validade)}
                           </Typography>
                         )}
                       </Stack>

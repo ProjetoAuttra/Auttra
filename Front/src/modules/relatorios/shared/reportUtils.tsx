@@ -10,17 +10,20 @@ import {
   type Theme,
 } from "@mui/material";
 import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
+import { formatarData, paraInputData } from "../../pagamentos/api/api";
 
 export const LIMITE_ESTOQUE_BAIXO = 3;
 
 export const brl = (value: number) =>
   Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+/**
+ * Data para exibição. Campos só-dia (vencimento, data do orçamento, validade) chegam como meia-noite UTC e são mostrados
+ * como data de calendário; instantes com hora real (agendamento, created_at) seguem o fuso local. Mesma regra de formatarData.
+ */
 export const dateBr = (value?: string | null) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("pt-BR");
+  if (!value || Number.isNaN(new Date(value).getTime())) return "-";
+  return formatarData(value);
 };
 
 const isoLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -47,13 +50,14 @@ export const daysBetween = (from?: string | null, to = new Date()) => {
   return Math.max(0, Math.floor((to.getTime() - start.getTime()) / 86400000));
 };
 
+/**
+ * O dia de `value` está entre `from` e `to` (YYYY-MM-DD, inclusivos)? Compara os dias como texto: campos só-dia
+ * (meia-noite UTC) usam a fatia UTC e não caem no dia anterior; instantes com hora usam o dia local.
+ */
 export const inDateRange = (value: string | null | undefined, from: string, to: string) => {
-  if (!value) return false;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return false;
-  const start = new Date(`${from}T00:00:00`);
-  const end = new Date(`${to}T23:59:59`);
-  return date >= start && date <= end;
+  const dia = paraInputData(value);
+  if (!dia) return false;
+  return dia >= from && dia <= to;
 };
 
 export const percent = (value: number) =>

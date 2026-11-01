@@ -17,6 +17,7 @@ import CampoData from "../../../../components/common/CampoData";
 import ClientDialog, { type ClientForm } from "../../../clientes/dialog";
 import VeiculoDialog, { type VeiculoForm } from "../../../veiculos/dialog";
 import { criarVeiculo } from "../../../veiculos/api/api";
+import { formatPreco, parsePreco } from "../../../../utils/masks";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -32,16 +33,6 @@ export type OrcamentoItem = {
 };
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-function formatPreco(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return "";
-  return (parseFloat(digits) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function parsePreco(formatted: string): number {
-  return parseFloat(formatted.replace(/\./g, "").replace(",", ".")) || 0;
-}
 
 /** Data local (YYYY-MM-DD) daqui a `dias`; toISOString usaria UTC e viraria o dia depois das 21h no Brasil. */
 function hojeMais(dias: number): string {

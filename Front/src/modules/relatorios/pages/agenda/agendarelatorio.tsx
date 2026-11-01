@@ -12,7 +12,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import FileDownloadRoundedIcon from '@mui/icons-material/FileDownloadRounded';
-import api from '../../../../api/api';
+import { buscarTodas } from '../../shared/buscarTodas';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../context/ToastContext';
 import FiltrosRelatorio, { type CampoFiltro } from '../../shared/FiltrosRelatorio';
@@ -41,12 +41,12 @@ export default function RelatorioAgenda() {
 
     (async () => {
       try {
-        const { data } = await api.get(`/agendamentos`, {
-          params: { oficina_id: user.oficina_id },
-        });
+        // Todas as páginas: sem paginação a listagem para no teto do servidor.
+        const data = await buscarTodas<any>('/agendamentos');
 
         const agendamentos: Agendamento[] = data.map((a: any) => {
-          const dataAg = a.data_agendamento ?? a.data ?? new Date().toISOString();
+          // O agendamento guarda o início em data_inicio; sem ele, todos apareciam com a data de hoje.
+          const dataAg = a.data_agendamento ?? a.data_inicio ?? a.data ?? new Date().toISOString();
 
           return {
             id: a.id,

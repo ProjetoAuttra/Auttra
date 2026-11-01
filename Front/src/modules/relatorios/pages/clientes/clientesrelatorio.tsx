@@ -4,7 +4,7 @@ import {
   TableHead, TableRow, Button, CircularProgress, TextField
 } from '@mui/material';
 import FileDownloadRoundedIcon from '@mui/icons-material/FileDownloadRounded';
-import api from '../../../../api/api';
+import { buscarTodas } from '../../shared/buscarTodas';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../context/ToastContext';
 import FiltrosRelatorio from '../../shared/FiltrosRelatorio';
@@ -32,10 +32,8 @@ export default function RelatorioClientes() {
     if (!user?.oficina_id) return;
     (async () => {
       try {
-        const { data } = await api.get(`/clientes`, {
-          params: { oficina_id: user.oficina_id },
-        });
-        setClientes(data);
+        // Todas as páginas: sem paginação a listagem para no teto do servidor.
+        setClientes(await buscarTodas<Cliente>('/clientes'));
       } catch (err) {
         console.error('Erro ao carregar clientes:', err);
       } finally {

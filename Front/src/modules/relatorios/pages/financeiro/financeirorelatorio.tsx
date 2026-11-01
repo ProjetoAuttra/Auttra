@@ -8,7 +8,7 @@ import {
   TableHead,
   TableRow,
 } from "@mui/material";
-import api from "../../../../api/api";
+import { buscarTodas, somarDias } from "../../shared/buscarTodas";
 import { METODO_LABEL, METODO_OPTIONS } from "../../../pagamentos/api/api";
 import { useAuth } from "../../../../context/AuthContext";
 import { useToast } from "../../../../context/ToastContext";
@@ -65,12 +65,26 @@ export default function RelatorioFinanceiro() {
 
   React.useEffect(() => {
     if (!user?.oficina_id) return;
+    let vivo = true;
 
     (async () => {
-      setLoading(true);
       try {
-        const { data } = await api.get("/pagamentos", { params: { oficina_id: user.oficina_id } });
-        setDados((data ?? []).map((p: any) => ({
+        // A listagem sem paginação para em 200 títulos (por vencimento, do mais distante), e parcelas futuras
+        // deixavam os títulos do mês de fora. Busca todas as páginas, já filtrando o período no servidor:
+        // os pagos no período (data do pagamento) e os que vencem no período (os em aberto entram por aqui).
+        // A janela de vencimento tem um dia de folga; o dia exato é conferido abaixo com inDateRange.
+        const [pagosNoPeriodo, vencendoNoPeriodo] = await Promise.all([
+          buscarTodas<any>("/pagamentos", {
+            pagamento_de: dataInicio,
+            pagamento_ate: dataFim,
+            tz_offset: String(new Date().getTimezoneOffset()),
+          }),
+          buscarTodas<any>("/pagamentos", { vencimento_de: somarDias(dataInicio, -1), vencimento_ate: somarDias(dataFim, 1) }),
+        ]);
+        if (!vivo) return;
+        const porId = new Map<number, any>();
+        for (const p of [...pagosNoPeriodo, ...vencendoNoPeriodo]) porId.set(p.id, p);
+        setDados([...porId.values()].map((p: any) => ({
           ...p,
           valor: Number(p.valor ?? 0),
           valor_pago: Number(p.valor_pago ?? 0),
@@ -79,12 +93,13 @@ export default function RelatorioFinanceiro() {
         })));
       } catch (err) {
         console.error("Erro ao carregar pagamentos:", err);
-        error("Não foi possível carregar o relatório financeiro.");
+        if (vivo) error("Não foi possível carregar o relatório financeiro.");
       } finally {
-        setLoading(false);
+        if (vivo) setLoading(false);
       }
     })();
-  }, [user?.oficina_id, error]);
+    return () => { vivo = false; };
+  }, [user?.oficina_id, dataInicio, dataFim, error]);
 
   const hoje = new Date(`${todayISO()}T23:59:59`);
   const vencida = (p: Pagamento) => isPendente(p) && !!p.data_vencimento && new Date(p.data_vencimento) < hoje;

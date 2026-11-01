@@ -1,11 +1,12 @@
 import * as React from "react";
-import { Box, Button, Collapse, Divider, FormControlLabel, InputAdornment, MenuItem, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import { Box, Button, CircularProgress, Collapse, Divider, FormControlLabel, InputAdornment, MenuItem, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import PaymentsRoundedIcon from "@mui/icons-material/PaymentsRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../components/common/AppDialog";
 import CampoData from "../../../components/common/CampoData";
 import TextoLimitado from "../../../components/common/TextoLimitado";
 import { METODO_OPTIONS, brl, formatarData, hojeInput, type Conta } from "../api/api";
+import { formatPreco, maskDecimal, parseDecimal, parsePreco, precoParaCampo } from "../../../utils/masks";
 
 const toCents = (v: number) => Math.round(v * 100);
 
@@ -38,10 +39,11 @@ function SeletorUnidade({ valor, onChange, rotulo }: { valor: Unidade; onChange:
 }
 
 /** Converte o que foi digitado em reais; percentual é calculado sobre o valor original e arredondado ao centavo. */
-const emReais = (texto: string, unidade: Unidade, base: number) => {
-  const n = parseFloat(texto) || 0;
-  return unidade === "percentual" ? Math.round(base * n) / 100 : n;
-};
+const emReais = (texto: string, unidade: Unidade, base: number) =>
+  unidade === "percentual" ? Math.round(base * parseDecimal(texto)) / 100 : parsePreco(texto);
+
+/** Reais usam a máscara de moeda; percentual é um decimal livre que aceita vírgula. */
+const mascarar = (texto: string, unidade: Unidade) => (unidade === "percentual" ? maskDecimal(texto) : formatPreco(texto));
 
 const Titulo = ({ children }: { children: React.ReactNode }) => (
   <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.4, letterSpacing: 1 }}>{children}</Typography>
@@ -95,7 +97,7 @@ export type DadosReceber = {
   multa?: number;
 };
 
-function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; receber: boolean; onConfirm: (d: DadosReceber) => void; onCancel: () => void }) {
+function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; receber: boolean; onConfirm: (d: DadosReceber) => void | Promise<void>; onCancel: () => void }) {
   const original = Number(conta.valor_original);
   const jaPago = Number(conta.valor_pago);
   const descontoAtual = Number(conta.desconto);
@@ -103,23 +105,22 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
 
   // O desconto só aparece quando ligado; um título que já tem desconto abre com ele ligado.
   const [comDesconto, setComDesconto] = React.useState(descontoAtual > 0);
-  const [descontoStr, setDescontoStr] = React.useState(descontoAtual > 0 ? descontoAtual.toFixed(2) : "");
+  const [descontoStr, setDescontoStr] = React.useState(precoParaCampo(descontoAtual));
   const [motivo, setMotivo] = React.useState(conta.motivo_desconto ?? "");
   // A multa funciona como o desconto, só que soma ao valor e não pede motivo.
   const [comMulta, setComMulta] = React.useState(multaAtual > 0);
-  const [multaStr, setMultaStr] = React.useState(multaAtual > 0 ? multaAtual.toFixed(2) : "");
+  const [multaStr, setMultaStr] = React.useState(precoParaCampo(multaAtual));
   // Desconto e multa podem ser digitados em reais ou em % do valor original; sempre viajam em reais.
   const [descontoUnidade, setDescontoUnidade] = React.useState<Unidade>("valor");
   const [multaUnidade, setMultaUnidade] = React.useState<Unidade>("valor");
   const descontoRef = React.useRef<HTMLInputElement>(null);
   const multaRef = React.useRef<HTMLInputElement>(null);
-  const [valorStr, setValorStr] = React.useState(() => {
-    const inicial = original - descontoAtual + multaAtual - jaPago;
-    return inicial > 0 ? inicial.toFixed(2) : "";
-  });
+  const [valorStr, setValorStr] = React.useState(() => precoParaCampo(original - descontoAtual + multaAtual - jaPago));
   const [valorEditado, setValorEditado] = React.useState(false);
   const [metodo, setMetodo] = React.useState("");
   const [data, setData] = React.useState(hojeInput);
+  // Trava o botão enquanto salva: clique duplo não registra o recebimento duas vezes.
+  const [salvando, setSalvando] = React.useState(false);
 
   const desconto = comDesconto ? emReais(descontoStr, descontoUnidade, original) : 0; // desligado = sem desconto (remove o atual)
   const multa = comMulta ? emReais(multaStr, multaUnidade, original) : 0; // desligada = sem multa (remove a atual)
@@ -132,16 +133,36 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
 
   // Enquanto o usuário não digitou o valor, ele acompanha o saldo (que muda com o desconto).
   React.useEffect(() => {
-    if (!valorEditado) setValorStr(saldo > 0 ? saldo.toFixed(2) : "");
+    if (!valorEditado) setValorStr(precoParaCampo(saldo));
   }, [saldo, valorEditado]);
 
-  const valor = parseFloat(valorStr) || 0;
+  const valor = parsePreco(valorStr);
   const excede = toCents(valor) > toCents(saldo);
   const valorInvalido = !semSaldo && (valor <= 0 || excede);
   const parcial = !semSaldo && !valorInvalido && toCents(valor) < toCents(saldo);
   const invalido = descontoInvalido || precisaMotivo || descontoVazio || multaVazia || valorInvalido || !metodo || !data;
   const mudouDesconto = toCents(desconto) !== toCents(descontoAtual);
   const mudouMulta = toCents(multa) !== toCents(multaAtual);
+
+  const confirmar = async () => {
+    if (salvando || invalido) return;
+    setSalvando(true);
+    try {
+      await onConfirm({
+        metodo,
+        valor: semSaldo ? undefined : valor,
+        data_pagamento: data,
+        // O desconto só viaja quando mudou; 0 remove o desconto anterior.
+        ...(mudouDesconto ? { desconto, motivo_desconto: desconto > 0 ? motivo.trim() : undefined } : {}),
+        // A multa também só viaja quando mudou; 0 remove a anterior.
+        ...(mudouMulta ? { multa } : {}),
+      });
+    } catch {
+      // Quem chamou já avisou o erro; o modal fica aberto com os dados preenchidos.
+    } finally {
+      setSalvando(false);
+    }
+  };
 
   return (
     <>
@@ -154,9 +175,8 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
             {!semSaldo && (
               <TextField
                 label={receber ? "Valor recebido *" : "Valor pago *"}
-                type="number"
                 value={valorStr}
-                onChange={(e) => { setValorStr(e.target.value); setValorEditado(true); }}
+                onChange={(e) => { setValorStr(formatPreco(e.target.value)); setValorEditado(true); }}
                 size="small"
                 fullWidth
                 autoFocus
@@ -169,7 +189,7 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
                       : " "
                 }
                 InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }}
-                inputProps={{ min: 0, step: "0.01" }}
+                inputProps={{ inputMode: "decimal" }}
               />
             )}
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
@@ -198,9 +218,8 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ pt: 1 }}>
                 <TextField
                   label="Valor do desconto *"
-                  type="number"
                   value={descontoStr}
-                  onChange={(e) => setDescontoStr(e.target.value)}
+                  onChange={(e) => setDescontoStr(mascarar(e.target.value, descontoUnidade))}
                   size="small"
                   fullWidth
                   autoFocus
@@ -221,7 +240,7 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
                       </InputAdornment>
                     ),
                   }}
-                  inputProps={{ min: 0, step: "0.01" }}
+                  inputProps={{ inputMode: "decimal" }}
                 />
                 <TextField
                   label="Motivo do desconto *"
@@ -246,9 +265,8 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ pt: 1 }}>
                 <TextField
                   label="Valor da multa *"
-                  type="number"
                   value={multaStr}
-                  onChange={(e) => setMultaStr(e.target.value)}
+                  onChange={(e) => setMultaStr(mascarar(e.target.value, multaUnidade))}
                   size="small"
                   fullWidth
                   autoFocus
@@ -262,7 +280,7 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
                       </InputAdornment>
                     ),
                   }}
-                  inputProps={{ min: 0, step: "0.01" }}
+                  inputProps={{ inputMode: "decimal" }}
                 />
               </Stack>
             </Collapse>
@@ -277,19 +295,10 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
         <Button
           variant="contained"
           disableElevation
-          disabled={invalido}
+          disabled={invalido || salvando}
+          startIcon={salvando ? <CircularProgress size={16} color="inherit" /> : undefined}
           sx={{ fontWeight: 700 }}
-          onClick={() =>
-            onConfirm({
-              metodo,
-              valor: semSaldo ? undefined : valor,
-              data_pagamento: data,
-              // O desconto só viaja quando mudou; 0 remove o desconto anterior.
-              ...(mudouDesconto ? { desconto, motivo_desconto: desconto > 0 ? motivo.trim() : undefined } : {}),
-              // A multa também só viaja quando mudou; 0 remove a anterior.
-              ...(mudouMulta ? { multa } : {}),
-            })
-          }
+          onClick={confirmar}
         >
           {parcial ? `Registrar ${receber ? "recebimento" : "pagamento"} parcial` : receber ? "Confirmar recebimento" : "Confirmar pagamento"}
         </Button>
@@ -303,7 +312,7 @@ type ReceberProps = {
   onClose: () => void;
   conta: Conta | null;
   tipo: "receber" | "pagar";
-  onConfirm: (d: DadosReceber) => void;
+  onConfirm: (d: DadosReceber) => void | Promise<void>;
 };
 
 /** Receber/pagar com desconto opcional na mesma tela: tudo é aplicado de uma vez, na mesma transação. */
@@ -318,13 +327,27 @@ export function ReceberTituloDialog({ open, onClose, conta, tipo, onConfirm }: R
 
 export type DadosParcelar = { total_parcelas: number; data_primeira_parcela: string; metodo?: string };
 
-function FormRenegociar({ conta, receber, onConfirm, onCancel }: { conta: Conta; receber: boolean; onConfirm: (d: DadosParcelar) => void; onCancel: () => void }) {
+function FormRenegociar({ conta, receber, onConfirm, onCancel }: { conta: Conta; receber: boolean; onConfirm: (d: DadosParcelar) => void | Promise<void>; onCancel: () => void }) {
   const saldo = Number(conta.valor_original) - Number(conta.desconto) + Number(conta.multa ?? 0) - Number(conta.valor_pago);
   const [totalStr, setTotalStr] = React.useState("2");
   const [dataPrimeira, setDataPrimeira] = React.useState("");
   const [metodo, setMetodo] = React.useState("");
   const n = parseInt(totalStr) || 0;
   const invalido = n < 2 || n > 60 || !dataPrimeira;
+  // Trava o botão enquanto salva: clique duplo não parcela o título duas vezes.
+  const [salvando, setSalvando] = React.useState(false);
+
+  const confirmar = async () => {
+    if (salvando || invalido) return;
+    setSalvando(true);
+    try {
+      await onConfirm({ total_parcelas: n, data_primeira_parcela: dataPrimeira, metodo: metodo || undefined });
+    } catch {
+      // Quem chamou já avisou o erro; o modal fica aberto com os dados preenchidos.
+    } finally {
+      setSalvando(false);
+    }
+  };
 
   return (
     <>
@@ -372,9 +395,10 @@ function FormRenegociar({ conta, receber, onConfirm, onCancel }: { conta: Conta;
         <Button
           variant="contained"
           disableElevation
-          disabled={invalido}
+          disabled={invalido || salvando}
+          startIcon={salvando ? <CircularProgress size={16} color="inherit" /> : undefined}
           sx={{ fontWeight: 700 }}
-          onClick={() => onConfirm({ total_parcelas: n, data_primeira_parcela: dataPrimeira, metodo: metodo || undefined })}
+          onClick={confirmar}
         >
           Confirmar renegociação
         </Button>
@@ -388,7 +412,7 @@ type RenegociarProps = {
   onClose: () => void;
   conta: Conta | null;
   tipo: "receber" | "pagar";
-  onConfirm: (d: DadosParcelar) => void;
+  onConfirm: (d: DadosParcelar) => void | Promise<void>;
 };
 
 /** Renegociar: parcela o saldo do título em várias vezes. */

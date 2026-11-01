@@ -11,8 +11,7 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import api from "../../../../api/api";
-import { useAuth } from "../../../../context/AuthContext";
+import { buscarTodas, somarDias } from "../../shared/buscarTodas";
 import { useToast } from "../../../../context/ToastContext";
 import {
   brl,
@@ -58,7 +57,6 @@ type FiltrosOrcamentos = { de: string; ate: string; situacao: string[]; clientes
 const PADRAO: FiltrosOrcamentos = { ...periodoMesAtual(), situacao: [], clientes: [] };
 
 export default function OrcamentosPerdidosRelatorio() {
-  const { user } = useAuth();
   const { error, warning } = useToast();
   const [orcamentos, setOrcamentos] = React.useState<Orcamento[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -66,18 +64,21 @@ export default function OrcamentosPerdidosRelatorio() {
   const { de: dataInicio, ate: dataFim } = filtros;
 
   React.useEffect(() => {
+    let vivo = true;
     (async () => {
       try {
-        const { data } = await api.get("/orcamentos", { params: { oficina_id: user?.oficina_id } });
-        setOrcamentos(data ?? []);
+        // Todas as páginas do período (com um dia de folga; o dia exato é conferido com inDateRange).
+        const data = await buscarTodas<Orcamento>("/orcamentos", { data_de: somarDias(dataInicio, -1), data_ate: somarDias(dataFim, 1) });
+        if (vivo) setOrcamentos(data);
       } catch (err) {
         console.error("Erro ao carregar orçamentos perdidos:", err);
-        error("Não foi possível carregar os orçamentos.");
+        if (vivo) error("Não foi possível carregar os orçamentos.");
       } finally {
-        setLoading(false);
+        if (vivo) setLoading(false);
       }
     })();
-  }, [error]);
+    return () => { vivo = false; };
+  }, [dataInicio, dataFim, error]);
 
   const noPeriodo = orcamentos.filter(
     (o) => inDateRange(o.data, dataInicio, dataFim) && (!filtros.clientes.length || filtros.clientes.includes(o.cliente?.nome ?? ""))

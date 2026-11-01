@@ -1,5 +1,6 @@
 import { prisma } from "../prisma/client.js";
 import { LIMITE_LISTAGEM } from "../utils/limites.js";
+import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
 
 function toAgendamentoData(data: any, partial = false) {
   const payload: any = {};
@@ -79,8 +80,14 @@ async function validateAgendamentoRelations(data: any, oficinaId: number) {
 }
 
 export const AgendamentoService = {
-  async list(oficina_id: number) {
-    return prisma.agendamento.findMany({ where: { oficina_id, deleted_at: null }, include: includeRelations, orderBy: { id: "desc" }, take: LIMITE_LISTAGEM });
+  /** Sem page/limit, segue com o teto de LIMITE_LISTAGEM; com eles, pagina (os relatórios buscam todas as páginas). */
+  async list(oficina_id: number, pag: Paginacao | null = null) {
+    const where = { oficina_id, deleted_at: null };
+    return listarPaginado(pag, {
+      find: ({ skip, take }) =>
+        prisma.agendamento.findMany({ where, include: includeRelations, orderBy: { id: "desc" }, skip, take }),
+      count: () => prisma.agendamento.count({ where }),
+    });
   },
 
   async getById(id: number, oficina_id: number) {

@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
 import { AgendamentoService } from "../services/agendamento.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
+import { parsePaginacao, responderLista } from "../utils/paginacao.js";
 
 export const AgendamentoController = {
   async list(req: Request, res: Response) {
-    res.json(await AgendamentoService.list(getRequiredOfficeId(req)));
+    responderLista(res, await AgendamentoService.list(getRequiredOfficeId(req), parsePaginacao(req.query)));
   },
 
   async getById(req: Request, res: Response) {

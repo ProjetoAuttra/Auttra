@@ -1,7 +1,7 @@
 import * as React from "react";
 import {
   Box, Stack, Typography, Divider, Chip, Tabs, Tab,
-  Button, TextField, MenuItem, InputAdornment,
+  Button, TextField, MenuItem, InputAdornment, CircularProgress,
 } from "@mui/material";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
@@ -135,12 +135,26 @@ export function EstornarDialog({ open, onClose, onConfirm, valorPago, tipo }: {
   onClose: () => void;
   valorPago: number;
   tipo: "receber" | "pagar";
-  onConfirm: (data: { motivo: string }) => void;
+  onConfirm: (data: { motivo: string }) => void | Promise<void>;
 }) {
   const [motivo, setMotivo] = React.useState("");
+  // Trava o botão enquanto salva: clique duplo não estorna duas vezes.
+  const [salvando, setSalvando] = React.useState(false);
   React.useEffect(() => { if (open) setMotivo(""); }, [open]);
 
   const motivoValido = motivo.trim().length >= 3;
+
+  const confirmar = async () => {
+    if (salvando || !motivoValido) return;
+    setSalvando(true);
+    try {
+      await onConfirm({ motivo: motivo.trim() });
+    } catch {
+      // Quem chamou já avisou o erro; o modal fica aberto com o motivo preenchido.
+    } finally {
+      setSalvando(false);
+    }
+  };
 
   return (
     <AppDialog
@@ -176,8 +190,9 @@ export function EstornarDialog({ open, onClose, onConfirm, valorPago, tipo }: {
           variant="contained"
           color="error"
           disableElevation
-          disabled={!motivoValido}
-          onClick={() => onConfirm({ motivo: motivo.trim() })}
+          disabled={!motivoValido || salvando}
+          startIcon={salvando ? <CircularProgress size={16} color="inherit" /> : undefined}
+          onClick={confirmar}
           sx={{ fontWeight: 700 }}
         >
           Estornar

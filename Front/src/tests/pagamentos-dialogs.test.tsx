@@ -308,7 +308,7 @@ describe("ReceberTituloDialog (receber + desconto na mesma tela)", () => {
     expect(screen.queryByLabelText(/motivo do desconto/i)).toBeNull();
 
     await ligarDesconto(user);
-    await user.type(await screen.findByLabelText(/valor do desconto/i), "50");
+    await user.type(await screen.findByLabelText(/valor do desconto/i), "5000"); // máscara de moeda: os dígitos entram pelos centavos
     expect(parseFloat(valor().value)).toBe(250);
 
     await ligarDesconto(user); // desliga
@@ -344,7 +344,7 @@ describe("ReceberTituloDialog (receber + desconto na mesma tela)", () => {
 
   it("sem desconto, confirma o saldo inteiro e não envia desconto", async () => {
     const { onConfirm, user } = setup();
-    expect(valor().value).toBe("300.00");
+    expect(valor().value).toBe("300,00");
     await escolherMetodo(user);
     await user.click(screen.getByRole("button", { name: /confirmar recebimento/i }));
     expect(onConfirm).toHaveBeenCalledWith({ metodo: "pix", valor: 300, data_pagamento: hojeInput() });
@@ -353,7 +353,7 @@ describe("ReceberTituloDialog (receber + desconto na mesma tela)", () => {
   it("o desconto reduz o valor sugerido e o saldo do resumo, e viaja junto com o recebimento", async () => {
     const { onConfirm, user } = setup();
     await ligarDesconto(user);
-    await user.type(screen.getByLabelText(/valor do desconto/i), "50");
+    await user.type(screen.getByLabelText(/valor do desconto/i), "5000");
 
     expect(parseFloat(valor().value)).toBe(250);
     expect(norm(screen.getByText("Saldo a receber").nextElementSibling?.textContent)).toBe(brl(250));
@@ -371,7 +371,7 @@ describe("ReceberTituloDialog (receber + desconto na mesma tela)", () => {
 
     await user.click(screen.getByRole("switch", { name: /aplicar multa/i }));
     expect((screen.getByRole("button", { name: /confirmar recebimento/i }) as HTMLButtonElement).disabled).toBe(true); // ligou sem valor
-    await user.type(screen.getByLabelText(/valor da multa/i), "20");
+    await user.type(screen.getByLabelText(/valor da multa/i), "2000");
 
     expect(parseFloat(valor().value)).toBe(320);
     expect(norm(screen.getByText("Multa").nextElementSibling?.textContent)).toBe(`+ ${brl(20)}`);
@@ -385,9 +385,9 @@ describe("ReceberTituloDialog (receber + desconto na mesma tela)", () => {
   it("multa e desconto juntos: saldo = original - desconto + multa", async () => {
     const { user } = setup();
     await user.click(screen.getByRole("switch", { name: /aplicar desconto/i }));
-    await user.type(screen.getByLabelText(/valor do desconto/i), "50");
+    await user.type(screen.getByLabelText(/valor do desconto/i), "5000");
     await user.click(screen.getByRole("switch", { name: /aplicar multa/i }));
-    await user.type(screen.getByLabelText(/valor da multa/i), "30");
+    await user.type(screen.getByLabelText(/valor da multa/i), "3000");
     expect(norm(screen.getByText("Saldo a receber").nextElementSibling?.textContent)).toBe(brl(280));
   });
 
@@ -422,12 +422,12 @@ describe("ReceberTituloDialog (receber + desconto na mesma tela)", () => {
   it("valor digitado não é sobrescrito pelo desconto; parcial avisa o saldo", async () => {
     const { onConfirm, user } = setup();
     await user.clear(valor());
-    await user.type(valor(), "100");
+    await user.type(valor(), "10000");
     await ligarDesconto(user);
-    await user.type(screen.getByLabelText(/valor do desconto/i), "20");
+    await user.type(screen.getByLabelText(/valor do desconto/i), "2000");
     await user.type(screen.getByLabelText(/motivo do desconto/i), "x");
 
-    expect(valor().value).toBe("100");
+    expect(valor().value).toBe("100,00");
     expect(norm(screen.getByText(/será lançado como um novo título pendente/i).textContent)).toContain(brl(180)); // 300 - 20 - 100
     await escolherMetodo(user);
     await user.click(screen.getByRole("button", { name: /registrar recebimento parcial/i }));
@@ -437,7 +437,7 @@ describe("ReceberTituloDialog (receber + desconto na mesma tela)", () => {
   it("desconto maior que o valor original é bloqueado", async () => {
     const { user } = setup();
     await ligarDesconto(user);
-    await user.type(screen.getByLabelText(/valor do desconto/i), "301");
+    await user.type(screen.getByLabelText(/valor do desconto/i), "30100");
     expect(screen.getByText(/máximo/i)).toBeInTheDocument();
     expect((screen.getByRole("button", { name: /confirmar recebimento/i }) as HTMLButtonElement).disabled).toBe(true);
   });
@@ -445,7 +445,7 @@ describe("ReceberTituloDialog (receber + desconto na mesma tela)", () => {
   it("desconto de 100% esconde o valor e só confirma a baixa", async () => {
     const { onConfirm, user } = setup();
     await ligarDesconto(user);
-    await user.type(screen.getByLabelText(/valor do desconto/i), "300");
+    await user.type(screen.getByLabelText(/valor do desconto/i), "30000");
     await user.type(screen.getByLabelText(/motivo do desconto/i), "Cortesia");
 
     expect(screen.queryByLabelText(/valor recebido/i)).toBeNull();
@@ -465,8 +465,8 @@ describe("ReceberTituloDialog (receber + desconto na mesma tela)", () => {
 
   it("título que já tem desconto abre com ele preenchido e só reenvia se mudar", async () => {
     const { onConfirm, user } = setup({ ...conta, desconto: 40, motivo_desconto: "Fidelidade" });
-    expect((screen.getByLabelText(/valor do desconto/i) as HTMLInputElement).value).toBe("40.00");
-    expect(valor().value).toBe("260.00");
+    expect((screen.getByLabelText(/valor do desconto/i) as HTMLInputElement).value).toBe("40,00");
+    expect(valor().value).toBe("260,00");
     await escolherMetodo(user);
     await user.click(screen.getByRole("button", { name: /confirmar recebimento/i }));
     expect(onConfirm).toHaveBeenCalledWith({ metodo: "pix", valor: 260, data_pagamento: hojeInput() });

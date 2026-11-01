@@ -19,6 +19,7 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ToggleOffRoundedIcon from "@mui/icons-material/ToggleOffRounded";
 import ToggleOnRoundedIcon from "@mui/icons-material/ToggleOnRounded";
 import { AppDrawer, DrawerSection } from "../../../components/common/AppDrawer";
+import { formatPreco, parsePreco } from "../../../utils/masks";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -74,17 +75,6 @@ const TEMPOS_RAPIDOS = [
   { label: "4h", value: 240 },
   { label: "8h", value: 480 },
 ];
-
-function formatPreco(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return "";
-  const num = parseFloat(digits) / 100;
-  return num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function parsePreco(formatted: string): number {
-  return parseFloat(formatted.replace(/\./g, "").replace(",", ".")) || 0;
-}
 
 function formatTempo(minutos: number): string {
   if (minutos < 60) return `${minutos} min`;
