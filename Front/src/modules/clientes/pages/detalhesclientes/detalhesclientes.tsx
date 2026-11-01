@@ -30,6 +30,7 @@ import ClienteOrdens from "./subcomponentes/clienteordens";
 import ClientePagamentos from "./subcomponentes/clientepagamentos";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../components/common/AppDialog";
 import { maskCpf, maskCnpj } from "../../../../utils/masks";
+import { brand } from "../../../../app/theme";
 
 function formatDocumento(value?: string | null) {
   const digits = value?.replace(/\D/g, "") ?? "";
@@ -245,7 +246,7 @@ export default function ClienteDetalhesPage() {
                     startIcon={<WhatsAppIcon />}
                     onClick={() => setOpenWhats(true)}
                     disableElevation
-                    sx={{ bgcolor: "#25D366", "&:hover": { bgcolor: "#1CA653" }, textTransform: "none", fontWeight: 600 }}
+                    sx={{ bgcolor: brand.whatsapp, "&:hover": { bgcolor: brand.whatsappHover }, textTransform: "none", fontWeight: 600 }}
                   >
                     WhatsApp
                   </Button>
@@ -348,7 +349,7 @@ export default function ClienteDetalhesPage() {
         <AppDialogActions>
           <Button onClick={() => setOpenWhats(false)} variant="outlined">Cancelar</Button>
           <Button variant="contained" onClick={enviarWhats} disabled={!mensagem}
-            sx={{ bgcolor: "#25D366", "&:hover": { bgcolor: "#1CA653" }, textTransform: "none", fontWeight: 600 }}>
+            sx={{ bgcolor: brand.whatsapp, "&:hover": { bgcolor: brand.whatsappHover }, textTransform: "none", fontWeight: 600 }}>
             Enviar
           </Button>
         </AppDialogActions>

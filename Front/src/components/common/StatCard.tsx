@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Box, Stack, Typography, type SxProps, type Theme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import { comoBotao } from "./linhaClicavel";
 
 export type StatTone = "default" | "primary" | "success" | "warning" | "error" | "info";
 
@@ -23,7 +24,7 @@ export default function StatCard({ label, value, helper, icon, tone = "default",
 
   return (
     <Box
-      onClick={onClick}
+      {...(onClick ? { ...comoBotao(() => onClick()), "aria-pressed": active } : {})}
       sx={[
         {
           px: onClick ? 1.5 : 0,

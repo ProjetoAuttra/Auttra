@@ -1,49 +1,54 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { paths } from '../routes/paths';
 import AppLayout from './AppLayout';
 import Login from '../modules/autenticacao/pages/Login';
-import ResetPassword from '../modules/autenticacao/pages/ResetPassword';
-import PublicTrackingPage from '../modules/acompanhamento/PublicTrackingPage';
-import Home from '../modules/painel/pages/Home';
-import Schedule from '../modules/agenda/pages/Schedule';
-import Clients from '../modules/clientes/pages/Clientes';
-import PendingTasks from '../modules/tarefas/pages/PendingTasks';
 import { useAuth } from '../context/AuthContext';
 import type { JSX } from 'react';
-import Extrato from '../modules/pagamentos/pages/extrato/payments';
-import ContasPagar from '../modules/pagamentos/pages/contaspagar/contaspagar';
-import ContasReceber from '../modules/pagamentos/pages/contasreceber/contasreceber';
-import UserPage from '../modules/usuarios/pages/UserForm';
-import ClientDetails from '../modules/clientes/pages/detalhesclientes/detalhesclientes';
-import Orcamentos from '../modules/orcamentos/pages/orcamentos';
-import NovoOrcamento from '../modules/orcamentos/pages/novoorcamento/novoorcamento';
-import OrcamentoDetalhes from '../modules/orcamentos/pages/detalhesorcamento/detalhesorcamento';
-import Relatorios from '../modules/relatorios/pages/relatorios';
-import ClientesRelatorio from '../modules/relatorios/pages/clientes/clientesrelatorio';
-import InadimplenciaRelatorio from '../modules/relatorios/pages/inadimplencia/inadimplenciarelatorio';
-import ResultadoRelatorio from '../modules/relatorios/pages/resultado/resultadorelatorio';
-import FaturamentoRelatorio from '../modules/relatorios/pages/faturamento/faturamentorelatorio';
-import MecanicosRelatorio from '../modules/relatorios/pages/mecanicos/mecanicosrelatorio';
-import FinanceiroRelatorio from '../modules/relatorios/pages/financeiro/financeirorelatorio';
-import AgendaRelatorio from '../modules/relatorios/pages/agenda/agendarelatorio';
-import OrdensParadasRelatorio from '../modules/relatorios/pages/ordens-paradas/ordensparadasrelatorio';
-import EstoqueCriticoRelatorio from '../modules/relatorios/pages/estoque-critico/estoquecriticorelatorio';
-import OrcamentosPerdidosRelatorio from '../modules/relatorios/pages/orcamentos-perdidos/orcamentosperdidosrelatorio';
-import RentabilidadeRelatorio from '../modules/relatorios/pages/rentabilidade/rentabilidaderelatorio';
 import SettingsLayout from '../components/layout/SettingsLayout';
-import Configuracoes from '../modules/configuracoes/pages/configuracoes';
-import Veiculos from '../modules/veiculos/pages/veiculos';
-import VeiculoDetalhes from '../modules/veiculos/pages/detalhesveiculos/detalhesveiculos';
-import Estoque from '../modules/estoque/pages/estoque';
-import ImportarXml from '../modules/estoque/pages/ImportarXml';
-import Fornecedores from '../modules/fornecedores/pages/fornecedores';
-import Servicos from '../modules/servicos/pages/servicos';
-import FormOrdemServico from '../modules/tarefas/pages/formordem/formordem';
-import OrdemServicoDetalhes from '../modules/tarefas/pages/detalhesos/ordemservicodetalhes';
 import type { AccessModule } from '../permissions/accessProfiles';
-import RecursosAdicionais from '../modules/recursos-adicionais/pages/RecursosAdicionais';
 import { useAdditionalResources } from '../context/AdditionalResourcesContext';
 import type { AdditionalResourceKey } from '../modules/recursos-adicionais/api/api';
+import CarregandoTela from '../components/common/CarregandoTela';
+
+// Cada tela vira um arquivo separado, baixado só quando o usuário entra nela: o Login
+// e a primeira tela abrem sem esperar o código do sistema inteiro.
+const ResetPassword = lazy(() => import('../modules/autenticacao/pages/ResetPassword'));
+const PublicTrackingPage = lazy(() => import('../modules/acompanhamento/PublicTrackingPage'));
+const Home = lazy(() => import('../modules/painel/pages/Home'));
+const Schedule = lazy(() => import('../modules/agenda/pages/Schedule'));
+const Clients = lazy(() => import('../modules/clientes/pages/Clientes'));
+const PendingTasks = lazy(() => import('../modules/tarefas/pages/PendingTasks'));
+const Extrato = lazy(() => import('../modules/pagamentos/pages/extrato/payments'));
+const ContasPagar = lazy(() => import('../modules/pagamentos/pages/contaspagar/contaspagar'));
+const ContasReceber = lazy(() => import('../modules/pagamentos/pages/contasreceber/contasreceber'));
+const UserPage = lazy(() => import('../modules/usuarios/pages/UserForm'));
+const ClientDetails = lazy(() => import('../modules/clientes/pages/detalhesclientes/detalhesclientes'));
+const Orcamentos = lazy(() => import('../modules/orcamentos/pages/orcamentos'));
+const NovoOrcamento = lazy(() => import('../modules/orcamentos/pages/novoorcamento/novoorcamento'));
+const OrcamentoDetalhes = lazy(() => import('../modules/orcamentos/pages/detalhesorcamento/detalhesorcamento'));
+const Relatorios = lazy(() => import('../modules/relatorios/pages/relatorios'));
+const ClientesRelatorio = lazy(() => import('../modules/relatorios/pages/clientes/clientesrelatorio'));
+const InadimplenciaRelatorio = lazy(() => import('../modules/relatorios/pages/inadimplencia/inadimplenciarelatorio'));
+const ResultadoRelatorio = lazy(() => import('../modules/relatorios/pages/resultado/resultadorelatorio'));
+const FaturamentoRelatorio = lazy(() => import('../modules/relatorios/pages/faturamento/faturamentorelatorio'));
+const MecanicosRelatorio = lazy(() => import('../modules/relatorios/pages/mecanicos/mecanicosrelatorio'));
+const FinanceiroRelatorio = lazy(() => import('../modules/relatorios/pages/financeiro/financeirorelatorio'));
+const AgendaRelatorio = lazy(() => import('../modules/relatorios/pages/agenda/agendarelatorio'));
+const OrdensParadasRelatorio = lazy(() => import('../modules/relatorios/pages/ordens-paradas/ordensparadasrelatorio'));
+const EstoqueCriticoRelatorio = lazy(() => import('../modules/relatorios/pages/estoque-critico/estoquecriticorelatorio'));
+const OrcamentosPerdidosRelatorio = lazy(() => import('../modules/relatorios/pages/orcamentos-perdidos/orcamentosperdidosrelatorio'));
+const RentabilidadeRelatorio = lazy(() => import('../modules/relatorios/pages/rentabilidade/rentabilidaderelatorio'));
+const Configuracoes = lazy(() => import('../modules/configuracoes/pages/configuracoes'));
+const Veiculos = lazy(() => import('../modules/veiculos/pages/veiculos'));
+const VeiculoDetalhes = lazy(() => import('../modules/veiculos/pages/detalhesveiculos/detalhesveiculos'));
+const Estoque = lazy(() => import('../modules/estoque/pages/estoque'));
+const ImportarXml = lazy(() => import('../modules/estoque/pages/ImportarXml'));
+const Fornecedores = lazy(() => import('../modules/fornecedores/pages/fornecedores'));
+const Servicos = lazy(() => import('../modules/servicos/pages/servicos'));
+const FormOrdemServico = lazy(() => import('../modules/tarefas/pages/formordem/formordem'));
+const OrdemServicoDetalhes = lazy(() => import('../modules/tarefas/pages/detalhesos/ordemservicodetalhes'));
+const RecursosAdicionais = lazy(() => import('../modules/recursos-adicionais/pages/RecursosAdicionais'));
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
   const { isAuthenticated } = useAuth();
@@ -65,6 +70,7 @@ function ModuleRoute({ module, children }: { module: AccessModule; children: JSX
 
 export default function Router() {
   return (
+    <Suspense fallback={<CarregandoTela />}>
     <Routes>
       <Route path={paths.login} element={<Login />} />
       <Route path={paths.resetPassword} element={<ResetPassword />} />
@@ -116,5 +122,6 @@ export default function Router() {
         </Route>
       </Route>
     </Routes>
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 import { Box, Stack, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
@@ -13,6 +13,7 @@ import { paths } from "../../routes/paths";
 import { useAuth } from "../../context/AuthContext";
 import type { AccessModule } from "../../permissions/accessProfiles";
 import { brand } from "../../app/theme";
+import CarregandoTela from "../common/CarregandoTela";
 
 type SettingsItem = {
   label: string;
@@ -132,7 +133,9 @@ export default function SettingsLayout() {
       </Box>
 
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Outlet />
+        <Suspense fallback={<CarregandoTela />}>
+          <Outlet />
+        </Suspense>
       </Box>
     </Box>
   );

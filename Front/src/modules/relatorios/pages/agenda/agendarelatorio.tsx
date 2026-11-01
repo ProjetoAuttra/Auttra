@@ -14,6 +14,7 @@ import {
 import FileDownloadRoundedIcon from '@mui/icons-material/FileDownloadRounded';
 import api from '../../../../api/api';
 import { useAuth } from '../../../../context/AuthContext';
+import { useToast } from '../../../../context/ToastContext';
 import FiltrosRelatorio, { type CampoFiltro } from '../../shared/FiltrosRelatorio';
 import { inDateRange, periodoMesAtual } from '../../shared/reportUtils';
 
@@ -30,6 +31,7 @@ const PADRAO: FiltrosAgenda = { ...periodoMesAtual(), clientes: [], servicos: []
 
 export default function RelatorioAgenda() {
   const { user } = useAuth();
+  const { info } = useToast();
   const [agenda, setAgenda] = React.useState<Agendamento[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [filtros, setFiltros] = React.useState(PADRAO);
@@ -83,7 +85,7 @@ export default function RelatorioAgenda() {
   );
 
   const handleExportarCSV = () => {
-    if (!filtrada.length) return alert('Nenhum agendamento encontrado para exportar.');
+    if (!filtrada.length) { info('Nenhum agendamento encontrado para exportar.'); return; }
 
     const header = ['Cliente', 'Serviço', 'Data', 'Horário'];
     const rows = filtrada.map((a) => [

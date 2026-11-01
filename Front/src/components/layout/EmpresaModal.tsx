@@ -23,6 +23,7 @@ import { useAuth } from "../../context/AuthContext";
 import { maskCnpj, maskTelefone, maskCep } from "../../utils/masks";
 import SeletorCor from "../common/SeletorCor";
 import { AppDialog, AppDialogActions, AppDialogContent, SectionLabel } from "../common/AppDialog";
+import { comoBotao } from "../common/linhaClicavel";
 
 type Props = { open: boolean; onClose: () => void };
 
@@ -243,7 +244,8 @@ export default function EmpresaModal({ open, onClose }: Props) {
                         <Avatar
                           variant="rounded"
                           src={form.logo_url ?? undefined}
-                          onClick={() => fileRef.current?.click()}
+                          {...comoBotao(() => fileRef.current?.click())}
+                          aria-label="Alterar logo"
                           sx={{
                             width: 64,
                             height: 64,
@@ -261,6 +263,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
 
                       <Box
                         onClick={uploadingLogo ? undefined : () => fileRef.current?.click()}
+                        aria-hidden
                         sx={{
                           position: "absolute",
                           inset: 0,
@@ -325,7 +328,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
                     fullWidth
                     value={form.cnpj}
                     onChange={(e) => set("cnpj", maskCnpj(e.target.value))}
-                    inputProps={{ maxLength: 18 }}
+                    inputProps={{ inputMode: "numeric", maxLength: 18 }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -342,7 +345,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
                     fullWidth
                     value={form.telefone}
                     onChange={(e) => set("telefone", maskTelefone(e.target.value))}
-                    inputProps={{ maxLength: 16 }}
+                    inputProps={{ inputMode: "tel", maxLength: 16 }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -398,7 +401,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
                     value={form.cep}
                     onChange={(e) => set("cep", maskCep(e.target.value))}
                     onBlur={handleCepBlur}
-                    inputProps={{ maxLength: 9 }}
+                    inputProps={{ inputMode: "numeric", maxLength: 9 }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">

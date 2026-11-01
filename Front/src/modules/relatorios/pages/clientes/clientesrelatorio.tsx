@@ -6,6 +6,7 @@ import {
 import FileDownloadRoundedIcon from '@mui/icons-material/FileDownloadRounded';
 import api from '../../../../api/api';
 import { useAuth } from '../../../../context/AuthContext';
+import { useToast } from '../../../../context/ToastContext';
 import FiltrosRelatorio from '../../shared/FiltrosRelatorio';
 import { inDateRange } from '../../shared/reportUtils';
 
@@ -22,6 +23,7 @@ const PADRAO = { de: '', ate: '', busca: '' };
 
 export default function RelatorioClientes() {
   const { user } = useAuth();
+  const { info } = useToast();
   const [clientes, setClientes] = React.useState<Cliente[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [filtros, setFiltros] = React.useState(PADRAO);
@@ -50,7 +52,7 @@ export default function RelatorioClientes() {
   );
 
   const handleExportarCSV = () => {
-    if (!filtrados.length) return alert('Nenhum cliente encontrado para exportar.');
+    if (!filtrados.length) { info('Nenhum cliente encontrado para exportar.'); return; }
     const header = ['Nome', 'Email', 'Telefone', 'Data de Cadastro'];
     const rows = filtrados.map((c) => [
       c.nome,

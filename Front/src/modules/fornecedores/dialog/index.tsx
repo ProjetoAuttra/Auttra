@@ -161,7 +161,7 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
           />
           <Box sx={linha}>
             <TextField label="Contato" value={form.contato} onChange={(e) => handleChange("contato", e.target.value)} size="small" fullWidth />
-            <TextField label="Telefone" value={form.telefone} onChange={(e) => handleChange("telefone", e.target.value)} size="small" fullWidth />
+            <TextField inputProps={{ inputMode: "tel" }} label="Telefone" value={form.telefone} onChange={(e) => handleChange("telefone", e.target.value)} size="small" fullWidth />
           </Box>
           <TextField label="E-mail" value={form.email} onChange={(e) => handleChange("email", e.target.value)} size="small" fullWidth type="email" />
         </Stack>
@@ -170,7 +170,7 @@ export default function SupplierDialog({ open, mode, initial, onClose, onSubmit,
       <DrawerSection title="Endereço">
         <Stack spacing={2}>
           <Box sx={linha}>
-            <TextField
+            <TextField inputProps={{ inputMode: "numeric" }}
               label="CEP"
               value={maskCep(form.cep ?? "")}
               size="small"

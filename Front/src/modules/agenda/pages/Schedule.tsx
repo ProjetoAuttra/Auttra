@@ -43,6 +43,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useConfirm } from '../../../context/ConfirmContext';
 import { useToast } from '../../../context/ToastContext';
 import { AppDialog, AppDialogActions, AppDialogContent } from '../../../components/common/AppDialog';
+import { comoBotao } from '../../../components/common/linhaClicavel';
 
 type HighlightMap = Record<string, number>;
 type Appointment = {
@@ -383,10 +384,7 @@ function AppointmentCard({
   return (
     <Paper
       elevation={0}
-      onClick={(event) => {
-        event.stopPropagation();
-        onOpen?.(appointment);
-      }}
+      {...(onOpen ? comoBotao((event) => { event.stopPropagation(); onOpen(appointment); }) : {})}
       onDoubleClick={(event) => event.stopPropagation()}
       sx={(theme) => ({
         p: 1.5,
@@ -487,10 +485,7 @@ function CompactAppointment({
       }
     >
       <Box
-        onClick={(event) => {
-          event.stopPropagation();
-          onOpen?.(appointment);
-        }}
+        {...(onOpen ? comoBotao((event) => { event.stopPropagation(); onOpen(appointment); }) : {})}
         onDoubleClick={(event) => event.stopPropagation()}
         sx={(theme) => ({
           px: 1,
@@ -502,14 +497,14 @@ function CompactAppointment({
           '&:hover': onOpen ? { bgcolor: alpha(theme.palette.primary.main, 0.14) } : undefined,
         })}
       >
-        <Typography sx={{ fontSize: 11, fontWeight: 700, lineHeight: 1.3 }} color="primary.main">
+        <Typography sx={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }} color="primary.main">
           {time}
         </Typography>
         <Typography sx={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.35, ...clamp(2) }} color="text.primary">
           {appointment.title}
         </Typography>
         {detailed && who && (
-          <Typography sx={{ fontSize: 11, lineHeight: 1.35, mt: 0.25, ...clamp(1) }} color="text.secondary">
+          <Typography sx={{ fontSize: 12, lineHeight: 1.35, mt: 0.25, ...clamp(1) }} color="text.secondary">
             {who}
           </Typography>
         )}

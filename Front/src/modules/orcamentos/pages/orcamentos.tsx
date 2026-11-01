@@ -26,6 +26,7 @@ import ModuleHeader from "../../../components/layout/ModuleHeader";
 import FiltrosRelatorio, { type CampoFiltro } from "../../relatorios/shared/FiltrosRelatorio";
 import { periodoMesAtual } from "../../relatorios/shared/reportUtils";
 import { linhaClicavel } from "../../../components/common/linhaClicavel";
+import { brand } from "../../../app/theme";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -472,7 +473,7 @@ export default function OrcamentosPage() {
         )}
         {selectedOrcamento?.status === "analise" && <Divider />}
         <MenuItem onClick={handleWhatsApp}>
-          <WhatsAppIcon fontSize="small" sx={{ mr: 1.5, color: "#25D366" }} />Enviar WhatsApp
+          <WhatsAppIcon fontSize="small" sx={{ mr: 1.5, color: brand.whatsapp }} />Enviar WhatsApp
         </MenuItem>
         <MenuItem onClick={handlePrint}>
           <PrintRoundedIcon fontSize="small" sx={{ mr: 1.5, color: "text.secondary" }} />Imprimir

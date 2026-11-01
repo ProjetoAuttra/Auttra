@@ -2,10 +2,11 @@ import { Box, Toolbar } from '@mui/material';
 import { Outlet } from 'react-router-dom';
 import AppSidebar from '../components/layout/AppSidebar';
 import AppTopbar from '../components/layout/AppTopbar';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useSidebar } from '../context/SidebarContext';
 import { ToastProvider } from '../context/ToastContext';
 import { ConfirmProvider } from '../context/ConfirmContext';
+import CarregandoTela from '../components/common/CarregandoTela';
 
 export default function AppLayout() {
   const drawerWidth = 248;
@@ -58,7 +59,9 @@ export default function AppLayout() {
                 overflow: 'auto',
               }}
             >
-              <Outlet />
+              <Suspense fallback={<CarregandoTela />}>
+                <Outlet />
+              </Suspense>
             </Box>
           </Box>
         </Box>

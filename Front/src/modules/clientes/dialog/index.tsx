@@ -289,7 +289,7 @@ export default function ClientDialog({
               onChange={(e) => setTelefone(maskTelefone(e.target.value))}
               size="small"
               fullWidth
-              inputProps={{ maxLength: 15 }}
+              inputProps={{ inputMode: "tel", maxLength: 15 }}
             />
             <TextField
               label="E-mail"
@@ -311,7 +311,7 @@ export default function ClientDialog({
               fullWidth
               error={!!errors.cpf}
               helperText={errors.cpf}
-              inputProps={{ maxLength: 18 }}
+              inputProps={{ inputMode: "numeric", maxLength: 18 }}
               InputProps={{ endAdornment: check(!!cpf && isDocumentoValido(cpf)) }}
             />
             <CampoData label="Nascimento / Fundação" value={dataNascimento} onChange={setDataNascimento} />
@@ -322,7 +322,7 @@ export default function ClientDialog({
       <DrawerSection title="Endereço">
         <Stack spacing={2}>
           <Box sx={linha}>
-            <TextField
+            <TextField inputProps={{ inputMode: "numeric" }}
               label="CEP"
               value={maskCep(cep)}
               size="small"

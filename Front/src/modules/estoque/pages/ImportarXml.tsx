@@ -32,6 +32,7 @@ import { previewXml, confirmarImportacao } from "../api/importacaoXml";
 import type { PreviewNota, ItemPreview, ResultadoImportacao } from "../api/importacaoXml";
 import { paths } from "../../../routes/paths";
 import api from "../../../api/api";
+import { comoBotao } from "../../../components/common/linhaClicavel";
 
 type AcaoItem = "vincular" | "nova_peca" | "ignorar";
 
@@ -197,7 +198,8 @@ export default function ImportarXmlPage() {
                 bgcolor: (t) => alpha(t.palette.primary.main, 0.03),
               },
             }}
-            onClick={() => inputRef.current?.click()}
+            {...comoBotao(() => inputRef.current?.click())}
+            aria-label="Selecionar arquivo XML da nota fiscal"
           >
             <input
               ref={inputRef}

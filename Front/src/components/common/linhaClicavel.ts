@@ -32,3 +32,22 @@ export function linhaClicavel(abrir: () => void) {
     },
   };
 }
+
+/**
+ * Props para um elemento que não é <button> mas age como botão (cartão, avatar, área de upload):
+ * ganha foco pelo Tab, papel de botão para leitor de tela e responde a Enter/Espaço.
+ */
+export function comoBotao(acao: (e: React.SyntheticEvent<HTMLElement>) => void) {
+  return {
+    role: "button",
+    tabIndex: 0,
+    onClick: (e: React.MouseEvent<HTMLElement>) => acao(e),
+    onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
+      if (e.target !== e.currentTarget) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        acao(e);
+      }
+    },
+  };
+}
