@@ -21,6 +21,9 @@ export const brand = {
   success: '#059669',
   error: '#DC2626',
   info: '#0284C7',
+  // Verde do WhatsApp escurecido: o oficial (#25D366) com texto branco tem contraste 1,98:1; este tem 5:1.
+  whatsapp: '#15803D',
+  whatsappHover: '#166534',
 };
 
 // Escala única de raios: controles 6, cards/tabelas/diálogos 8, chips 4. `pill` só para barras de progresso.
@@ -70,6 +73,20 @@ export const theme = createTheme({
         // Reserva o espaço da barra de rolagem: o layout não "pula" entre telas curtas e longas.
         html: { scrollbarGutter: 'stable' },
         body: { fontFeatureSettings: '"cv11", "ss01"' },
+        // Cartões, avatares e áreas que agem como botão (helper comoBotao): foco visível no teclado.
+        '.MuiBox-root[role="button"]:focus-visible, .MuiPaper-root[role="button"]:focus-visible, .MuiAvatar-root[role="button"]:focus-visible': {
+          outline: `2px solid ${brand.primary}`,
+          outlineOffset: 2,
+        },
+        // Quem pediu "reduzir movimento" no sistema operacional não vê fades, slides nem ripples.
+        '@media (prefers-reduced-motion: reduce)': {
+          '*, *::before, *::after': {
+            animationDuration: '0.01ms !important',
+            animationIterationCount: '1 !important',
+            transitionDuration: '0.01ms !important',
+            scrollBehavior: 'auto !important',
+          },
+        },
       },
     },
     // Escala de ícones: small 18, medium 22, large 28 (antes 20/24/35).

@@ -39,6 +39,7 @@ import SugestaoModal from "./SugestaoModal";
 import BrandLogoPlaceholder from "./BrandLogoPlaceholder";
 import { brand } from "../../app/theme";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../common/AppDialog";
+import { comoBotao } from "../common/linhaClicavel";
 
 const CARGO_LABEL: Record<string, string> = {
   administrador: "Administrador",
@@ -323,7 +324,9 @@ export default function AppTopbar({
             <Divider orientation="vertical" flexItem sx={{ mx: 0.5, height: 24, alignSelf: "center", borderColor: brand.line }} />
 
             <Box
-              onClick={(e) => setAnchorEl(e.currentTarget)}
+              {...comoBotao((e) => setAnchorEl(e.currentTarget))}
+              aria-haspopup="menu"
+              aria-expanded={Boolean(anchorEl)}
               sx={{
                 px: 1,
                 py: 0.75,

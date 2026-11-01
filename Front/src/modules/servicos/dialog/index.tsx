@@ -233,7 +233,7 @@ export default function ServicoDialog({ open, mode, initial, onClose, onSubmit, 
                 <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>
               ))}
             </TextField>
-            <TextField
+            <TextField inputProps={{ inputMode: "numeric" }}
               label="Preço *"
               value={precoFormatado}
               onChange={(e) => setPrecoFormatado(formatPreco(e.target.value))}

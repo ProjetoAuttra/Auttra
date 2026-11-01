@@ -137,7 +137,7 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
               size="small"
               value={form.telefone}
               onChange={(e) => setForm({ ...form, telefone: maskTelefone(e.target.value) })}
-              inputProps={{ maxLength: 16 }}
+              inputProps={{ inputMode: "tel", maxLength: 16 }}
             />
           </Box>
         </Stack>
