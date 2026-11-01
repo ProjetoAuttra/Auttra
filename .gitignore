@@ -49,6 +49,12 @@ Thumbs.db
 CLAUDE.md
 **/CLAUDE.md
 
+# AI tooling artifacts (generated locally, not part of the codebase)
+graphify-out/
+.superpowers/
+docs/superpowers/
+.claude/settings.local.json
+
 # Railway/local deploy metadata
 .railway/
 RAILWAY.md
