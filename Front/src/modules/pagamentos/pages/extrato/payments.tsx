@@ -1,232 +1,245 @@
 import * as React from "react";
 import {
-  Box, Stack, Typography, Paper, Chip,
-  Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, Fade, Divider, TablePagination, CircularProgress
+  Box, Button, Chip, CircularProgress, Fade, MenuItem, Stack, Table, TableBody, TableCell, TableHead,
+  TablePagination, TableRow, TextField, Typography,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import ArrowUpwardRoundedIcon from "@mui/icons-material/ArrowUpwardRounded";
-import ArrowDownwardRoundedIcon from "@mui/icons-material/ArrowDownwardRounded";
-import CalendarTodayRoundedIcon from "@mui/icons-material/CalendarTodayRounded";
-import api from "../../../../api/api";
-import { useAuth } from "../../../../context/AuthContext";
-import ModuleHeader from "../../../../components/layout/ModuleHeader";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
+import ArrowDownwardRoundedIcon from "@mui/icons-material/ArrowDownwardRounded";
+import ArrowUpwardRoundedIcon from "@mui/icons-material/ArrowUpwardRounded";
+import SavingsRoundedIcon from "@mui/icons-material/SavingsRounded";
+import api from "../../../../api/api";
+import { useToast } from "../../../../context/ToastContext";
+import { useListaPaginada } from "../../../../hooks/useListaPaginada";
+import ModuleHeader from "../../../../components/layout/ModuleHeader";
+import StatCard, { StatGroup } from "../../../../components/common/StatCard";
+import CampoData from "../../../../components/common/CampoData";
+import EmptyState from "../../../../components/common/EmptyState";
+import ListTableContainer from "../../../../components/common/ListTableContainer";
+import TextoLimitado from "../../../../components/common/TextoLimitado";
+import { METODO_LABEL, brl, formatarData } from "../../api/api";
 
-type Transacao = {
+/** Título pago, como vem de GET /pagamentos. */
+type Movimento = {
   id: number;
-  tipo: "entrada" | "saida";
-  descricao: string;
-  valor: number;
-  data: string;
-  responsavel?: string;
-  categoria?: string;
+  tipo: "receber" | "pagar";
+  descricao?: string | null;
+  categoria?: string | null;
+  metodo?: string | null;
+  valor_pago: number | string;
+  data_pagamento: string;
+  cliente?: { nome: string } | null;
+  fornecedor?: { nome: string } | null;
 };
 
+type Resumo = { entradas: number; saidas: number; saldo: number; qtd_entradas: number; qtd_saidas: number };
+type Tipo = "todos" | "receber" | "pagar";
+type Filtros = { tipo: Tipo; de: string; ate: string };
+
+const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/** Mês atual, entradas e saídas. */
+function filtrosPadrao(hoje = new Date()): Filtros {
+  return {
+    tipo: "todos",
+    de: iso(new Date(hoje.getFullYear(), hoje.getMonth(), 1)),
+    ate: iso(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0)),
+  };
+}
+
+/**
+ * Extrato: o dinheiro que de fato entrou e saiu no período, isto é, os títulos pagos pela data do
+ * pagamento. Títulos pendentes, vencidos e cancelados não são movimento e ficam de fora; os totais
+ * vêm do servidor e cobrem o período inteiro, não só a página.
+ */
 export default function ExtratoFinanceiro() {
-  const { user } = useAuth();
-  const [transacoes, setTransacoes] = React.useState<Transacao[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [filtroTipo, setFiltroTipo] = React.useState<"todos" | "entrada" | "saida">("todos");
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(8);
+  const { error } = useToast();
+  const [filtros, setFiltros] = React.useState<Filtros>(() => filtrosPadrao());
+  const padrao = filtrosPadrao();
+  const filtrado = filtros.tipo !== padrao.tipo || filtros.de !== padrao.de || filtros.ate !== padrao.ate;
+  const periodoInvalido = !!filtros.de && !!filtros.ate && filtros.de > filtros.ate;
 
-  React.useEffect(() => {
-    if (!user?.oficina_id) return;
+  const periodo = React.useMemo(
+    () => ({
+      pagamento_de: filtros.de,
+      pagamento_ate: filtros.ate,
+      tz_offset: String(new Date().getTimezoneOffset()),
+    }),
+    [filtros.de, filtros.ate]
+  );
 
-    (async () => {
-      try {
-        const { data } = await api.get(`/pagamentos?oficina_id=${user.oficina_id}`);
-        const mapped = data.map((p: any) => ({
-          id: p.id,
-          tipo: p.tipo === "receber" ? "entrada" : "saida",
-          descricao: p.descricao ?? "—",
-          valor: Number(p.valor),
-          data: p.data_pagamento || p.data_vencimento,
-          responsavel: p.cliente?.nome ?? p.fornecedor?.nome ?? "—",
-          categoria: p.metodo ?? "Outros",
-        }));
-        setTransacoes(mapped);
-      } catch (err) {
+  const { rows, total, loading, carregandoInicial, page, setPage, rowsPerPage, setRowsPerPage } =
+    useListaPaginada<Movimento>("/pagamentos", {
+      filtros: {
+        status: "pago",
+        ordem: "pagamento",
+        tipo: filtros.tipo === "todos" ? "" : filtros.tipo,
+        ...(periodoInvalido ? {} : periodo),
+      },
+      onError: (err) => {
         console.error("Erro ao carregar extrato:", err);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [user?.oficina_id]);
+        error("Não foi possível carregar o extrato.");
+      },
+    });
 
-  const transacoesFiltradas = transacoes.filter((t) => {
-    const matchTipo = filtroTipo === "todos" || t.tipo === filtroTipo;
-    return matchTipo;
-  });
+  const [resumo, setResumo] = React.useState<Resumo | null>(null);
+  const [resumoFalhou, setResumoFalhou] = React.useState(false);
+  React.useEffect(() => {
+    if (periodoInvalido) return;
+    let ativo = true;
+    api
+      .get<Resumo>("/pagamentos/extrato/resumo", { params: periodo })
+      .then(({ data }) => { if (ativo) { setResumo(data); setResumoFalhou(false); } })
+      .catch((err) => {
+        console.error("Erro ao carregar totais do extrato:", err);
+        if (ativo) setResumoFalhou(true);
+      });
+    return () => { ativo = false; };
+  }, [periodo, periodoInvalido]);
 
-  const totalEntradas = transacoesFiltradas
-    .filter((t) => t.tipo === "entrada")
-    .reduce((total, t) => total + t.valor, 0);
+  const valorCard = (v: number | undefined) => (resumoFalhou || v === undefined ? "—" : brl(v));
 
-  const totalSaidas = transacoesFiltradas
-    .filter((t) => t.tipo === "saida")
-    .reduce((total, t) => total + t.valor, 0);
-
-  const saldo = totalEntradas - totalSaidas;
-
-  const paginated = transacoesFiltradas.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
-  const formatarData = (data: string) =>
-    new Date(data).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
-
-  if (loading) {
-    return (
-      <Box sx={{ textAlign: "center", mt: 6 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (carregandoInicial) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
 
   return (
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
       <ModuleHeader
-        title="Extrato Financeiro"
-        subtitle="Visão completa de todas as movimentações financeiras"
+        title="Extrato"
+        subtitle="O dinheiro que entrou e saiu no período, pela data do pagamento."
         icon={<AccountBalanceWalletRoundedIcon />}
       />
 
-      {/* Filtros */}
-      <Stack direction="row" spacing={1} mb={2.5} flexWrap="wrap" gap={1}>
-        <Chip
-          icon={<CalendarTodayRoundedIcon sx={{ fontSize: 16 }} />}
-          label="Todos"
-          onClick={() => setFiltroTipo("todos")}
-          sx={{
-            fontWeight: 600,
-            bgcolor: filtroTipo === "todos" ? (t) => alpha(t.palette.primary.main, 0.1) : "transparent",
-            color: filtroTipo === "todos" ? "primary.main" : "text.secondary",
-            border: (t) => `1px solid ${t.palette.divider}`,
-          }}
-        />
-        <Chip
-          icon={<ArrowDownwardRoundedIcon sx={{ fontSize: 16 }} />}
+      <StatGroup espalhar>
+        <StatCard
           label="Entradas"
-          onClick={() => setFiltroTipo("entrada")}
-          sx={{
-            fontWeight: 600,
-            bgcolor: filtroTipo === "entrada" ? (t) => alpha(t.palette.success.main, 0.1) : "transparent",
-            color: filtroTipo === "entrada" ? "success.main" : "text.secondary",
-            border: (t) => `1px solid ${t.palette.divider}`,
-          }}
+          value={valorCard(resumo?.entradas)}
+          helper={resumo && !resumoFalhou ? `${resumo.qtd_entradas} ${resumo.qtd_entradas === 1 ? "recebimento" : "recebimentos"}` : undefined}
+          icon={<ArrowDownwardRoundedIcon />}
+          tone="success"
         />
-        <Chip
-          icon={<ArrowUpwardRoundedIcon sx={{ fontSize: 16 }} />}
+        <StatCard
           label="Saídas"
-          onClick={() => setFiltroTipo("saida")}
-          sx={{
-            fontWeight: 600,
-            bgcolor: filtroTipo === "saida" ? (t) => alpha(t.palette.error.main, 0.1) : "transparent",
-            color: filtroTipo === "saida" ? "error.main" : "text.secondary",
-            border: (t) => `1px solid ${t.palette.divider}`,
-          }}
+          value={valorCard(resumo?.saidas)}
+          helper={resumo && !resumoFalhou ? `${resumo.qtd_saidas} ${resumo.qtd_saidas === 1 ? "pagamento" : "pagamentos"}` : undefined}
+          icon={<ArrowUpwardRoundedIcon />}
+          tone="error"
         />
+        <StatCard
+          label="Saldo do período"
+          value={valorCard(resumo?.saldo)}
+          icon={<SavingsRoundedIcon />}
+          tone={resumo && resumo.saldo < 0 ? "warning" : "primary"}
+        />
+      </StatGroup>
+
+      <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} mb={2.5} alignItems={{ md: "flex-start" }} useFlexGap>
+        <TextField
+          select
+          size="small"
+          label="Movimento"
+          value={filtros.tipo}
+          onChange={(e) => setFiltros((f) => ({ ...f, tipo: e.target.value as Tipo }))}
+          sx={{ minWidth: 160 }}
+        >
+          <MenuItem value="todos">Entradas e saídas</MenuItem>
+          <MenuItem value="receber">Só entradas</MenuItem>
+          <MenuItem value="pagar">Só saídas</MenuItem>
+        </TextField>
+        <Box sx={{ width: { xs: "100%", md: 170 } }}>
+          <CampoData label="Data inicial" value={filtros.de} onChange={(v) => setFiltros((f) => ({ ...f, de: v }))} />
+        </Box>
+        <Box sx={{ width: { xs: "100%", md: 170 } }}>
+          <CampoData
+            label="Data final"
+            value={filtros.ate}
+            onChange={(v) => setFiltros((f) => ({ ...f, ate: v }))}
+            error={periodoInvalido}
+            helperText={periodoInvalido ? "Antes da data inicial" : undefined}
+          />
+        </Box>
+        <Box sx={{ flex: 1 }} />
+        {filtrado && (
+          <Button size="small" onClick={() => setFiltros(filtrosPadrao())} sx={{ textTransform: "none", fontWeight: 600, alignSelf: { md: "center" } }}>
+            Limpar filtros
+          </Button>
+        )}
       </Stack>
 
-      {/* Tabela */}
-      <Fade in timeout={500}>
-        <TableContainer component={Paper} sx={{ borderRadius: 0, border: 0 }}>
-          <Table>
+      <Fade in timeout={400}>
+        <ListTableContainer>
+          <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell>DATA</TableCell>
-                <TableCell>TIPO</TableCell>
-                <TableCell>DESCRIÇÃO</TableCell>
-                <TableCell>CATEGORIA</TableCell>
-                <TableCell>RESPONSÁVEL</TableCell>
-                <TableCell align="right">VALOR</TableCell>
+                <TableCell>Data</TableCell>
+                <TableCell>Movimento</TableCell>
+                <TableCell>Descrição</TableCell>
+                <TableCell>Cliente / fornecedor</TableCell>
+                <TableCell>Forma</TableCell>
+                <TableCell align="right">Valor</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {paginated.map((t) => (
-                <TableRow key={t.id} hover>
-                  <TableCell>{formatarData(t.data)}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={t.tipo === "entrada" ? "Entrada" : "Saída"}
-                      size="small"
-                      sx={{
-                        bgcolor: t.tipo === "entrada"
-                          ? (th) => alpha(th.palette.success.main, 0.1)
-                          : (th) => alpha(th.palette.error.main, 0.1),
-                        color: t.tipo === "entrada" ? "success.main" : "error.main",
-                        fontWeight: 600,
-                        fontSize: 12,
-                      }}
+            <TableBody sx={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}>
+              {rows.length > 0 ? rows.map((m) => {
+                const entrada = m.tipo === "receber";
+                return (
+                  <TableRow key={m.id} hover sx={{ height: 56 }}>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>{formatarData(m.data_pagamento)}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={entrada ? "Entrada" : "Saída"}
+                        size="small"
+                        sx={{
+                          fontWeight: 600,
+                          fontSize: 12,
+                          bgcolor: (t) => alpha(entrada ? t.palette.success.main : t.palette.error.main, 0.1),
+                          color: entrada ? "success.main" : "error.main",
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <TextoLimitado texto={m.descricao || m.categoria || "—"} linhas={2} variant="body2" />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {m.cliente?.nome ?? m.fornecedor?.nome ?? "—"}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {m.metodo ? METODO_LABEL[m.metodo] ?? m.metodo : "—"}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right" sx={{ whiteSpace: "nowrap", fontWeight: 700, color: entrada ? "success.main" : "error.main" }}>
+                      {entrada ? "+ " : "− "}{brl(Number(m.valor_pago))}
+                    </TableCell>
+                  </TableRow>
+                );
+              }) : (
+                <TableRow>
+                  <TableCell colSpan={6} sx={{ border: 0 }}>
+                    <EmptyState
+                      icon={<AccountBalanceWalletRoundedIcon />}
+                      title="Nenhuma movimentação no período"
+                      description="Recebimentos e pagamentos registrados aparecem aqui pela data em que foram pagos."
+                      isFiltered={filtrado}
+                      onClearFilter={() => setFiltros(filtrosPadrao())}
                     />
                   </TableCell>
-                  <TableCell>{t.descricao}</TableCell>
-                  <TableCell sx={{ color: "text.secondary", fontSize: 13 }}>{t.categoria}</TableCell>
-                  <TableCell sx={{ color: "text.secondary", fontSize: 13 }}>{t.responsavel}</TableCell>
-                  <TableCell
-                    align="right"
-                    sx={{ fontWeight: 700, color: t.tipo === "entrada" ? "success.main" : "error.main" }}
-                  >
-                    {t.tipo === "entrada" ? "+" : "-"} R$ {t.valor.toFixed(2)}
-                  </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
-
-          <TablePagination
-            component="div"
-            count={transacoesFiltradas.length}
-            page={page}
-            onPageChange={(_, newPage) => setPage(newPage)}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) => {
-              setRowsPerPage(parseInt(e.target.value, 10));
-              setPage(0);
-            }}
-            rowsPerPageOptions={[5, 10, 20]}
-            labelRowsPerPage="Linhas por página:"
-            labelDisplayedRows={({ from, to, count }) =>
-              `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`
-            }
-          />
-
-          <Box sx={{ p: 2.5, bgcolor: (t) => alpha(t.palette.action.hover, 0.05) }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
-              <Typography variant="body2" fontWeight={600} color="text.secondary">
-                Total de transações: {transacoesFiltradas.length}
-              </Typography>
-              <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap" gap={2}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography variant="body2" fontWeight={600} color="text.secondary">
-                    Entradas:
-                  </Typography>
-                  <Typography variant="body2" fontWeight={600} color="success.main">
-                    + R$ {totalEntradas.toFixed(2)}
-                  </Typography>
-                </Stack>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography variant="body2" fontWeight={600} color="text.secondary">
-                    Saídas:
-                  </Typography>
-                  <Typography variant="body2" fontWeight={600} color="error.main">
-                    - R$ {totalSaidas.toFixed(2)}
-                  </Typography>
-                </Stack>
-                <Divider orientation="vertical" flexItem />
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography variant="body2" fontWeight={600} color="text.primary">
-                    Saldo:
-                  </Typography>
-                  <Typography variant="h6" fontWeight={600} color={saldo >= 0 ? "primary.main" : "warning.main"}>
-                    R$ {saldo.toFixed(2)}
-                  </Typography>
-                </Stack>
-              </Stack>
-            </Stack>
-          </Box>
-        </TableContainer>
+        </ListTableContainer>
       </Fade>
+
+      <TablePagination
+        component="div" count={total} page={page}
+        onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={(e) => setRowsPerPage(parseInt(e.target.value, 10))}
+        rowsPerPageOptions={[10, 20, 50]} labelRowsPerPage="Linhas por página:"
+        labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`}
+        sx={{ bgcolor: "transparent", borderTop: (t) => `1px solid ${t.palette.divider}` }}
+      />
     </Box>
   );
 }

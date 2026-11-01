@@ -199,6 +199,21 @@ async function registrarEntrada(
   return { ...atualizado, titulo_saldo: tituloSaldo };
 }
 
+/**
+ * Janela de data_pagamento para um período de dias (YYYY-MM-DD) no fuso do usuário: data_pagamento
+ * guarda um instante, então o dia inteiro vai de 00:00 do início a 00:00 do dia seguinte ao fim.
+ */
+function janelaPagamento(filtros: { pagamento_de?: string; pagamento_ate?: string; tz_offset?: string }) {
+  const deslocamento = (Number(filtros.tz_offset) || 0) * 60_000;
+  const pagDe = dataIso(filtros.pagamento_de);
+  const pagAte = dataIso(filtros.pagamento_ate);
+  if (!pagDe && !pagAte) return null;
+  return {
+    ...(pagDe ? { gte: new Date(pagDe.getTime() + deslocamento) } : {}),
+    ...(pagAte ? { lt: new Date(pagAte.getTime() + 86_400_000 + deslocamento) } : {}),
+  };
+}
+
 const METODOS = ["dinheiro", "pix", "cartao", "boleto", "transferencia"];
 
 export const PagamentosService = {
@@ -221,6 +236,8 @@ export const PagamentosService = {
       tz_offset?: string;
       hoje?: string;
       search?: string;
+      /** "pagamento": mais recentes pela data do pagamento (extrato); padrão: pelo vencimento. */
+      ordem?: string;
     } = {},
     pag: Paginacao | null = null
   ) {
@@ -244,18 +261,8 @@ export const PagamentosService = {
     const de = dataIso(filtros.vencimento_de);
     const ate = dataIso(filtros.vencimento_ate);
     if (de || ate) and.push({ data_vencimento: { ...(de ? { gte: de } : {}), ...(ate ? { lte: ate } : {}) } });
-    // data_pagamento guarda o instante do pagamento: o dia inteiro, no fuso do usuário, vai de 00:00 do início a 00:00 do dia seguinte ao fim.
-    const deslocamento = (Number(filtros.tz_offset) || 0) * 60_000;
-    const pagDe = dataIso(filtros.pagamento_de);
-    const pagAte = dataIso(filtros.pagamento_ate);
-    if (pagDe || pagAte) {
-      and.push({
-        data_pagamento: {
-          ...(pagDe ? { gte: new Date(pagDe.getTime() + deslocamento) } : {}),
-          ...(pagAte ? { lt: new Date(pagAte.getTime() + 86_400_000 + deslocamento) } : {}),
-        },
-      });
-    }
+    const janela = janelaPagamento(filtros);
+    if (janela) and.push({ data_pagamento: janela });
     if (and.length) where.AND = and;
     if (filtros.search) {
       const contains = { contains: filtros.search, mode: "insensitive" };
@@ -272,7 +279,10 @@ export const PagamentosService = {
         find: ({ skip, take }) =>
           prisma.pagamento.findMany({
             where,
-            orderBy: [{ data_vencimento: "desc" }, { id: "desc" }],
+            orderBy:
+              filtros.ordem === "pagamento"
+                ? [{ data_pagamento: "desc" }, { id: "desc" }]
+                : [{ data_vencimento: "desc" }, { id: "desc" }],
             skip,
             take,
             include: {
@@ -452,26 +462,35 @@ export const PagamentosService = {
     });
   },
 
-  async extrato(oficina_id: number, from?: string, to?: string) {
+  /**
+   * Totais do extrato: o dinheiro que de fato entrou e saiu no período, isto é, os títulos pagos
+   * (somando valor_pago) pela data do pagamento. Mesmo critério de data de GET /pagamentos com
+   * status=pago&pagamento_de&pagamento_ate, que traz as linhas. Recebimento parcial já vira um
+   * título pago próprio, e estorno tira o título de "pago", então nada fica de fora ou duplicado.
+   */
+  async extratoResumo(oficina_id: number, filtros: { pagamento_de?: string; pagamento_ate?: string; tz_offset?: string } = {}) {
     if (!oficina_id) throw new Error("oficina_id e obrigatorio.");
-    const where: any = { oficina_id, deleted_at: null };
-    if (from || to) {
-      where.data_vencimento = {
-        ...(from ? { gte: toDate(from, "from") } : {}),
-        ...(to ? { lte: toDate(to, "to") } : {}),
-      };
-    }
-    const pagamentos = await prisma.pagamento.findMany({
+    const where: Prisma.pagamentoWhereInput = { oficina_id, deleted_at: null, status: "pago" };
+    const janela = janelaPagamento(filtros);
+    if (janela) where.data_pagamento = janela;
+
+    const grupos = await prisma.pagamento.groupBy({
+      by: ["tipo"],
       where,
-      orderBy: { data_vencimento: "desc" },
+      _sum: { valor_pago: true },
+      _count: { _all: true },
     });
-    const totalRecebido = pagamentos
-      .filter((p) => p.tipo === "receber" && p.status === "pago")
-      .reduce((sum, p) => sum + Number(p.valor), 0);
-    const totalPagar = pagamentos
-      .filter((p) => p.tipo === "pagar" && p.status !== "pago")
-      .reduce((sum, p) => sum + Number(p.valor), 0);
-    return { totalRecebido, totalPagar, saldo: totalRecebido - totalPagar, pagamentos };
+    const soma = (tipo: string) => D(grupos.find((g) => g.tipo === tipo)?._sum.valor_pago ?? 0);
+    const qtd = (tipo: string) => grupos.find((g) => g.tipo === tipo)?._count._all ?? 0;
+    const entradas = soma("receber");
+    const saidas = soma("pagar");
+    return {
+      entradas: Number(entradas),
+      saidas: Number(saidas),
+      saldo: Number(entradas.minus(saidas)),
+      qtd_entradas: qtd("receber"),
+      qtd_saidas: qtd("pagar"),
+    };
   },
 
   // ── Ações financeiras (cada uma roda em transacao com a linha travada) ─────────
