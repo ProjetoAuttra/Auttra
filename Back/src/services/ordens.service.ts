@@ -24,6 +24,41 @@ async function baixarEstoque(tx: Prisma.TransactionClient, pecaId: number, ofici
   throw new Error(`Estoque insuficiente para "${peca.nome}". Disponível: ${peca.estoque}.`);
 }
 
+const STATUS_OS = ["aberta", "em_andamento", "concluida", "cancelada"] as const;
+type StatusOs = (typeof STATUS_OS)[number];
+
+/**
+ * Campos que a edicao da OS pode alterar. Todo o resto do body (relacoes aninhadas como
+ * pagamentos/agendamentos, deleted_at, orcamento_id, data_abertura, valor_total...) e ignorado:
+ * espalhar o body no Prisma deixava uma oficina conectar registros de outra a propria OS.
+ * valor_total so muda junto com os itens, recalculado no update.
+ */
+function camposEditaveisOrdem(data: any) {
+  const campos: {
+    cliente_id?: number;
+    veiculo_id?: number;
+    funcionario_id?: number;
+    observacoes?: string | null;
+    status?: StatusOs;
+  } = {};
+  if (!data || typeof data !== "object") return campos;
+
+  for (const chave of ["cliente_id", "veiculo_id", "funcionario_id"] as const) {
+    if (data[chave] === undefined || data[chave] === null || data[chave] === "") continue;
+    const valor = Number(data[chave]);
+    if (!Number.isInteger(valor) || valor <= 0) throw new Error(`Campo ${chave} inválido.`);
+    campos[chave] = valor;
+  }
+  if (data.observacoes !== undefined) {
+    campos.observacoes = data.observacoes === null ? null : String(data.observacoes);
+  }
+  if (data.status !== undefined) {
+    if (!STATUS_OS.includes(data.status)) throw new Error("Status de OS inválido.");
+    campos.status = data.status;
+  }
+  return campos;
+}
+
 async function validateOrdemRelations(data: any, oficinaId: number) {
   const [cliente, veiculo, funcionario] = await Promise.all([
     prisma.cliente.findFirst({ where: { id: Number(data.cliente_id), oficina_id: oficinaId, deleted_at: null } }),
@@ -176,7 +211,8 @@ export const OrdensService = {
   },
 
   update: async (id: number, data: any, oficinaId: number) => {
-    const { itens: itensEnviados, ...rest } = data;
+    const itensEnviados = data?.itens;
+    const rest = camposEditaveisOrdem(data);
     const existing = await prisma.ordem_servico.findFirst({
       where: { id, oficina_id: oficinaId, deleted_at: null },
       include: { itens: true },
@@ -206,9 +242,6 @@ export const OrdensService = {
       itens = undefined;
     }
 
-    delete rest.oficina_id;
-    delete rest.oficinaId;
-    delete rest.valor_total; // so muda junto com os itens, recalculado abaixo
     const calculo = Array.isArray(itens) ? calcularItens(itens) : null;
     await validateOrdemRelations(
       {
