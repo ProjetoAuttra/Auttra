@@ -11,6 +11,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
 import ClientDialog, { type Client, type ClientForm } from "../dialog";
+import { criarCliente } from "../api/api";
 import api from "../../../api/api";
 import { useListaPaginada } from "../../../hooks/useListaPaginada";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
@@ -29,20 +30,6 @@ function mapCliente(c: any): Client {
     telefone: c.telefone,
     observacao: c.observacao,
   };
-}
-
-async function criarCliente(data: ClientForm, oficinaId: number): Promise<Client> {
-  const payload = {
-    nome: data.nome,
-    email: data.email || null,
-    cpf: data.cpf || null,
-    telefone: data.telefone || null,
-    data_nascimento: data.data_nascimento ? new Date(data.data_nascimento).toISOString() : null,
-    observacao: data.observacao || null,
-    oficina_id: oficinaId,
-  };
-  const { data: c } = await api.post("/clientes", payload);
-  return { id: String(c.id), nome: c.nome, email: c.email, cpf: c.cpf, telefone: c.telefone, observacao: c.observacao };
 }
 
 async function atualizarCliente(id: string, data: ClientForm): Promise<Client> {

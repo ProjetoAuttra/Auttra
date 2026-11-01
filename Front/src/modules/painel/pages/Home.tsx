@@ -8,9 +8,12 @@ import DirectionsCarRoundedIcon from "@mui/icons-material/DirectionsCarRounded";
 import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
 import RequestQuoteRoundedIcon from "@mui/icons-material/RequestQuoteRounded";
 
-import DialogCarro from "../../veiculos/dialog/";
-import DialogCliente from "../../clientes/dialog/";
+import DialogCarro, { type VeiculoForm } from "../../veiculos/dialog/";
+import DialogCliente, { type ClientForm } from "../../clientes/dialog/";
+import { criarCliente } from "../../clientes/api/api";
+import { criarVeiculo } from "../../veiculos/api/api";
 import { useAuth } from "../../../context/AuthContext";
+import { useToast } from "../../../context/ToastContext";
 import { useAdditionalResources } from "../../../context/AdditionalResourcesContext";
 import api from "../../../api/api";
 import { brand } from "../../../app/theme";
@@ -120,6 +123,34 @@ export default function Home() {
   const [openCliente, setOpenCliente] = React.useState(false);
   const [openVeiculo, setOpenVeiculo] = React.useState(false);
   const [menuEl,      setMenuEl]      = React.useState<HTMLElement | null>(null);
+  const { success, error } = useToast();
+
+  // Mesmo fluxo das páginas de Clientes e Veículos: salva, avisa e abre o registro criado.
+  const cadastrarCliente = async (dados: ClientForm) => {
+    if (!user?.oficina_id) { error("Usuário sem oficina vinculada. Faça login novamente."); return; }
+    try {
+      const novo = await criarCliente(dados, user.oficina_id);
+      setOpenCliente(false);
+      success("Cliente cadastrado com sucesso!");
+      navigate(`/clientes/${novo.id}`);
+    } catch (err: any) {
+      console.error("Erro ao cadastrar cliente:", err);
+      error(err?.response?.data?.message ?? "Não foi possível cadastrar o cliente.");
+    }
+  };
+
+  const cadastrarVeiculo = async (dados: VeiculoForm) => {
+    if (!user?.oficina_id) { error("Usuário sem oficina vinculada. Faça login novamente."); return; }
+    try {
+      const novo = await criarVeiculo(dados, user.oficina_id);
+      setOpenVeiculo(false);
+      success("Veículo cadastrado com sucesso!");
+      navigate(`/veiculos/${novo.id}`);
+    } catch (err: any) {
+      console.error("Erro ao cadastrar veículo:", err);
+      error(err?.response?.data?.message ?? "Não foi possível cadastrar o veículo.");
+    }
+  };
 
   React.useEffect(() => {
     let ativo = true;
@@ -299,13 +330,13 @@ export default function Home() {
         open={openVeiculo}
         mode="create"
         onClose={() => setOpenVeiculo(false)}
-        onSubmit={() => setOpenVeiculo(false)}
+        onSubmit={cadastrarVeiculo}
       />
       <DialogCliente
         open={openCliente}
         mode="create"
         onClose={() => setOpenCliente(false)}
-        onSubmit={() => setOpenCliente(false)}
+        onSubmit={cadastrarCliente}
       />
     </Box>
   );
