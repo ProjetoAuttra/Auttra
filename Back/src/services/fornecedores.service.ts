@@ -37,7 +37,20 @@ export const FornecedoresService = {
       });
     }
 
-    return prisma.fornecedor.create({ data });
+    return prisma.fornecedor.create({
+      data: {
+        oficina_id: data.oficina_id,
+        nome: data.nome,
+        contato: data.contato ?? null,
+        telefone: data.telefone ?? null,
+        email: data.email ?? null,
+        logradouro: data.logradouro ?? null,
+        numero: data.numero ?? null,
+        complemento: data.complemento ?? null,
+        cep: data.cep ?? null,
+        cidade_id: data.cidade_id ?? null,
+      },
+    });
   },
 
   update: async (id: number, data: any, oficinaId: number) => {
