@@ -74,16 +74,13 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
       warning("Preencha todos os campos obrigatórios.");
       return;
     }
-    if (!isEdit && (!form.senha || form.senha.length < 6)) {
-      warning("A senha deve ter pelo menos 6 caracteres.");
-      return;
-    }
-    if (isEdit && form.senha && form.senha.length < 6) {
-      warning("A nova senha deve ter pelo menos 6 caracteres.");
+    // Senha opcional: sem ela, o funcionário recebe um convite por e-mail e cria a própria senha.
+    if (form.senha && form.senha.length < 6) {
+      warning(isEdit ? "A nova senha deve ter pelo menos 6 caracteres." : "A senha deve ter pelo menos 6 caracteres.");
       return;
     }
     const payload: FuncionarioForm = { ...form, data_contratacao: new Date().toISOString(), oficina_id };
-    if (isEdit && !form.senha) delete (payload as any).senha;
+    if (!form.senha) delete (payload as any).senha;
     setSaving(true);
     try {
       await onSubmit(payload);
@@ -172,13 +169,15 @@ export default function FuncionarioDialog({ open, mode = "create", initial, onCl
           </Box>
           <Box sx={linha}>
             <TextField
-              label={isEdit ? "Nova senha (opcional)" : "Senha de acesso *"}
+              label={isEdit ? "Nova senha (opcional)" : "Senha (opcional)"}
               fullWidth
               size="small"
               type="password"
+              autoComplete="new-password"
               value={form.senha}
               onChange={(e) => setForm({ ...form, senha: e.target.value })}
               placeholder={isEdit ? "Deixe em branco para não alterar" : ""}
+              helperText={isEdit ? undefined : "Em branco, enviamos um convite por e-mail para o funcionário criar a senha."}
             />
             <CampoData
               label="Data de contratação"
