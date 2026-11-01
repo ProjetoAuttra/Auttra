@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { UsuarioService } from "../services/usuario.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
+import { sendServiceError } from "../utils/httpError.js";
 
 export const UsuarioController = {
   async create(req: Request, res: Response) {
@@ -8,8 +9,7 @@ export const UsuarioController = {
       const usuario = await UsuarioService.create({ ...req.body, oficina_id: getRequiredOfficeId(req) });
       return res.status(201).json(usuario);
     } catch (error: any) {
-      console.error("Erro ao criar usuário:", error);
-      return res.status(400).json({ message: error.message });
+      return sendServiceError(res, error, "criar usuario");
     }
   },
 

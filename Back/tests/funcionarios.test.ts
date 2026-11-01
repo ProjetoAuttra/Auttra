@@ -95,10 +95,29 @@ describe.skipIf(!process.env.DATABASE_URL)("funcionários (convite e contas comp
     expect(await prisma.usuario_oficina.count({ where: { usuario_id: u.id } })).toBe(2);
   });
 
-  it("recusa vincular e-mail de conta que não é de funcionário", async () => {
+  it("recusa vincular e-mail de admin do sistema", async () => {
     const email = novoEmail("admin");
     await prisma.usuario.create({ data: { nome: "Sistema", email, senha: "x", tipo: "sistema" } });
-    await expect(criar(oficinaA, perfilA, { email })).rejects.toThrow(/não pode ser vinculada/);
+    await expect(criar(oficinaA, perfilA, { email })).rejects.toThrow(/nao pode ser usado/);
+    const u = await prisma.usuario.findUniqueOrThrow({ where: { email }, include: { acessos: true } });
+    expect(u.acessos).toHaveLength(0);
+  });
+
+  it("recusa o mesmo e-mail duas vezes na mesma oficina", async () => {
+    const email = novoEmail("duplicado");
+    await criar(oficinaA, perfilA, { email, senha: "SenhaOriginal1" });
+    await expect(criar(oficinaA, perfilA, { email, senha: "OutraSenha1" })).rejects.toMatchObject({
+      status: 409,
+      message: expect.stringMatching(/nesta oficina/),
+    });
+  });
+
+  it("gestor de uma oficina pode ser funcionário em outra", async () => {
+    const email = novoEmail("gestor");
+    await prisma.usuario.create({ data: { nome: "Gestor", email, senha: "x", tipo: "gestoroficina" } });
+    const f: any = await criar(oficinaB, perfilB, { email });
+    expect(f.conta_existente).toBe(true);
+    expect(f.convite_enviado).toBeUndefined();
   });
 
   it("oficina não altera senha de conta compartilhada ao editar funcionário", async () => {
