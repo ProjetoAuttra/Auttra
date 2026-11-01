@@ -1,5 +1,6 @@
 import * as React from "react";
 import {
+  CircularProgress,
   Stack,
   TextField,
   Button,
@@ -46,7 +47,7 @@ type Props = {
   mode: "create" | "edit";
   initial?: Servico | null;
   onClose: () => void;
-  onSubmit: (data: ServicoForm) => void;
+  onSubmit: (data: ServicoForm) => void | Promise<void>;
   onDelete?: (item: Servico) => void;
 };
 
@@ -107,6 +108,8 @@ export default function ServicoDialog({ open, mode, initial, onClose, onSubmit, 
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [submitAttempted, setSubmitAttempted] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
+  // Trava o botão enquanto salva: clique duplo não cria registro repetido.
+  const [salvando, setSalvando] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) return;
@@ -140,18 +143,26 @@ export default function ServicoDialog({ open, mode, initial, onClose, onSubmit, 
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (salvando) return;
     setSubmitAttempted(true);
     if (!validate()) return;
-    onSubmit({
-      nome: nome.trim(),
-      descricao: descricao.trim() || undefined,
-      preco: parsePreco(precoFormatado),
-      categoria: categoria || undefined,
-      tempo_estimado: tempoEstimado === "" ? undefined : Number(tempoEstimado),
-      ativo,
-    });
-    onClose();
+    setSalvando(true);
+    try {
+      await onSubmit({
+        nome: nome.trim(),
+        descricao: descricao.trim() || undefined,
+        preco: parsePreco(precoFormatado),
+        categoria: categoria || undefined,
+        tempo_estimado: tempoEstimado === "" ? undefined : Number(tempoEstimado),
+        ativo,
+      });
+      onClose();
+    } catch {
+      // Quem chamou já avisou o erro; o formulário fica aberto com os dados preenchidos.
+    } finally {
+      setSalvando(false);
+    }
   };
 
   const linha = { display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 } as const;
@@ -177,7 +188,10 @@ export default function ServicoDialog({ open, mode, initial, onClose, onSubmit, 
       </Box>
       <Stack direction="row" spacing={1.5}>
         <Button onClick={onClose} variant="outlined">Cancelar</Button>
-        <Button variant="contained" onClick={handleSubmit} disableElevation sx={{ fontWeight: 700 }}>
+        <Button
+          variant="contained" onClick={handleSubmit} disableElevation sx={{ fontWeight: 700 }}
+          disabled={salvando} startIcon={salvando ? <CircularProgress size={16} color="inherit" /> : undefined}
+        >
           {isEdit ? "Salvar alterações" : "Cadastrar serviço"}
         </Button>
       </Stack>

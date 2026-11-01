@@ -24,6 +24,7 @@ import ListTableContainer from "../../../components/common/ListTableContainer";
 import { STATUS_CONFIG, STATUS_VALIDOS, VALID_TRANSITIONS, type OrdemStatus } from "../statusConfig";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import ChecklistRoundedIcon from "@mui/icons-material/ChecklistRounded";
+import { linhaClicavel } from "../../../components/common/linhaClicavel";
 
 type Ordem = {
   id: number;
@@ -252,8 +253,7 @@ export default function OrdensPage() {
                   return (
                     <TableRow
                       key={r.id}
-                      hover
-                      onClick={() => r.id && navigate(`/ordens/${r.id}`)}
+                      {...linhaClicavel(() => r.id && navigate(`/ordens/${r.id}`))}
                       sx={{ cursor: "pointer" }}
                     >
                       <TableCell sx={{ fontSize: 12, color: "text.disabled" }}>#{r.id}</TableCell>
@@ -289,7 +289,7 @@ export default function OrdensPage() {
                         })()}
                       </TableCell>
                       <TableCell align="right" onClick={(e) => e.stopPropagation()}>
-                        <IconButton size="small" onClick={(e) => handleMenuOpen(e, r.id)}>
+                        <IconButton aria-label="Mais ações" size="small" onClick={(e) => handleMenuOpen(e, r.id)}>
                           <MoreVertRoundedIcon fontSize="small" />
                         </IconButton>
                       </TableCell>

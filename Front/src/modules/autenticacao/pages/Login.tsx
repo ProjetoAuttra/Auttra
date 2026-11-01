@@ -390,9 +390,9 @@ export default function Login() {
                       ),
                       endAdornment: (
                         <InputAdornment position="end">
-                          <IconButton
+                          <IconButton aria-label={show ? "Ocultar senha" : "Mostrar senha"}
                             onClick={() => setShow((s) => !s)}
-                            edge="end" size="small" tabIndex={-1}
+                            edge="end" size="small"
                             sx={{ color: alpha(INK, 0.48) }}
                           >
                             {show

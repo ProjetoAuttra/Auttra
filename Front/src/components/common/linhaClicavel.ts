@@ -1,0 +1,34 @@
+import type * as React from "react";
+
+// Elementos interativos dentro da linha (menu ⋮, botões de ação, links) têm ação própria.
+const INTERATIVO = 'button, a, input, select, textarea, label, [role="button"], [role="menuitem"], [role="checkbox"]';
+
+function vemDeElementoInterativo(e: React.SyntheticEvent<HTMLElement>) {
+  const alvo = e.target as HTMLElement | null;
+  const interativo = alvo?.closest?.(INTERATIVO);
+  return !!interativo && interativo !== e.currentTarget && e.currentTarget.contains(interativo);
+}
+
+/**
+ * Props para uma linha de tabela que abre um registro: um clique ou Enter/Espaço abre.
+ * Ignora cliques em botões dentro da linha e não navega quando o usuário está selecionando
+ * texto (para copiar telefone, placa etc.).
+ */
+export function linhaClicavel(abrir: () => void) {
+  return {
+    hover: true,
+    tabIndex: 0,
+    onClick: (e: React.MouseEvent<HTMLElement>) => {
+      if (vemDeElementoInterativo(e)) return;
+      if (window.getSelection?.()?.toString()) return;
+      abrir();
+    },
+    onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
+      if (e.target !== e.currentTarget) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        abrir();
+      }
+    },
+  };
+}

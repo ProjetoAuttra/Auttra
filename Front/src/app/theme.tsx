@@ -174,6 +174,11 @@ export const theme = createTheme({
           '&.MuiTableRow-hover:hover': {
             backgroundColor: brand.primarySoft,
           },
+          // Linhas que abrem um registro recebem foco pelo teclado (Tab + Enter).
+          '&:focus-visible': {
+            outline: `2px solid ${brand.primary}`,
+            outlineOffset: -2,
+          },
         },
       },
     },

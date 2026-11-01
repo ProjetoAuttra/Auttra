@@ -212,7 +212,7 @@ export default function ServicosPage() {
                     )}
                   </TableCell>
                   <TableCell align="right">
-                    <IconButton onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, s.id); }}>
+                    <IconButton aria-label="Mais ações" onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, s.id); }}>
                       <MoreVertRoundedIcon />
                     </IconButton>
                   </TableCell>

@@ -435,7 +435,7 @@ function AppointmentCard({
             </Typography>
           )}
         </Box>
-        <IconButton
+        <IconButton aria-label="Excluir agendamento"
           onClick={(event) => {
             event.stopPropagation();
             onDelete(appointment.id);
@@ -935,7 +935,7 @@ export default function Schedule() {
         >
           <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ xs: 'stretch', md: 'center' }} justifyContent="space-between" gap={1.5} mb={2}>
             <Stack direction="row" alignItems="center" spacing={1.25}>
-              <IconButton onClick={goPrevious} sx={{ color: 'text.secondary', bgcolor: 'transparent', '&:hover': { bgcolor: 'transparent', color: 'primary.main' } }}>
+              <IconButton aria-label="Período anterior" onClick={goPrevious} sx={{ color: 'text.secondary', bgcolor: 'transparent', '&:hover': { bgcolor: 'transparent', color: 'primary.main' } }}>
                 <ArrowBackRoundedIcon />
               </IconButton>
               <Box>
@@ -946,7 +946,7 @@ export default function Schedule() {
                   {view === 'month' ? 'Visão mensal' : view === 'week' ? 'Visão semanal' : `${selectedAppointments.length} atendimento(s) no dia`}
                 </Typography>
               </Box>
-              <IconButton onClick={goNext} sx={{ color: 'text.secondary', bgcolor: 'transparent', '&:hover': { bgcolor: 'transparent', color: 'primary.main' } }}>
+              <IconButton aria-label="Próximo período" onClick={goNext} sx={{ color: 'text.secondary', bgcolor: 'transparent', '&:hover': { bgcolor: 'transparent', color: 'primary.main' } }}>
                 <ArrowForwardRoundedIcon />
               </IconButton>
             </Stack>

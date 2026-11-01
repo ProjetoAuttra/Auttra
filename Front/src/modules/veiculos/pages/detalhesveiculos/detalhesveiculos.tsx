@@ -207,7 +207,7 @@ export default function VeiculoDetalhesPage() {
 
         {/* ── Breadcrumb ── */}
         <Stack direction="row" alignItems="center" spacing={1.5} mb={3}>
-          <IconButton onClick={() => nav(-1)} size="small"
+          <IconButton aria-label="Voltar" onClick={() => nav(-1)} size="small"
             sx={{ bgcolor: "action.hover", borderRadius: 2 }}>
             <ArrowBackRoundedIcon fontSize="small" />
           </IconButton>
@@ -244,7 +244,7 @@ export default function VeiculoDetalhesPage() {
                     <Typography variant="h6" fontWeight={700} lineHeight={1.2}>
                       {veiculo.marca} {veiculo.modelo}
                     </Typography>
-                    <IconButton
+                    <IconButton aria-label="Editar veículo"
                       size="small"
                       onClick={() => setOpenEdit(true)}
                       sx={{ border: (t) => `1px solid ${t.palette.divider}`, borderRadius: 2 }}

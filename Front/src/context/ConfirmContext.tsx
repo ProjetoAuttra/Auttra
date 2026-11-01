@@ -163,7 +163,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                     </Stack>
 
                     {/* Fechar */}
-                    <IconButton size="small" onClick={handleCancel} sx={{ mt: -0.5, ml: 1 }}>
+                    <IconButton aria-label="Fechar" size="small" onClick={handleCancel} sx={{ mt: -0.5, ml: 1 }}>
                         <CloseRoundedIcon fontSize="small" />
                     </IconButton>
                 </Paper>

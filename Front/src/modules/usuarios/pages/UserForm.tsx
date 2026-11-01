@@ -192,7 +192,7 @@ export default function FuncionariosPage() {
                   <TableCell>{f.telefone || "—"}</TableCell>
                   <TableCell align="right">
                     {(can("funcionarios", "update") || can("funcionarios", "delete")) && (
-                      <IconButton onClick={(e) => handleMenuOpen(e, f.id)}><MoreVertRoundedIcon /></IconButton>
+                      <IconButton aria-label="Mais ações" onClick={(e) => handleMenuOpen(e, f.id)}><MoreVertRoundedIcon /></IconButton>
                     )}
                   </TableCell>
                 </TableRow>

@@ -290,7 +290,7 @@ export default function EstoquePage() {
                               <RemoveRoundedIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <IconButton onClick={(e) => handleMenuOpen(e, i.id)}>
+                          <IconButton aria-label="Mais ações" onClick={(e) => handleMenuOpen(e, i.id)}>
                             <MoreVertRoundedIcon />
                           </IconButton>
                         </Stack>
@@ -366,7 +366,7 @@ export default function EstoquePage() {
               </Typography>
             </Stack>
           </Stack>
-          <IconButton size="small" onClick={() => setOpenAjuste(false)}>
+          <IconButton aria-label="Fechar" size="small" onClick={() => setOpenAjuste(false)}>
             <CloseRoundedIcon />
           </IconButton>
         </Box>

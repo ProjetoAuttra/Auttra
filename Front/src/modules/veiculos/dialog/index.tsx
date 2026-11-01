@@ -1,5 +1,6 @@
 import * as React from "react";
 import {
+  CircularProgress,
   Box,
   Stack, TextField,
   Button, IconButton, Typography, InputAdornment,
@@ -9,6 +10,7 @@ import DirectionsCarRoundedIcon from "@mui/icons-material/DirectionsCarRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import { listarClientes } from "../../../api/client";
+import { useToast } from "../../../context/ToastContext";
 import ClientDialog, { type ClientForm } from "../../clientes/dialog";
 import api from "../../../api/api";
 import { AppDrawer, DrawerSection } from "../../../components/common/AppDrawer";
@@ -48,7 +50,7 @@ type Props = {
   initial?: Veiculo | null;
   defaultCliente?: { id: number; nome: string } | null;
   onClose: () => void;
-  onSubmit: (data: VeiculoForm) => void;
+  onSubmit: (data: VeiculoForm) => void | Promise<void>;
 };
 
 // ─── Constantes ────────────────────────────────────────────────────────────
@@ -90,6 +92,7 @@ export default function VeiculoDialog({ open, mode, initial, defaultCliente, onC
   const currentYear = new Date().getFullYear();
   const isEdit = mode === "edit";
 
+  const { error: toastErro } = useToast();
   const [clientes, setClientes] = React.useState<{ id: number; nome: string }[]>([]);
   const [clienteId, setClienteId] = React.useState<number>(0);
   const [marca, setMarca] = React.useState("");
@@ -103,6 +106,8 @@ export default function VeiculoDialog({ open, mode, initial, defaultCliente, onC
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [submitAttempted, setSubmitAttempted] = React.useState(false);
   const [openNovoCliente, setOpenNovoCliente] = React.useState(false);
+  // Trava o botão enquanto salva: clique duplo não cria registro repetido.
+  const [salvando, setSalvando] = React.useState(false);
 
   React.useEffect(() => {
     if (!isEdit) {
@@ -147,27 +152,41 @@ export default function VeiculoDialog({ open, mode, initial, defaultCliente, onC
   }, [clienteId, marca, modelo, placa, submitAttempted]);
 
   const handleClienteCriado = async (data: ClientForm) => {
-    const res = await api.post("/clientes", data);
-    const novo = { id: Number(res.data.id), nome: res.data.nome };
-    setClientes((prev) => [novo, ...prev]);
-    setClienteId(novo.id);
-    setOpenNovoCliente(false);
+    try {
+      const res = await api.post("/clientes", data);
+      const novo = { id: Number(res.data.id), nome: res.data.nome };
+      setClientes((prev) => [novo, ...prev]);
+      setClienteId(novo.id);
+      setOpenNovoCliente(false);
+    } catch (err) {
+      console.error("Erro ao criar cliente:", err);
+      toastErro("Não foi possível criar o cliente.");
+      throw err;
+    }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (salvando) return;
     setSubmitAttempted(true);
     if (!validate()) return;
-    onSubmit({
-      ...(clienteId ? { cliente_id: clienteId } : {}),
-      marca: marca.trim(),
-      modelo: modelo.trim(),
-      placa: placa.replace(/[^A-Za-z0-9]/g, "").toUpperCase(),
-      ano: ano === "" ? undefined : Number(ano),
-      cor: cor.trim() || undefined,
-      combustivel: combustivel || undefined,
-      quilometragem: quilometragem === "" ? undefined : Number(quilometragem),
-      observacao: observacao.trim() || undefined,
-    });
+    setSalvando(true);
+    try {
+      await onSubmit({
+        ...(clienteId ? { cliente_id: clienteId } : {}),
+        marca: marca.trim(),
+        modelo: modelo.trim(),
+        placa: placa.replace(/[^A-Za-z0-9]/g, "").toUpperCase(),
+        ano: ano === "" ? undefined : Number(ano),
+        cor: cor.trim() || undefined,
+        combustivel: combustivel || undefined,
+        quilometragem: quilometragem === "" ? undefined : Number(quilometragem),
+        observacao: observacao.trim() || undefined,
+      });
+    } catch {
+      // Quem chamou já avisou o erro; o formulário fica aberto com os dados preenchidos.
+    } finally {
+      setSalvando(false);
+    }
   };
 
   const linha = { display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 } as const;
@@ -177,7 +196,10 @@ export default function VeiculoDialog({ open, mode, initial, defaultCliente, onC
       <Box />
       <Stack direction="row" spacing={1.5}>
         <Button onClick={onClose} variant="outlined">Cancelar</Button>
-        <Button variant="contained" onClick={handleSubmit} disableElevation sx={{ fontWeight: 700 }}>
+        <Button
+          variant="contained" onClick={handleSubmit} disableElevation sx={{ fontWeight: 700 }}
+          disabled={salvando} startIcon={salvando ? <CircularProgress size={16} color="inherit" /> : undefined}
+        >
           {isEdit ? "Salvar alterações" : "Cadastrar veículo"}
         </Button>
       </Stack>

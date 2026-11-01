@@ -180,7 +180,7 @@ export default function AppTopbar({
         }}
       >
         <Toolbar sx={{ px: { xs: 1.5, sm: 2.5, md: 4 }, position: "relative", gap: 1.5 }}>
-          <IconButton
+          <IconButton aria-label="Abrir menu"
             onClick={onMenuClick}
             sx={{
               display: { xs: "inline-flex", md: "none" },
@@ -262,7 +262,7 @@ export default function AppTopbar({
                 onFocus={() => results.length > 0 && setSearchOpen(true)}
               />
               {searchTerm && (
-                <IconButton
+                <IconButton aria-label="Limpar busca"
                   size="small"
                   onClick={() => { setSearchTerm(""); setSearchOpen(false); }}
                   sx={{ ml: 0.5, p: 0.25 }}

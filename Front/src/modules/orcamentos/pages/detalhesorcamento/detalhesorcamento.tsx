@@ -136,7 +136,7 @@ export default function OrcamentoDetalhes() {
     <Box sx={{ maxWidth: 1200, mx: "auto" }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3} gap={2}>
         <Stack direction="row" spacing={1.5} alignItems="center" minWidth={0}>
-          <IconButton onClick={() => nav("/orcamentos")} size="small" sx={{ bgcolor: "action.hover", borderRadius: 2 }}>
+          <IconButton aria-label="Voltar para orçamentos" onClick={() => nav("/orcamentos")} size="small" sx={{ bgcolor: "action.hover", borderRadius: 2 }}>
             <ArrowBackRoundedIcon fontSize="small" />
           </IconButton>
           <Stack minWidth={0}>
