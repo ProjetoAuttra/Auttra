@@ -2,13 +2,13 @@ import { prisma } from "../prisma/client.js";
 import { canAccess, type PermissionsMap } from "../permissions/accessProfiles.js";
 import { periodoDe } from "./relatorios.service.js";
 import { RecursosAdicionaisService } from "./recursosAdicionais.service.js";
+import { FUSO_OFICINA as FUSO, hojeISO } from "../utils/datas.js";
 
 /**
  * Resumo da tela de inicio. Cada bloco so e calculado se o usuario tem o modulo correspondente
  * (e, para agenda e estoque, se o recurso esta habilitado na oficina); o que nao vier foi omitido.
  */
 
-const FUSO = "America/Sao_Paulo";
 const DIA_MS = 24 * 60 * 60 * 1000;
 
 // Mesmos criterios dos relatorios de ordens paradas, estoque critico e orcamentos perdidos.
@@ -20,7 +20,6 @@ const ITENS_AGENDA = 5;
 
 const num = (v: unknown) => Number(v ?? 0);
 const arred = (v: number) => Math.round(v * 100) / 100;
-const hojeISO = () => new Date().toLocaleDateString("en-CA", { timeZone: FUSO });
 const somaDias = (iso: string, n: number) => new Date(new Date(`${iso}T12:00:00-03:00`).getTime() + n * DIA_MS).toLocaleDateString("en-CA", { timeZone: FUSO });
 
 export type AtencaoChave = "ordens_paradas" | "contas_vencidas" | "orcamentos_sem_resposta" | "estoque_critico" | "contas_pagar_amanha";
