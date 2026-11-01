@@ -1,12 +1,17 @@
 import {
   Box,
   Button,
+  IconButton,
+  InputAdornment,
   Stack,
+  TextField,
   Typography,
 } from "@mui/material";
 import type React from "react";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import FileUploadRoundedIcon from "@mui/icons-material/FileUploadRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 
 type Metric = {
   label: string;
@@ -34,6 +39,9 @@ export default function ModuleHeader({
   title,
   subtitle,
   icon,
+  searchValue,
+  searchPlaceholder = "Pesquisar",
+  onSearchChange,
   actionLabel,
   onAction,
   secondaryActionLabel,
@@ -90,6 +98,33 @@ export default function ModuleHeader({
           </Stack>
         )}
       </Stack>
+
+      {/* Busca da lista: aparece sempre que a página passa onSearchChange. */}
+      {onSearchChange && (
+        <TextField
+          size="small"
+          fullWidth
+          placeholder={searchPlaceholder}
+          value={searchValue ?? ""}
+          onChange={(e) => onSearchChange(e.target.value)}
+          inputProps={{ "aria-label": searchPlaceholder }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchRoundedIcon fontSize="small" sx={{ color: "text.disabled" }} />
+              </InputAdornment>
+            ),
+            endAdornment: searchValue ? (
+              <InputAdornment position="end">
+                <IconButton size="small" aria-label="Limpar busca" onClick={() => onSearchChange("")} edge="end">
+                  <CloseRoundedIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ) : null,
+          }}
+          sx={{ mt: 2 }}
+        />
+      )}
     </Box>
   );
 }
