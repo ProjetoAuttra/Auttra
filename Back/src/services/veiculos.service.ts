@@ -6,6 +6,57 @@ function normalizePlaca(placa: string) {
   return placa.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+const inteiroOuNulo = (valor: unknown, campo: string) => {
+  if (valor === null || valor === "") return null;
+  const n = Number(valor);
+  if (!Number.isInteger(n) || n < 0) throw new Error(`Campo ${campo} inválido.`);
+  return n;
+};
+const textoOuNulo = (valor: unknown) => (valor === null || valor === "" ? null : String(valor).trim());
+
+/**
+ * Campos que a edicao do veiculo pode alterar, montados um a um. Copiar o body deixava passar
+ * relacoes aninhadas (ordens/orcamentos/agendamentos com connect), que trocavam o veiculo de
+ * registros de outra oficina.
+ */
+function camposEditaveisVeiculo(data: any) {
+  const patch: {
+    cliente_id?: number;
+    marca?: string;
+    modelo?: string;
+    placa?: string;
+    ano?: number | null;
+    cor?: string | null;
+    combustivel?: string | null;
+    quilometragem?: number | null;
+    observacao?: string | null;
+  } = {};
+  if (!data || typeof data !== "object") return patch;
+
+  if (data.cliente_id !== undefined && data.cliente_id !== null && data.cliente_id !== "") {
+    const clienteId = Number(data.cliente_id);
+    if (!Number.isInteger(clienteId) || clienteId <= 0) throw new Error("Campo cliente_id inválido.");
+    patch.cliente_id = clienteId;
+  }
+  for (const campo of ["marca", "modelo"] as const) {
+    if (data[campo] === undefined) continue;
+    const valor = String(data[campo] ?? "").trim();
+    if (!valor) throw new Error(`O campo ${campo} é obrigatório.`);
+    patch[campo] = valor;
+  }
+  if (data.placa !== undefined) {
+    const placa = normalizePlaca(String(data.placa ?? ""));
+    if (!placa) throw new Error("O campo placa é obrigatório.");
+    patch.placa = placa;
+  }
+  if (data.ano !== undefined) patch.ano = inteiroOuNulo(data.ano, "ano");
+  if (data.quilometragem !== undefined) patch.quilometragem = inteiroOuNulo(data.quilometragem, "quilometragem");
+  for (const campo of ["cor", "combustivel", "observacao"] as const) {
+    if (data[campo] !== undefined) patch[campo] = textoOuNulo(data[campo]);
+  }
+  return patch;
+}
+
 export const VeiculosService = {
   list: (filters: { oficina_id: number; cliente_id?: number; search?: string }, pag: Paginacao | null = null) => {
     const where: any = { deleted_at: null, oficina_id: filters.oficina_id };
@@ -93,19 +144,10 @@ export const VeiculosService = {
   },
 
   update: async (id: number, data: any, oficinaId: number) => {
-    const patch: any = { ...data };
-    delete patch.clienteId;
-    delete patch.oficinaId;
-
-    if (data.placa != null) patch.placa = normalizePlaca(String(data.placa));
-    if (data.cliente_id) patch.cliente_id = Number(data.cliente_id);
-    delete patch.oficina_id;
-    if (data.ano != null) patch.ano = Number(data.ano);
-    if (data.quilometragem != null) patch.quilometragem = Number(data.quilometragem);
+    const patch = camposEditaveisVeiculo(data);
 
     const existing = await prisma.veiculo.findFirst({ where: { id, oficina_id: oficinaId, deleted_at: null } });
     if (!existing) throw new Error("Veiculo nao encontrado nesta oficina.");
-    patch.oficina_id = oficinaId;
 
     if (patch.cliente_id) {
       const cli = await prisma.cliente.findFirst({
