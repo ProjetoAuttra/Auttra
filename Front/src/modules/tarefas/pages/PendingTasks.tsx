@@ -11,7 +11,7 @@ import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import { paths } from "../../../routes/paths";
-import { useNavigate, useSearchParams } from "react-router-dom"; // ← useSearchParams adicionado
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
 import api from "../../../api/api";
@@ -21,7 +21,7 @@ import TableSkeleton from "../../../components/common/TableSkeleton";
 import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationOS } from "../../../components/common/Illustrations";
 import ListTableContainer from "../../../components/common/ListTableContainer";
-import { STATUS_CONFIG, STATUS_VALIDOS, VALID_TRANSITIONS, type OrdemStatus } from "../statusConfig";
+import { STATUS_CONFIG, STATUS_VALIDOS, VALID_TRANSITIONS, podeEditarOrdem, type OrdemStatus } from "../statusConfig";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import ChecklistRoundedIcon from "@mui/icons-material/ChecklistRounded";
 import { linhaClicavel } from "../../../components/common/linhaClicavel";
@@ -42,7 +42,7 @@ type Ordem = {
 
 export default function OrdensPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { success, error } = useToast();
   const confirm = useConfirm();
 
@@ -53,10 +53,18 @@ export default function OrdensPage() {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [menuId, setMenuId] = React.useState<number | null>(null);
 
-  // ── Lê o filtro de status da URL (?status=em_andamento) ──
+  // ── O filtro de status vive na URL (?status=em_andamento): links do painel abrem já filtrados
+  // e trocar o filtro aqui atualiza o endereço, sem empilhar histórico. ──
   const statusParam = searchParams.get("status") ?? "todos";
-  const initialStatus = STATUS_VALIDOS.includes(statusParam) ? statusParam : "todos";
-  const [filtroStatus, setFiltroStatus] = React.useState(initialStatus);
+  const filtroStatus = STATUS_VALIDOS.includes(statusParam) ? statusParam : "todos";
+  const setFiltroStatus = React.useCallback((valor: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (valor && valor !== "todos") next.set("status", valor);
+      else next.delete("status");
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   const { rows, total, carregandoInicial: loading, page, setPage, rowsPerPage, setRowsPerPage, recarregar } =
     useListaPaginada<Ordem>("/ordens", {
@@ -68,16 +76,9 @@ export default function OrdensPage() {
       },
     });
 
-  // Sincroniza se o usuário navegar para a mesma página com param diferente
-  React.useEffect(() => {
-    const s = searchParams.get("status") ?? "todos";
-    setFiltroStatus(STATUS_VALIDOS.includes(s) ? s : "todos");
-    setPage(0);
-  }, [searchParams]);
-
   // ── Carrega ──
   React.useEffect(() => {
-    api.get("/funcionarios").then((r) => r.data).catch(() => []).then((funcs) => {
+    api.get("/ordens/responsaveis").then((r) => r.data).catch(() => []).then((funcs) => {
       if (Array.isArray(funcs)) setFuncionarios(funcs);
     });
   }, []);
@@ -332,7 +333,9 @@ export default function OrdensPage() {
       {/* ── Menu ── */}
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }} transformOrigin={{ vertical: "top", horizontal: "right" }}>
-        <MenuItem onClick={() => { const os = rows.find((r) => r.id === menuId); if (os) handleEdit(os); handleMenuClose(); }}>Editar</MenuItem>
+        {podeEditarOrdem(rows.find((r) => r.id === menuId)?.status) && (
+          <MenuItem onClick={() => { const os = rows.find((r) => r.id === menuId); if (os) handleEdit(os); handleMenuClose(); }}>Editar</MenuItem>
+        )}
         <MenuItem onClick={() => { if (menuId) navigate(`/ordens/${menuId}`); handleMenuClose(); }}>Ver detalhes</MenuItem>
         {(() => {
           const os = rows.find((r) => r.id === menuId);

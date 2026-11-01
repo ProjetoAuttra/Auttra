@@ -20,3 +20,8 @@ export const VALID_TRANSITIONS: Record<OrdemStatus, OrdemStatus[]> = {
   concluida: [],
   cancelada: [],
 };
+
+// Back/src/services/ordens.service.ts (validarEdicaoOrdem) recusa mudar os itens de uma OS
+// concluída ou cancelada; a tela de edição não é oferecida nesses status.
+export const STATUS_SEM_EDICAO: OrdemStatus[] = ["concluida", "cancelada"];
+export const podeEditarOrdem = (status?: string | null) => !STATUS_SEM_EDICAO.includes(status as OrdemStatus);

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { paths } from '../routes/paths';
 import AppLayout from './AppLayout';
 import Login from '../modules/autenticacao/pages/Login';
@@ -8,8 +8,8 @@ import type { JSX } from 'react';
 import SettingsLayout from '../components/layout/SettingsLayout';
 import type { AccessModule } from '../permissions/accessProfiles';
 import { useAdditionalResources } from '../context/AdditionalResourcesContext';
-import type { AdditionalResourceKey } from '../modules/recursos-adicionais/api/api';
 import CarregandoTela from '../components/common/CarregandoTela';
+import { moduleResourceMap, primeiraRotaPermitida } from '../routes/navegacao';
 
 // Cada tela vira um arquivo separado, baixado só quando o usuário entra nela: o Login
 // e a primeira tela abrem sem esperar o código do sistema inteiro.
@@ -49,23 +49,25 @@ const Servicos = lazy(() => import('../modules/servicos/pages/servicos'));
 const FormOrdemServico = lazy(() => import('../modules/tarefas/pages/formordem/formordem'));
 const OrdemServicoDetalhes = lazy(() => import('../modules/tarefas/pages/detalhesos/ordemservicodetalhes'));
 const RecursosAdicionais = lazy(() => import('../modules/recursos-adicionais/pages/RecursosAdicionais'));
+const SemAcesso = lazy(() => import('../modules/autenticacao/pages/SemAcesso'));
+const PaginaNaoEncontrada = lazy(() => import('../modules/autenticacao/pages/PaginaNaoEncontrada'));
 
-function PrivateRoute({ children }: { children: JSX.Element }) {
+export function PrivateRoute({ children }: { children: JSX.Element }) {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? children : <Navigate to={paths.login} replace />;
+  const location = useLocation();
+  // Guarda a tela pedida para o login voltar a ela.
+  return isAuthenticated ? children : <Navigate to={paths.login} replace state={{ from: location }} />;
 }
 
-const moduleResourceMap: Partial<Record<AccessModule, AdditionalResourceKey>> = {
-  agenda: 'agenda',
-  estoque: 'estoque',
-  fornecedores: 'fornecedores',
-};
-
-function ModuleRoute({ module, children }: { module: AccessModule; children: JSX.Element }) {
+// Sem permissão para a tela: vai para a primeira que o perfil libera (ordem do menu), em vez de
+// mandar sempre para o início, que também pode estar bloqueado e virar loop ou tela em branco.
+export function ModuleRoute({ module, children }: { module: AccessModule; children: JSX.Element }) {
   const { can } = useAuth();
   const { isEnabled } = useAdditionalResources();
   const resource = moduleResourceMap[module];
-  return can(module) && (!resource || isEnabled(resource)) ? children : <Navigate to={paths.root} replace />;
+  if (can(module) && (!resource || isEnabled(resource))) return children;
+  const destino = primeiraRotaPermitida(can, isEnabled);
+  return destino ? <Navigate to={destino} replace /> : <SemAcesso />;
 }
 
 export default function Router() {
@@ -120,6 +122,7 @@ export default function Router() {
           <Route path={paths.servicos} element={<ModuleRoute module="servicos"><Servicos /></ModuleRoute>} />
           <Route path={paths.recursosAdicionais} element={<ModuleRoute module="recursos_adicionais"><RecursosAdicionais /></ModuleRoute>} />
         </Route>
+        <Route path="*" element={<PaginaNaoEncontrada />} />
       </Route>
     </Routes>
     </Suspense>

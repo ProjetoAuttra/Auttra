@@ -81,6 +81,27 @@ export default function ResetPassword() {
             </Typography>
           </Stack>
 
+          {!token ? (
+            // Sem token na URL não há o que redefinir: avisa já e leva a pedir um novo link.
+            <Stack spacing={2}>
+              <Alert severity="error">
+                Link inválido. Ele pode estar incompleto ou ter expirado. Peça um novo link de recuperação.
+              </Alert>
+              <Button
+                component={Link}
+                to={paths.login}
+                state={{ esqueciSenha: true }}
+                variant="contained"
+                disableElevation
+                sx={{ height: 48, fontWeight: 600, textTransform: "none", bgcolor: BLUE_MAIN }}
+              >
+                Pedir novo link
+              </Button>
+              <Button component={Link} to={paths.login} variant="text" sx={{ textTransform: "none" }}>
+                Voltar para o login
+              </Button>
+            </Stack>
+          ) : (
           <form onSubmit={handleSubmit}>
             <Stack spacing={2}>
               {error && <Alert severity="error">{error}</Alert>}
@@ -111,6 +132,7 @@ export default function ResetPassword() {
               </Button>
             </Stack>
           </form>
+          )}
         </Box>
       </Box>
     </Box>

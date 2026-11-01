@@ -66,13 +66,15 @@ function linhaAtencao(a: Resumo["atencao"][number]): { titulo: string; detalhe: 
   const q = a.quantidade;
   switch (a.chave) {
     case "ordens_paradas":
-      return { titulo: `${q} ${plural(q, "O.S. parada", "O.S. paradas")} há mais de 5 dias`, detalhe: `a mais antiga: ${a.dias} dias`, to: paths.tasks };
+      // A lista de O.S. filtra uma situação por vez; "parada" (aberta ou em andamento há mais de
+      // 5 dias) não tem filtro próprio, então abre as que ainda nem começaram.
+      return { titulo: `${q} ${plural(q, "O.S. parada", "O.S. paradas")} há mais de 5 dias`, detalhe: `a mais antiga: ${a.dias} dias`, to: `${paths.tasks}?status=aberta` };
     case "contas_vencidas":
-      return { titulo: `${q} ${plural(q, "conta vencida", "contas vencidas")} a receber`, detalhe: brl(a.valor ?? 0), to: paths.contasReceber };
+      return { titulo: `${q} ${plural(q, "conta vencida", "contas vencidas")} a receber`, detalhe: brl(a.valor ?? 0), to: `${paths.contasReceber}?situacao=vencido` };
     case "orcamentos_sem_resposta":
-      return { titulo: `${q} ${plural(q, "orçamento sem resposta", "orçamentos sem resposta")}`, detalhe: "em análise há mais de 3 dias", to: paths.orcamentos };
+      return { titulo: `${q} ${plural(q, "orçamento sem resposta", "orçamentos sem resposta")}`, detalhe: "em análise há mais de 3 dias", to: `${paths.orcamentos}?status=analise` };
     case "estoque_critico":
-      return { titulo: `${q} ${plural(q, "item", "itens")} com estoque crítico`, detalhe: "3 unidades ou menos", to: paths.estoque };
+      return { titulo: `${q} ${plural(q, "item", "itens")} com estoque crítico`, detalhe: "3 unidades ou menos", to: `${paths.estoque}?baixo=1` };
     case "contas_pagar_amanha":
       return { titulo: `${q} ${plural(q, "conta a pagar vence", "contas a pagar vencem")} amanhã`, detalhe: brl(a.valor ?? 0), to: paths.contasPagar };
   }
@@ -168,12 +170,13 @@ export default function Home() {
     return () => { ativo = false; };
   }, []);
 
+  // Só as ações que o perfil pode criar.
   const novos = [
-    { icon: <AssignmentRoundedIcon fontSize="small" />,    label: "Nova O.S.",         onClick: () => navigate(paths.ordemNova) },
-    { icon: <RequestQuoteRoundedIcon fontSize="small" />,  label: "Novo orçamento",    onClick: () => navigate(paths.orcamentoNovo) },
-    { icon: <PersonAddRoundedIcon fontSize="small" />,     label: "Cadastrar cliente", onClick: () => setOpenCliente(true) },
-    { icon: <DirectionsCarRoundedIcon fontSize="small" />, label: "Cadastrar veículo", onClick: () => setOpenVeiculo(true) },
-  ];
+    { modulo: "ordens" as const,     icon: <AssignmentRoundedIcon fontSize="small" />,    label: "Nova O.S.",         onClick: () => navigate(paths.ordemNova) },
+    { modulo: "orcamentos" as const, icon: <RequestQuoteRoundedIcon fontSize="small" />,  label: "Novo orçamento",    onClick: () => navigate(paths.orcamentoNovo) },
+    { modulo: "clientes" as const,   icon: <PersonAddRoundedIcon fontSize="small" />,     label: "Cadastrar cliente", onClick: () => setOpenCliente(true) },
+    { modulo: "veiculos" as const,   icon: <DirectionsCarRoundedIcon fontSize="small" />, label: "Cadastrar veículo", onClick: () => setOpenVeiculo(true) },
+  ].filter((n) => can(n.modulo, "create"));
 
   const veFinanceiro = can("financeiro");
   const veAgenda     = can("agenda") && isEnabled("agenda");
@@ -211,9 +214,11 @@ export default function Home() {
               {hojeLabel()}{user?.oficina_nome ? ` · ${user.oficina_nome}` : ""}
             </Typography>
           </Stack>
-          <Button variant="contained" disableElevation startIcon={<AddRoundedIcon />} onClick={(e) => setMenuEl(e.currentTarget)}>
-            Novo
-          </Button>
+          {novos.length > 0 && (
+            <Button variant="contained" disableElevation startIcon={<AddRoundedIcon />} onClick={(e) => setMenuEl(e.currentTarget)}>
+              Novo
+            </Button>
+          )}
           <Menu anchorEl={menuEl} open={!!menuEl} onClose={() => setMenuEl(null)}>
             {novos.map((n) => (
               <MenuItem key={n.label} onClick={() => { setMenuEl(null); n.onClick(); }}>
@@ -304,7 +309,7 @@ export default function Home() {
                 ) : resumo?.agenda?.itens.length ? (
                   <>
                     {resumo.agenda.itens.map((a) => (
-                      <Box key={a.id} sx={rowSx}>
+                      <Box key={a.id} component="button" onClick={() => navigate(paths.agenda)} sx={{ ...rowSx, cursor: "pointer", "&:hover": { background: brand.subtle } }}>
                         <Box sx={{ width: 48, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{horaDe(a.inicio)}</Box>
                         <Box sx={{ flex: 1 }}>{a.cliente}</Box>
                         <Box sx={{ fontSize: 13, color: MUTED }}>{[a.veiculo, a.titulo].filter(Boolean).join(" · ")}</Box>

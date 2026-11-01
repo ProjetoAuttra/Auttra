@@ -252,8 +252,8 @@ export default function ImportarXmlPage() {
         <Stack spacing={3}>
           {preview.ja_importada && (
             <Alert severity="warning">
-              Essa nota já foi importada anteriormente. Para evitar duplicidade, o estoque não será
-              alterado se você confirmar novamente.
+              Esta nota já foi importada. Para não duplicar o estoque, ela não pode ser lançada de novo.
+              Use "Escolher outra nota" para voltar e enviar outro arquivo.
             </Alert>
           )}
 
@@ -408,9 +408,10 @@ export default function ImportarXmlPage() {
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Button
               startIcon={<ArrowBackRoundedIcon />}
+              variant={preview.ja_importada ? "outlined" : "text"}
               onClick={() => setEtapa("upload")}
             >
-              Voltar
+              {preview.ja_importada ? "Escolher outra nota" : "Voltar"}
             </Button>
             <Button
               variant="contained"

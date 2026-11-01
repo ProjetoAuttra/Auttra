@@ -15,19 +15,22 @@ type Props = {
   registro: string;
   onTentarNovamente?: () => void;
   onVoltar: () => void;
+  /** Concorda o texto com registros femininos: "Ordem de serviço não encontrada." */
+  feminino?: boolean;
 };
 
 /** Bloco no lugar da tela de detalhes quando o registro não carrega, em vez de deixar a página em branco. */
-export default function FalhaCarregamento({ motivo, registro, onTentarNovamente, onVoltar }: Props) {
+export default function FalhaCarregamento({ motivo, registro, onTentarNovamente, onVoltar, feminino = false }: Props) {
   const naoEncontrado = motivo === "nao_encontrado";
+  const a = feminino ? "a" : "o";
   return (
     <Box sx={{ py: 8, px: 2, textAlign: "center" }} role="alert">
       <Typography variant="h6" fontWeight={700}>
-        {naoEncontrado ? `${registro} não encontrado.` : `Não foi possível carregar: ${registro.toLowerCase()}.`}
+        {naoEncontrado ? `${registro} não encontrad${a}.` : `Não foi possível carregar: ${registro.toLowerCase()}.`}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 1, maxWidth: 420, mx: "auto" }}>
         {naoEncontrado
-          ? "Ele pode ter sido excluído ou pertencer a outra oficina."
+          ? `${feminino ? "Ela" : "Ele"} pode ter sido excluíd${a} ou pertencer a outra oficina.`
           : "Verifique sua conexão e tente de novo. Se continuar, fale com o suporte."}
       </Typography>
       <Stack direction="row" spacing={1.5} justifyContent="center" sx={{ mt: 3 }}>

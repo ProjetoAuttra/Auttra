@@ -4,10 +4,20 @@ import { PdfHtmlService } from "../services/pdfservice.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 import { sendServiceError } from "../utils/httpError.js";
 import { LinksPublicosService } from "../services/linksPublicos.service.js";
+import { FuncionariosService } from "../services/funcionarios.service.js";
 
 const router = Router();
 
 router.get("/", OrdensController.list);
+
+// Quem pode ser responsavel pela OS: liberado pelo modulo de ordens, sem exigir o de funcionarios.
+router.get("/responsaveis", async (req, res) => {
+  try {
+    res.json(await FuncionariosService.listarResponsaveis(getRequiredOfficeId(req)));
+  } catch (err) {
+    sendServiceError(res, err, "ordens/responsaveis");
+  }
+});
 
 router.get("/:id/pdf", async (req, res) => {
   try {

@@ -95,6 +95,16 @@ export const FuncionariosService = {
     });
   },
 
+  /** Só id e nome, para escolher o responsável de uma OS sem precisar do módulo de funcionários. */
+  listarResponsaveis: async (oficinaId: number) => {
+    await ensureGestorComoFuncionario(oficinaId);
+    return prisma.funcionario.findMany({
+      where: { deleted_at: null, oficina_id: oficinaId },
+      orderBy: { nome: "asc" },
+      select: { id: true, nome: true },
+    });
+  },
+
   getById: (id: number, oficinaId: number) =>
     prisma.funcionario.findFirst({
       where: { id, deleted_at: null, oficina_id: oficinaId },

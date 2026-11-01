@@ -3,7 +3,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "./utils";
-import FiltrosContas, { filtrosPadrao, paramsFiltros, temFiltroAtivo, type FiltrosConta } from "../modules/pagamentos/components/FiltrosContas";
+import FiltrosContas, { filtrosPadrao, paramsFiltros, temFiltroAtivo, vencidosSemPeriodo, type FiltrosConta } from "../modules/pagamentos/components/FiltrosContas";
 
 vi.mock("../api/api", () => ({
   default: { get: vi.fn(), post: vi.fn(), defaults: { headers: { common: {} } } },
@@ -99,7 +99,8 @@ describe("FiltrosContas", () => {
 
 describe("paramsFiltros", () => {
   it("por vencimento manda vencimento_de/ate e a data de hoje se houver 'vencido'", () => {
-    const p = paramsFiltros({ ...filtrosPadrao(new Date(2026, 9, 5)), situacao: ["vencido", "pago"], metodos: ["pix"], parceiroId: "3" }, "cliente_id");
+    // Período diferente do padrão: continua valendo mesmo com "vencido".
+    const p = paramsFiltros({ ...filtrosPadrao(new Date(2026, 9, 5)), situacao: ["vencido", "pago"], metodos: ["pix"], parceiroId: "3" }, "cliente_id", filtrosPadrao(new Date(2026, 0, 5)));
     expect(p).toMatchObject({ status: "vencido,pago", vencimento_de: "2026-10-01", vencimento_ate: "2026-10-31", metodo: "pix", cliente_id: "3", tz_offset: "" });
     expect(p.hoje).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(p).not.toHaveProperty("pagamento_de");
@@ -110,5 +111,26 @@ describe("paramsFiltros", () => {
     expect(p).toMatchObject({ pagamento_de: "2026-10-01", pagamento_ate: "2026-10-31", hoje: "", fornecedor_id: "" });
     expect(p.tz_offset).toBe(String(new Date().getTimezoneOffset()));
     expect(p).not.toHaveProperty("vencimento_de");
+  });
+});
+
+describe("vencidos sem período", () => {
+  const padrao = filtrosPadrao(new Date(2026, 10, 1));
+
+  it("com 'vencido' e o período padrão (vencimento no mês), não manda o período de vencimento", () => {
+    const p = paramsFiltros({ ...padrao, situacao: ["vencido"] }, "cliente_id", padrao);
+    expect(p).toMatchObject({ status: "vencido", vencimento_de: "", vencimento_ate: "" });
+    expect(vencidosSemPeriodo({ ...padrao, situacao: ["vencido"] }, padrao)).toBe(true);
+  });
+
+  it("período mudado pelo usuário, data por recebimento ou sem 'vencido' continuam filtrando pelo período", () => {
+    expect(paramsFiltros({ ...padrao, situacao: ["vencido"], de: "2026-09-01" }, "cliente_id", padrao)).toMatchObject({ vencimento_de: "2026-09-01" });
+    expect(paramsFiltros({ ...padrao, situacao: ["vencido"], dataPor: "pagamento" }, "cliente_id", padrao)).toMatchObject({ pagamento_de: "2026-11-01" });
+    expect(paramsFiltros({ ...padrao, situacao: ["pendente"] }, "cliente_id", padrao)).toMatchObject({ vencimento_de: "2026-11-01", vencimento_ate: "2026-11-30" });
+  });
+
+  it("mostra 'Vencidos: todos os períodos' perto do filtro", () => {
+    renderWithProviders(<Harness inicial={{ ...filtrosPadrao(), situacao: ["vencido"] }} onChange={vi.fn()} />);
+    expect(screen.getByText("Vencidos: todos os períodos")).toBeInTheDocument();
   });
 });

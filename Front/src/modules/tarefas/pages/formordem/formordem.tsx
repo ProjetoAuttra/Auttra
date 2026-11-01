@@ -13,6 +13,7 @@ import { useConfirm } from "../../../../context/ConfirmContext";
 import { useToast } from "../../../../context/ToastContext";
 import { paths } from "../../../../routes/paths";
 import { atualizarOrdem, criarOrdem } from "../../api/api";
+import { podeEditarOrdem } from "../../statusConfig";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -88,7 +89,7 @@ export default function FormOrdemServico() {
   const nav = useNavigate();
   const { user } = useAuth();
   const confirm = useConfirm();
-  const { success, error } = useToast();
+  const { success, error, warning } = useToast();
 
   const [carregando, setCarregando] = React.useState(isEdit);
   const [clienteId, setClienteId] = React.useState(0);
@@ -133,7 +134,15 @@ export default function FormOrdemServico() {
     if (!isEdit) { if (preset) aplicar(preset); return; }
     let ativo = true;
     api.get(`/ordens/${id}`)
-      .then((res) => { if (ativo) aplicar(res.data); })
+      .then((res) => {
+        if (!ativo) return;
+        if (!podeEditarOrdem(res.data?.status)) {
+          warning("Ordem de serviço concluída ou cancelada não pode ser editada.");
+          nav(`/ordens/${id}`, { replace: true });
+          return;
+        }
+        aplicar(res.data);
+      })
       .catch(() => { if (ativo) error("Não foi possível carregar a ordem de serviço."); })
       .finally(() => { if (ativo) setCarregando(false); });
     return () => { ativo = false; };
@@ -141,13 +150,24 @@ export default function FormOrdemServico() {
   }, [id]);
 
   React.useEffect(() => {
-    const params = { oficina_id: user?.oficina_id };
-    Promise.all([api.get("/funcionarios", { params }), api.get("/servicos", { params })])
-      .then(([func, serv]) => {
-        setFuncionarios(func.data.map((f: any) => ({ id: Number(f.id), nome: f.nome })));
-        setServicos(serv.data);
-      })
-      .catch((err) => console.error("Erro ao carregar listas:", err));
+    // Cada lista carrega por conta própria: se uma falhar, a outra continua disponível.
+    // Responsáveis vêm de /ordens/responsaveis, liberado para quem tem o módulo de ordens
+    // (o perfil Mecânico não tem acesso a /funcionarios).
+    let ativo = true;
+    api.get("/ordens/responsaveis")
+      .then((res) => { if (ativo) setFuncionarios(res.data.map((f: any) => ({ id: Number(f.id), nome: f.nome }))); })
+      .catch((err) => {
+        console.error("Erro ao carregar responsáveis:", err);
+        if (ativo) error("Não foi possível carregar a lista de responsáveis.");
+      });
+    api.get("/servicos", { params: { oficina_id: user?.oficina_id } })
+      .then((res) => { if (ativo) setServicos(res.data); })
+      .catch((err) => {
+        console.error("Erro ao carregar serviços:", err);
+        if (ativo) error("Não foi possível carregar a lista de serviços.");
+      });
+    return () => { ativo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.oficina_id]);
 
   React.useEffect(() => {
