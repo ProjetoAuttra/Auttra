@@ -9,7 +9,10 @@ import { criarUsuarioComAcesso, removerUsuario } from "./sessao.js";
 const suffix = Date.now();
 const DIA = 24 * 60 * 60 * 1000;
 const diasAtras = (n: number) => new Date(Date.now() - n * DIA);
-const emDias = (n: number) => new Date(Date.now() + n * DIA);
+// Vencimento é só a data, gravada como o formulário grava (meia-noite UTC do dia em São Paulo).
+// Com hora, entre 21h e 0h de Brasília a data UTC já é o dia seguinte e o teste falhava.
+const hojeSP = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+const vencimento = (n: number) => new Date(Date.parse(`${hojeSP}T00:00:00Z`) + n * DIA);
 
 describe.skipIf(!process.env.DATABASE_URL)("painel: resumo da tela de inicio", () => {
   let cidadeId: number;
@@ -55,11 +58,11 @@ describe.skipIf(!process.env.DATABASE_URL)("painel: resumo da tela de inicio", (
       prisma.pagamento.create({
         data: { oficina_id: oficinaId, cliente_id: tipo === "receber" ? cliente : null, tipo, valor, valor_original: valor, status: "pendente", data_vencimento: venc, ...extra } as any,
       });
-    await pagamento("receber", new Date(), 300); // vence hoje
-    await pagamento("receber", diasAtras(4), 200, { desconto: 50 }); // vencida: saldo 150
-    await pagamento("receber", diasAtras(4), 999, { status: "pago", valor_pago: 999 }); // pago: fica de fora
-    await pagamento("pagar", emDias(1), 120); // vence amanha
-    await pagamento("pagar", emDias(20), 500); // fora da semana
+    await pagamento("receber", vencimento(0), 300); // vence hoje
+    await pagamento("receber", vencimento(-4), 200, { desconto: 50 }); // vencida: saldo 150
+    await pagamento("receber", vencimento(-4), 999, { status: "pago", valor_pago: 999 }); // pago: fica de fora
+    await pagamento("pagar", vencimento(1), 120); // vence amanha
+    await pagamento("pagar", vencimento(20), 500); // fora da semana
 
     await prisma.orcamento.create({ data: { descricao: "Antigo", valor: 100, data: new Date(), status: "analise", cliente_id: cliente, veiculo_id: veiculo, created_at: diasAtras(5) } });
     await prisma.orcamento.create({ data: { descricao: "Recente", valor: 100, data: new Date(), status: "analise", cliente_id: cliente, veiculo_id: veiculo } });

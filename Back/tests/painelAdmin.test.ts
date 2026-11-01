@@ -1,6 +1,7 @@
 import request from "supertest";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import { generateSecret, generateSync } from "otplib";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Nenhum teste dispara e-mail de verdade; o envio "funciona" e o link vem na resposta.
@@ -69,8 +70,20 @@ describe.skipIf(!process.env.DATABASE_URL)("painel admin", () => {
   }
 
   describe("sessão", () => {
-    it("login grava a sessão em cookie httpOnly e não devolve o token no corpo", async () => {
-      const res = await request(app).post("/api/admin/auth/login").send({ email: email("ator"), senha: SENHA_FORTE });
+    it("login com 2FA grava a sessão em cookie httpOnly e não devolve o token no corpo", async () => {
+      // 2FA é obrigatório: a senha só libera o pre_auth_token, o cookie sai depois do código.
+      const secret = generateSecret();
+      const comTotp = await criarAdmin("2fa");
+      await prisma.usuario.update({ where: { id: comTotp.id }, data: { totp_secret: secret } });
+
+      const login = await request(app).post("/api/admin/auth/login").send({ email: email("2fa"), senha: SENHA_FORTE });
+      expect(login.status).toBe(200);
+      expect(login.body.requires2fa).toBe(true);
+      expect(cookieDaResposta(login)).toBeUndefined();
+
+      const res = await request(app)
+        .post("/api/admin/auth/2fa/verify")
+        .send({ pre_auth_token: login.body.pre_auth_token, code: generateSync({ secret }) });
 
       expect(res.status).toBe(200);
       expect(res.body.token).toBeUndefined();
