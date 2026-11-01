@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { FuncionariosService } from "../services/funcionarios.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
+import { HttpError } from "../utils/httpError.js";
 
 function isNotFound(err: any): boolean {
   const msg = (err?.message ?? "").toLowerCase();
@@ -67,8 +68,8 @@ export const FuncionariosController = {
 
       res.status(201).json(funcionario);
     } catch (error: any) {
-      console.error("Erro ao criar funcionário:", error);
-      res.status(400).json({ error: error.message });
+      if (!(error instanceof HttpError)) console.error("Erro ao criar funcionário:", error);
+      res.status(error instanceof HttpError ? error.status : 400).json({ error: error.message });
     }
   },
 

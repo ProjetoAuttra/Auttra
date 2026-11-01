@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import { PerfisAcessoService } from "./perfisAcesso.service.js";
 import { PasswordResetService } from "./passwordReset.service.js";
 import { invalidarTokens, limparCacheSessao } from "./sessao.service.js";
+import { prepararUsuarioParaOficina } from "./usuario.service.js";
 
 function normTelefone(t?: string) {
   return (t || "").replace(/\D/g, "");
@@ -123,17 +124,6 @@ export const FuncionariosService = {
       throw new Error("A senha deve ter pelo menos 6 caracteres.");
     }
 
-    const usuarioExistente = await prisma.usuario.findUnique({
-      where: { email },
-      select: { tipo: true },
-    });
-    if (usuarioExistente && usuarioExistente.tipo !== "funcionario") {
-      throw new Error("Este e-mail pertence a uma conta que não pode ser vinculada como funcionário.");
-    }
-
-    // Sem senha informada, a conta nasce com uma senha aleatória inutilizável
-    // e o funcionário define a própria senha pelo link enviado por e-mail.
-    const convidar = !usuarioExistente && !senhaInformada;
     const senhaHash = await bcrypt.hash(senhaInformada || crypto.randomBytes(32).toString("hex"), 10);
     const perfilAcesso =
       perfilAcessoId
@@ -151,22 +141,20 @@ export const FuncionariosService = {
       ? new Date(data.data_contratacao)
       : new Date();
 
+    let contaExistente = false;
     const funcionario = await prisma.$transaction(async (tx) => {
-      const usuario = await tx.usuario.upsert({
-        where: { email },
-        // Conta já existente (possivelmente de outra oficina): não sobrescreve nome nem senha.
-        update: {
-          status: "ativo",
-          deleted_at: null,
-        },
-        create: {
-          nome,
-          email,
-          senha: senhaHash,
-          tipo: "funcionario",
-          status: "ativo",
-        },
+      // Mesmo e-mail nao pode repetir nesta oficina; conta de outra oficina so ganha o vinculo
+      // (sem mexer em nome, senha ou status, que sao da pessoa).
+      const preparado = await prepararUsuarioParaOficina(tx, {
+        email,
+        nome,
+        senhaHash,
+        tipo: "funcionario",
+        status: "ativo",
+        oficinaId,
       });
+      const usuario = preparado.usuario;
+      contaExistente = preparado.contaExistente;
 
       await tx.usuario_oficina.upsert({
         where: { usuario_id_oficina_id: { usuario_id: usuario.id, oficina_id: oficinaId } },
@@ -220,12 +208,14 @@ export const FuncionariosService = {
       });
     });
 
-    if (convidar && funcionario.usuario?.id) {
+    // Sem senha informada, a conta nasce com uma senha aleatória inutilizável
+    // e o funcionário define a própria senha pelo link enviado por e-mail.
+    if (!contaExistente && !senhaInformada && funcionario.usuario?.id) {
       const convite = await PasswordResetService.createResetForUser(funcionario.usuario.id);
-      return { ...funcionario, convite_enviado: convite.email_sent };
+      return { ...funcionario, conta_existente: false, convite_enviado: convite.email_sent };
     }
 
-    return funcionario;
+    return { ...funcionario, conta_existente: contaExistente };
   },
 
   update: async (id: number, data: any, oficinaId: number) => {

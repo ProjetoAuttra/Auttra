@@ -1,6 +1,7 @@
 import { prisma } from "../prisma/client.js";
 import bcrypt from "bcryptjs";
-import type { tipo_usuario, status_usuario } from "@prisma/client";
+import type { Prisma, tipo_usuario, status_usuario } from "@prisma/client";
+import { HttpError } from "../utils/httpError.js";
 import { PerfisAcessoService } from "./perfisAcesso.service.js";
 import { invalidarTokens, limparCacheSessao } from "./sessao.service.js";
 
@@ -26,6 +27,47 @@ const CAMPOS_PRIVADOS = {
   telefone: true,
   data_nascimento: true,
 } as const;
+
+type Tx = Prisma.TransactionClient;
+
+/**
+ * Regra de e-mail por oficina: o mesmo e-mail nao pode ter dois vinculos ativos na mesma oficina,
+ * mas pode estar em oficinas diferentes (a conta e global e cada oficina tem o seu vinculo).
+ *
+ * - e-mail novo: cria a conta com os dados informados;
+ * - conta de admin do sistema: nunca e vinculada a uma oficina pelo app;
+ * - ja vinculada a esta oficina: recusa;
+ * - conta de outra oficina: so cria o vinculo, sem tocar em nome, senha ou status (que sao da pessoa,
+ *   nao desta oficina). Se a conta tinha sido excluida, volta a ficar ativa com a mesma senha.
+ */
+export async function prepararUsuarioParaOficina(
+  tx: Tx,
+  dados: { email: string; nome: string; senhaHash: string; tipo: tipo_usuario; status: status_usuario; oficinaId: number }
+) {
+  const existente = await tx.usuario.findUnique({
+    where: { email: dados.email },
+    include: { acessos: { where: { deleted_at: null }, select: { oficina_id: true } } },
+  });
+
+  if (!existente) {
+    const usuario = await tx.usuario.create({
+      data: { email: dados.email, senha: dados.senhaHash, nome: dados.nome, tipo: dados.tipo, status: dados.status },
+    });
+    return { usuario, contaExistente: false };
+  }
+
+  if (existente.tipo === "sistema") {
+    throw new HttpError("Este e-mail nao pode ser usado para um usuario da oficina.", 409);
+  }
+  if (existente.acessos.some((acesso) => acesso.oficina_id === dados.oficinaId)) {
+    throw new HttpError("Ja existe um usuario com este e-mail nesta oficina.", 409);
+  }
+
+  const usuario = existente.deleted_at
+    ? await tx.usuario.update({ where: { id: existente.id }, data: { deleted_at: null, status: "ativo" } })
+    : existente;
+  return { usuario, contaExistente: true };
+}
 
 export const UsuarioService = {
   async create(data: {
@@ -60,45 +102,38 @@ export const UsuarioService = {
         );
     if (!perfilAcesso) throw new Error("Perfil de acesso nao encontrado.");
 
-    const existing = await prisma.usuario.findUnique({ where: { email } });
-    const usuario = existing
-      ? await prisma.usuario.update({
-          where: { id: existing.id },
-          // usuario eh global (multi-oficina): nao sobrescreve nome/status de outra oficina
-          data: { deleted_at: null },
-          include: {
-            acessos: { include: { oficina: { select: { id: true, nome: true } } } },
-          },
-        })
-      : await prisma.usuario.create({
-          data: {
-            email,
-            senha: senhaHash,
-            nome,
-            tipo,
-            status,
-          },
-          include: {
-            acessos: { include: { oficina: { select: { id: true, nome: true } } } },
-          },
-        });
-
-    await prisma.usuario_oficina.upsert({
-      where: { usuario_id_oficina_id: { usuario_id: usuario.id, oficina_id } },
-      update: { perfil: tipo, perfil_acesso_id: perfilAcesso.id, status, deleted_at: null },
-      create: {
-        usuario_id: usuario.id,
-        oficina_id,
-        perfil: tipo,
-        perfil_acesso_id: perfilAcesso.id,
+    const { usuario, contaExistente } = await prisma.$transaction(async (tx) => {
+      const preparado = await prepararUsuarioParaOficina(tx, {
+        email,
+        nome,
+        senhaHash,
+        tipo,
         status,
-      },
+        oficinaId: oficina_id,
+      });
+
+      await tx.usuario_oficina.upsert({
+        where: { usuario_id_oficina_id: { usuario_id: preparado.usuario.id, oficina_id } },
+        update: { perfil: tipo, perfil_acesso_id: perfilAcesso.id, status, deleted_at: null },
+        create: {
+          usuario_id: preparado.usuario.id,
+          oficina_id,
+          perfil: tipo,
+          perfil_acesso_id: perfilAcesso.id,
+          status,
+        },
+      });
+      return preparado;
     });
 
+    // So o vinculo desta oficina: as outras oficinas da pessoa nao sao da conta de quem cadastrou.
     const usuarioComAcessos = await prisma.usuario.findUniqueOrThrow({
       where: { id: usuario.id },
       include: {
-        acessos: { include: { oficina: { select: { id: true, nome: true } }, perfil_acesso: true } },
+        acessos: {
+          where: { oficina_id, deleted_at: null },
+          include: { oficina: { select: { id: true, nome: true } }, perfil_acesso: true },
+        },
       },
     });
 
@@ -108,6 +143,8 @@ export const UsuarioService = {
       email: usuarioComAcessos.email,
       tipo: usuarioComAcessos.tipo,
       status: usuarioComAcessos.status,
+      // Conta que ja existia em outra oficina: a senha informada no cadastro e ignorada.
+      conta_existente: contaExistente,
       oficinas: usuarioComAcessos.acessos.map((acesso) => ({
         id: acesso.oficina_id,
         nome: acesso.oficina.nome,
@@ -204,7 +241,7 @@ export const UsuarioService = {
         acessos: { some: { oficina_id: oficinaId, deleted_at: null } },
       },
     });
-    if (!usuario) throw new Error("Usuario nao encontrado.");
+    if (!usuario || usuario.tipo === "sistema") throw new Error("Usuario nao encontrado.");
 
     const outrosAcessos = await prisma.usuario_oficina.count({
       where: { usuario_id: id, oficina_id: { not: oficinaId }, deleted_at: null },
