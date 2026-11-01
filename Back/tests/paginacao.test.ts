@@ -30,7 +30,7 @@ describe.skipIf(!process.env.DATABASE_URL)("paginação das listagens", () => {
       jwt.sign(
         {
           id: usuarioId, email: "g@example.com", nome: "Gestor", tipo: "gestoroficina", oficinaId,
-          permissoes: { clientes: todas, estoque: todas, servicos: todas, financeiro: todas, orcamentos: todas, ordens: todas, veiculos: todas },
+          permissoes: { clientes: todas, estoque: todas, servicos: todas, financeiro: todas, orcamentos: todas, ordens: todas, veiculos: todas, agenda: todas },
         },
         getJwtSecret(),
         { expiresIn: "5m" }
