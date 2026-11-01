@@ -33,6 +33,7 @@ router.get("/", async (req, res) => {
         tz_offset: textoQuery(req.query.tz_offset) || undefined,
         hoje: textoQuery(req.query.hoje) || undefined,
         search: textoQuery(req.query.search) || undefined,
+        ordem: textoQuery(req.query.ordem) || undefined,
       },
       parsePaginacao(req.query)
     );
@@ -61,14 +62,17 @@ router.get("/cliente/:cliente_id", async (req, res) => {
   }
 });
 
-router.get("/extrato/oficina/:oficina_id", async (req, res) => {
+router.get("/extrato/resumo", async (req, res) => {
   try {
-    const oficina_id = getRequiredOfficeId(req);
-    const { from, to } = req.query as any;
-    const data = await PagamentosService.extrato(oficina_id, from, to);
-    res.json(data);
+    res.json(
+      await PagamentosService.extratoResumo(getRequiredOfficeId(req), {
+        pagamento_de: textoQuery(req.query.pagamento_de) || undefined,
+        pagamento_ate: textoQuery(req.query.pagamento_ate) || undefined,
+        tz_offset: textoQuery(req.query.tz_offset) || undefined,
+      })
+    );
   } catch (err) {
-    sendServiceError(res, err, "pagamentos");
+    sendServiceError(res, err, "pagamentos/extrato");
   }
 });
 

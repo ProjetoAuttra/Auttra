@@ -86,19 +86,4 @@ export const pagamentosController = {
       res.status(500).json({ error: "Erro interno" });
     }
   },
-
-  async extrato(req: Request, res: Response) {
-    try {
-      const oficina_id = getRequiredOfficeId(req);
-
-      const from = req.query.from?.toString();
-      const to = req.query.to?.toString();
-
-      const extrato = await PagamentosService.extrato(oficina_id, from, to);
-      res.json(extrato);
-    } catch (err: any) {
-      console.error("Erro ao gerar extrato:", err);
-      res.status(500).json({ error: err.message });
-    }
-  },
 };

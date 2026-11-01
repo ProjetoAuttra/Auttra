@@ -287,14 +287,17 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
       expect((await desc(20)).status).toBe(200);
     });
 
-    it("extrato filtra com apenas from ou apenas to", async () => {
-      await novoPagamento(10, { data_vencimento: "2030-06-15" });
-      const so_from = await request(app).get("/api/pagamentos/extrato/oficina/1?from=2030-01-01").set("Authorization", auth);
-      const so_to = await request(app).get("/api/pagamentos/extrato/oficina/1?to=2000-01-01").set("Authorization", auth);
+    it("resumo do extrato filtra com apenas o início ou apenas o fim do período", async () => {
+      const id = await novoPagamento(10, { data_vencimento: "2030-06-15" });
+      await request(app).post(`/api/pagamentos/${id}/pagar`).set("Authorization", auth).send({ metodo: "pix", data_pagamento: "2030-06-15" }).expect(200);
+      const resumo = (q: string) => request(app).get(`/api/pagamentos/extrato/resumo?tz_offset=0&${q}`).set("Authorization", auth);
 
-      expect(so_from.body.pagamentos.length).toBeGreaterThan(0);
-      expect(so_from.body.pagamentos.every((p: any) => new Date(p.data_vencimento) >= new Date("2030-01-01"))).toBe(true);
-      expect(so_to.body.pagamentos).toEqual([]);
+      const soInicio = await resumo("pagamento_de=2030-01-01");
+      const soFim = await resumo("pagamento_ate=2000-01-01");
+
+      expect(soInicio.status).toBe(200);
+      expect(soInicio.body.entradas + soInicio.body.saidas).toBeGreaterThanOrEqual(10);
+      expect(soFim.body).toMatchObject({ entradas: 0, saidas: 0, saldo: 0 });
     });
   });
 
