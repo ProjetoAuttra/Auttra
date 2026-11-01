@@ -59,6 +59,46 @@ function camposEditaveisOrdem(data: any) {
   return campos;
 }
 
+/** Trava a linha da OS ate o fim da transacao e devolve o estado atual (com itens). */
+async function lockOrdem(tx: Prisma.TransactionClient, id: number, oficinaId: number) {
+  await tx.$queryRaw`SELECT id FROM ordem_servico WHERE id = ${id} AND oficina_id = ${oficinaId} AND deleted_at IS NULL FOR UPDATE`;
+  const ordem = await tx.ordem_servico.findFirst({
+    where: { id, oficina_id: oficinaId, deleted_at: null },
+    include: { itens: true },
+  });
+  if (!ordem) throw new Error("Ordem de servico nao encontrada nesta oficina.");
+  return ordem;
+}
+
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  aberta:       ["em_andamento", "cancelada"],
+  em_andamento: ["concluida", "cancelada"],
+  concluida:    [],
+  cancelada:    [],
+};
+
+/**
+ * Confere a transicao de status e devolve os itens a gravar (undefined quando nao mudam).
+ * OS finalizada nao pode ter itens alterados: o estoque ja foi devolvido (cancelada) ou consumido
+ * (concluida). Se o front reenviar os mesmos itens (edicao de outros campos), eles sao ignorados.
+ */
+function validarEdicaoOrdem(existing: { status: string; itens: unknown[] }, novoStatus: string | undefined, itensEnviados: any) {
+  if (novoStatus && novoStatus !== existing.status) {
+    const allowed = VALID_TRANSITIONS[existing.status] ?? [];
+    if (!allowed.includes(novoStatus)) {
+      throw new Error(`Transição inválida: ${existing.status} → ${novoStatus}.`);
+    }
+  }
+
+  if (Array.isArray(itensEnviados) && (existing.status === "concluida" || existing.status === "cancelada")) {
+    if (!mesmosItens(itensEnviados, existing.itens as any[])) {
+      throw new Error("Não é possível alterar os itens de uma OS concluída ou cancelada.");
+    }
+    return undefined;
+  }
+  return itensEnviados;
+}
+
 async function validateOrdemRelations(data: any, oficinaId: number) {
   const [cliente, veiculo, funcionario] = await Promise.all([
     prisma.cliente.findFirst({ where: { id: Number(data.cliente_id), oficina_id: oficinaId, deleted_at: null } }),
@@ -213,47 +253,31 @@ export const OrdensService = {
   update: async (id: number, data: any, oficinaId: number) => {
     const itensEnviados = data?.itens;
     const rest = camposEditaveisOrdem(data);
-    const existing = await prisma.ordem_servico.findFirst({
+    // Leitura sem trava: so para falhar cedo e validar as relacoes fora da transacao.
+    const previa = await prisma.ordem_servico.findFirst({
       where: { id, oficina_id: oficinaId, deleted_at: null },
       include: { itens: true },
     });
-    if (!existing) throw new Error("Ordem de servico nao encontrada nesta oficina.");
+    if (!previa) throw new Error("Ordem de servico nao encontrada nesta oficina.");
 
-    const VALID_TRANSITIONS: Record<string, string[]> = {
-      aberta:       ["em_andamento", "cancelada"],
-      em_andamento: ["concluida", "cancelada"],
-      concluida:    [],
-      cancelada:    [],
-    };
-    if (rest.status && rest.status !== existing.status) {
-      const allowed = VALID_TRANSITIONS[existing.status] ?? [];
-      if (!allowed.includes(rest.status)) {
-        throw new Error(`Transição inválida: ${existing.status} → ${rest.status}.`);
-      }
-    }
-
-    // OS finalizada nao pode ter itens alterados: o estoque ja foi devolvido (cancelada) ou consumido (concluida).
-    // Se o front reenviar os mesmos itens (edicao de outros campos), eles simplesmente sao ignorados.
-    let itens = itensEnviados;
-    if (Array.isArray(itens) && (existing.status === "concluida" || existing.status === "cancelada")) {
-      if (!mesmosItens(itens, existing.itens as any[])) {
-        throw new Error("Não é possível alterar os itens de uma OS concluída ou cancelada.");
-      }
-      itens = undefined;
-    }
-
-    const calculo = Array.isArray(itens) ? calcularItens(itens) : null;
     await validateOrdemRelations(
       {
-        cliente_id:    rest.cliente_id    ?? existing.cliente_id,
-        veiculo_id:    rest.veiculo_id    ?? existing.veiculo_id,
-        funcionario_id: rest.funcionario_id ?? existing.funcionario_id,
-        itens,
+        cliente_id:    rest.cliente_id    ?? previa.cliente_id,
+        veiculo_id:    rest.veiculo_id    ?? previa.veiculo_id,
+        funcionario_id: rest.funcionario_id ?? previa.funcionario_id,
+        itens:         validarEdicaoOrdem(previa, rest.status, itensEnviados),
       },
       oficinaId
     );
 
     return prisma.$transaction(async (tx) => {
+      // Trava a OS e rele o estado: dois "Concluir" (ou "Cancelar") simultaneos passam a esperar um
+      // pelo outro, e o segundo ve a OS ja concluida/cancelada em vez de gerar outro titulo a receber
+      // ou devolver o estoque de novo.
+      const existing = await lockOrdem(tx, id, oficinaId);
+      const itens = validarEdicaoOrdem(existing, rest.status, itensEnviados);
+      const calculo = Array.isArray(itens) ? calcularItens(itens) : null;
+
       const isCancelling = rest.status === "cancelada" && existing.status !== "cancelada";
       const isUpdatingItems = itens && Array.isArray(itens);
 
@@ -318,7 +342,12 @@ export const OrdensService = {
 
       if (rest.status === "concluida" && existing.status !== "concluida") {
         const valorTotal = Number(osAtualizada.valor_total);
-        if (valorTotal > 0) {
+        // Defesa extra alem da trava: uma OS nunca tem dois titulos a receber ativos.
+        const tituloAtivo = await tx.pagamento.findFirst({
+          where: { ordem_servico_id: id, tipo: "receber", deleted_at: null, status: { not: "cancelado" } },
+          select: { id: true },
+        });
+        if (valorTotal > 0 && !tituloAtivo) {
           // Só o dia em Brasília, como o formulário de contas grava. Com data e hora, a OS
           // concluída depois das 21h vencia no dia seguinte e não aparecia em "A receber hoje".
           const hoje = dataDoDia(hojeISO());
@@ -355,22 +384,19 @@ export const OrdensService = {
 
   delete: async (id: number, oficinaId: number) => {
     try {
-      const existing = await prisma.ordem_servico.findFirst({
-        where: { id, oficina_id: oficinaId, deleted_at: null },
-        include: { itens: true },
-      });
-      if (!existing) throw new Error("Ordem de servico nao encontrada nesta oficina.");
-
-      const pagamentoBloqueante = await prisma.pagamento.findFirst({
-        where: { ordem_servico_id: id, status: { in: ["pago", "parcial"] }, deleted_at: null },
-      });
-      if (pagamentoBloqueante) throw new HttpError(
-        "Não é possível excluir uma OS com pagamento já registrado. Estorne o pagamento antes de excluir.",
-        409,
-        "PAGAMENTO_REQUER_ESTORNO"
-      );
-
       return await prisma.$transaction(async (tx) => {
+        // Trava a OS: duas exclusoes simultaneas devolveriam o estoque duas vezes.
+        const existing = await lockOrdem(tx, id, oficinaId);
+
+        const pagamentoBloqueante = await tx.pagamento.findFirst({
+          where: { ordem_servico_id: id, status: { in: ["pago", "parcial"] }, deleted_at: null },
+        });
+        if (pagamentoBloqueante) throw new HttpError(
+          "Não é possível excluir uma OS com pagamento já registrado. Estorne o pagamento antes de excluir.",
+          409,
+          "PAGAMENTO_REQUER_ESTORNO"
+        );
+
         // Cancel pending payments
         await tx.pagamento.updateMany({
           where: { ordem_servico_id: id, status: "pendente", deleted_at: null },
