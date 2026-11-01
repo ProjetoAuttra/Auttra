@@ -68,17 +68,8 @@ describe.skipIf(!process.env.DATABASE_URL)("painel admin", () => {
     return prisma.usuario.findUniqueOrThrow({ where: { id: adminId } });
   }
 
+  // O login (senha + 2FA) e o cookie da sessão são testados em adminAuth.test.ts.
   describe("sessão", () => {
-    it("login grava a sessão em cookie httpOnly e não devolve o token no corpo", async () => {
-      const res = await request(app).post("/api/admin/auth/login").send({ email: email("ator"), senha: SENHA_FORTE });
-
-      expect(res.status).toBe(200);
-      expect(res.body.token).toBeUndefined();
-      const header = ([] as string[]).concat(res.headers["set-cookie"] ?? []).join(";");
-      expect(header).toMatch(/HttpOnly/i);
-      expect(header).toMatch(/SameSite=Strict/i);
-    });
-
     it("usuário desativado perde o acesso na hora, mesmo com o token ainda válido", async () => {
       const outro = await criarAdmin("desativado");
       const cookie = cookieDe(outro);
