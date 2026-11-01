@@ -9,10 +9,10 @@ import { criarUsuarioComAcesso, removerUsuario } from "./sessao.js";
 const suffix = Date.now();
 const DIA = 24 * 60 * 60 * 1000;
 const diasAtras = (n: number) => new Date(Date.now() - n * DIA);
-// Vencimento como o formulário de contas grava: meia-noite UTC do dia em São Paulo.
-// Com new Date() a conta caía no dia seguinte entre 21h e 24h de Brasília (já é outro dia em UTC).
-const diaEmSaoPaulo = (n: number) => new Date(Date.now() + n * DIA).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
-const vencimento = (n: number) => new Date(`${diaEmSaoPaulo(n)}T00:00:00Z`);
+// Vencimento é só a data, gravada como o formulário grava (meia-noite UTC do dia em São Paulo).
+// Com hora, entre 21h e 0h de Brasília a data UTC já é o dia seguinte e o teste falhava.
+const hojeSP = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+const vencimento = (n: number) => new Date(Date.parse(`${hojeSP}T00:00:00Z`) + n * DIA);
 
 describe.skipIf(!process.env.DATABASE_URL)("painel: resumo da tela de inicio", () => {
   let cidadeId: number;
