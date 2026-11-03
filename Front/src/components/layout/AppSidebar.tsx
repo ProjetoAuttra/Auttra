@@ -158,6 +158,16 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
     return initial;
   });
 
+  // Ao chegar numa tela por fora do menu (ex.: clique numa notificação), expande o grupo dela.
+  useEffect(() => {
+    const grupos = navItems
+      .filter((item) => item.subItems?.some((s) => isItemVisible(s.module) && isSubSelected(s.to)))
+      .map((item) => item.label);
+    if (grupos.length === 0) return;
+    setOpenMenus((prev) => (grupos.every((g) => prev[g]) ? prev : { ...prev, ...Object.fromEntries(grupos.map((g) => [g, true])) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, search]);
+
   const toggleMenu = (label: string) => {
     setOpenMenus((prev) => ({ ...prev, [label]: !prev[label] }));
   };
