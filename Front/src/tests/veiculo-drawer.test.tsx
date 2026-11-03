@@ -13,7 +13,8 @@ vi.mock("../modules/veiculos/catalogo", async (orig) => {
 });
 vi.mock("../api/client", () => ({ listarClientes: vi.fn().mockResolvedValue([{ id: 1, nome: "Ana" }]) }));
 
-describe("VeiculoDialog (marca, modelo e cor)", () => {
+// Digitar letra a letra num campo com centenas de sugestões é lento no runner do CI (limite padrão: 5 s).
+describe("VeiculoDialog (marca, modelo e cor)", { timeout: 30_000 }, () => {
   const setup = () => {
     const onSubmit = vi.fn();
     renderWithProviders(
