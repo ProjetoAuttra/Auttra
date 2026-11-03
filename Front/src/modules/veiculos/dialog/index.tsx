@@ -4,8 +4,9 @@ import {
   Box,
   Stack, TextField,
   Button, IconButton, Typography, InputAdornment,
-  MenuItem, Chip, Tooltip, Autocomplete,
+  MenuItem, Tooltip, Autocomplete,
 } from "@mui/material";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import DirectionsCarRoundedIcon from "@mui/icons-material/DirectionsCarRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
@@ -14,6 +15,7 @@ import { useToast } from "../../../context/ToastContext";
 import ClientDialog, { type ClientForm } from "../../clientes/dialog";
 import api from "../../../api/api";
 import { AppDrawer, DrawerSection } from "../../../components/common/AppDrawer";
+import { CORES_VEICULO, useCatalogo, type OpcaoModelo } from "../catalogo";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -65,11 +67,6 @@ const COMBUSTIVEIS = [
   { value: "hibrido", label: "Híbrido" },
 ];
 
-const CORES = [
-  "Branco", "Prata", "Preto", "Cinza", "Vermelho",
-  "Azul", "Verde", "Amarelo", "Laranja", "Bege", "Marrom", "Vinho",
-];
-
 // ─── Utilitários ───────────────────────────────────────────────────────────
 
 function formatPlaca(raw: string): string {
@@ -93,10 +90,13 @@ export default function VeiculoDialog({ open, mode, initial, defaultCliente, onC
   const isEdit = mode === "edit";
 
   const { error: toastErro } = useToast();
+  const { marcas, marcaConhecida, marcaDoModelo, modelosSugeridos } = useCatalogo();
   const [clientes, setClientes] = React.useState<{ id: number; nome: string }[]>([]);
   const [clienteId, setClienteId] = React.useState<number>(0);
   const [marca, setMarca] = React.useState("");
   const [modelo, setModelo] = React.useState("");
+  // A marca veio do modelo escolhido (e não digitada): apagar o modelo desfaz o preenchimento.
+  const [marcaAuto, setMarcaAuto] = React.useState(false);
   const [ano, setAno] = React.useState<number | "">("");
   const [placa, setPlaca] = React.useState("");
   const [cor, setCor] = React.useState("");
@@ -126,6 +126,7 @@ export default function VeiculoDialog({ open, mode, initial, defaultCliente, onC
     setClienteId(!isEdit ? defaultCliente?.id ?? 0 : 0);
     setMarca(initial?.marca ?? "");
     setModelo(initial?.modelo ?? "");
+    setMarcaAuto(false);
     setAno(initial?.ano ?? "");
     setPlaca(initial?.placa ?? "");
     setCor(initial?.cor ?? "");
@@ -150,6 +151,38 @@ export default function VeiculoDialog({ open, mode, initial, defaultCliente, onC
   React.useEffect(() => {
     if (submitAttempted) validate();
   }, [clienteId, marca, modelo, placa, submitAttempted]);
+
+  const handleMarca = (valor: string) => {
+    setMarca(valor);
+    setMarcaAuto(false);
+    // Sem marca, o modelo perde o contexto: apagar uma apaga o outro.
+    if (!valor.trim()) {
+      setModelo("");
+      return;
+    }
+    // Troca de marca descarta um modelo que pertence a outra marca do catálogo.
+    const dona = marcaDoModelo(modelo);
+    const nova = marcaConhecida(valor);
+    if (dona && nova && dona !== nova) setModelo("");
+  };
+
+  const handleModelo = (valor: string, opcao?: OpcaoModelo) => {
+    setModelo(valor);
+    if (!valor.trim()) {
+      // Apagar o modelo leva junto a marca que ele mesmo preencheu; uma marca digitada fica.
+      if (marcaAuto) {
+        setMarca("");
+        setMarcaAuto(false);
+      }
+      return;
+    }
+    // Marca já preenchida (e conhecida) não é sobrescrita; vazia, vem do catálogo.
+    const deduzida = opcao?.marca ?? marcaDoModelo(valor);
+    if (deduzida && !marcaConhecida(marca)) {
+      setMarca(deduzida);
+      setMarcaAuto(true);
+    }
+  };
 
   const handleClienteCriado = async (data: ClientForm) => {
     try {
@@ -267,15 +300,30 @@ export default function VeiculoDialog({ open, mode, initial, defaultCliente, onC
             )}
 
             <Box sx={linha}>
-              <TextField
-                fullWidth size="small" label="Marca *"
-                value={marca} onChange={(e) => setMarca(e.target.value)}
-                error={!!errors.marca} helperText={errors.marca}
+              <Autocomplete
+                freeSolo fullWidth size="small"
+                options={marcas}
+                inputValue={marca}
+                onInputChange={(_, v, motivo) => { if (motivo !== "reset" || v) handleMarca(v); }}
+                renderInput={(params) => (
+                  <TextField {...params} label="Marca *" error={!!errors.marca} helperText={errors.marca} />
+                )}
               />
-              <TextField
-                fullWidth size="small" label="Modelo *"
-                value={modelo} onChange={(e) => setModelo(e.target.value)}
-                error={!!errors.modelo} helperText={errors.modelo}
+              <Autocomplete<OpcaoModelo, false, false, true>
+                freeSolo fullWidth size="small"
+                options={modelosSugeridos(marca)}
+                groupBy={marcaConhecida(marca) ? undefined : (o) => o.marca}
+                getOptionLabel={(o) => (typeof o === "string" ? o : o.modelo)}
+                filterOptions={(opcoes, { inputValue }) => {
+                  const q = inputValue.trim().toLowerCase();
+                  return q ? opcoes.filter((o) => o.modelo.toLowerCase().includes(q)) : opcoes;
+                }}
+                inputValue={modelo}
+                onInputChange={(_, v, motivo) => { if (motivo !== "reset" || v) handleModelo(v); }}
+                onChange={(_, v) => { if (v && typeof v !== "string") handleModelo(v.modelo, v); }}
+                renderInput={(params) => (
+                  <TextField {...params} label="Modelo *" error={!!errors.modelo} helperText={errors.modelo} />
+                )}
               />
             </Box>
 
@@ -312,21 +360,38 @@ export default function VeiculoDialog({ open, mode, initial, defaultCliente, onC
         <DrawerSection title="Dados adicionais">
           <Stack spacing={2}>
             <Box>
-              <TextField
-                fullWidth size="small" label="Cor"
-                value={cor} onChange={(e) => setCor(e.target.value)}
-              />
-              <Stack direction="row" flexWrap="wrap" gap={0.5} mt={0.5}>
-                {CORES.map((c) => (
-                  <Chip
-                    key={c} label={c} size="small"
-                    variant={cor === c ? "filled" : "outlined"}
-                    color={cor === c ? "primary" : "default"}
-                    onClick={() => setCor(cor === c ? "" : c)}
-                    sx={{ fontSize: 12, height: 20, cursor: "pointer" }}
-                  />
-                ))}
+              <Typography variant="caption" color="text.secondary">
+                Cor{cor && ` · ${cor}`}
+              </Typography>
+              <Stack direction="row" flexWrap="wrap" gap={1} mt={0.5} role="radiogroup" aria-label="Cor do veículo">
+                {CORES_VEICULO.map((c) => {
+                  const ativa = cor === c.nome;
+                  return (
+                    <Tooltip key={c.nome} title={c.nome}>
+                      <IconButton
+                        role="radio" aria-checked={ativa} aria-label={c.nome}
+                        onClick={() => setCor(ativa ? "" : c.nome)}
+                        sx={{
+                          width: 32, height: 32, p: 0, bgcolor: c.hex,
+                          border: (t) => `2px solid ${ativa ? t.palette.primary.main : t.palette.divider}`,
+                          boxShadow: ativa ? (t) => `0 0 0 2px ${t.palette.primary.main}33` : "none",
+                          color: c.hex === "#ffffff" || c.hex === "#facc15" || c.hex === "#c0c4c9" || c.hex === "#d6c3a1" ? "#111827" : "#fff",
+                          "&:hover": { bgcolor: c.hex, opacity: 0.85 },
+                        }}
+                      >
+                        {ativa && <CheckRoundedIcon sx={{ fontSize: 18 }} />}
+                      </IconButton>
+                    </Tooltip>
+                  );
+                })}
               </Stack>
+              <Autocomplete
+                freeSolo fullWidth size="small" sx={{ mt: 1.5 }}
+                options={[] as string[]}
+                inputValue={CORES_VEICULO.some((c) => c.nome === cor) ? "" : cor}
+                onInputChange={(_, v) => setCor(v)}
+                renderInput={(params) => <TextField {...params} label="Outra cor" placeholder="Ex.: Azul metálico" />}
+              />
             </Box>
 
             <Box sx={linha}>
