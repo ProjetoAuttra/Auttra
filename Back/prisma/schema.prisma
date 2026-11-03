@@ -766,3 +766,24 @@ model sugestao {
 
   @@index([oficina_id, created_at])
 }
+
+/// Catálogo global de marcas e modelos (compartilhado por todas as oficinas) usado como sugestão no cadastro de veículo.
+model catalogo_veiculo {
+  id         Int      @id @default(autoincrement())
+  /// Marca e modelo sem acento e em minúsculas, para não duplicar "Citroën"/"citroen".
+  chave      String   @unique
+  marca      String
+  modelo     String
+  /// "curado" (base mantida no código) ou "fipe" (sugerido pela sincronização mensal).
+  origem     String   @default("curado")
+  ativo      Boolean  @default(true)
+  created_at DateTime @default(now())
+
+  @@index([marca])
+}
+
+/// Controle da sincronização com a FIPE (uma linha, id = 1).
+model catalogo_veiculo_sync {
+  id        Int      @id
+  ultima_em DateTime
+}
