@@ -112,6 +112,7 @@ export default function Router() {
         <Route path={paths.veiculoDetalhes} element={<ModuleRoute module="veiculos"><VeiculoDetalhes /></ModuleRoute>} />
         <Route path={paths.estoque} element={<ModuleRoute module="estoque"><Estoque /></ModuleRoute>} />
         <Route path={paths.estoqueImportarXml} element={<ModuleRoute module="estoque"><ImportarXml /></ModuleRoute>} />
+        <Route path={paths.servicos} element={<ModuleRoute module="servicos"><Servicos /></ModuleRoute>} />
         <Route path={paths.fornecedores} element={<ModuleRoute module="fornecedores"><Fornecedores /></ModuleRoute>} />
         <Route path={paths.ordemNova} element={<ModuleRoute module="ordens"><FormOrdemServico /></ModuleRoute>} />
         <Route path={paths.ordemEditar} element={<ModuleRoute module="ordens"><FormOrdemServico /></ModuleRoute>} />
@@ -119,7 +120,6 @@ export default function Router() {
         <Route element={<SettingsLayout />}>
           <Route path={paths.configuracoes} element={<ModuleRoute module="configuracoes"><Configuracoes /></ModuleRoute>} />
           <Route path={paths.users} element={<ModuleRoute module="funcionarios"><UserPage /></ModuleRoute>} />
-          <Route path={paths.servicos} element={<ModuleRoute module="servicos"><Servicos /></ModuleRoute>} />
           <Route path={paths.recursosAdicionais} element={<ModuleRoute module="recursos_adicionais"><RecursosAdicionais /></ModuleRoute>} />
         </Route>
         <Route path="*" element={<PaginaNaoEncontrada />} />
