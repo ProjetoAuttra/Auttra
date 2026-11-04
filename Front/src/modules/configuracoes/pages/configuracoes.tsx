@@ -17,6 +17,7 @@ import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import PaymentsRoundedIcon from '@mui/icons-material/PaymentsRounded';
 import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded';
+import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import {
   buscarConfigNotificacoes,
   defaultNotificationsConfig,
@@ -25,21 +26,30 @@ import {
 } from '../../notificacoes/api';
 import {
   buscarConfigAgenda,
+  buscarConfigDocumentos,
   buscarConfigFinanceiro,
   defaultAgendaConfig,
+  defaultDocumentosConfig,
   defaultFinanceiroConfig,
+  errosDocumentosConfig,
+  GARANTIA_MINIMA_DIAS,
+  OBSERVACOES_MAX_CARACTERES,
   salvarConfigAgenda,
+  salvarConfigDocumentos,
   salvarConfigFinanceiro,
   type AgendaConfig,
+  type DocumentosConfig,
   type FinanceiroConfig,
 } from '../api/configuracoesOperacionais';
 import { useSearchParams } from 'react-router-dom';
 import { useToast } from '../../../context/ToastContext';
 import AccessProfilesManager from './AccessProfilesManager';
 
-type Section = 'perfis' | 'agenda' | 'financeiro' | 'notificacoes';
+type Section = 'perfis' | 'agenda' | 'financeiro' | 'documentos' | 'notificacoes';
 
-const validSections: Section[] = ['perfis', 'agenda', 'financeiro', 'notificacoes'];
+const validSections: Section[] = ['perfis', 'agenda', 'financeiro', 'documentos', 'notificacoes'];
+
+const dias = (n: number) => `${n} ${n === 1 ? 'dia' : 'dias'}`;
 
 export default function Configuracoes() {
   const { success, error } = useToast();
@@ -57,6 +67,14 @@ export default function Configuracoes() {
   const [loadingFinanceiro, setLoadingFinanceiro] = React.useState(false);
   const [loadErrorFinanceiro, setLoadErrorFinanceiro] = React.useState(false);
   const [savingFinanceiro, setSavingFinanceiro] = React.useState(false);
+
+  const [documentos, setDocumentos] = React.useState<DocumentosConfig>(defaultDocumentosConfig);
+  const [documentosSalvos, setDocumentosSalvos] = React.useState<DocumentosConfig>(defaultDocumentosConfig);
+  const [loadingDocumentos, setLoadingDocumentos] = React.useState(false);
+  const [loadErrorDocumentos, setLoadErrorDocumentos] = React.useState(false);
+  const [savingDocumentos, setSavingDocumentos] = React.useState(false);
+  const [tentouSalvarDocumentos, setTentouSalvarDocumentos] = React.useState(false);
+  const errosDocumentos = tentouSalvarDocumentos ? errosDocumentosConfig(documentos) : null;
 
   const [notificacoes, setNotificacoes] = React.useState<NotificationsConfig>(defaultNotificationsConfig);
   const [loadingNotificacoes, setLoadingNotificacoes] = React.useState(false);
@@ -109,6 +127,31 @@ export default function Configuracoes() {
 
   React.useEffect(() => {
     let active = true;
+    setLoadingDocumentos(true);
+    setLoadErrorDocumentos(false);
+    buscarConfigDocumentos()
+      .then((data) => {
+        if (active) {
+          setDocumentos(data);
+          setDocumentosSalvos(data);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setLoadErrorDocumentos(true);
+          error('Não foi possível carregar as configurações de orçamentos e OS.');
+        }
+      })
+      .finally(() => {
+        if (active) setLoadingDocumentos(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [error]);
+
+  React.useEffect(() => {
+    let active = true;
     setLoadingNotificacoes(true);
     setLoadErrorNotificacoes(false);
     buscarConfigNotificacoes()
@@ -135,7 +178,12 @@ export default function Configuracoes() {
 
   const handleEdit = (section: Section) => setEditing(section);
 
-  const handleCancel = () => setEditing(null);
+  const handleCancel = () => {
+    // Descarta o que foi digitado em Orçamentos e OS e volta ao último valor salvo.
+    setDocumentos(documentosSalvos);
+    setTentouSalvarDocumentos(false);
+    setEditing(null);
+  };
   const handleSave = async (section?: Section) => {
     if (section === 'agenda') {
       setSavingAgenda(true);
@@ -167,6 +215,25 @@ export default function Configuracoes() {
       return;
     }
 
+    if (section === 'documentos') {
+      setTentouSalvarDocumentos(true);
+      if (errosDocumentosConfig(documentos)) return;
+      setSavingDocumentos(true);
+      try {
+        const data = await salvarConfigDocumentos(documentos);
+        setDocumentos(data);
+        setDocumentosSalvos(data);
+        setTentouSalvarDocumentos(false);
+        success('Configurações de orçamentos e OS salvas.');
+        setEditing(null);
+      } catch (e: any) {
+        error(e?.response?.data?.message ?? 'Não foi possível salvar as configurações de orçamentos e OS.');
+      } finally {
+        setSavingDocumentos(false);
+      }
+      return;
+    }
+
     if (section !== 'notificacoes') {
       setEditing(null);
       return;
@@ -188,16 +255,19 @@ export default function Configuracoes() {
   const loadingBySection: Record<Exclude<Section, 'perfis'>, boolean> = {
     agenda: loadingAgenda,
     financeiro: loadingFinanceiro,
+    documentos: loadingDocumentos,
     notificacoes: loadingNotificacoes,
   };
   const loadErrorBySection: Record<Exclude<Section, 'perfis'>, boolean> = {
     agenda: loadErrorAgenda,
     financeiro: loadErrorFinanceiro,
+    documentos: loadErrorDocumentos,
     notificacoes: loadErrorNotificacoes,
   };
   const savingBySection: Record<Exclude<Section, 'perfis'>, boolean> = {
     agenda: savingAgenda,
     financeiro: savingFinanceiro,
+    documentos: savingDocumentos,
     notificacoes: savingNotificacoes,
   };
 
@@ -269,6 +339,53 @@ export default function Configuracoes() {
             <FormControlLabel
               control={<Switch checked={financeiro.emitirRecibos} onChange={(e) => setFinanceiro((p) => ({ ...p, emitirRecibos: e.target.checked }))} />}
               label="Emissão automática de recibos"
+            />
+          </Stack>
+        )}
+
+      {openSection === 'documentos' &&
+        renderSection(
+          'documentos',
+          'Orçamentos e OS',
+          'Prazo de garantia, validade do orçamento e observações que saem nos PDFs.',
+          <DescriptionRoundedIcon />,
+          <DisplayList
+            items={[
+              ['Prazo de garantia', dias(documentos.garantiaDias)],
+              ['Validade padrão do orçamento', dias(documentos.validadeOrcamentoDias)],
+              ['Observações nos documentos', documentos.observacoes],
+            ]}
+          />,
+          <Stack spacing={2.5} sx={{ maxWidth: 720 }}>
+            <FieldGrid>
+              <TextField
+                label="Prazo de garantia (dias)"
+                type="number"
+                inputProps={{ min: GARANTIA_MINIMA_DIAS, step: 1, 'data-testid': 'garantia-dias' }}
+                value={Number.isNaN(documentos.garantiaDias) ? '' : documentos.garantiaDias}
+                onChange={(e) => setDocumentos((p) => ({ ...p, garantiaDias: e.target.value === '' ? NaN : Number(e.target.value) }))}
+                error={!!errosDocumentos?.garantiaDias}
+                helperText={errosDocumentos?.garantiaDias ?? `Mínimo de ${GARANTIA_MINIMA_DIAS} dias, que é a garantia legal.`}
+              />
+              <TextField
+                label="Validade padrão do orçamento (dias)"
+                type="number"
+                inputProps={{ min: 1, step: 1, 'data-testid': 'validade-dias' }}
+                value={Number.isNaN(documentos.validadeOrcamentoDias) ? '' : documentos.validadeOrcamentoDias}
+                onChange={(e) => setDocumentos((p) => ({ ...p, validadeOrcamentoDias: e.target.value === '' ? NaN : Number(e.target.value) }))}
+                error={!!errosDocumentos?.validadeOrcamentoDias}
+                helperText={errosDocumentos?.validadeOrcamentoDias ?? 'Já vem preenchida no novo orçamento e pode ser trocada em cada um.'}
+              />
+            </FieldGrid>
+            <TextField
+              label="Observações nos documentos"
+              multiline
+              minRows={3}
+              inputProps={{ maxLength: OBSERVACOES_MAX_CARACTERES }}
+              value={documentos.observacoes}
+              onChange={(e) => setDocumentos((p) => ({ ...p, observacoes: e.target.value }))}
+              error={!!errosDocumentos?.observacoes}
+              helperText={errosDocumentos?.observacoes ?? 'Opcional. Sai junto dos termos no PDF do orçamento e da OS. Ex.: veículos não retirados em 30 dias pagam estadia.'}
             />
           </Stack>
         )}

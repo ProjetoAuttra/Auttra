@@ -72,6 +72,17 @@ describe("NovoOrcamento (tela inteira)", () => {
     expect(screen.queryByText("Troca de óleo")).toBeNull();
   });
 
+  it("a validade já vem com o prazo configurado pela oficina", async () => {
+    get.mockImplementation(async (url: string) => ({
+      data: url === "/configuracoes/documentos" ? { garantiaDias: 90, validadeOrcamentoDias: 15, observacoes: "" } : [],
+    }));
+    setup();
+    const d = new Date();
+    d.setDate(d.getDate() + 15);
+    const esperado = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    await waitFor(() => expect(screen.getByLabelText("Válido até")).toHaveValue(esperado));
+  });
+
   it("voltar sem nada preenchido vai direto para a lista", async () => {
     const user = setup();
     await user.click(screen.getByRole("button", { name: "Voltar" }));

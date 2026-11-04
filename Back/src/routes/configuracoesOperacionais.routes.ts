@@ -8,5 +8,8 @@ router.get("/agenda", requirePermission("configuracoes", "read"), ConfiguracoesO
 router.put("/agenda", requirePermission("configuracoes", "update"), ConfiguracoesOperacionaisController.updateAgenda);
 router.get("/financeiro", requirePermission("configuracoes", "read"), ConfiguracoesOperacionaisController.getFinanceiro);
 router.put("/financeiro", requirePermission("configuracoes", "update"), ConfiguracoesOperacionaisController.updateFinanceiro);
+// Leitura liberada para qualquer usuário da oficina: o novo orçamento usa a validade padrão daqui.
+router.get("/documentos", ConfiguracoesOperacionaisController.getDocumentos);
+router.put("/documentos", requirePermission("configuracoes", "update"), ConfiguracoesOperacionaisController.updateDocumentos);
 
 export default router;
