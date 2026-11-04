@@ -9,10 +9,10 @@ COPY package*.json ./
 RUN npm ci
 
 FROM deps AS build
-COPY tsconfig.json index.ts ./
+COPY tsconfig.json index.ts prisma.config.ts ./
 COPY prisma ./prisma
 COPY src ./src
-RUN npx prisma generate --schema prisma/schema.prisma
+# build = prisma generate (client em src/generated) + tsc; o client compilado vai junto em dist/
 RUN npm run build
 
 FROM node:22-bookworm-slim AS runner
@@ -47,9 +47,8 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 COPY package*.json ./
 RUN npm ci --omit=dev
-COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/prisma.config.ts ./prisma.config.ts
 COPY --from=build /app/dist ./dist
 COPY scripts ./scripts
 COPY docker-entrypoint.sh ./docker-entrypoint.sh

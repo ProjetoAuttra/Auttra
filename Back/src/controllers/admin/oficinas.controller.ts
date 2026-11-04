@@ -3,12 +3,13 @@ import { OficinasAdminService } from "../../services/admin/oficinas.service.js";
 import { AdminAuditService } from "../../services/admin/audit.service.js";
 import { PasswordResetService } from "../../services/passwordReset.service.js";
 import { SugestoesService } from "../../services/sugestoes.service.js";
+import { alvoUnicoViolado } from "../../utils/prismaErros.js";
 import { criarOficinaSchema, primeiroErro, proprietarioSchema, updateOficinaSchema } from "../../schemas/admin/oficinas.schema.js";
 
 // Violacao de campo unico (nome, CNPJ ou e-mail ja usados por outra oficina) vira mensagem legivel.
 function mensagemDuplicado(err: any) {
   if (err?.code !== "P2002") return null;
-  const alvo = String(err.meta?.target ?? "");
+  const alvo = alvoUnicoViolado(err);
   if (alvo.includes("cnpj")) return "Já existe uma oficina com este CNPJ.";
   if (alvo.includes("email")) return "Já existe uma oficina com este e-mail.";
   if (alvo.includes("nome")) return "Já existe uma oficina com este nome.";

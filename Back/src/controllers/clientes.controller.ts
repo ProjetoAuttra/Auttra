@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { ClienteService } from "../services/clientes.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../generated/prisma/client.js";
 import { parsePaginacao, responderLista, textoQuery } from "../utils/paginacao.js";
 
 function isNotFound(err: any): boolean {

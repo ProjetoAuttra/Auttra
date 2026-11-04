@@ -140,7 +140,7 @@ export const PublicTrackingService = {
     if (link.orcamentoId) {
       if (!link.oficinaId) return null;
       const orcamento = await prisma.orcamento.findFirst({
-        where: { id: link.orcamentoId, deleted_at: null, cliente: { oficina_id: link.oficinaId } },
+        where: { id: link.orcamentoId, deleted_at: null, oficina_id: link.oficinaId },
         include: {
           cliente: { include: { oficina: true } },
           veiculo: true,

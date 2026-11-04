@@ -60,7 +60,7 @@ describe.skipIf(!process.env.DATABASE_URL)("links publicos (UUID, status e soft 
     ).id;
     orcamentoId = (
       await prisma.orcamento.create({
-        data: { descricao: "Teste", valor: 100, data: new Date(), cliente_id: clienteId, veiculo_id: veiculoId },
+        data: { descricao: "Teste", valor: 100, data: new Date(), oficina_id: oficinaId, cliente_id: clienteId, veiculo_id: veiculoId },
       })
     ).id;
 

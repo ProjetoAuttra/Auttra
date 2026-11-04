@@ -1,10 +1,7 @@
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
-
-// importa direto do JS compilado quando disponível, senão usa o cliente Prisma diretamente
-// para manter o script compatível com execução fora do build TS, replica a lógica mínima aqui.
-
-const prisma = new PrismaClient();
+// Prisma 7 gera o client em src/generated (TS): o script usa o build (npm run build) e o mesmo
+// client da API, ja com o driver adapter configurado.
+import { prisma } from "../dist/src/prisma/client.js";
 
 function required(name, aliases = []) {
   const value = [name, ...aliases].map((key) => process.env[key]).find(Boolean);
