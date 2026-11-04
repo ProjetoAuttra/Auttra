@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../prisma/client.js";
 import { HttpError } from "../utils/httpError.js";
 import { calcularItens } from "../utils/totais.js";
@@ -211,7 +211,7 @@ export const OrdensService = {
       // OS gerada de um orçamento: o orçamento passa a aprovado e não pode ter outra OS ativa.
       if (orcamento_id) {
         const orcamento = await tx.orcamento.findFirst({
-          where: { id: orcamento_id, deleted_at: null, cliente: { oficina_id } },
+          where: { id: orcamento_id, deleted_at: null, oficina_id },
         });
         if (!orcamento) throw new Error("Orçamento não encontrado nesta oficina.");
         if (orcamento.status === "recusado") throw new HttpError("Orçamento recusado não pode gerar O.S.", 409, "ORCAMENTO_RECUSADO");

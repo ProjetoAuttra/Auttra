@@ -17,7 +17,7 @@ async function assertAlvoDaOficina(alvo: Alvo, oficinaId: number) {
     return;
   }
   const orcamento = await prisma.orcamento.findFirst({
-    where: { id: alvo.orcamentoId, deleted_at: null, cliente: { oficina_id: oficinaId } },
+    where: { id: alvo.orcamentoId, deleted_at: null, oficina_id: oficinaId },
     select: { id: true },
   });
   if (!orcamento) throw new Error("Orcamento nao encontrado nesta oficina.");

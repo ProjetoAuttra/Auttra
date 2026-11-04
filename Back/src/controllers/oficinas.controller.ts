@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { OficinaService } from "../services/oficinas.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../generated/prisma/client.js";
 
 export const OficinaController = {
   async create(req: Request, res: Response) {

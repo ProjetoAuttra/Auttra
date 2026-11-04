@@ -1,4 +1,5 @@
 import { prisma } from "../prisma/client.js";
+import { LIMITE_LISTAGEM } from "../utils/limites.js";
 import { canAccess, type PermissionsMap } from "../permissions/accessProfiles.js";
 
 type NotificationConfig = {
@@ -118,10 +119,13 @@ export const NotificacoesService = {
 
   async list(oficinaId: number, permissoes?: PermissionsMap) {
     const config = await getOfficeConfig(oficinaId);
-    const notifications: AppNotification[] = [];
     const today = startOfToday();
+    // O menu de notificacoes consulta a cada 60s por aba aberta: as consultas rodam em paralelo,
+    // trazem so as colunas usadas e tem teto por categoria (a resposta final mostra no maximo 30).
+    const teto = LIMITE_LISTAGEM;
 
-    if (config.financeiro.ativo && canAccess(permissoes, "financeiro", "read")) {
+    const financeiro = async (): Promise<AppNotification[]> => {
+      if (!config.financeiro.ativo || !canAccess(permissoes, "financeiro", "read")) return [];
       const dueLimit = addDays(today, config.financeiro.diasVencimento + 1);
       const pagamentos = await prisma.pagamento.findMany({
         where: {
@@ -131,20 +135,27 @@ export const NotificacoesService = {
           data_vencimento: { lt: dueLimit },
         },
         orderBy: { data_vencimento: "asc" },
-        include: {
+        take: teto,
+        select: {
+          id: true,
+          tipo: true,
+          status: true,
+          valor: true,
+          descricao: true,
+          data_vencimento: true,
           cliente: { select: { nome: true } },
           fornecedor: { select: { nome: true } },
         },
       });
 
-      for (const pagamento of pagamentos) {
+      return pagamentos.map((pagamento) => {
         const diff = daysUntil(pagamento.data_vencimento);
         const isOverdue = diff < 0;
         const isPayable = pagamento.tipo === "pagar";
         const label = isPayable ? "Conta a pagar" : "Conta a receber";
         const person = pagamento.cliente?.nome ?? pagamento.fornecedor?.nome ?? pagamento.descricao ?? "Lancamento financeiro";
 
-        notifications.push({
+        return {
           id: `financeiro-${pagamento.id}-${pagamento.status}-${pagamento.data_vencimento.toISOString()}`,
           tipo: "financeiro",
           severidade: isOverdue ? "danger" : "warning",
@@ -152,11 +163,12 @@ export const NotificacoesService = {
           descricao: `${person} - ${brl(pagamento.valor)}`,
           rota: isPayable ? "/contas-pagar" : "/contas-receber",
           createdAt: pagamento.data_vencimento.toISOString(),
-        });
-      }
-    }
+        };
+      });
+    };
 
-    if (config.agenda.ativo && canAccess(permissoes, "agenda", "read")) {
+    const agenda = async (): Promise<AppNotification[]> => {
+      if (!config.agenda.ativo || !canAccess(permissoes, "agenda", "read")) return [];
       const end = addDays(today, config.agenda.diasAntecedencia + 1);
       const agendamentos = await prisma.agendamento.findMany({
         where: {
@@ -166,12 +178,13 @@ export const NotificacoesService = {
           data_inicio: { gte: today, lt: end },
         },
         orderBy: { data_inicio: "asc" },
-        include: { cliente: { select: { nome: true } } },
+        take: teto,
+        select: { id: true, titulo: true, status: true, data_inicio: true, cliente: { select: { nome: true } } },
       });
 
-      for (const agendamento of agendamentos) {
+      return agendamentos.map((agendamento) => {
         const diff = daysUntil(agendamento.data_inicio);
-        notifications.push({
+        return {
           id: `agenda-${agendamento.id}-${agendamento.status}-${agendamento.data_inicio.toISOString()}`,
           tipo: "agenda",
           severidade: diff === 0 ? "info" : "success",
@@ -179,11 +192,12 @@ export const NotificacoesService = {
           descricao: `${agendamento.titulo}${agendamento.cliente?.nome ? ` - ${agendamento.cliente.nome}` : ""}`,
           rota: "/agenda",
           createdAt: agendamento.data_inicio.toISOString(),
-        });
-      }
-    }
+        };
+      });
+    };
 
-    if (config.estoque.ativo && canAccess(permissoes, "estoque", "read")) {
+    const estoque = async (): Promise<AppNotification[]> => {
+      if (!config.estoque.ativo || !canAccess(permissoes, "estoque", "read")) return [];
       const pecas = await prisma.peca.findMany({
         where: {
           oficina_id: oficinaId,
@@ -191,24 +205,25 @@ export const NotificacoesService = {
           estoque: { lte: config.estoque.limiteBaixo },
         },
         orderBy: [{ estoque: "asc" }, { updated_at: "desc" }],
+        take: teto,
+        select: { id: true, nome: true, estoque: true, updated_at: true, created_at: true },
       });
 
-      for (const peca of pecas) {
-        notifications.push({
-          id: `estoque-${peca.id}-${peca.estoque}`,
-          tipo: "estoque",
-          severidade: peca.estoque <= 0 ? "danger" : "warning",
-          titulo: peca.estoque <= 0 ? "Peca sem estoque" : "Estoque baixo",
-          descricao: `${peca.nome} - ${peca.estoque} un.`,
-          rota: "/estoque",
-          createdAt: (peca.updated_at ?? peca.created_at).toISOString(),
-        });
-      }
-    }
+      return pecas.map((peca) => ({
+        id: `estoque-${peca.id}-${peca.estoque}`,
+        tipo: "estoque",
+        severidade: peca.estoque <= 0 ? "danger" : "warning",
+        titulo: peca.estoque <= 0 ? "Peca sem estoque" : "Estoque baixo",
+        descricao: `${peca.nome} - ${peca.estoque} un.`,
+        rota: "/estoque",
+        createdAt: (peca.updated_at ?? peca.created_at).toISOString(),
+      }));
+    };
 
-    if (config.ordens.ativo && canAccess(permissoes, "ordens", "read")) {
+    const ordens = async (): Promise<AppNotification[]> => {
+      if (!config.ordens.ativo || !canAccess(permissoes, "ordens", "read")) return [];
       const openedBefore = addDays(today, -config.ordens.diasParada);
-      const ordens = await prisma.ordem_servico.findMany({
+      const lista = await prisma.ordem_servico.findMany({
         where: {
           oficina_id: oficinaId,
           deleted_at: null,
@@ -216,12 +231,13 @@ export const NotificacoesService = {
           data_abertura: { lte: openedBefore },
         },
         orderBy: { data_abertura: "asc" },
-        include: { cliente: { select: { nome: true } } },
+        take: teto,
+        select: { id: true, status: true, data_abertura: true, cliente: { select: { nome: true } } },
       });
 
-      for (const ordem of ordens) {
+      return lista.map((ordem) => {
         const age = daysSince(ordem.data_abertura);
-        notifications.push({
+        return {
           id: `ordens-${ordem.id}-${ordem.status}-${age}`,
           tipo: "ordens",
           severidade: age >= config.ordens.diasCritico ? "danger" : "warning",
@@ -229,26 +245,29 @@ export const NotificacoesService = {
           descricao: `#${ordem.id} - ${ordem.cliente?.nome ?? "Cliente nao informado"} - ${age}d`,
           rota: `/ordens/${ordem.id}`,
           createdAt: ordem.data_abertura.toISOString(),
-        });
-      }
-    }
+        };
+      });
+    };
 
-    if (config.orcamentos.ativo && canAccess(permissoes, "orcamentos", "read")) {
+    const orcamentos = async (): Promise<AppNotification[]> => {
+      if (!config.orcamentos.ativo || !canAccess(permissoes, "orcamentos", "read")) return [];
       const pendingBefore = addDays(today, -config.orcamentos.diasPendente);
-      const orcamentos = await prisma.orcamento.findMany({
+      const lista = await prisma.orcamento.findMany({
         where: {
+          oficina_id: oficinaId,
           deleted_at: null,
           status: "analise",
           data: { lte: pendingBefore },
-          cliente: { oficina_id: oficinaId, deleted_at: null },
+          cliente: { deleted_at: null },
         },
         orderBy: { data: "asc" },
-        include: { cliente: { select: { nome: true } } },
+        take: teto,
+        select: { id: true, status: true, valor: true, data: true, cliente: { select: { nome: true } } },
       });
 
-      for (const orcamento of orcamentos) {
+      return lista.map((orcamento) => {
         const age = daysSince(orcamento.data);
-        notifications.push({
+        return {
           id: `orcamentos-${orcamento.id}-${orcamento.status}-${age}`,
           tipo: "orcamentos",
           severidade: "info",
@@ -256,9 +275,11 @@ export const NotificacoesService = {
           descricao: `${orcamento.cliente?.nome ?? "Cliente nao informado"} - ${brl(orcamento.valor)}`,
           rota: "/orcamentos",
           createdAt: orcamento.data.toISOString(),
-        });
-      }
-    }
+        };
+      });
+    };
+
+    const notifications = (await Promise.all([financeiro(), agenda(), estoque(), ordens(), orcamentos()])).flat();
 
     const severityOrder = { danger: 0, warning: 1, info: 2, success: 3 };
     return notifications

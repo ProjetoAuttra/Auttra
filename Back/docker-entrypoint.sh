@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-npx prisma migrate deploy --schema prisma/schema.prisma
+npx prisma migrate deploy
 
 if [ "${RUN_SEED_ADMIN:-false}" = "true" ]; then
   npm run seed:admin

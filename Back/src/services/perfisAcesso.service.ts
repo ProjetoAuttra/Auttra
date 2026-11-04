@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../prisma/client.js";
 import {
   ACTION_LABELS,

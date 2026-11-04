@@ -1,4 +1,5 @@
 import { prisma } from "../prisma/client.js";
+import { LIMITE_LISTAGEM } from "../utils/limites.js";
 
 const CAMPOS_TEXTO = ["contato", "telefone", "email", "logradouro", "numero", "complemento", "cep"] as const;
 type CampoTexto = (typeof CAMPOS_TEXTO)[number];
@@ -36,7 +37,9 @@ export const FornecedoresService = {
   list: (oficinaId: number) =>
     prisma.fornecedor.findMany({
       where: { deleted_at: null, oficina_id: oficinaId },
-      include: { cidade: true, oficina: true },
+      include: { cidade: true },
+      orderBy: { nome: "asc" },
+      take: LIMITE_LISTAGEM,
     }),
 
   getById: (id: number, oficinaId: number) =>

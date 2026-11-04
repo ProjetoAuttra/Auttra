@@ -1,11 +1,12 @@
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "windows", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model usuario {
@@ -22,38 +23,35 @@ model usuario {
   telefone        String?
   data_nascimento DateTime? @db.Date
 
-  totp_secret    String?
-  failed_login_attempts Int      @default(0)
-  locked_until          DateTime?
-  last_login_at         DateTime?
+  totp_secret           String?
+  failed_login_attempts Int       @default(0)
+  locked_until          DateTime? @db.Timestamptz(3)
+  last_login_at         DateTime? @db.Timestamptz(3)
   last_login_ip         String?
   last_login_user_agent String?
-  token_version Int @default(0)
+  token_version         Int       @default(0)
 
-  funcionarios   funcionario[] @relation("FuncionarioUsuario")
-  cliente        cliente? @relation("UsuarioCliente")
-  gestor_oficina oficina? @relation("GestorOficina")
-  acessos        usuario_oficina[]
-  movimentos_pagamento pagamento_movimento[]
+  funcionarios          funcionario[]          @relation("FuncionarioUsuario")
+  cliente               cliente?               @relation("UsuarioCliente")
+  gestor_oficina        oficina?               @relation("GestorOficina")
+  acessos               usuario_oficina[]
+  movimentos_pagamento  pagamento_movimento[]
   password_reset_tokens password_reset_token[]
-  admin_audit_logs admin_audit_log[] @relation("AdminAuditActor")
-  sugestoes       sugestao[]
+  admin_audit_logs      admin_audit_log[]      @relation("AdminAuditActor")
+  sugestoes             sugestao[]
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  deleted_at DateTime?
-
-  @@index([status])
-  @@index([deleted_at])
+  created_at DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at DateTime  @updatedAt @db.Timestamptz(3)
+  deleted_at DateTime? @db.Timestamptz(3)
 }
 
 model password_reset_token {
   id         Int       @id @default(autoincrement())
   usuario_id Int
   token_hash String    @unique
-  expires_at DateTime
-  used_at    DateTime?
-  created_at DateTime  @default(now())
+  expires_at DateTime  @db.Timestamptz(3)
+  used_at    DateTime? @db.Timestamptz(3)
+  created_at DateTime  @default(now()) @db.Timestamptz(3)
 
   usuario usuario @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
 
@@ -63,91 +61,92 @@ model password_reset_token {
 }
 
 model cliente {
-  id              Int              @id @default(autoincrement())
+  id              Int            @id @default(autoincrement())
   nome            String
   email           String?
   cpf             String?
-  status          status_cliente   @default(ativo)
+  status          status_cliente @default(ativo)
   telefone        String?
-  data_nascimento DateTime?
+  data_nascimento DateTime?      @db.Date
   observacao      String?
   cep             String?
   logradouro      String?
   numero          String?
   complemento     String?
   cidade_id       Int?
-  usuario_id      Int?             @unique
+  usuario_id      Int?           @unique
   oficina_id      Int
-  criado_em       DateTime         @default(now())
-  atualizado_em   DateTime         @updatedAt
-  deleted_at      DateTime?
+  criado_em       DateTime       @default(now()) @db.Timestamptz(3)
+  atualizado_em   DateTime       @updatedAt @db.Timestamptz(3)
+  deleted_at      DateTime?      @db.Timestamptz(3)
 
   oficina oficina? @relation(fields: [oficina_id], references: [id])
   usuario usuario? @relation("UsuarioCliente", fields: [usuario_id], references: [id])
   cidade  cidade?  @relation(fields: [cidade_id], references: [id])
 
-  ordens     ordem_servico[]
-  veiculos   veiculo[]
-  pagamentos pagamento[]
-  orcamentos orcamento[]
+  ordens       ordem_servico[]
+  veiculos     veiculo[]
+  pagamentos   pagamento[]
+  orcamentos   orcamento[]
   agendamentos agendamento[]
 
   @@unique([cpf, oficina_id])
   @@unique([email, oficina_id])
-  @@index([oficina_id])
-  @@index([status])
-  @@index([deleted_at])
   @@index([cidade_id])
   @@index([oficina_id, deleted_at, nome])
+  @@index([nome(ops: raw("gin_trgm_ops"))], type: Gin, map: "cliente_nome_trgm_idx")
+  @@index([email(ops: raw("gin_trgm_ops"))], type: Gin, map: "cliente_email_trgm_idx")
+  @@index([telefone(ops: raw("gin_trgm_ops"))], type: Gin, map: "cliente_telefone_trgm_idx")
+  @@index([cpf(ops: raw("gin_trgm_ops"))], type: Gin, map: "cliente_cpf_trgm_idx")
 }
 
 model oficina {
-  id                Int     @id @default(autoincrement())
-  gestor_usuario_id Int?    @unique
-  nome              String  @unique
-  razao_social      String?
-  cnpj              String? @unique
-  inscricao_estadual String?
-  logradouro        String
-  numero            String
-  complemento       String?
-  bairro            String?
-  cep               String
-  cidade_id         Int
-  telefone          String?
-  whatsapp          String?
-  email             String? @unique
-  logo_url          String?
-  cor_principal     String?
-  notas_internas    String?
-  recursos_adicionais Json @default("{\"agenda\":true,\"estoque\":true,\"fornecedores\":true}")
-  notificacoes_config Json @default("{\"agenda\":{\"ativo\":true,\"diasAntecedencia\":1},\"financeiro\":{\"ativo\":true,\"diasVencimento\":3},\"estoque\":{\"ativo\":true,\"limiteBaixo\":3},\"ordens\":{\"ativo\":true,\"diasParada\":3,\"diasCritico\":7},\"orcamentos\":{\"ativo\":true,\"diasPendente\":2}}")
-  agenda_config Json @default("{\"horarioInicio\":\"08:00\",\"horarioFim\":\"18:00\",\"dias\":\"Segunda a Sábado\",\"tempoMedio\":\"60 minutos\"}")
-  financeiro_config Json @default("{\"formasPagamento\":\"Pix, Cartão, Dinheiro\",\"emitirRecibos\":true,\"jurosAtraso\":\"2%\"}")
+  id                  Int     @id @default(autoincrement())
+  gestor_usuario_id   Int?    @unique
+  nome                String  @unique
+  razao_social        String?
+  cnpj                String? @unique
+  inscricao_estadual  String?
+  logradouro          String
+  numero              String
+  complemento         String?
+  bairro              String?
+  cep                 String
+  cidade_id           Int
+  telefone            String?
+  whatsapp            String?
+  email               String? @unique
+  logo_url            String?
+  cor_principal       String?
+  notas_internas      String?
+  recursos_adicionais Json    @default("{\"agenda\":true,\"estoque\":true,\"fornecedores\":true}")
+  notificacoes_config Json    @default("{\"agenda\":{\"ativo\":true,\"diasAntecedencia\":1},\"financeiro\":{\"ativo\":true,\"diasVencimento\":3},\"estoque\":{\"ativo\":true,\"limiteBaixo\":3},\"ordens\":{\"ativo\":true,\"diasParada\":3,\"diasCritico\":7},\"orcamentos\":{\"ativo\":true,\"diasPendente\":2}}")
+  agenda_config       Json    @default("{\"horarioInicio\":\"08:00\",\"horarioFim\":\"18:00\",\"dias\":\"Segunda a Sábado\",\"tempoMedio\":\"60 minutos\"}")
+  financeiro_config   Json    @default("{\"formasPagamento\":\"Pix, Cartão, Dinheiro\",\"emitirRecibos\":true,\"jurosAtraso\":\"2%\"}")
 
-  cidade   cidade    @relation(fields: [cidade_id], references: [id])
-  gestor   usuario?  @relation("GestorOficina", fields: [gestor_usuario_id], references: [id])
-  acessos  usuario_oficina[]
+  cidade        cidade            @relation(fields: [cidade_id], references: [id])
+  gestor        usuario?          @relation("GestorOficina", fields: [gestor_usuario_id], references: [id])
+  acessos       usuario_oficina[]
   perfis_acesso perfil_acesso[]
 
-  clientes               cliente[]
-  funcionarios           funcionario[]
-  ordens_servico         ordem_servico[]
-  fornecedores           fornecedor[]
-  pecas                  peca[]
-  servicos               servico[]
-  estoque_itens          estoque[]
-  compras                compra_peca[]
-  pagamentos             pagamento[]
-  agendamentos           agendamento[]
-  veiculos               veiculo[]
+  clientes                 cliente[]
+  funcionarios             funcionario[]
+  ordens_servico           ordem_servico[]
+  fornecedores             fornecedor[]
+  pecas                    peca[]
+  servicos                 servico[]
+  orcamentos               orcamento[]
+  compras                  compra_peca[]
+  pagamentos               pagamento[]
+  agendamentos             agendamento[]
+  veiculos                 veiculo[]
   notas_fiscais_importadas nota_fiscal_importada[]
-  admin_audit_logs admin_audit_log[] @relation("AdminAuditOficina")
-  sugestoes        sugestao[]
+  admin_audit_logs         admin_audit_log[]       @relation("AdminAuditOficina")
+  sugestoes                sugestao[]
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  deleted_at DateTime?
+  created_at DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at DateTime  @updatedAt @db.Timestamptz(3)
+  deleted_at DateTime? @db.Timestamptz(3)
 
   links_publicos link_publico[]
 
@@ -163,7 +162,7 @@ model funcionario {
   email            String?
   telefone         String?
   cargo            cargo_funcionario
-  data_contratacao DateTime
+  data_contratacao DateTime          @db.Date
 
   oficina_id Int
   oficina    oficina @relation(fields: [oficina_id], references: [id])
@@ -174,13 +173,12 @@ model funcionario {
   ordens_servico ordem_servico[]
   agendamentos   agendamento[]
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  deleted_at DateTime?
+  created_at DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at DateTime  @updatedAt @db.Timestamptz(3)
+  deleted_at DateTime? @db.Timestamptz(3)
 
   @@index([oficina_id])
-  @@index([cargo])
-  @@index([deleted_at])
+  @@index([nome(ops: raw("gin_trgm_ops"))], type: Gin, map: "funcionario_nome_trgm_idx")
 }
 
 model veiculo {
@@ -195,12 +193,12 @@ model veiculo {
   combustivel   String?
   quilometragem Int?
   observacao    String?
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
-  deleted_at    DateTime?
+  created_at    DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at    DateTime  @updatedAt @db.Timestamptz(3)
+  deleted_at    DateTime? @db.Timestamptz(3)
 
-  oficina      oficina        @relation(fields: [oficina_id], references: [id])
-  cliente      cliente        @relation(fields: [cliente_id], references: [id])
+  oficina      oficina         @relation(fields: [oficina_id], references: [id])
+  cliente      cliente         @relation(fields: [cliente_id], references: [id])
   ordens       ordem_servico[]
   orcamentos   orcamento[]
   agendamentos agendamento[]
@@ -208,7 +206,8 @@ model veiculo {
   @@index([cliente_id])
   @@index([oficina_id])
   @@index([placa])
-  @@index([deleted_at])
+  @@index([placa(ops: raw("gin_trgm_ops"))], type: Gin, map: "veiculo_placa_trgm_idx")
+  @@index([modelo(ops: raw("gin_trgm_ops"))], type: Gin, map: "veiculo_modelo_trgm_idx")
 }
 
 model ordem_servico {
@@ -217,16 +216,16 @@ model ordem_servico {
   veiculo_id      Int
   cliente_id      Int
   funcionario_id  Int
-  data_abertura   DateTime  @default(now())
-  data_fechamento DateTime?
+  data_abertura   DateTime  @default(now()) @db.Timestamptz(3)
+  data_fechamento DateTime? @db.Timestamptz(3)
   status          status_os @default(aberta)
   observacoes     String?
-  valor_total     Decimal   @default(0.00)
+  valor_total     Decimal   @default(0.00) @db.Decimal(12, 2)
   // Orçamento que originou a OS (no máximo uma OS ativa por orçamento, garantido no service).
   orcamento_id    Int?
-  created_at      DateTime  @default(now())
-  updated_at      DateTime  @updatedAt
-  deleted_at      DateTime?
+  created_at      DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at      DateTime  @updatedAt @db.Timestamptz(3)
+  deleted_at      DateTime? @db.Timestamptz(3)
 
   orcamento   orcamento?  @relation(fields: [orcamento_id], references: [id])
   cliente     cliente     @relation(fields: [cliente_id], references: [id])
@@ -239,11 +238,9 @@ model ordem_servico {
   agendamentos   agendamento[]
   links_publicos link_publico[]
 
-  @@index([oficina_id])
   @@index([cliente_id])
   @@index([status])
   @@index([data_abertura])
-  @@index([deleted_at])
   @@index([oficina_id, deleted_at, created_at])
   @@index([orcamento_id])
 }
@@ -255,18 +252,17 @@ model item_ordem_servico {
   servico_id       Int?
   peca_id          Int?
   quantidade       Int          @default(1)
-  preco_unitario   Decimal
-  subtotal         Decimal
-  created_at       DateTime     @default(now())
-  updated_at       DateTime     @updatedAt
-  deleted_at       DateTime?
+  preco_unitario   Decimal      @db.Decimal(12, 2)
+  subtotal         Decimal      @db.Decimal(12, 2)
+  created_at       DateTime     @default(now()) @db.Timestamptz(3)
+  updated_at       DateTime     @updatedAt @db.Timestamptz(3)
+  deleted_at       DateTime?    @db.Timestamptz(3)
 
   ordem_servico ordem_servico @relation(fields: [ordem_servico_id], references: [id], onDelete: Cascade)
   servico       servico?      @relation(fields: [servico_id], references: [id])
   peca          peca?         @relation(fields: [peca_id], references: [id])
 
   @@index([ordem_servico_id])
-  @@index([deleted_at])
 }
 
 model fornecedor {
@@ -282,39 +278,19 @@ model fornecedor {
   cep         String?
   cidade_id   Int?
 
-  cidade     cidade?       @relation(fields: [cidade_id], references: [id])
-  oficina    oficina       @relation(fields: [oficina_id], references: [id])
-  compras    compra_peca[]
-  pagamentos pagamento[]
+  cidade                   cidade?                 @relation(fields: [cidade_id], references: [id])
+  oficina                  oficina                 @relation(fields: [oficina_id], references: [id])
+  compras                  compra_peca[]
+  pagamentos               pagamento[]
   notas_fiscais_importadas nota_fiscal_importada[]
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  deleted_at DateTime?
+  created_at DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at DateTime  @updatedAt @db.Timestamptz(3)
+  deleted_at DateTime? @db.Timestamptz(3)
 
   @@unique([nome, oficina_id])
   @@unique([email, oficina_id])
   @@index([oficina_id])
-  @@index([deleted_at])
-}
-
-model estoque {
-  id          Int     @id @default(autoincrement())
-  oficina_id  Int
-  nome        String
-  descricao   String
-  preco_custo Decimal
-  preco_venda Decimal
-  estoque_qtd Int
-
-  oficina oficina @relation(fields: [oficina_id], references: [id])
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  deleted_at DateTime?
-
-  @@index([oficina_id])
-  @@index([deleted_at])
 }
 
 model cidade {
@@ -325,8 +301,8 @@ model cidade {
   oficinas     oficina[]
   clientes     cliente[]
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  updated_at DateTime @updatedAt @db.Timestamptz(3)
 }
 
 model servico {
@@ -334,21 +310,22 @@ model servico {
   oficina_id     Int
   nome           String
   descricao      String?
-  preco          Decimal
+  preco          Decimal   @db.Decimal(12, 2)
   categoria      String?
   tempo_estimado Int?
   ativo          Boolean   @default(true)
-  created_at     DateTime  @default(now())
-  updated_at     DateTime  @updatedAt
-  deleted_at     DateTime?
+  created_at     DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at     DateTime  @updatedAt @db.Timestamptz(3)
+  deleted_at     DateTime? @db.Timestamptz(3)
 
-  oficina oficina              @relation(fields: [oficina_id], references: [id])
-  itens   item_ordem_servico[]
+  oficina         oficina              @relation(fields: [oficina_id], references: [id])
+  itens           item_ordem_servico[]
   itens_orcamento item_orcamento[]
 
   @@unique([nome, oficina_id])
   @@index([oficina_id])
-  @@index([deleted_at])
+  @@index([nome(ops: raw("gin_trgm_ops"))], type: Gin, map: "servico_nome_trgm_idx")
+  @@index([categoria(ops: raw("gin_trgm_ops"))], type: Gin, map: "servico_categoria_trgm_idx")
 }
 
 model peca {
@@ -356,21 +333,22 @@ model peca {
   oficina_id  Int
   nome        String
   descricao   String?
-  preco_custo Decimal
-  preco_venda Decimal
+  preco_custo Decimal   @db.Decimal(14, 4)
+  preco_venda Decimal   @db.Decimal(14, 4)
   estoque     Int       @default(0)
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
-  deleted_at  DateTime?
+  created_at  DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at  DateTime  @updatedAt @db.Timestamptz(3)
+  deleted_at  DateTime? @db.Timestamptz(3)
 
-  oficina oficina              @relation(fields: [oficina_id], references: [id])
-  compras compra_peca[]
-  itens   item_ordem_servico[]
+  oficina         oficina              @relation(fields: [oficina_id], references: [id])
+  compras         compra_peca[]
+  itens           item_ordem_servico[]
   itens_orcamento item_orcamento[]
 
   @@unique([nome, oficina_id])
   @@index([oficina_id])
-  @@index([deleted_at])
+  @@index([nome(ops: raw("gin_trgm_ops"))], type: Gin, map: "peca_nome_trgm_idx")
+  @@index([descricao(ops: raw("gin_trgm_ops"))], type: Gin, map: "peca_descricao_trgm_idx")
 }
 
 model compra_peca {
@@ -379,11 +357,11 @@ model compra_peca {
   fornecedor_id         Int
   peca_id               Int
   quantidade            Int
-  preco_compra_unitario Decimal
-  data_compra           DateTime  @default(now())
-  created_at            DateTime  @default(now())
-  updated_at            DateTime  @updatedAt
-  deleted_at            DateTime?
+  preco_compra_unitario Decimal   @db.Decimal(14, 4)
+  data_compra           DateTime  @default(now()) @db.Timestamptz(3)
+  created_at            DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at            DateTime  @updatedAt @db.Timestamptz(3)
+  deleted_at            DateTime? @db.Timestamptz(3)
 
   oficina    oficina    @relation(fields: [oficina_id], references: [id])
   fornecedor fornecedor @relation(fields: [fornecedor_id], references: [id])
@@ -392,98 +370,91 @@ model compra_peca {
   @@index([oficina_id])
   @@index([fornecedor_id])
   @@index([data_compra])
-  @@index([deleted_at])
 }
 
 model pagamento {
-  id               Int              @id @default(autoincrement())
+  id               Int               @id @default(autoincrement())
   cliente_id       Int?
   oficina_id       Int
   ordem_servico_id Int?
   fornecedor_id    Int?
   tipo             tipo_pagamento
   metodo           metodo_pagamento?
-  valor            Decimal
+  valor            Decimal           @db.Decimal(12, 2)
   status           status_pagamento
-  data_vencimento  DateTime
-  data_pagamento   DateTime?
+  data_vencimento  DateTime          @db.Date
+  data_pagamento   DateTime?         @db.Timestamptz(3)
   categoria        String?
   descricao        String?
   observacao       String?
 
-  valor_original           Decimal
-  desconto                 Decimal   @default(0)
+  valor_original           Decimal   @db.Decimal(12, 2)
+  desconto                 Decimal   @default(0) @db.Decimal(12, 2)
   motivo_desconto          String?
-  multa                    Decimal   @default(0)
-  data_vencimento_original DateTime?
+  multa                    Decimal   @default(0) @db.Decimal(12, 2)
+  data_vencimento_original DateTime? @db.Date
   vezes_renegociado        Int       @default(0)
-  valor_pago               Decimal   @default(0)
+  valor_pago               Decimal   @default(0) @db.Decimal(12, 2)
   parcela_numero           Int?
   total_parcelas           Int?
   pagamento_pai_id         Int?
 
-  cliente       cliente?       @relation(fields: [cliente_id], references: [id])
-  oficina       oficina        @relation(fields: [oficina_id], references: [id])
-  ordem_servico ordem_servico? @relation(fields: [ordem_servico_id], references: [id], onDelete: Cascade)
-  fornecedor    fornecedor?    @relation(fields: [fornecedor_id], references: [id])
-  pagamento_pai pagamento?     @relation("Parcelas", fields: [pagamento_pai_id], references: [id])
-  parcelas      pagamento[]    @relation("Parcelas")
+  cliente       cliente?              @relation(fields: [cliente_id], references: [id])
+  oficina       oficina               @relation(fields: [oficina_id], references: [id])
+  ordem_servico ordem_servico?        @relation(fields: [ordem_servico_id], references: [id], onDelete: SetNull)
+  fornecedor    fornecedor?           @relation(fields: [fornecedor_id], references: [id])
+  pagamento_pai pagamento?            @relation("Parcelas", fields: [pagamento_pai_id], references: [id])
+  parcelas      pagamento[]           @relation("Parcelas")
   movimentos    pagamento_movimento[]
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  deleted_at DateTime?
+  created_at DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at DateTime  @updatedAt @db.Timestamptz(3)
+  deleted_at DateTime? @db.Timestamptz(3)
 
-  @@index([oficina_id])
   @@index([cliente_id])
-  @@index([status])
   @@index([data_vencimento])
-  @@index([deleted_at])
   @@index([pagamento_pai_id])
   @@index([oficina_id, deleted_at, data_vencimento])
 }
 
 model usuario_oficina {
-  id         Int            @id @default(autoincrement())
-  usuario_id Int
-  oficina_id Int
-  perfil     tipo_usuario   @default(funcionario)
+  id               Int            @id @default(autoincrement())
+  usuario_id       Int
+  oficina_id       Int
+  perfil           tipo_usuario   @default(funcionario)
   perfil_acesso_id Int?
-  status     status_usuario @default(ativo)
-  created_at DateTime       @default(now())
-  updated_at DateTime       @updatedAt
-  deleted_at DateTime?
+  status           status_usuario @default(ativo)
+  created_at       DateTime       @default(now()) @db.Timestamptz(3)
+  updated_at       DateTime       @updatedAt @db.Timestamptz(3)
+  deleted_at       DateTime?      @db.Timestamptz(3)
 
-  usuario usuario @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
-  oficina oficina @relation(fields: [oficina_id], references: [id])
+  usuario       usuario        @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  oficina       oficina        @relation(fields: [oficina_id], references: [id])
   perfil_acesso perfil_acesso? @relation(fields: [perfil_acesso_id], references: [id])
 
   @@unique([usuario_id, oficina_id])
   @@index([oficina_id])
   @@index([perfil_acesso_id])
-  @@index([status])
-  @@index([deleted_at])
 }
 
 model perfil_acesso {
-  id          Int       @id @default(autoincrement())
-  oficina_id  Int?
-  nome        String
-  descricao   String?
-  chave       String?
-  permissoes  Json
-  padrao      Boolean   @default(false)
-  sistema     Boolean   @default(false)
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
-  deleted_at  DateTime?
+  id         Int       @id @default(autoincrement())
+  oficina_id Int?
+  nome       String
+  descricao  String?
+  chave      String?
+  permissoes Json
+  padrao     Boolean   @default(false)
+  sistema    Boolean   @default(false)
+  created_at DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at DateTime  @updatedAt @db.Timestamptz(3)
+  deleted_at DateTime? @db.Timestamptz(3)
 
-  oficina oficina? @relation(fields: [oficina_id], references: [id])
+  oficina oficina?          @relation(fields: [oficina_id], references: [id])
   acessos usuario_oficina[]
 
   @@unique([oficina_id, nome])
   @@index([oficina_id])
-  @@index([deleted_at])
 }
 
 enum cargo_funcionario {
@@ -545,52 +516,51 @@ enum metodo_pagamento {
 }
 
 model orcamento {
-  id         Int               @id @default(autoincrement())
-  descricao  String
-  valor      Decimal
-  data       DateTime
-  validade   DateTime?
-  status     status_orcamento  @default(analise)
+  id        Int              @id @default(autoincrement())
+  descricao String
+  valor     Decimal          @db.Decimal(12, 2)
+  data      DateTime         @db.Timestamptz(3)
+  validade  DateTime?        @db.Timestamptz(3)
+  status    status_orcamento @default(analise)
 
+  oficina_id Int
   cliente_id Int
   veiculo_id Int
 
-  cliente    cliente @relation(fields: [cliente_id], references: [id])
-  veiculo    veiculo @relation(fields: [veiculo_id], references: [id])
-  itens      item_orcamento[]
+  oficina        oficina          @relation(fields: [oficina_id], references: [id])
+  cliente        cliente          @relation(fields: [cliente_id], references: [id])
+  veiculo        veiculo          @relation(fields: [veiculo_id], references: [id])
+  itens          item_orcamento[]
   links_publicos link_publico[]
-  ordens     ordem_servico[]
+  ordens         ordem_servico[]
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  deleted_at DateTime?
+  created_at DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at DateTime  @updatedAt @db.Timestamptz(3)
+  deleted_at DateTime? @db.Timestamptz(3)
 
-  @@index([cliente_id])
-  @@index([status])
-  @@index([deleted_at])
   @@index([cliente_id, deleted_at, id])
+  @@index([oficina_id, deleted_at, id])
 }
 
 model item_orcamento {
-  id              Int          @id @default(autoincrement())
-  orcamento_id    Int
-  tipo_item       tipo_item_os
-  servico_id      Int?
-  peca_id         Int?
-  nome            String?
-  quantidade      Int          @default(1)
-  preco_unitario  Decimal
-  subtotal        Decimal
-  created_at      DateTime     @default(now())
-  updated_at      DateTime     @updatedAt
-  deleted_at      DateTime?
+  id             Int          @id @default(autoincrement())
+  orcamento_id   Int
+  tipo_item      tipo_item_os
+  servico_id     Int?
+  peca_id        Int?
+  nome           String?
+  quantidade     Int          @default(1)
+  preco_unitario Decimal      @db.Decimal(12, 2)
+  subtotal       Decimal      @db.Decimal(12, 2)
+  created_at     DateTime     @default(now()) @db.Timestamptz(3)
+  updated_at     DateTime     @updatedAt @db.Timestamptz(3)
+  deleted_at     DateTime?    @db.Timestamptz(3)
 
   orcamento orcamento @relation(fields: [orcamento_id], references: [id], onDelete: Cascade)
   servico   servico?  @relation(fields: [servico_id], references: [id])
   peca      peca?     @relation(fields: [peca_id], references: [id])
 
   @@index([orcamento_id])
-  @@index([deleted_at])
 }
 
 enum status_orcamento {
@@ -613,11 +583,11 @@ model nota_fiscal_importada {
   numero_nota   String?
   serie         String?
   fornecedor_id Int?
-  valor_total   Decimal?
-  data_emissao  DateTime?
+  valor_total   Decimal?  @db.Decimal(12, 2)
+  data_emissao  DateTime? @db.Timestamptz(3)
   nome_arquivo  String?
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
+  created_at    DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at    DateTime  @updatedAt @db.Timestamptz(3)
 
   oficina    oficina     @relation(fields: [oficina_id], references: [id])
   fornecedor fornecedor? @relation(fields: [fornecedor_id], references: [id])
@@ -627,14 +597,14 @@ model nota_fiscal_importada {
 }
 
 model agendamento {
-  id              Int       @id @default(autoincrement())
-  titulo          String
-  descricao       String?
-  data_inicio     DateTime
-  data_fim        DateTime
-  localizacao     String?
-  status          status_agendamento @default(pendente)
-  observacao      String?
+  id          Int                @id @default(autoincrement())
+  titulo      String
+  descricao   String?
+  data_inicio DateTime           @db.Timestamptz(3)
+  data_fim    DateTime           @db.Timestamptz(3)
+  localizacao String?
+  status      status_agendamento @default(pendente)
+  observacao  String?
 
   oficina_id       Int
   cliente_id       Int
@@ -642,37 +612,34 @@ model agendamento {
   funcionario_id   Int?
   ordem_servico_id Int?
 
-  oficina         oficina       @relation(fields: [oficina_id], references: [id])
-  cliente         cliente       @relation(fields: [cliente_id], references: [id])
-  veiculo         veiculo       @relation(fields: [veiculo_id], references: [id])
-  funcionario     funcionario?  @relation(fields: [funcionario_id], references: [id])
-  ordem_servico   ordem_servico? @relation(fields: [ordem_servico_id], references: [id])
+  oficina       oficina        @relation(fields: [oficina_id], references: [id])
+  cliente       cliente        @relation(fields: [cliente_id], references: [id])
+  veiculo       veiculo        @relation(fields: [veiculo_id], references: [id])
+  funcionario   funcionario?   @relation(fields: [funcionario_id], references: [id])
+  ordem_servico ordem_servico? @relation(fields: [ordem_servico_id], references: [id])
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  deleted_at DateTime?
+  created_at DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at DateTime  @updatedAt @db.Timestamptz(3)
+  deleted_at DateTime? @db.Timestamptz(3)
 
-  @@index([oficina_id])
   @@index([cliente_id])
   @@index([data_inicio])
-  @@index([status])
-  @@index([deleted_at])
   @@index([ordem_servico_id])
   @@index([oficina_id, deleted_at, data_inicio])
 }
 
 model admin_audit_log {
-  id             Int      @id @default(autoincrement())
-  actor_id       Int?
-  oficina_id     Int?
-  action         String
-  entity_type    String
-  entity_id      Int?
-  message        String
-  metadata       Json?
-  ip             String?
-  user_agent     String?
-  created_at     DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  actor_id    Int?
+  oficina_id  Int?
+  action      String
+  entity_type String
+  entity_id   Int?
+  message     String
+  metadata    Json?
+  ip          String?
+  user_agent  String?
+  created_at  DateTime @default(now()) @db.Timestamptz(3)
 
   actor   usuario? @relation("AdminAuditActor", fields: [actor_id], references: [id], onDelete: SetNull)
   oficina oficina? @relation("AdminAuditOficina", fields: [oficina_id], references: [id], onDelete: SetNull)
@@ -695,8 +662,8 @@ model link_publico {
   ordem_servico_id Int?
   orcamento_id     Int?
   status           status_link_publico @default(ativo)
-  created_at       DateTime            @default(now())
-  deleted_at       DateTime?
+  created_at       DateTime            @default(now()) @db.Timestamptz(3)
+  deleted_at       DateTime?           @db.Timestamptz(3)
 
   oficina       oficina        @relation(fields: [oficina_id], references: [id])
   ordem_servico ordem_servico? @relation(fields: [ordem_servico_id], references: [id], onDelete: Cascade)
@@ -719,18 +686,18 @@ model pagamento_movimento {
   pagamento_id  Int
   oficina_id    Int
   tipo          tipo_movimento_pagamento
-  valor         Decimal // sempre positivo; o sinal vem do tipo
+  valor         Decimal                  @db.Decimal(12, 2) // sempre positivo; o sinal vem do tipo
   metodo        metodo_pagamento?
   motivo        String?
   usuario_id    Int?
   estorno_de_id Int?
-  created_at    DateTime                 @default(now())
+  created_at    DateTime                 @default(now()) @db.Timestamptz(3)
 
-  pagamento   pagamento            @relation(fields: [pagamento_id], references: [id], onDelete: Cascade)
-  oficina     oficina              @relation(fields: [oficina_id], references: [id])
-  usuario     usuario?             @relation(fields: [usuario_id], references: [id], onDelete: SetNull)
-  estorno_de  pagamento_movimento? @relation("EstornoDe", fields: [estorno_de_id], references: [id])
-  estornos    pagamento_movimento[] @relation("EstornoDe")
+  pagamento  pagamento             @relation(fields: [pagamento_id], references: [id], onDelete: Cascade)
+  oficina    oficina               @relation(fields: [oficina_id], references: [id])
+  usuario    usuario?              @relation(fields: [usuario_id], references: [id], onDelete: SetNull)
+  estorno_de pagamento_movimento?  @relation("EstornoDe", fields: [estorno_de_id], references: [id])
+  estornos   pagamento_movimento[] @relation("EstornoDe")
 
   @@index([pagamento_id])
   @@index([oficina_id])
@@ -759,7 +726,7 @@ model sugestao {
   usuario_id Int?
   modulo     modulo_sugestao
   mensagem   String
-  created_at DateTime        @default(now())
+  created_at DateTime        @default(now()) @db.Timestamptz(3)
 
   oficina oficina  @relation(fields: [oficina_id], references: [id], onDelete: Cascade)
   usuario usuario? @relation(fields: [usuario_id], references: [id], onDelete: SetNull)
@@ -777,7 +744,7 @@ model catalogo_veiculo {
   /// "curado" (base mantida no código) ou "fipe" (sugerido pela sincronização mensal).
   origem     String   @default("curado")
   ativo      Boolean  @default(true)
-  created_at DateTime @default(now())
+  created_at DateTime @default(now()) @db.Timestamptz(3)
 
   @@index([marca])
 }
@@ -785,5 +752,5 @@ model catalogo_veiculo {
 /// Controle da sincronização com a FIPE (uma linha, id = 1).
 model catalogo_veiculo_sync {
   id        Int      @id
-  ultima_em DateTime
+  ultima_em DateTime @db.Timestamptz(3)
 }
