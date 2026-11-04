@@ -11,7 +11,8 @@ export async function criarEstoque(data: any, oficinaId: number) {
     descricao: data.descricao || null,
     preco_custo: Number(data.preco_custo),
     preco_venda: Number(data.preco_venda),
-    estoque: Number(data.estoque),
+    estoque: data.estoque,
+    unidade: data.unidade,
     oficinaId,
   });
   return { data: res.data, reativado: res.status === 200 };
@@ -23,7 +24,8 @@ export async function atualizarEstoque(id: number, data: any) {
     descricao: data.descricao || null,
     preco_custo: Number(data.preco_custo),
     preco_venda: Number(data.preco_venda),
-    estoque: Number(data.estoque),
+    estoque: data.estoque,
+    unidade: data.unidade,
   });
   return res.data;
 }

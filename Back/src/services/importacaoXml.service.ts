@@ -1,5 +1,6 @@
 import xml2js from "xml2js";
 import { prisma } from "../prisma/client.js";
+import { parseQuantidade, unidadeDaNota } from "../utils/quantidade.js";
 
 function normalizar(str: string): string {
   return str.trim().toLowerCase().replace(/\s+/g, " ");
@@ -46,6 +47,8 @@ export interface PreviewNota {
 export interface ItemConfirmar {
   descricao: string;
   quantidade: number;
+  /** uCom da nota; vira a unidade da peça criada pela importação. */
+  unidade?: string;
   valor_unitario: number;
   preco_venda: number;
   acao: "vincular" | "nova_peca" | "ignorar";
@@ -171,7 +174,8 @@ export const ImportacaoXmlService = {
       const descricao = extrairTexto(prod.xProd);
       const ncm = extrairTexto(prod.NCM);
       const unidade = extrairTexto((prod.uCom ?? prod.uTrib) as unknown);
-      const quantidade = extrairNumero((prod.qCom ?? prod.qTrib) as unknown);
+      // qCom da NF-e tem até 4 casas; guardamos 3.
+      const quantidade = Math.round(extrairNumero((prod.qCom ?? prod.qTrib) as unknown) * 1000) / 1000;
       const valorUnitario = extrairNumero((prod.vUnCom ?? prod.vUnTrib) as unknown);
       const valorTotalItem = extrairNumero(prod.vProd);
 
@@ -248,12 +252,14 @@ export const ImportacaoXmlService = {
           itensIgnorados++;
           continue;
         }
+        const quantidade = parseQuantidade(item.quantidade);
 
         if (item.acao === "vincular" && item.peca_id) {
-          await tx.peca.update({
-            where: { id: item.peca_id },
-            data: { estoque: { increment: item.quantidade } },
+          const { count } = await tx.peca.updateMany({
+            where: { id: item.peca_id, oficina_id: oficinaId, deleted_at: null },
+            data: { estoque: { increment: quantidade } },
           });
+          if (count === 0) throw new Error(`Peça vinculada a "${item.descricao}" não encontrada nesta oficina.`);
 
           if (dados.fornecedor_id) {
             await tx.compra_peca.create({
@@ -261,7 +267,7 @@ export const ImportacaoXmlService = {
                 oficina_id: oficinaId,
                 fornecedor_id: dados.fornecedor_id,
                 peca_id: item.peca_id,
-                quantidade: item.quantidade,
+                quantidade,
                 preco_compra_unitario: item.valor_unitario,
                 data_compra: dados.data_emissao ? new Date(dados.data_emissao) : new Date(),
               },
@@ -278,7 +284,7 @@ export const ImportacaoXmlService = {
           if (pecaExistente && !pecaExistente.deleted_at) {
             await tx.peca.update({
               where: { id: pecaExistente.id },
-              data: { estoque: { increment: item.quantidade } },
+              data: { estoque: { increment: quantidade } },
             });
             pecaId = pecaExistente.id;
             itensAtualizados++;
@@ -289,7 +295,8 @@ export const ImportacaoXmlService = {
                 deleted_at: null,
                 preco_custo: item.valor_unitario,
                 preco_venda: item.preco_venda,
-                estoque: item.quantidade,
+                estoque: quantidade,
+                unidade: unidadeDaNota(item.unidade),
               },
             });
             pecaId = pecaExistente.id;
@@ -301,7 +308,8 @@ export const ImportacaoXmlService = {
                 nome: item.descricao,
                 preco_custo: item.valor_unitario,
                 preco_venda: item.preco_venda,
-                estoque: item.quantidade,
+                estoque: quantidade,
+                unidade: unidadeDaNota(item.unidade),
               },
             });
             pecaId = novaPeca.id;
@@ -314,7 +322,7 @@ export const ImportacaoXmlService = {
                 oficina_id: oficinaId,
                 fornecedor_id: dados.fornecedor_id,
                 peca_id: pecaId,
-                quantidade: item.quantidade,
+                quantidade,
                 preco_compra_unitario: item.valor_unitario,
                 data_compra: dados.data_emissao ? new Date(dados.data_emissao) : new Date(),
               },

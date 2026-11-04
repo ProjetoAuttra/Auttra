@@ -29,6 +29,7 @@ import ListTableContainer from "../../../components/common/ListTableContainer";
 import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationEstoque } from "../../../components/common/Illustrations";
 import { paths } from "../../../routes/paths";
+import { formatarQuantidade, lerQuantidade } from "../../../utils/quantidade";
 
 const LIMITE_BAIXO = 3;
 
@@ -141,14 +142,14 @@ export default function EstoquePage() {
   };
 
   // Saída maior que o disponível já aparece como erro enquanto digita.
-  const qtdDigitada = /^\d+$/.test(qtdAjuste.trim()) ? Number(qtdAjuste.trim()) : NaN;
+  const qtdDigitada = lerQuantidade(qtdAjuste) ?? NaN;
   const excedeDisponivel = tipoAjuste === "saida" && !!pecaAjuste && qtdDigitada > Number(pecaAjuste.estoque);
-  const erroQuantidade = erroQtd || (excedeDisponivel ? `Máximo disponível: ${pecaAjuste?.estoque}` : "");
+  const erroQuantidade = erroQtd || (excedeDisponivel ? `Máximo disponível: ${formatarQuantidade(pecaAjuste?.estoque, pecaAjuste?.unidade)}` : "");
 
   const handleConfirmarAjuste = async () => {
     if (loadingAjuste || !pecaAjuste) return;
-    if (!Number.isInteger(qtdDigitada) || qtdDigitada < 1) {
-      setErroQtd("Informe um número inteiro maior que zero");
+    if (!(qtdDigitada > 0)) {
+      setErroQtd("Informe um número maior que zero, com até 3 casas decimais");
       return;
     }
     if (excedeDisponivel) return;
@@ -294,7 +295,7 @@ export default function EstoquePage() {
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={i.estoque ?? 0}
+                          label={formatarQuantidade(i.estoque, i.unidade)}
                           size="small"
                           sx={{
                             fontWeight: 600,
@@ -402,17 +403,18 @@ export default function EstoquePage() {
           <TextField
             label="Quantidade"
             value={qtdAjuste}
-            onChange={(e) => { setQtdAjuste(e.target.value.replace(/\D/g, "")); setErroQtd(""); }}
+            onChange={(e) => { setQtdAjuste(e.target.value.replace(/[^\d.,]/g, "")); setErroQtd(""); }}
             size="small"
             fullWidth
             autoFocus
             error={!!erroQuantidade}
             helperText={erroQuantidade || undefined}
-            inputProps={{ inputMode: "numeric" }}
+            inputProps={{ inputMode: "decimal" }}
+            InputProps={pecaAjuste?.unidade ? { endAdornment: <InputAdornment position="end">{pecaAjuste.unidade}</InputAdornment> } : undefined}
           />
           {tipoAjuste === "saida" && pecaAjuste && (
             <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
-              Disponível em estoque: <strong>{pecaAjuste.estoque}</strong>
+              Disponível em estoque: <strong>{formatarQuantidade(pecaAjuste.estoque, pecaAjuste.unidade)}</strong>
             </Typography>
           )}
         </AppDialogContent>

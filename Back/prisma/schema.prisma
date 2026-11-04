@@ -254,7 +254,7 @@ model item_ordem_servico {
   tipo_item        tipo_item_os
   servico_id       Int?
   peca_id          Int?
-  quantidade       Int          @default(1)
+  quantidade       Decimal      @default(1) @db.Decimal(12, 3)
   preco_unitario   Decimal
   subtotal         Decimal
   created_at       DateTime     @default(now())
@@ -358,7 +358,8 @@ model peca {
   descricao   String?
   preco_custo Decimal
   preco_venda Decimal
-  estoque     Int       @default(0)
+  estoque     Decimal   @default(0) @db.Decimal(12, 3)
+  unidade     String    @default("UN")
   created_at  DateTime  @default(now())
   updated_at  DateTime  @updatedAt
   deleted_at  DateTime?
@@ -378,7 +379,7 @@ model compra_peca {
   oficina_id            Int
   fornecedor_id         Int
   peca_id               Int
-  quantidade            Int
+  quantidade            Decimal   @db.Decimal(12, 3)
   preco_compra_unitario Decimal
   data_compra           DateTime  @default(now())
   created_at            DateTime  @default(now())
@@ -578,7 +579,7 @@ model item_orcamento {
   servico_id      Int?
   peca_id         Int?
   nome            String?
-  quantidade      Int          @default(1)
+  quantidade      Decimal      @default(1) @db.Decimal(12, 3)
   preco_unitario  Decimal
   subtotal        Decimal
   created_at      DateTime     @default(now())

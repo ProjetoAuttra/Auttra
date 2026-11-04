@@ -23,6 +23,7 @@ import { useVoltar } from "../../../../hooks/useVoltar";
 import { paths } from "../../../../routes/paths";
 import { useToast } from "../../../../context/ToastContext";
 import { useConfirm } from "../../../../context/ConfirmContext";
+import { formatarQuantidade } from "../../../../utils/quantidade";
 
 export default function OrdemServicoDetalhes() {
   const { id } = useParams();
@@ -270,7 +271,7 @@ export default function OrdemServicoDetalhes() {
                     : item.servico?.nome ?? "Serviço"}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {`${item.quantidade}x ${money(item.preco_unitario)}`}
+                  {`${formatarQuantidade(item.quantidade, item.tipo_item === "peca" ? item.peca?.unidade : null)} × ${money(item.preco_unitario)}`}
                 </Typography>
               </Stack>
               <Typography fontWeight={700}>{money(item.subtotal)}</Typography>

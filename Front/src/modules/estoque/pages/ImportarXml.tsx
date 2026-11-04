@@ -33,6 +33,7 @@ import type { PreviewNota, ItemPreview, ResultadoImportacao } from "../api/impor
 import { paths } from "../../../routes/paths";
 import api from "../../../api/api";
 import { comoBotao } from "../../../components/common/linhaClicavel";
+import { formatarQuantidade } from "../../../utils/quantidade";
 
 type AcaoItem = "vincular" | "nova_peca" | "ignorar";
 
@@ -142,6 +143,7 @@ export default function ImportarXmlPage() {
         itens: itens.map((it) => ({
           descricao: it.descricao,
           quantidade: it.quantidade,
+          unidade: it.unidade,
           valor_unitario: it.valor_unitario,
           preco_venda: it.preco_venda,
           acao: it.acao,
@@ -314,7 +316,7 @@ export default function ImportarXmlPage() {
                     </TableCell>
                     <TableCell align="center">
                       <Typography variant="body2">
-                        {it.quantidade} {it.unidade}
+                        {formatarQuantidade(it.quantidade, it.unidade)}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">

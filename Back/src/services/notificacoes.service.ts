@@ -1,5 +1,6 @@
 import { prisma } from "../prisma/client.js";
 import { canAccess, type PermissionsMap } from "../permissions/accessProfiles.js";
+import { formatarQuantidade } from "../utils/quantidade.js";
 
 type NotificationConfig = {
   agenda: { ativo: boolean; diasAntecedencia: number };
@@ -194,12 +195,13 @@ export const NotificacoesService = {
       });
 
       for (const peca of pecas) {
+        const semEstoque = peca.estoque.lte(0);
         notifications.push({
           id: `estoque-${peca.id}-${peca.estoque}`,
           tipo: "estoque",
-          severidade: peca.estoque <= 0 ? "danger" : "warning",
-          titulo: peca.estoque <= 0 ? "Peca sem estoque" : "Estoque baixo",
-          descricao: `${peca.nome} - ${peca.estoque} un.`,
+          severidade: semEstoque ? "danger" : "warning",
+          titulo: semEstoque ? "Peca sem estoque" : "Estoque baixo",
+          descricao: `${peca.nome} - ${formatarQuantidade(peca.estoque, peca.unidade)}`,
           rota: "/estoque",
           createdAt: (peca.updated_at ?? peca.created_at).toISOString(),
         });

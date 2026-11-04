@@ -14,6 +14,7 @@ import { useToast } from "../../../../context/ToastContext";
 import { paths } from "../../../../routes/paths";
 import { atualizarOrdem, criarOrdem } from "../../api/api";
 import { podeEditarOrdem } from "../../statusConfig";
+import CampoQuantidade from "../../../../components/common/CampoQuantidade";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -24,7 +25,10 @@ type Item = {
   servico_id?: number | null;
   peca_id?: number | null;
   preco_unitario: number;
-  quantidade: number;
+  /** null enquanto o campo tem um valor inválido (ex.: "3,"). */
+  quantidade: number | null;
+  /** Unidade da peça (UN, L, KG, M); serviço não tem. */
+  unidade?: string | null;
   subtotal: number;
 };
 
@@ -43,6 +47,7 @@ export type PresetOrdem = {
 };
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const subtotalDe = (qtd: number | null, preco: number) => Math.round((qtd ?? 0) * preco * 100) / 100;
 
 /** Seção da página: título em negrito com linha fina embaixo e o conteúdo em seguida. */
 function Secao({ titulo, acao, children }: { titulo: string; acao?: React.ReactNode; children: React.ReactNode }) {
@@ -75,6 +80,7 @@ const mapItens = (itens: any[] = []): Item[] =>
     peca_id: i.peca_id ?? i.peca?.id ?? null,
     preco_unitario: Number(i.preco_unitario),
     quantidade: Number(i.quantidade),
+    unidade: i.tipo_item === "peca" ? i.peca?.unidade ?? i.unidade ?? "UN" : null,
     subtotal: Number(i.subtotal),
   }));
 
@@ -226,8 +232,9 @@ export default function FormOrdemServico() {
     cliente: !clienteId ? "Selecione o cliente" : "",
     veiculo: !veiculoId ? "Selecione o veículo" : "",
     funcionario: !funcionarioId ? "Selecione o responsável" : "",
+    itens: itens.some((i) => !i.quantidade) ? "Informe uma quantidade válida em todos os itens" : "",
   };
-  const temErro = Boolean(erros.cliente || erros.veiculo || erros.funcionario);
+  const temErro = Boolean(erros.cliente || erros.veiculo || erros.funcionario || erros.itens);
 
   const voltar = async () => {
     if (tocado.current) {
@@ -259,7 +266,7 @@ export default function FormOrdemServico() {
     tocado.current = true;
     setItens((prev) => [
       ...prev,
-      { id: String(Date.now()), tipo_item: selecaoAberta, nome: selecionadoItem.nome, [idCampo]: selecionadoItem.id, preco_unitario: preco, quantidade: 1, subtotal: preco },
+      { id: String(Date.now()), tipo_item: selecaoAberta, nome: selecionadoItem.nome, [idCampo]: selecionadoItem.id, preco_unitario: preco, quantidade: 1, unidade: selecaoAberta === "peca" ? selecionadoItem.unidade ?? "UN" : null, subtotal: preco },
     ]);
     setSelecionadoItem(null);
     setItemInput("");
@@ -267,9 +274,9 @@ export default function FormOrdemServico() {
     setSelecaoAberta(null);
   };
 
-  const handleQtdChange = (itemId: string, qtd: number) => {
-    const q = Math.max(1, qtd || 1);
-    setItens((p) => p.map((x) => (x.id === itemId ? { ...x, quantidade: q, subtotal: q * x.preco_unitario } : x)));
+  const handleQtdChange = (itemId: string, qtd: number | null) => {
+    tocado.current = true;
+    setItens((p) => p.map((x) => (x.id === itemId ? { ...x, quantidade: qtd, subtotal: subtotalDe(qtd, x.preco_unitario) } : x)));
   };
 
   const handleSubmit = async () => {
@@ -446,11 +453,11 @@ export default function FormOrdemServico() {
                         {item.tipo_item === "servico" ? "Mão de obra" : "Peça"} • {brl(item.preco_unitario)}
                       </Typography>
                     </Box>
-                    <TextField
-                      type="number" label="Qtd" size="small" value={item.quantidade}
-                      onChange={(e) => handleQtdChange(item.id, Number(e.target.value))}
-                      inputProps={{ min: 1 }}
-                      sx={{ width: { xs: "100%", sm: 92 } }}
+                    <CampoQuantidade
+                      label="Qtd" size="small" value={item.quantidade} unidade={item.unidade}
+                      onChange={(q) => handleQtdChange(item.id, q)}
+                      error={!item.quantidade}
+                      sx={{ width: { xs: "100%", sm: 116 } }}
                     />
                     <Typography variant="body2" fontWeight={700} sx={{ minWidth: 110, textAlign: { xs: "left", sm: "right" } }}>
                       {brl(item.subtotal)}
@@ -477,7 +484,9 @@ export default function FormOrdemServico() {
           </Secao>
 
           <Collapse in={submitAttempted && temErro}>
-            <Alert severity="error" sx={{ mb: 3, borderRadius: 1.5 }}>Preencha cliente, veículo e responsável antes de salvar.</Alert>
+            <Alert severity="error" sx={{ mb: 3, borderRadius: 1.5 }}>
+              {erros.cliente || erros.veiculo || erros.funcionario ? "Preencha cliente, veículo e responsável antes de salvar." : erros.itens}
+            </Alert>
           </Collapse>
         </Box>
 

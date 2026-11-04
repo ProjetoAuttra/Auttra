@@ -15,6 +15,18 @@ describe("pdfTemplates", () => {
     expect(tabela).not.toContain("<script>");
   });
 
+  it("mostra quantidade fracionada em pt-BR com a unidade da peça", () => {
+    const tabela = tabelaItens(
+      [
+        { tipo: "peca", nome: "Óleo 5W30", quantidade: "3.500", unidade: "L", unitario: 39.9, subtotal: 139.65 },
+        { tipo: "servico", nome: "Troca", quantidade: 1, unitario: 50, subtotal: 50 },
+      ],
+      189.65
+    );
+    expect(tabela).toContain('<td class="num">3,5 L</td>');
+    expect(tabela).toContain('<td class="num">1</td>');
+  });
+
   it("só aceita logo raster embutida (data URI); URLs e SVG são ignorados", () => {
     const comLogo = cabecalho({ ...oficina, logo_url: "data:image/png;base64,iVBORw0KGgo=" }, { tipo: "OS", numero: 1, status });
     expect(comLogo).toContain('<img src="data:image/png;base64,iVBORw0KGgo="');

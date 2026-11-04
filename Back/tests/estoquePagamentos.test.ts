@@ -36,7 +36,7 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
     pecasCriadas.push(peca.id);
     return peca.id;
   };
-  const estoqueDe = async (id: number) => (await prisma.peca.findUniqueOrThrow({ where: { id } })).estoque;
+  const estoqueDe = async (id: number) => Number((await prisma.peca.findUniqueOrThrow({ where: { id } })).estoque);
   const criarOs = (pecaId: number, quantidade = 1) =>
     request(app)
       .post("/api/ordens")
@@ -389,7 +389,7 @@ describe.skipIf(!process.env.DATABASE_URL)("estoque e pagamentos (atomicidade)",
       const pecaId = await novaPeca(10);
       const base = { cliente_id: clienteId, veiculo_id: veiculoId, funcionario_id: funcionarioId };
       const preco = await request(app).post("/api/ordens").set("Authorization", auth).send({ ...base, itens: [item(pecaId, 1, -5, 0)] });
-      const qtd = await request(app).post("/api/ordens").set("Authorization", auth).send({ ...base, itens: [item(pecaId, 1.5, 5, 0)] });
+      const qtd = await request(app).post("/api/ordens").set("Authorization", auth).send({ ...base, itens: [item(pecaId, 1.2345, 5, 0)] }); // mais de 3 casas
 
       expect(preco.status).toBe(400);
       expect(qtd.status).toBe(400);

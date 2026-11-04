@@ -24,12 +24,15 @@ import {
   ReportPage, TituloSecao } from "../../shared/reportUtils";
 import { GraficoBarrasHorizontais } from "../../shared/graficos";
 import FiltrosRelatorio, { type CampoFiltro } from "../../shared/FiltrosRelatorio";
+import { formatarQuantidade } from "../../../../utils/quantidade";
 
 type Peca = {
   id: number;
   nome: string;
   descricao?: string | null;
-  estoque?: number | null;
+  /** Decimal: a API manda como string ("3.5"). */
+  estoque?: number | string | null;
+  unidade?: string;
   preco_custo?: number | string | null;
   preco_venda?: number | string | null;
 };
@@ -171,7 +174,7 @@ export default function EstoqueCriticoRelatorio() {
                       <Typography variant="body2" fontWeight={600}>{p.nome}</Typography>
                       {p.descricao && <Typography variant="caption" color="text.secondary">{p.descricao}</Typography>}
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>{Number(p.estoque ?? 0)}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>{formatarQuantidade(p.estoque, p.unidade)}</TableCell>
                     <TableCell align="right">{brl(Number(p.preco_custo ?? 0))}</TableCell>
                     <TableCell align="right">{brl(Number(p.preco_venda ?? 0))}</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700 }}>{brl(valorEstoque(p))}</TableCell>

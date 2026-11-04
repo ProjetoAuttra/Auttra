@@ -24,6 +24,7 @@ function mapItem(item: any) {
     tipo: item.tipo_item,
     nome,
     quantidade: toNumber(item.quantidade),
+    unidade: item.tipo_item === "peca" ? item.peca?.unidade ?? "UN" : null,
     precoUnitario: toNumber(item.preco_unitario),
     subtotal: toNumber(item.subtotal),
   };

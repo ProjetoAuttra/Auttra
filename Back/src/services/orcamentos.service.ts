@@ -1,5 +1,7 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client.js";
 import { LIMITE_LISTAGEM } from "../utils/limites.js";
+import { parseQuantidade } from "../utils/quantidade.js";
 import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
 import { dataIso, listaCsv } from "../utils/filtros.js";
 
@@ -27,9 +29,8 @@ const orcamentoInclude = {
 
 function mapItemOrcamento(item: OrcamentoItemInput) {
   const tipo = item.tipo_item ?? item.tipo ?? "servico";
-  const quantidade = Number(item.quantidade ?? 1);
+  const quantidade = parseQuantidade(item.quantidade ?? 1);
   const precoUnitario = Number(item.preco_unitario ?? item.preco ?? 0);
-  if (!Number.isInteger(quantidade) || quantidade <= 0) throw new Error("Quantidade do item deve ser um inteiro maior que zero.");
   if (!Number.isFinite(precoUnitario) || precoUnitario < 0) throw new Error("Preco unitario do item invalido.");
 
   return {
@@ -40,9 +41,12 @@ function mapItemOrcamento(item: OrcamentoItemInput) {
     quantidade,
     preco_unitario: precoUnitario,
     // subtotal nunca eh confiado: sempre quantidade x preco unitario
-    subtotal: Math.round(quantidade * precoUnitario * 100) / 100,
+    subtotal: new Prisma.Decimal(precoUnitario).times(quantidade).toDecimalPlaces(2),
   };
 }
+
+const somaSubtotais = (itens: { subtotal: Prisma.Decimal }[]) =>
+  itens.reduce((total, item) => total.plus(item.subtotal), new Prisma.Decimal(0));
 
 export class OrcamentoService {
   async listarTodos(
@@ -124,9 +128,7 @@ export class OrcamentoService {
 
     await this.validarItens(data.itens, data.oficinaId);
     const itens = (data.itens ?? []).map(mapItemOrcamento);
-    const valor = itens.length
-      ? itens.reduce((total, item) => total + Number(item.subtotal), 0)
-      : Number(data.valor);
+    const valor = itens.length ? somaSubtotais(itens) : Number(data.valor);
 
     return prisma.orcamento.create({
       data: {
@@ -173,7 +175,7 @@ export class OrcamentoService {
     await this.validarItens(data.itens, oficinaId);
     const itens = Array.isArray(data.itens) ? data.itens.map(mapItemOrcamento) : undefined;
     const valor = itens
-      ? itens.reduce((total: number, item: any) => total + Number(item.subtotal), 0)
+      ? somaSubtotais(itens)
       : data.valor != null
         ? Number(data.valor)
         : undefined;

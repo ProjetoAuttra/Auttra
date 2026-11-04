@@ -22,14 +22,16 @@ import FalhaCarregamento, { motivoDaFalha, type MotivoFalha } from "../../../../
 import { useVoltar } from "../../../../hooks/useVoltar";
 import { paths } from "../../../../routes/paths";
 import { useAcoesOrcamento } from "../../useAcoesOrcamento";
+import { formatarQuantidade } from "../../../../utils/quantidade";
 
 type OrcamentoItem = {
   id: number | string;
   tipo_item: "servico" | "peca";
   nome?: string | null;
   servico?: { nome: string } | null;
-  peca?: { nome: string } | null;
-  quantidade: number;
+  peca?: { nome: string; unidade?: string } | null;
+  /** Decimal: a API manda como string ("3.5"). */
+  quantidade: number | string;
   preco_unitario: number;
   subtotal: number;
 };
@@ -249,7 +251,7 @@ export default function OrcamentoDetalhes() {
                 <Stack spacing={0.25}>
                   <Typography fontWeight={700}>{itemName(item)}</Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {item.tipo_item === "peca" ? "Peça" : "Mão de obra"} • {item.quantidade}x {money(item.preco_unitario)}
+                    {item.tipo_item === "peca" ? "Peça" : "Mão de obra"} • {formatarQuantidade(item.quantidade, item.peca?.unidade)} × {money(item.preco_unitario)}
                   </Typography>
                 </Stack>
                 <Typography fontWeight={700}>{money(item.subtotal)}</Typography>

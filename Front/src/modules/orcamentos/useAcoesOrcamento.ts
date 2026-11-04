@@ -21,8 +21,9 @@ export type OrcamentoParaAcao = {
     servico_id?: number | null;
     peca_id?: number | null;
     servico?: { id?: number; nome: string } | null;
-    peca?: { id?: number; nome: string } | null;
-    quantidade: number;
+    peca?: { id?: number; nome: string; unidade?: string } | null;
+    /** Decimal: a API manda como string ("3.5"). */
+    quantidade: number | string;
     preco_unitario: number;
     subtotal: number;
   }>;
@@ -51,6 +52,7 @@ export function useAcoesOrcamento(onAtualizado: () => void) {
           servico_id: item.tipo_item === "servico" ? item.servico_id ?? item.servico?.id ?? null : null,
           peca_id: item.tipo_item === "peca" ? item.peca_id ?? item.peca?.id ?? null : null,
           quantidade: Number(item.quantidade ?? 1),
+          unidade: item.tipo_item === "peca" ? item.peca?.unidade ?? "UN" : null,
           preco_unitario: Number(item.preco_unitario ?? 0),
           subtotal: Number(item.subtotal ?? 0),
         }))
