@@ -7,7 +7,6 @@ import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import NotificationsNoneRoundedIcon from "@mui/icons-material/NotificationsNoneRounded";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
-import MiscellaneousServicesIcon from "@mui/icons-material/MiscellaneousServices";
 import WidgetsOutlinedIcon from "@mui/icons-material/WidgetsOutlined";
 import { paths } from "../../routes/paths";
 import { useAuth } from "../../context/AuthContext";
@@ -34,6 +33,7 @@ const groups: SettingsGroup[] = [
       { label: "Agenda", icon: <EventOutlinedIcon />, path: paths.settings, section: "agenda", module: "configuracoes" },
       { label: "Financeiro", icon: <PaymentsOutlinedIcon />, path: paths.settings, section: "financeiro", module: "configuracoes" },
       { label: "Notificações", icon: <NotificationsNoneRoundedIcon />, path: paths.settings, section: "notificacoes", module: "configuracoes" },
+      { label: "Recursos adicionais", icon: <WidgetsOutlinedIcon />, path: paths.recursosAdicionais, module: "recursos_adicionais" },
     ],
   },
   {
@@ -43,18 +43,11 @@ const groups: SettingsGroup[] = [
       { label: "Perfis de acesso", icon: <SecurityOutlinedIcon />, path: paths.settings, section: "perfis", module: "configuracoes" },
     ],
   },
-  {
-    label: "Catálogo",
-    items: [
-      { label: "Serviços", icon: <MiscellaneousServicesIcon />, path: paths.servicos, module: "servicos" },
-      { label: "Recursos adicionais", icon: <WidgetsOutlinedIcon />, path: paths.recursosAdicionais, module: "recursos_adicionais" },
-    ],
-  },
 ];
 
 /** Rotas que compõem a área de Configurações (usadas também pela sidebar). */
-export const settingsPaths: string[] = [paths.settings, paths.users, paths.servicos, paths.recursosAdicionais];
-export const settingsModules: AccessModule[] = ["configuracoes", "funcionarios", "servicos", "recursos_adicionais"];
+export const settingsPaths: string[] = [paths.settings, paths.users, paths.recursosAdicionais];
+export const settingsModules: AccessModule[] = ["configuracoes", "funcionarios", "recursos_adicionais"];
 
 /** Casco da área de Configurações: navegação lateral agrupada + conteúdo da seção. */
 export default function SettingsLayout() {

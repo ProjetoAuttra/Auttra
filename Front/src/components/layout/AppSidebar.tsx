@@ -19,6 +19,8 @@ import ArrowDownwardRoundedIcon from '@mui/icons-material/ArrowDownwardRounded';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import StoreIcon from '@mui/icons-material/Store';
+import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
+import MiscellaneousServicesIcon from '@mui/icons-material/MiscellaneousServices';
 import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -66,36 +68,18 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    label: 'Estoque',
-    icon: <InventoryIcon />,
-    to: '#estoque',
+    label: 'Catálogo',
+    icon: <CategoryOutlinedIcon />,
+    to: '#catalogo',
     subItems: [
-      { label: 'Estoque', icon: <InventoryIcon />, to: paths.estoque, module: 'estoque' },
+      { label: 'Peças', icon: <InventoryIcon />, to: paths.estoque, module: 'estoque' },
+      { label: 'Serviços', icon: <MiscellaneousServicesIcon />, to: paths.servicos, module: 'servicos' },
       { label: 'Fornecedores', icon: <StoreIcon />, to: paths.fornecedores, module: 'fornecedores' },
     ],
   },
   { label: 'Relatórios', icon: <BarChartOutlineIcon />, to: paths.reports, module: 'relatorios' },
   { label: 'Configurações', icon: <SettingsOutlineIcon />, to: paths.settings, module: 'configuracoes' },
 ];
-
-const navLabels: Record<string, string> = {
-  [paths.root]: 'Início',
-  [paths.agenda]: 'Agenda',
-  [paths.clients]: 'Clientes',
-  [paths.veiculos]: 'Veículos',
-  [paths.estoque]: 'Estoque',
-  [paths.servicos]: 'Serviços',
-  [paths.tasks]: 'Ordens de serviço',
-  [paths.payments]: 'Extrato',
-  [paths.fornecedores]: 'Fornecedores',
-  [paths.quotes]: 'Orçamentos',
-  [paths.users]: 'Funcionários',
-  [paths.reports]: 'Relatórios',
-  [paths.settings]: 'Configurações',
-  [paths.recursosAdicionais]: 'Recursos adicionais',
-  [paths.contasReceber]: 'Recebimentos',
-  [paths.contasPagar]: 'Pagamentos',
-};
 
 const moduleResourceMap: Partial<Record<AccessModule, 'agenda' | 'estoque' | 'fornecedores'>> = {
   agenda: 'agenda',
@@ -180,7 +164,6 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
         return item.module ? isItemVisible(item.module) : false;
       }).map(({ label, icon, to, subItems }) => {
         const allowedSubItems = getAllowedSubItems(subItems);
-        const displayLabel = subItems?.length ? label : navLabels[to] ?? label;
         const selected =
           (!to.startsWith('#') && caminhoAtivo(pathname, to)) ||
           (to === paths.settings && settingsPaths.includes(pathname)) ||
@@ -231,7 +214,7 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
 
             {!collapsed && (
               <ListItemText
-                primary={displayLabel}
+                primary={label}
                 primaryTypographyProps={{ fontSize: 14, fontWeight: selected ? 700 : 600 }}
               />
             )}
@@ -242,7 +225,7 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
         return (
           <Box key={label}>
             {collapsed ? (
-              <Tooltip title={displayLabel} placement="right" arrow>
+              <Tooltip title={label} placement="right" arrow>
                 {button}
               </Tooltip>
             ) : (
@@ -275,7 +258,7 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
                     }}
                   >
                     {sub.icon}
-                    {navLabels[sub.to] ?? sub.label}
+                    {sub.label}
                   </MenuItem>
                 ))}
               </Menu>
@@ -313,7 +296,7 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
                         {sub.icon}
                       </ListItemIcon>
                       <ListItemText
-                        primary={navLabels[sub.to] ?? sub.label}
+                        primary={sub.label}
                         primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }}
                       />
                     </ListItemButton>
