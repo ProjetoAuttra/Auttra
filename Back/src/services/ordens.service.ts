@@ -2,6 +2,7 @@ import type { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../prisma/client.js";
 import { HttpError } from "../utils/httpError.js";
 import { calcularItens } from "../utils/totais.js";
+import { formatarQuantidade, parseQuantidade } from "../utils/quantidade.js";
 import { dataDoDia, hojeISO } from "../utils/datas.js";
 import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
 
@@ -10,8 +11,7 @@ import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
  * evitando que duas OS concorrentes passem na checagem e deixem o estoque negativo.
  */
 async function baixarEstoque(tx: Prisma.TransactionClient, pecaId: number, oficinaId: number, quantidade: unknown) {
-  const qtd = Number(quantidade);
-  if (!Number.isInteger(qtd) || qtd <= 0) throw new Error("Quantidade de peça inválida.");
+  const qtd = parseQuantidade(quantidade);
 
   const { count } = await tx.peca.updateMany({
     where: { id: pecaId, oficina_id: oficinaId, deleted_at: null, estoque: { gte: qtd } },
@@ -21,7 +21,7 @@ async function baixarEstoque(tx: Prisma.TransactionClient, pecaId: number, ofici
 
   const peca = await tx.peca.findFirst({ where: { id: pecaId, oficina_id: oficinaId, deleted_at: null } });
   if (!peca) throw new Error("Peça não encontrada.");
-  throw new Error(`Estoque insuficiente para "${peca.nome}". Disponível: ${peca.estoque}.`);
+  throw new Error(`Estoque insuficiente para "${peca.nome}". Disponível: ${formatarQuantidade(peca.estoque, peca.unidade)}.`);
 }
 
 const STATUS_OS = ["aberta", "em_andamento", "concluida", "cancelada"] as const;
@@ -289,7 +289,7 @@ export const OrdensService = {
         for (const oldItem of oldPecaItens) {
           await tx.peca.update({
             where: { id: oldItem.peca_id },
-            data: { estoque: { increment: Number(oldItem.quantidade) } },
+            data: { estoque: { increment: oldItem.quantidade } },
           });
         }
 
@@ -310,7 +310,7 @@ export const OrdensService = {
         for (const item of pecaItens) {
           await tx.peca.update({
             where: { id: item.peca_id },
-            data: { estoque: { increment: Number(item.quantidade) } },
+            data: { estoque: { increment: item.quantidade } },
           });
         }
       }
@@ -410,7 +410,7 @@ export const OrdensService = {
         for (const item of pecaItens) {
           await tx.peca.update({
             where: { id: item.peca_id },
-            data: { estoque: { increment: Number(item.quantidade) } },
+            data: { estoque: { increment: item.quantidade } },
           });
         }
 

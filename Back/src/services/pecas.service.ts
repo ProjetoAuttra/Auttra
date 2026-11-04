@@ -1,6 +1,8 @@
+import type { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../prisma/client.js";
 import { LIMITE_LISTAGEM } from "../utils/limites.js";
 import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
+import { formatarQuantidade, parseQuantidade, parseUnidade, type Unidade } from "../utils/quantidade.js";
 
 const valorNaoNegativo = (valor: unknown, campo: string) => {
   const n = Number(valor);
@@ -14,7 +16,14 @@ const valorNaoNegativo = (valor: unknown, campo: string) => {
  * O estoque continua editavel porque o formulario de estoque o envia (historico: auditoria I15).
  */
 function camposEditaveisPeca(data: any) {
-  const patch: { nome?: string; descricao?: string | null; preco_custo?: number; preco_venda?: number; estoque?: number } = {};
+  const patch: {
+    nome?: string;
+    descricao?: string | null;
+    preco_custo?: number;
+    preco_venda?: number;
+    estoque?: Prisma.Decimal;
+    unidade?: Unidade;
+  } = {};
   if (!data || typeof data !== "object") return patch;
 
   if (data.nome !== undefined) {
@@ -27,11 +36,8 @@ function camposEditaveisPeca(data: any) {
   }
   if (data.preco_custo !== undefined) patch.preco_custo = valorNaoNegativo(data.preco_custo, "preco_custo");
   if (data.preco_venda !== undefined) patch.preco_venda = valorNaoNegativo(data.preco_venda, "preco_venda");
-  if (data.estoque !== undefined) {
-    const estoque = valorNaoNegativo(data.estoque, "estoque");
-    if (!Number.isInteger(estoque)) throw new Error("Campo estoque inválido.");
-    patch.estoque = estoque;
-  }
+  if (data.estoque !== undefined) patch.estoque = parseQuantidade(data.estoque, true);
+  if (data.unidade !== undefined) patch.unidade = parseUnidade(data.unidade);
   return patch;
 }
 
@@ -66,6 +72,8 @@ export const PecasService = {
   },
 
   create: async (data: any) => {
+    const estoque = data.estoque !== undefined ? parseQuantidade(data.estoque, true) : undefined;
+    const unidade = data.unidade !== undefined ? parseUnidade(data.unidade) : undefined;
     const existing = await prisma.peca.findFirst({
       where: { nome: data.nome, oficina_id: data.oficina_id },
     });
@@ -78,7 +86,8 @@ export const PecasService = {
           descricao: data.descricao ?? null,
           preco_custo: data.preco_custo,
           preco_venda: data.preco_venda,
-          estoque: data.estoque ?? existing.estoque,
+          estoque: estoque ?? existing.estoque,
+          unidade,
           deleted_at: null,
         },
       });
@@ -92,7 +101,8 @@ export const PecasService = {
         descricao: data.descricao ?? null,
         preco_custo: data.preco_custo,
         preco_venda: data.preco_venda,
-        estoque: data.estoque ?? 0,
+        estoque: estoque ?? 0,
+        unidade,
       },
     });
     return { ...nova, _reativado: false };
@@ -117,16 +127,16 @@ export const PecasService = {
     });
   },
 
-  ajuste: async (id: number, tipo: "entrada" | "saida", quantidade: number, oficinaId: number) => {
+  ajuste: async (id: number, tipo: "entrada" | "saida", quantidade: unknown, oficinaId: number) => {
     const peca = await prisma.peca.findFirst({ where: { id, oficina_id: oficinaId, deleted_at: null } });
     if (!peca) throw new Error("Peca nao encontrada.");
-    if (quantidade <= 0) throw new Error("A quantidade deve ser maior que zero.");
-    if (tipo === "saida" && peca.estoque < quantidade) {
-      throw new Error(`Estoque insuficiente. Disponivel: ${peca.estoque}`);
+    const qtd = parseQuantidade(quantidade);
+    if (tipo === "saida" && peca.estoque.lt(qtd)) {
+      throw new Error(`Estoque insuficiente. Disponível: ${formatarQuantidade(peca.estoque, peca.unidade)}`);
     }
     return prisma.peca.update({
       where: { id },
-      data: { estoque: tipo === "entrada" ? { increment: quantidade } : { decrement: quantidade } },
+      data: { estoque: tipo === "entrada" ? { increment: qtd } : { decrement: qtd } },
     });
   },
 };

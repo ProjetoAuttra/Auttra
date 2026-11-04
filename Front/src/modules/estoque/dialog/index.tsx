@@ -1,9 +1,11 @@
 import * as React from "react";
-import { Box, Stack, TextField, Button, Typography, CircularProgress, InputAdornment } from "@mui/material";
+import { Box, Stack, TextField, Button, Typography, CircularProgress, InputAdornment, MenuItem } from "@mui/material";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import { AppDrawer, DrawerSection } from "../../../components/common/AppDrawer";
 import { formatPreco, parsePreco, precoParaCampo } from "../../../utils/masks";
+import { UNIDADES } from "../../../utils/quantidade";
+import CampoQuantidade from "../../../components/common/CampoQuantidade";
 
 export type EstoqueItem = {
   id: number;
@@ -11,11 +13,21 @@ export type EstoqueItem = {
   descricao?: string;
   preco_custo: number;
   preco_venda: number;
-  estoque: number;
+  /** Decimal: a API manda como string ("3.5"). Use Number() antes de fazer conta. */
+  estoque: number | string;
+  unidade?: string;
   created_at: string;
 };
 
-export type EstoqueForm = Omit<EstoqueItem, "id" | "created_at">;
+export type EstoqueForm = {
+  nome: string;
+  descricao?: string;
+  preco_custo: number;
+  preco_venda: number;
+  /** null enquanto o campo tem um valor inválido. */
+  estoque: number | null;
+  unidade: string;
+};
 
 type Props = {
   open: boolean;
@@ -30,7 +42,7 @@ export default function EstoqueDialog({ open, mode, initial, onClose, onSubmit, 
   const isEdit = mode === "edit";
 
   const [form, setForm] = React.useState<EstoqueForm>({
-    nome: "", descricao: "", preco_custo: 0, preco_venda: 0, estoque: 0,
+    nome: "", descricao: "", preco_custo: 0, preco_venda: 0, estoque: 0, unidade: "UN",
   });
   // Preços como texto com máscara de moeda; viram número só no envio.
   const [custoStr, setCustoStr] = React.useState("");
@@ -47,18 +59,19 @@ export default function EstoqueDialog({ open, mode, initial, onClose, onSubmit, 
       descricao: initial?.descricao ?? "",
       preco_custo: initial?.preco_custo ?? 0,
       preco_venda: initial?.preco_venda ?? 0,
-      estoque: initial?.estoque ?? 0,
+      estoque: Number(initial?.estoque ?? 0),
+      unidade: initial?.unidade ?? "UN",
     });
     setCustoStr(precoParaCampo(Number(initial?.preco_custo ?? 0)));
     setVendaStr(precoParaCampo(Number(initial?.preco_venda ?? 0)));
     setConfirmDelete(false);
   }, [open, initial]);
 
-  const handleChange = (field: keyof EstoqueForm, value: string | number) =>
+  const handleChange = (field: keyof EstoqueForm, value: string | number | null) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
   const handleSubmit = async () => {
-    if (saving || !form.nome.trim()) return;
+    if (saving || !form.nome.trim() || form.estoque == null) return;
     setSaving(true);
     try {
       await onSubmit({ ...form, preco_custo: parsePreco(custoStr), preco_venda: parsePreco(vendaStr) });
@@ -169,14 +182,26 @@ export default function EstoqueDialog({ open, mode, initial, onClose, onSubmit, 
             />
           </Box>
           <Box sx={linha}>
-            <TextField
+            <CampoQuantidade
               label="Estoque atual"
-              type="number"
               value={form.estoque}
-              onChange={(e) => handleChange("estoque", parseInt(e.target.value))}
+              unidade={form.unidade}
+              onChange={(q) => handleChange("estoque", q)}
+              error={form.estoque == null}
+              helperText={form.estoque == null ? "Use até 3 casas decimais, ex.: 3,5" : undefined}
               size="small"
               fullWidth
             />
+            <TextField
+              select
+              label="Unidade"
+              value={form.unidade}
+              onChange={(e) => handleChange("unidade", e.target.value)}
+              size="small"
+              fullWidth
+            >
+              {UNIDADES.map((u) => <MenuItem key={u.value} value={u.value}>{u.label}</MenuItem>)}
+            </TextField>
           </Box>
         </Stack>
       </DrawerSection>

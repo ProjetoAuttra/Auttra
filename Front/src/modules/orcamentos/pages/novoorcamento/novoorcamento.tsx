@@ -18,6 +18,7 @@ import ClientDialog, { type ClientForm } from "../../../clientes/dialog";
 import VeiculoDialog, { type VeiculoForm } from "../../../veiculos/dialog";
 import { criarVeiculo } from "../../../veiculos/api/api";
 import { formatPreco, parsePreco } from "../../../../utils/masks";
+import CampoQuantidade from "../../../../components/common/CampoQuantidade";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -27,12 +28,16 @@ export type OrcamentoItem = {
   nome: string;
   servico_id?: number | null;
   peca_id?: number | null;
-  quantidade: number;
+  /** null enquanto o campo tem um valor inválido (ex.: "3,"). */
+  quantidade: number | null;
+  /** Unidade da peça (UN, L, KG, M); serviço não tem. */
+  unidade?: string | null;
   preco_unitario: number;
   subtotal: number;
 };
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const subtotalDe = (qtd: number | null, preco: number) => Math.round((qtd ?? 0) * preco * 100) / 100;
 
 /** Data local (YYYY-MM-DD) daqui a `dias`; toISOString usaria UTC e viraria o dia depois das 21h no Brasil. */
 function hojeMais(dias: number): string {
@@ -158,9 +163,10 @@ export default function NovoOrcamento() {
     if (!clienteId) errs.clienteId = "Selecione o cliente";
     if (!veiculoId) errs.veiculoId = "Selecione o veículo";
     if (!valorTotal || valorTotal <= 0) errs.valor = "Informe um valor válido";
+    if (itens.some((i) => !i.quantidade)) errs.itens = "Informe uma quantidade válida em todos os itens";
     setErrors(errs);
     return Object.keys(errs).length === 0;
-  }, [clienteId, veiculoId, valorTotal]);
+  }, [clienteId, veiculoId, valorTotal, itens]);
 
   React.useEffect(() => {
     if (submitAttempted) validate();
@@ -199,6 +205,7 @@ export default function NovoOrcamento() {
         nome: selecionadoItem.nome,
         [idCampo]: selecionadoItem.id,
         quantidade: 1,
+        unidade: selecaoAberta === "peca" ? selecionadoItem.unidade ?? "UN" : null,
         preco_unitario: preco,
         subtotal: preco,
       },
@@ -209,9 +216,8 @@ export default function NovoOrcamento() {
     setItemOptions([]);
   };
 
-  const handleQtdChange = (id: string | number, quantidade: number) => {
-    const qtd = Math.max(1, Number(quantidade) || 1);
-    setItens((prev) => prev.map((item) => (item.id === id ? { ...item, quantidade: qtd, subtotal: qtd * Number(item.preco_unitario) } : item)));
+  const handleQtdChange = (id: string | number, qtd: number | null) => {
+    setItens((prev) => prev.map((item) => (item.id === id ? { ...item, quantidade: qtd, subtotal: subtotalDe(qtd, Number(item.preco_unitario)) } : item)));
   };
 
   const handleClienteCriado = async (dados: ClientForm) => {
@@ -419,14 +425,14 @@ export default function NovoOrcamento() {
                         {item.tipo_item === "servico" ? "Mão de obra" : "Peça"} • {brl(Number(item.preco_unitario))}
                       </Typography>
                     </Box>
-                    <TextField
-                      type="number"
+                    <CampoQuantidade
                       label="Qtd"
                       size="small"
                       value={item.quantidade}
-                      onChange={(e) => handleQtdChange(item.id, Number(e.target.value))}
-                      inputProps={{ min: 1 }}
-                      sx={{ width: { xs: "100%", sm: 92 } }}
+                      unidade={item.unidade}
+                      onChange={(q) => handleQtdChange(item.id, q)}
+                      error={!item.quantidade}
+                      sx={{ width: { xs: "100%", sm: 116 } }}
                     />
                     <Typography variant="body2" fontWeight={700} sx={{ minWidth: 110, textAlign: { xs: "left", sm: "right" } }}>
                       {brl(Number(item.subtotal))}
@@ -436,6 +442,7 @@ export default function NovoOrcamento() {
                     </IconButton>
                   </Stack>
                 ))}
+                {errors.itens && <Typography variant="caption" color="error" sx={{ pt: 1 }}>{errors.itens}</Typography>}
               </Stack>
             ) : (
               <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>

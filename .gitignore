@@ -53,6 +53,7 @@ CLAUDE.md
 graphify-out/
 .superpowers/
 docs/superpowers/
+docs/roadmap-mercado.md
 .claude/settings.local.json
 
 # Railway/local deploy metadata

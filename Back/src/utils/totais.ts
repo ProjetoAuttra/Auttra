@@ -1,10 +1,11 @@
 import { Prisma } from "../generated/prisma/client.js";
+import { parseQuantidade } from "./quantidade.js";
 
 export type ItemCalculado = {
   tipo_item: "servico" | "peca";
   servico_id: number | null;
   peca_id: number | null;
-  quantidade: number;
+  quantidade: Prisma.Decimal;
   preco_unitario: Prisma.Decimal;
   subtotal: Prisma.Decimal;
 };
@@ -19,14 +20,13 @@ export function calcularItens(itens: any[] | undefined | null): { itens: ItemCal
     const tipo = i.tipo_item ?? i.tipo ?? "servico";
     if (tipo !== "servico" && tipo !== "peca") throw new Error("Tipo de item invalido.");
 
-    const quantidade = Number(i.quantidade ?? 1);
-    if (!Number.isInteger(quantidade) || quantidade <= 0) throw new Error("Quantidade do item deve ser um inteiro maior que zero.");
+    const quantidade = parseQuantidade(i.quantidade ?? 1);
 
     const preco = Number(i.preco_unitario ?? i.preco ?? 0);
     if (!Number.isFinite(preco) || preco < 0) throw new Error("Preco unitario do item invalido.");
 
     const preco_unitario = new Prisma.Decimal(preco).toDecimalPlaces(2);
-    const subtotal = preco_unitario.times(quantidade);
+    const subtotal = preco_unitario.times(quantidade).toDecimalPlaces(2);
     total = total.plus(subtotal);
 
     return {

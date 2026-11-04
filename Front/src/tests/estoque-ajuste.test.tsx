@@ -59,15 +59,15 @@ describe("ajuste de estoque: quantidade", () => {
   it("vazio ou zero só é recusado ao confirmar, com erro no campo", async () => {
     const { user, campo, confirmar } = await abrirAjuste("entrada");
     await user.clear(campo);
-    expect(screen.queryByText(/número inteiro maior que zero/i)).toBeNull();
+    expect(screen.queryByText(/número maior que zero/i)).toBeNull();
 
     await user.click(confirmar());
-    expect(screen.getByText(/número inteiro maior que zero/i)).toBeInTheDocument();
+    expect(screen.getByText(/número maior que zero/i)).toBeInTheDocument();
     expect(campo).toHaveAttribute("aria-invalid", "true");
 
     await user.type(campo, "0");
     await user.click(confirmar());
-    expect(screen.getByText(/número inteiro maior que zero/i)).toBeInTheDocument();
+    expect(screen.getByText(/número maior que zero/i)).toBeInTheDocument();
     expect(ajustar).not.toHaveBeenCalled();
   });
 

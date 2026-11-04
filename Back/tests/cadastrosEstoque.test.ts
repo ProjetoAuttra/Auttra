@@ -48,7 +48,7 @@ describe.skipIf(!process.env.DATABASE_URL)("cadastros do estoque", () => {
     it("cria peça com os campos do formulário", async () => {
       const res = await post("/api/pecas", { nome: `Filtro ${suffix}`, descricao: "Filtro de ar", preco_custo: 20, preco_venda: 40, estoque: 5 });
       expect(res.status).toBe(201);
-      expect(res.body).toMatchObject({ nome: `Filtro ${suffix}`, oficina_id: oficinaId, estoque: 5 });
+      expect(res.body).toMatchObject({ nome: `Filtro ${suffix}`, oficina_id: oficinaId, estoque: "5", unidade: "UN" });
     });
 
     it("ignora campos que não são do cadastro", async () => {
@@ -68,7 +68,7 @@ describe.skipIf(!process.env.DATABASE_URL)("cadastros do estoque", () => {
       });
       const res = await post("/api/pecas", { nome: `Velha ${suffix}`, preco_custo: 5, preco_venda: 9 });
       expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({ id: p.id, deleted_at: null, estoque: 3 });
+      expect(res.body).toMatchObject({ id: p.id, deleted_at: null, estoque: "3" });
     });
 
     // Auditoria V1, B4: o update repassava o body ao Prisma.
@@ -89,7 +89,7 @@ describe.skipIf(!process.env.DATABASE_URL)("cadastros do estoque", () => {
       const p = await prisma.peca.create({ data: { oficina_id: oficinaId, nome: `Editar ${suffix}`, preco_custo: 1, preco_venda: 2 } });
       const ok = await put(`/api/pecas/${p.id}`, { nome: `Editada ${suffix}`, descricao: null, preco_custo: 10, preco_venda: 25.5, estoque: 7 });
       expect(ok.status).toBe(200);
-      expect(ok.body).toMatchObject({ nome: `Editada ${suffix}`, estoque: 7 });
+      expect(ok.body).toMatchObject({ nome: `Editada ${suffix}`, estoque: "7" });
       expect(Number(ok.body.preco_venda)).toBe(25.5);
 
       const ruim = await put(`/api/pecas/${p.id}`, { preco_venda: -1 });

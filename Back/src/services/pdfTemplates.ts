@@ -1,4 +1,5 @@
 import { escapeHtml as esc } from "../utils/escapeHtml.js";
+import { formatarQuantidade } from "../utils/quantidade.js";
 
 /**
  * Layout comum dos PDFs (orçamento e ordem de serviço): cabeçalho com a identidade da oficina,
@@ -175,7 +176,7 @@ export function blocoDados(titulo: string, principal: string, linhas: Array<stri
     </div>`;
 }
 
-export type ItemPdf = { tipo: "servico" | "peca"; nome: string; quantidade: number; unitario: Num; subtotal: Num };
+export type ItemPdf = { tipo: "servico" | "peca"; nome: string; quantidade: Num; unidade?: string | null; unitario: Num; subtotal: Num };
 
 export function tabelaItens(itens: ItemPdf[], total: Num, titulo = "Itens") {
   return `
@@ -193,7 +194,7 @@ export function tabelaItens(itens: ItemPdf[], total: Num, titulo = "Itens") {
                     (i) => `
             <tr>
               <td><span class="tipo-item">${i.tipo === "peca" ? "Peça" : "Serviço"}</span>${esc(i.nome || "—")}</td>
-              <td class="num">${esc(i.quantidade)}</td>
+              <td class="num">${esc(formatarQuantidade(i.quantidade, i.unidade))}</td>
               <td class="num">${dinheiro(i.unitario)}</td>
               <td class="num">${dinheiro(i.subtotal)}</td>
             </tr>`

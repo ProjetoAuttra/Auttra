@@ -52,6 +52,8 @@ export async function confirmarImportacao(payload: {
   itens: Array<{
     descricao: string;
     quantidade: number;
+    /** uCom da nota; o back converte para UN, L, KG ou M na peça nova. */
+    unidade?: string;
     valor_unitario: number;
     preco_venda: number;
     acao: "vincular" | "nova_peca" | "ignorar";

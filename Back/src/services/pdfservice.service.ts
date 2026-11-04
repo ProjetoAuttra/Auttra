@@ -80,6 +80,7 @@ export const PdfHtmlService = {
       tipo: i.tipo_item === "peca" ? "peca" : "servico",
       nome: i.nome || (i.tipo_item === "peca" ? i.peca?.nome : i.servico?.nome) || "",
       quantidade: i.quantidade,
+      unidade: i.tipo_item === "peca" ? i.peca?.unidade : null,
       unitario: i.preco_unitario,
       subtotal: i.subtotal,
     }));
@@ -130,6 +131,7 @@ export const PdfHtmlService = {
       tipo: i.tipo_item === "peca" ? "peca" : "servico",
       nome: (i.tipo_item === "peca" ? i.peca?.nome : i.servico?.nome) ?? "",
       quantidade: i.quantidade,
+      unidade: i.tipo_item === "peca" ? i.peca?.unidade : null,
       unitario: i.preco_unitario,
       subtotal: i.subtotal,
     }));

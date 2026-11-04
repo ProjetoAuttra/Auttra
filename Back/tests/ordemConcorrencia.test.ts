@@ -27,7 +27,7 @@ describe.skipIf(!process.env.DATABASE_URL)("OS: transições concorrentes", () =
     if (ate === "em_andamento") await OrdensService.update(os.id, { status: "em_andamento" }, oficinaId);
     return os.id as number;
   }
-  const estoque = async (pecaId: number) => (await prisma.peca.findUniqueOrThrow({ where: { id: pecaId } })).estoque;
+  const estoque = async (pecaId: number) => Number((await prisma.peca.findUniqueOrThrow({ where: { id: pecaId } })).estoque);
 
   beforeAll(async () => {
     cidadeId = (await prisma.cidade.create({ data: { nome: `Cidade Conc ${suffix}`, uf: "SP" } })).id;

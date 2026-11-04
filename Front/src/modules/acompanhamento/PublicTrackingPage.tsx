@@ -19,6 +19,7 @@ import DirectionsCarRoundedIcon from "@mui/icons-material/DirectionsCarRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
 import api from "../../api/api";
+import { formatarQuantidade } from "../../utils/quantidade";
 
 type TrackingData = {
   type: "ordem" | "orcamento";
@@ -37,7 +38,7 @@ type TrackingData = {
   total: number;
   datas: { abertura?: string | null; fechamento?: string | null; validade?: string | null };
   responsavel?: string | null;
-  itens: { id: number; tipo: string; nome: string; quantidade: number; precoUnitario: number; subtotal: number }[];
+  itens: { id: number; tipo: string; nome: string; quantidade: number; unidade?: string | null; precoUnitario: number; subtotal: number }[];
   timeline: { key: string; label: string; done: boolean; current: boolean; date?: string | null }[];
 };
 
@@ -182,7 +183,7 @@ export default function PublicTrackingPage() {
                       <Box>
                         <Typography fontWeight={700}>{item.nome}</Typography>
                         <Typography variant="caption" color="text.secondary">
-                          Qtd. {item.quantidade} · Unit. {currency(item.precoUnitario)}
+                          Qtd. {formatarQuantidade(item.quantidade, item.unidade)} · Unit. {currency(item.precoUnitario)}
                         </Typography>
                       </Box>
                       <Typography fontWeight={700}>{currency(item.subtotal)}</Typography>
