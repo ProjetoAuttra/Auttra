@@ -258,7 +258,7 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
                     }}
                   >
                     {sub.icon}
-                    {navLabels[sub.to] ?? sub.label}
+                    {sub.label}
                   </MenuItem>
                 ))}
               </Menu>

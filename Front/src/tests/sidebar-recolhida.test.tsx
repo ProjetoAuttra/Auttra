@@ -42,14 +42,15 @@ describe("barra lateral recolhida", () => {
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 
-  it("Estoque abre Estoque e Fornecedores, com o subitem atual marcado", async () => {
+  it("Catálogo abre Peças, Serviços e Fornecedores, com o subitem atual marcado", async () => {
     const user = setup("/fornecedores");
-    const estoque = screen.getByRole("button", { name: "Estoque" });
-    expect(estoque).toHaveClass("Mui-selected");
-    await user.click(estoque);
+    const catalogo = screen.getByRole("button", { name: "Catálogo" });
+    expect(catalogo).toHaveClass("Mui-selected");
+    await user.click(catalogo);
     const menu = await screen.findByRole("menu");
+    expect(within(menu).getAllByRole("menuitem").map((i) => i.textContent)).toEqual(["Peças", "Serviços", "Fornecedores"]);
     expect(within(menu).getByRole("menuitem", { name: "Fornecedores" })).toHaveClass("Mui-selected");
-    expect(within(menu).getByRole("menuitem", { name: "Estoque" })).not.toHaveClass("Mui-selected");
+    expect(within(menu).getByRole("menuitem", { name: "Peças" })).not.toHaveClass("Mui-selected");
   });
 });
 
