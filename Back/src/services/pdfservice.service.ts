@@ -65,7 +65,7 @@ const METODO_LABEL: Record<string, string> = {
 export const PdfHtmlService = {
   async gerarOrcamentoPDF(id: number, res: Response, oficinaId: number) {
     const orc = await prisma.orcamento.findFirst({
-      where: { id, deleted_at: null, cliente: { oficina_id: oficinaId } },
+      where: { id, deleted_at: null, oficina_id: oficinaId },
       include: {
         cliente: true,
         veiculo: true,

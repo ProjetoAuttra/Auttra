@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../src/generated/prisma/client.js";
 import { describe, expect, it } from "vitest";
 import { HttpError } from "../src/utils/httpError.js";
 import { formatarQuantidade, parseQuantidade, parseUnidade, unidadeDaNota } from "../src/utils/quantidade.js";

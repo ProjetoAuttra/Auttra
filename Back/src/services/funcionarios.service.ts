@@ -1,5 +1,5 @@
 import { prisma } from "../prisma/client.js";
-import type { cargo_funcionario } from "@prisma/client";
+import type { cargo_funcionario } from "../generated/prisma/client.js";
 import bcrypt from "bcrypt";
 import crypto from "node:crypto";
 import { PerfisAcessoService } from "./perfisAcesso.service.js";

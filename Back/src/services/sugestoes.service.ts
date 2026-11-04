@@ -1,4 +1,4 @@
-import type { Prisma, modulo_sugestao } from "@prisma/client";
+import type { Prisma, modulo_sugestao } from "../generated/prisma/client.js";
 import { prisma } from "../prisma/client.js";
 
 // Rotulos exibidos no app e no painel; a ordem segue o menu lateral do app.

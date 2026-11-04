@@ -1,5 +1,5 @@
 import { prisma } from "../prisma/client.js";
-import type { status_cliente } from "@prisma/client";
+import type { status_cliente } from "../generated/prisma/client.js";
 import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
 
 type ClienteInput = {

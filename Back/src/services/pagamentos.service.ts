@@ -1,11 +1,14 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../prisma/client.js";
 import { HttpError } from "../utils/httpError.js";
 import { LIMITE_LISTAGEM } from "../utils/limites.js";
 import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
 import { dataIso, listaCsv } from "../utils/filtros.js";
 
-const D = (v: Prisma.Decimal.Value) => new Prisma.Decimal(v);
+/** Valor aceito pelo construtor do Decimal (o Prisma 7 nao exporta mais Decimal.Value). */
+type DecimalValue = Prisma.Decimal | number | string;
+
+const D = (v: DecimalValue) => new Prisma.Decimal(v);
 
 function toPositiveDecimal(value: unknown, field: string) {
   const n = typeof value === "string" ? Number(value) : (value as number);
@@ -72,7 +75,7 @@ const relacoes = {
 } as const;
 
 /** Valor do título: original - desconto + multa. */
-const valorLiquido = (p: { valor_original: Prisma.Decimal.Value; desconto: Prisma.Decimal.Value; multa: Prisma.Decimal.Value }) =>
+const valorLiquido = (p: { valor_original: DecimalValue; desconto: DecimalValue; multa: DecimalValue }) =>
   D(p.valor_original).minus(D(p.desconto)).plus(D(p.multa));
 
 /** Lê um valor monetário opcional (desconto/multa): vazio = não informado; inválido ou negativo = erro. */

@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../prisma/client.js";
 import { LIMITE_LISTAGEM } from "../utils/limites.js";
 import { listarPaginado, type Paginacao } from "../utils/paginacao.js";

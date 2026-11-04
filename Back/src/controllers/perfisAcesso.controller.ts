@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { PerfisAcessoService } from "../services/perfisAcesso.service.js";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../generated/prisma/client.js";
 
 function getOfficeId(req: Request) {
   return Number(req.user?.oficinaId ?? req.user?.oficina_id);

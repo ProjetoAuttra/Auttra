@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../generated/prisma/client.js";
 import { parseQuantidade } from "./quantidade.js";
 
 export type ItemCalculado = {

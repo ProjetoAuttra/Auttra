@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { FornecedoresService } from "../services/fornecedores.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../generated/prisma/client.js";
 
 function isNotFound(err: any): boolean {
   const msg = (err?.message ?? "").toLowerCase();

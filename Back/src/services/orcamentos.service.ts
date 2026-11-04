@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../prisma/client.js";
 import { LIMITE_LISTAGEM } from "../utils/limites.js";
 import { parseQuantidade } from "../utils/quantidade.js";
@@ -58,7 +58,7 @@ export class OrcamentoService {
     filtros: { status?: string; search?: string; data_de?: string; data_ate?: string; ordem_servico?: string } = {},
     pag: Paginacao | null = null
   ) {
-    const where: any = { deleted_at: null, cliente: { oficina_id: oficinaId } };
+    const where: any = { deleted_at: null, oficina_id: oficinaId };
     const statuses = listaCsv(filtros.status);
     if (statuses.length) where.status = { in: statuses };
     const de = dataIso(filtros.data_de);
@@ -84,7 +84,7 @@ export class OrcamentoService {
 
   async buscarPorId(id: number, oficinaId: number) {
     return prisma.orcamento.findFirst({
-      where: { id, deleted_at: null, cliente: { oficina_id: oficinaId } },
+      where: { id, deleted_at: null, oficina_id: oficinaId },
       include: orcamentoInclude,
     });
   }
@@ -136,6 +136,7 @@ export class OrcamentoService {
         valor,
         data: new Date(data.data),
         validade: data.validade ? new Date(data.validade) : null,
+        oficina_id: data.oficinaId,
         cliente_id: data.clienteId,
         veiculo_id: data.veiculoId,
         itens: itens.length ? { create: itens } : undefined,
