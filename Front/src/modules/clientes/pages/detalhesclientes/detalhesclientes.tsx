@@ -310,8 +310,8 @@ export default function ClienteDetalhesPage() {
               </Stack>
             ) : (
               <>
-                {tab === 0 && <ClienteVeiculos veiculos={cliente?.veiculos ?? []} onAdd={() => setOpenVeiculo(true)} />}
-                {tab === 1 && <ClienteOrdens ordens={cliente?.ordens ?? []} onAdd={() => nav(paths.ordemNova, { state: { cliente_id: Number(cliente.id), cliente: { id: Number(cliente.id), nome: cliente.nome } } })} />}
+                {tab === 0 && <ClienteVeiculos veiculos={cliente?.veiculos ?? []} cliente={cliente ? { id: Number(cliente.id), nome: cliente.nome } : undefined} onChange={carregar} onAdd={() => setOpenVeiculo(true)} />}
+                {tab === 1 && <ClienteOrdens ordens={cliente?.ordens ?? []} onChange={carregar} onAdd={() => nav(paths.ordemNova, { state: { cliente_id: Number(cliente.id), cliente: { id: Number(cliente.id), nome: cliente.nome } } })} />}
                 {tab === 2 && <ClientePagamentos pagamentos={cliente?.pagamentos ?? []} clienteId={Number(cliente?.id)} clienteNome={cliente?.nome} oficinaId={user?.oficina_id ?? 0} />}
               </>
             )}
