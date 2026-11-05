@@ -2,8 +2,7 @@ import * as React from "react";
 import {
   Box, Stack, Typography, IconButton, Chip,
   Menu, MenuItem, Avatar, Table, TableBody, TableCell,
-  TableHead, TableRow, TablePagination, Fade, Divider, CircularProgress,
-} from "@mui/material";
+  TableHead, TableRow, TablePagination, Fade, Divider, } from "@mui/material";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import BuildRoundedIcon from "@mui/icons-material/BuildRounded";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
@@ -18,6 +17,7 @@ import { useListaPaginada } from "../../../hooks/useListaPaginada";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import ListTableContainer from "../../../components/common/ListTableContainer";
 import EmptyState from "../../../components/common/EmptyState";
+import LinhasEsqueleto from "../../../components/common/LinhasEsqueleto";
 
 const CATEGORIA_LABEL: Record<string, string> = Object.fromEntries(
   CATEGORIAS.map((c) => [c.value, c.label])
@@ -101,7 +101,6 @@ export default function ServicosPage() {
 
   const categoriasUsadas = CATEGORIAS.map((c) => c.value);
 
-  if (carregandoInicial) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
 
   return (
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
@@ -155,7 +154,7 @@ export default function ServicosPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.length > 0 ? rows.map((s) => (
+              {carregandoInicial ? <LinhasEsqueleto colunas={6} /> : rows.length > 0 ? rows.map((s) => (
                 <TableRow key={s.id} hover sx={{ height: 56 }}>
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={1.5}>

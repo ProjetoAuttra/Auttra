@@ -2,8 +2,7 @@ import * as React from "react";
 import {
   Box,
   Chip,
-  CircularProgress,
-    Stack,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -29,6 +28,7 @@ import {
   TituloSecao } from "../../shared/reportUtils";
 import { GraficoBarrasHorizontais } from "../../shared/graficos";
 import FiltrosRelatorio, { type CampoFiltro } from "../../shared/FiltrosRelatorio";
+import EsqueletoPagina from "../../../../components/common/EsqueletoPagina";
 
 type Orcamento = {
   id: number;
@@ -145,7 +145,7 @@ export default function OrcamentosPerdidosRelatorio() {
     );
   };
 
-  if (loading) return <Box sx={{ textAlign: "center", mt: 6 }}><CircularProgress /></Box>;
+  if (loading) return <EsqueletoPagina />;
 
   return (
     <ReportPage>

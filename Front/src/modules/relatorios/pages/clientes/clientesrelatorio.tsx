@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {
   Box, Stack, Typography, Table, TableBody, TableCell,
-  TableHead, TableRow, Button, CircularProgress, TextField
+  TableHead, TableRow, Button, TextField
 } from '@mui/material';
 import FileDownloadRoundedIcon from '@mui/icons-material/FileDownloadRounded';
 import { buscarTodas } from '../../shared/buscarTodas';
@@ -9,6 +9,7 @@ import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../context/ToastContext';
 import FiltrosRelatorio from '../../shared/FiltrosRelatorio';
 import { inDateRange } from '../../shared/reportUtils';
+import EsqueletoPagina from "../../../../components/common/EsqueletoPagina";
 
 type Cliente = {
   id: number;
@@ -72,11 +73,7 @@ export default function RelatorioClientes() {
   };
 
   if (loading)
-    return (
-      <Box sx={{ textAlign: 'center', mt: 6 }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <EsqueletoPagina />;
 
   return (
     <Box sx={{ maxWidth: 1500, mx: 'auto' }}>

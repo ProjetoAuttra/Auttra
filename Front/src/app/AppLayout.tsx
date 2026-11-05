@@ -6,7 +6,7 @@ import { Suspense, useState } from 'react';
 import { useSidebar } from '../context/SidebarContext';
 import { ToastProvider } from '../context/ToastContext';
 import { ConfirmProvider } from '../context/ConfirmContext';
-import CarregandoTela from '../components/common/CarregandoTela';
+import EsqueletoPagina from '../components/common/EsqueletoPagina';
 
 export default function AppLayout() {
   const drawerWidth = 248;
@@ -59,7 +59,7 @@ export default function AppLayout() {
                 overflow: 'auto',
               }}
             >
-              <Suspense fallback={<CarregandoTela />}>
+              <Suspense fallback={<EsqueletoPagina />}>
                 <Outlet />
               </Suspense>
             </Box>

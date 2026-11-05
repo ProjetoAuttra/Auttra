@@ -2,7 +2,6 @@ import * as React from "react";
 import {
   Box,
   Chip,
-  CircularProgress,
   Table,
   TableBody,
   TableCell,
@@ -25,6 +24,7 @@ import {
 import { GraficoBarrasHorizontais } from "../../shared/graficos";
 import FiltrosRelatorio, { type CampoFiltro } from "../../shared/FiltrosRelatorio";
 import { formatarQuantidade } from "../../../../utils/quantidade";
+import EsqueletoPagina from "../../../../components/common/EsqueletoPagina";
 
 type Peca = {
   id: number;
@@ -119,7 +119,7 @@ export default function EstoqueCriticoRelatorio() {
     );
   };
 
-  if (loading) return <Box sx={{ textAlign: "center", mt: 6 }}><CircularProgress /></Box>;
+  if (loading) return <EsqueletoPagina />;
 
   return (
     <ReportPage>

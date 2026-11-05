@@ -2,8 +2,7 @@ import * as React from "react";
 import {
   Box, Stack, Typography, IconButton,
   Table, TableBody, TableCell, TableHead, TableRow,
-  TablePagination, Fade, Menu, MenuItem, Divider, CircularProgress,
-} from "@mui/material";
+  TablePagination, Fade, Menu, MenuItem, Divider, } from "@mui/material";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import BusinessRoundedIcon from "@mui/icons-material/BusinessRounded";
 import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
@@ -16,6 +15,7 @@ import api from "../../../api/api";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import ListTableContainer from "../../../components/common/ListTableContainer";
 import EmptyState from "../../../components/common/EmptyState";
+import LinhasEsqueleto from "../../../components/common/LinhasEsqueleto";
 
 export default function SuppliersPage() {
   const { user } = useAuth();
@@ -109,7 +109,6 @@ export default function SuppliersPage() {
 
   const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
-  if (loading) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
 
   return (
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
@@ -142,7 +141,7 @@ export default function SuppliersPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginated.length > 0 ? paginated.map((s) => (
+              {loading ? <LinhasEsqueleto colunas={5} /> : paginated.length > 0 ? paginated.map((s) => (
                 <TableRow key={s.id} hover>
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={1.5}>
