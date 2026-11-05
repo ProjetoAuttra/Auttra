@@ -123,6 +123,7 @@ model oficina {
   notificacoes_config Json    @default("{\"agenda\":{\"ativo\":true,\"diasAntecedencia\":1},\"financeiro\":{\"ativo\":true,\"diasVencimento\":3},\"estoque\":{\"ativo\":true,\"limiteBaixo\":3},\"ordens\":{\"ativo\":true,\"diasParada\":3,\"diasCritico\":7},\"orcamentos\":{\"ativo\":true,\"diasPendente\":2}}")
   agenda_config       Json    @default("{\"horarioInicio\":\"08:00\",\"horarioFim\":\"18:00\",\"dias\":\"Segunda a Sábado\",\"tempoMedio\":\"60 minutos\"}")
   financeiro_config   Json    @default("{\"formasPagamento\":\"Pix, Cartão, Dinheiro\",\"emitirRecibos\":true,\"jurosAtraso\":\"2%\"}")
+  documentos_config   Json    @default("{\"garantiaDias\":90,\"validadeOrcamentoDias\":7,\"observacoes\":\"\"}")
 
   cidade        cidade            @relation(fields: [cidade_id], references: [id])
   gestor        usuario?          @relation("GestorOficina", fields: [gestor_usuario_id], references: [id])

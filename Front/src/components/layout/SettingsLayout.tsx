@@ -4,6 +4,7 @@ import { Suspense, type ReactNode } from "react";
 import { Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import NotificationsNoneRoundedIcon from "@mui/icons-material/NotificationsNoneRounded";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
@@ -32,6 +33,7 @@ const groups: SettingsGroup[] = [
     items: [
       { label: "Agenda", icon: <EventOutlinedIcon />, path: paths.settings, section: "agenda", module: "configuracoes" },
       { label: "Financeiro", icon: <PaymentsOutlinedIcon />, path: paths.settings, section: "financeiro", module: "configuracoes" },
+      { label: "Orçamentos e OS", icon: <DescriptionOutlinedIcon />, path: paths.settings, section: "documentos", module: "configuracoes" },
       { label: "Notificações", icon: <NotificationsNoneRoundedIcon />, path: paths.settings, section: "notificacoes", module: "configuracoes" },
       { label: "Recursos adicionais", icon: <WidgetsOutlinedIcon />, path: paths.recursosAdicionais, module: "recursos_adicionais" },
     ],

@@ -1,5 +1,6 @@
 import puppeteer, { type Browser } from "puppeteer";
 import { Semaforo } from "../utils/semaforo.js";
+import { escapeHtml } from "../utils/escapeHtml.js";
 
 const CONCORRENCIA = Number(process.env.PDF_CONCURRENCY) || 3;
 const TIMEOUT_MS = Number(process.env.PDF_TIMEOUT_MS) || 30_000;
@@ -36,7 +37,20 @@ function obterNavegador(): Promise<Browser> {
  * Renderiza o HTML em PDF. O navegador é compartilhado, cada renderização usa um contexto isolado
  * e no máximo PDF_CONCURRENCY rodam juntas; as demais esperam na fila.
  */
-export function renderizarPdf(html: string): Promise<Buffer> {
+export type OpcoesPdf = {
+  /** Texto do rodapé de cada página; ao lado vai "Página X de Y". Sem ele, o PDF sai sem rodapé. */
+  rodape?: string;
+};
+
+/** O Chromium troca .pageNumber/.totalPages no rodapé sozinho (sem JS na página). */
+function rodapeTemplate(texto: string) {
+  return `<div style="width:100%;margin:0 12mm;font-family:Arial,sans-serif;font-size:7.5px;color:#6b7280;display:flex;justify-content:space-between;gap:12px;">
+    <span>${escapeHtml(texto)}</span>
+    <span style="white-space:nowrap">Página <span class="pageNumber"></span> de <span class="totalPages"></span></span>
+  </div>`;
+}
+
+export function renderizarPdf(html: string, opcoes: OpcoesPdf = {}): Promise<Buffer> {
   return semaforo.executar(async () => {
     const browser = await obterNavegador();
     const contexto = await browser.createBrowserContext();
@@ -55,7 +69,10 @@ export function renderizarPdf(html: string): Promise<Buffer> {
       const buffer = await page.pdf({
         format: "A4",
         printBackground: true,
-        margin: { top: "20mm", bottom: "20mm", left: "15mm", right: "15mm" },
+        margin: { top: "12mm", bottom: opcoes.rodape ? "16mm" : "12mm", left: "12mm", right: "12mm" },
+        ...(opcoes.rodape
+          ? { displayHeaderFooter: true, headerTemplate: "<span></span>", footerTemplate: rodapeTemplate(opcoes.rodape) }
+          : {}),
       });
       return Buffer.from(buffer);
     } finally {
