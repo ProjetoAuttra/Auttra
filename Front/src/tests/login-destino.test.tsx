@@ -16,7 +16,7 @@ vi.mock("../api/api", () => ({
 
 // O desafio do Turnstile é externo: no teste ele já devolve um token válido.
 vi.mock("../components/common/TurnstileWidget", () => ({
-  default: ({ onVerify }: { onVerify: (t: string) => void }) => {
+  default: function TurnstileFalso({ onVerify }: { onVerify: (t: string) => void }) {
     React.useEffect(() => onVerify("token-turnstile"), [onVerify]);
     return null;
   },

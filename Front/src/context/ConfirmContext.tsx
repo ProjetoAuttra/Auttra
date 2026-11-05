@@ -1,14 +1,13 @@
-import React, {
+import {
     createContext,
     useContext,
     useState,
     useCallback,
     useRef,
-    ReactNode,
+    type ReactNode,
 } from "react";
 import {
     Dialog,
-    DialogContent,
     DialogActions,
     Button,
     Typography,
@@ -17,11 +16,10 @@ import {
     Paper,
     IconButton,
 } from "@mui/material";
-import { alpha, styled } from "@mui/material/styles";
+import { alpha } from "@mui/material/styles";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import HelpOutlineRoundedIcon from "@mui/icons-material/HelpOutlineRounded";
-import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
