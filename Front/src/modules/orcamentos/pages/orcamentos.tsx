@@ -18,6 +18,7 @@ import { useToast } from "../../../context/ToastContext";
 import { useConfirm } from "../../../context/ConfirmContext";
 import { paths } from "../../../routes/paths";
 import api from "../../../api/api";
+import { linkWhatsApp } from "../../../utils/whatsapp";
 import ListTableContainer from "../../../components/common/ListTableContainer";
 import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationOrcamentos } from "../../../components/common/Illustrations";
@@ -168,9 +169,8 @@ export default function OrcamentosPage() {
     handleMenuClose();
 
     const orc = selectedOrcamento;
-    const tel = orc.cliente.telefone.replace(/\D/g, "");
     const msg = `Olá ${orc.cliente.nome}! Segue o orçamento #${orc.id} no valor de ${Number(orc.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}. Qualquer dúvida estamos à disposição!`;
-    const waUrl = `https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`;
+    const waUrl = linkWhatsApp(orc.cliente.telefone, msg);
 
     try {
       const res = await api.get(`/orcamentos/${orc.id}/pdf`, { responseType: "blob" });

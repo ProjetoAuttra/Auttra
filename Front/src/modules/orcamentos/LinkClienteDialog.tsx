@@ -17,6 +17,7 @@ import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import api from "../../api/api";
 import { brand } from "../../app/theme";
+import { linkWhatsApp, numeroWhatsApp } from "../../utils/whatsapp";
 
 type Props = {
   open: boolean;
@@ -74,10 +75,8 @@ export default function LinkClienteDialog({ open, onClose, orcamento }: Props) {
     setCopiado(await copiarTexto(link, campo.current));
   };
 
-  const telefone = (orcamento.cliente?.telefone ?? "").replace(/\D/g, "");
-  const whatsappUrl = link
-    ? `https://wa.me/${telefone ? `55${telefone}` : ""}?text=${encodeURIComponent(mensagemLink(orcamento, link))}`
-    : undefined;
+  const temWhatsApp = numeroWhatsApp(orcamento.cliente?.telefone) !== "";
+  const whatsappUrl = link ? linkWhatsApp(orcamento.cliente?.telefone, mensagemLink(orcamento, link)) : undefined;
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -111,9 +110,9 @@ export default function LinkClienteDialog({ open, onClose, orcamento }: Props) {
               }}
             />
           )}
-          {link && !telefone && (
+          {link && !temWhatsApp && (
             <Alert severity="info">
-              O cliente não tem telefone cadastrado: o WhatsApp abre para você escolher o contato.
+              O cliente não tem um telefone válido cadastrado: o WhatsApp abre para você escolher o contato.
             </Alert>
           )}
         </Stack>
