@@ -1,5 +1,28 @@
 import { prisma } from "../prisma/client.js";
+import { hojeISO } from "../utils/datas.js";
+import { HttpError } from "../utils/httpError.js";
 import { LinksPublicosService } from "./linksPublicos.service.js";
+
+export const NOME_RESPOSTA_MAX = 120;
+export const MOTIVO_RECUSA_MAX = 500;
+
+export type DecisaoCliente = "aprovado" | "recusado";
+
+/** A validade é só-dia (meia-noite UTC): vale até o fim desse dia no fuso da oficina. */
+export function orcamentoVencido(validade: Date | null | undefined, hoje = hojeISO()) {
+  return !!validade && hoje > validade.toISOString().slice(0, 10);
+}
+
+/** Texto opcional do formulário público: aparado, vazio vira null, acima do limite é recusado. */
+function textoOpcional(valor: unknown, max: number, campo: string, codigo: string) {
+  if (valor === undefined || valor === null) return null;
+  if (typeof valor !== "string") throw new HttpError(`${campo} inválido.`, 400, codigo);
+  const texto = valor.trim();
+  if (texto.length > max) throw new HttpError(`${campo} pode ter no máximo ${max} caracteres.`, 400, codigo);
+  return texto || null;
+}
+
+const linkInvalido = () => new HttpError("Link expirado ou inválido.", 404, "LINK_INVALIDO");
 
 const toNumber = (value: unknown) => Number(value ?? 0);
 const toIso = (value?: Date | string | null) => value ? new Date(value).toISOString() : null;
@@ -34,6 +57,7 @@ function mapOficina(oficina: any) {
   return {
     nome: oficina?.nome ?? "DriveOn",
     telefone: oficina?.telefone ?? null,
+    whatsapp: oficina?.whatsapp ?? null,
     email: oficina?.email ?? null,
     logoUrl: oficina?.logo_url ?? null,
     endereco: [oficina?.logradouro, oficina?.numero].filter(Boolean).join(", "),
@@ -68,7 +92,7 @@ function buildOrdemTimeline(status: string, dates: { abertura: string | null; fe
   ];
 }
 
-function buildOrcamentoTimeline(status: string, createdAt: string | null) {
+function buildOrcamentoTimeline(status: string, createdAt: string | null, respondidoEm: string | null) {
   return [
     {
       key: "criado",
@@ -82,7 +106,7 @@ function buildOrcamentoTimeline(status: string, createdAt: string | null) {
       label: status === "recusado" ? "Orçamento recusado" : status === "aprovado" ? "Orçamento aprovado" : "Aguardando resposta",
       done: status !== "analise",
       current: status !== "analise",
-      date: null,
+      date: status !== "analise" ? respondidoEm : null,
     },
   ];
 }
@@ -152,6 +176,8 @@ export const PublicTrackingService = {
 
       const statusInfo = orcamentoStatus[orcamento.status] ?? { label: orcamento.status, tone: "default", progress: 20 };
       const criadoEm = toIso(orcamento.data);
+      const respondidoEm = toIso(orcamento.respondido_em);
+      const vencido = orcamentoVencido(orcamento.validade);
       return {
         type: "orcamento",
         id: orcamento.id,
@@ -177,10 +203,54 @@ export const PublicTrackingService = {
         datas: { abertura: criadoEm, fechamento: null, validade: toIso(orcamento.validade) },
         responsavel: null,
         itens: orcamento.itens.map(mapItem),
-        timeline: buildOrcamentoTimeline(orcamento.status, criadoEm),
+        timeline: buildOrcamentoTimeline(orcamento.status, criadoEm, respondidoEm),
+        vencido,
+        podeResponder: orcamento.status === "analise" && !vencido,
+        resposta:
+          orcamento.respondido_pelo_cliente && orcamento.status !== "analise"
+            ? { decisao: orcamento.status, em: respondidoEm, nome: orcamento.respondido_por_nome, motivo: orcamento.motivo_recusa }
+            : null,
       };
     }
 
     return null;
+  },
+
+  /**
+   * O cliente aprova ou recusa o orçamento pelo link público. Só vale para link de orçamento ativo,
+   * orçamento em análise e dentro da validade. A troca de status é atômica: em duas respostas
+   * simultâneas, só a primeira passa. Não gera O.S.: a oficina usa o "Gerar O.S." de sempre.
+   */
+  async responder(code: string, decisao: DecisaoCliente, body: { nome?: unknown; motivo?: unknown }, ip: string | null) {
+    const link = await LinksPublicosService.resolver(code);
+    if (!link?.orcamentoId || !link.oficinaId) throw linkInvalido();
+
+    const nome = textoOpcional(body?.nome, NOME_RESPOSTA_MAX, "Nome", "NOME_INVALIDO");
+    const motivo = decisao === "recusado" ? textoOpcional(body?.motivo, MOTIVO_RECUSA_MAX, "Motivo", "MOTIVO_INVALIDO") : null;
+
+    const where = { id: link.orcamentoId, oficina_id: link.oficinaId, deleted_at: null };
+    const orcamento = await prisma.orcamento.findFirst({ where, select: { status: true, validade: true } });
+    if (!orcamento) throw linkInvalido();
+    if (orcamento.status !== "analise") {
+      throw new HttpError("Este orçamento já foi respondido.", 409, "ORCAMENTO_JA_RESPONDIDO");
+    }
+    if (orcamentoVencido(orcamento.validade)) {
+      throw new HttpError("Este orçamento venceu. Fale com a oficina para receber um novo.", 409, "ORCAMENTO_VENCIDO");
+    }
+
+    const { count } = await prisma.orcamento.updateMany({
+      where: { ...where, status: "analise" },
+      data: {
+        status: decisao,
+        respondido_em: new Date(),
+        respondido_por_nome: nome,
+        respondido_ip: ip,
+        respondido_pelo_cliente: true,
+        motivo_recusa: motivo,
+      },
+    });
+    if (count === 0) throw new HttpError("Este orçamento já foi respondido.", 409, "ORCAMENTO_JA_RESPONDIDO");
+
+    return this.getByCode(code);
   },
 };

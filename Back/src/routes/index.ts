@@ -28,7 +28,8 @@ import adminRouter from "./admin/index.js";
 
 import { LinksPublicosService } from "../services/linksPublicos.service.js";
 import { PdfHtmlService } from "../services/pdfservice.service.js";
-import { PublicTrackingService } from "../services/publicTracking.service.js";
+import { PublicTrackingService, type DecisaoCliente } from "../services/publicTracking.service.js";
+import { sendServiceError } from "../utils/httpError.js";
 
 export const router = Router();
 
@@ -76,6 +77,18 @@ router.get("/public/acompanhamento/:code", async (req, res) => {
   }
   res.json(data);
 });
+
+// Resposta do cliente ao orçamento (sem login: o código do link é a credencial).
+const responderOrcamento = (decisao: DecisaoCliente) => async (req: any, res: any) => {
+  try {
+    const data = await PublicTrackingService.responder(req.params.code, decisao, req.body ?? {}, req.ip ?? null);
+    return res.json(data);
+  } catch (err) {
+    return sendServiceError(res, err, "resposta publica do orcamento");
+  }
+};
+router.post("/public/acompanhamento/:code/aprovar", responderOrcamento("aprovado"));
+router.post("/public/acompanhamento/:code/recusar", responderOrcamento("recusado"));
 
 router.use(authMiddleware);
 router.use(officeScopeMiddleware);

@@ -3,6 +3,9 @@ import { LIMITE_LISTAGEM } from "../utils/limites.js";
 import { canAccess, type PermissionsMap } from "../permissions/accessProfiles.js";
 import { formatarQuantidade } from "../utils/quantidade.js";
 
+/** Por quanto tempo a resposta do cliente pelo link público aparece nas notificações. */
+export const JANELA_RESPOSTA_CLIENTE_MS = 48 * 60 * 60 * 1000;
+
 type NotificationConfig = {
   agenda: { ativo: boolean; diasAntecedencia: number };
   financeiro: { ativo: boolean; diasVencimento: number };
@@ -283,7 +286,39 @@ export const NotificacoesService = {
       });
     };
 
-    const notifications = (await Promise.all([financeiro(), agenda(), estoque(), ordens(), orcamentos()])).flat();
+    const respostasClientes = async (): Promise<AppNotification[]> => {
+      if (!config.orcamentos.ativo || !canAccess(permissoes, "orcamentos", "read")) return [];
+      const lista = await prisma.orcamento.findMany({
+        where: {
+          oficina_id: oficinaId,
+          deleted_at: null,
+          respondido_pelo_cliente: true,
+          status: { in: ["aprovado", "recusado"] },
+          respondido_em: { gte: new Date(Date.now() - JANELA_RESPOSTA_CLIENTE_MS) },
+        },
+        orderBy: { respondido_em: "desc" },
+        take: teto,
+        select: { id: true, status: true, valor: true, respondido_em: true, cliente: { select: { nome: true } } },
+      });
+
+      return lista.map((orcamento) => {
+        const aprovou = orcamento.status === "aprovado";
+        const numero = String(orcamento.id).padStart(3, "0");
+        return {
+          id: `orcamento-resposta-${orcamento.id}-${orcamento.status}`,
+          tipo: "orcamentos",
+          severidade: aprovou ? "success" : "warning",
+          titulo: aprovou ? `Cliente aprovou ORC #${numero}` : `Cliente recusou ORC #${numero}`,
+          descricao: `${orcamento.cliente?.nome ?? "Cliente nao informado"} - ${brl(orcamento.valor)}`,
+          rota: `/orcamentos/${orcamento.id}`,
+          createdAt: (orcamento.respondido_em ?? new Date()).toISOString(),
+        };
+      });
+    };
+
+    const notifications = (
+      await Promise.all([financeiro(), agenda(), estoque(), ordens(), orcamentos(), respostasClientes()])
+    ).flat();
 
     const severityOrder = { danger: 0, warning: 1, info: 2, success: 3 };
     return notifications
