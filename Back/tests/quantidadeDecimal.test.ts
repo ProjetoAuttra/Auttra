@@ -157,6 +157,24 @@ describe.skipIf(!process.env.DATABASE_URL)("quantidade decimal (A1)", () => {
     expect(zero.body.code).toBe("QUANTIDADE_INVALIDA");
   });
 
+  it("orçamento sem itens exige valor maior que zero", async () => {
+    const criar = (valor: unknown) =>
+      request(app)
+        .post("/api/orcamentos")
+        .set("Authorization", auth)
+        .send({ clienteId, veiculoId, descricao: "Valor manual", valor, data: "2026-11-03", itens: [] });
+
+    for (const invalido of [-50, 0, "abc", undefined]) {
+      const res = await criar(invalido);
+      expect(res.status).toBe(400);
+      expect(res.body.code).toBe("VALOR_INVALIDO");
+    }
+
+    const ok = await criar(200);
+    expect(ok.status).toBe(201);
+    expect(Number(ok.body.valor)).toBe(200);
+  });
+
   it("ajuste de estoque aceita fração e compara Decimal na saída", async () => {
     const pecaId = await novaPeca(1);
     const ajuste = (tipo: string, quantidade: unknown) =>

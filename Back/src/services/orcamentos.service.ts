@@ -2,6 +2,7 @@ import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../prisma/client.js";
 import { LIMITE_LISTAGEM } from "../utils/limites.js";
 import { parseQuantidade } from "../utils/quantidade.js";
+import { HttpError } from "../utils/httpError.js";
 import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
 import { dataIso, listaCsv } from "../utils/filtros.js";
 
@@ -43,6 +44,15 @@ function mapItemOrcamento(item: OrcamentoItemInput) {
     // subtotal nunca eh confiado: sempre quantidade x preco unitario
     subtotal: new Prisma.Decimal(precoUnitario).times(quantidade).toDecimalPlaces(2),
   };
+}
+
+/** Valor digitado à mão (orçamento sem itens): precisa ser um número maior que zero. */
+function valorManual(v: unknown) {
+  const valor = typeof v === "number" || (typeof v === "string" && v.trim() !== "") ? Number(v) : NaN;
+  if (!Number.isFinite(valor) || valor <= 0) {
+    throw new HttpError("Informe um valor maior que zero para o orçamento.", 400, "VALOR_INVALIDO");
+  }
+  return valor;
 }
 
 const somaSubtotais = (itens: { subtotal: Prisma.Decimal }[]) =>
@@ -128,7 +138,7 @@ export class OrcamentoService {
 
     await this.validarItens(data.itens, data.oficinaId);
     const itens = (data.itens ?? []).map(mapItemOrcamento);
-    const valor = itens.length ? somaSubtotais(itens) : Number(data.valor);
+    const valor = itens.length ? somaSubtotais(itens) : valorManual(data.valor);
 
     return prisma.orcamento.create({
       data: {
@@ -183,7 +193,7 @@ export class OrcamentoService {
     const valor = itens
       ? somaSubtotais(itens)
       : data.valor != null
-        ? Number(data.valor)
+        ? valorManual(data.valor)
         : undefined;
 
     return prisma.$transaction(async (tx) => {
