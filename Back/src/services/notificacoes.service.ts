@@ -2,6 +2,7 @@ import { prisma } from "../prisma/client.js";
 import { LIMITE_LISTAGEM } from "../utils/limites.js";
 import { canAccess, type PermissionsMap } from "../permissions/accessProfiles.js";
 import { formatarQuantidade } from "../utils/quantidade.js";
+import { numeroCurto } from "../utils/numeroDocumento.js";
 
 /** Por quanto tempo a resposta do cliente pelo link público aparece nas notificações. */
 export const JANELA_RESPOSTA_CLIENTE_MS = 48 * 60 * 60 * 1000;
@@ -303,7 +304,7 @@ export const NotificacoesService = {
 
       return lista.map((orcamento) => {
         const aprovou = orcamento.status === "aprovado";
-        const numero = String(orcamento.id).padStart(3, "0");
+        const numero = numeroCurto(orcamento.id);
         return {
           id: `orcamento-resposta-${orcamento.id}-${orcamento.status}`,
           tipo: "orcamentos",

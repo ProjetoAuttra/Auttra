@@ -2,6 +2,7 @@ import { prisma } from "../prisma/client.js";
 import { hojeISO } from "../utils/datas.js";
 import { HttpError } from "../utils/httpError.js";
 import { LinksPublicosService } from "./linksPublicos.service.js";
+import { numeroCurto } from "../utils/numeroDocumento.js";
 
 export const NOME_RESPOSTA_MAX = 120;
 export const MOTIVO_RECUSA_MAX = 500;
@@ -137,7 +138,7 @@ export const PublicTrackingService = {
         type: "ordem",
         id: ordem.id,
         code,
-        title: `OS #${String(ordem.id).padStart(3, "0")}`,
+        title: `OS #${numeroCurto(ordem.id)}`,
         status: ordem.status,
         statusLabel: statusInfo.label,
         statusTone: statusInfo.tone,
@@ -182,7 +183,7 @@ export const PublicTrackingService = {
         type: "orcamento",
         id: orcamento.id,
         code,
-        title: `ORC #${String(orcamento.id).padStart(3, "0")}`,
+        title: `ORC #${numeroCurto(orcamento.id)}`,
         status: orcamento.status,
         statusLabel: statusInfo.label,
         statusTone: statusInfo.tone,

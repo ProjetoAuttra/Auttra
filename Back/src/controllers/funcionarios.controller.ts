@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
 import { FuncionariosService } from "../services/funcionarios.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
-import { HttpError } from "../utils/httpError.js";
+import { HttpError, mensagemSegura } from "../utils/httpError.js";
 
 function isNotFound(err: any): boolean {
-  const msg = (err?.message ?? "").toLowerCase();
+  // Só erro de negócio conta: a mensagem de um erro inesperado nunca vai para o usuário.
+  const msg = mensagemSegura(err, "").toLowerCase();
   return msg.includes("nao encontrado") || msg.includes("não encontrado");
 }
 
@@ -16,7 +17,7 @@ export const FuncionariosController = {
       res.json(funcionarios);
     } catch (error: any) {
       console.error("Erro ao listar funcionários:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: mensagemSegura(error) });
     }
   },
 
@@ -32,7 +33,7 @@ export const FuncionariosController = {
       res.json(funcionario);
     } catch (error: any) {
       console.error("Erro ao buscar funcionário:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: mensagemSegura(error) });
     }
   },
 
@@ -69,7 +70,7 @@ export const FuncionariosController = {
       res.status(201).json(funcionario);
     } catch (error: any) {
       if (!(error instanceof HttpError)) console.error("Erro ao criar funcionário:", error);
-      res.status(error instanceof HttpError ? error.status : 400).json({ error: error.message });
+      res.status(error instanceof HttpError ? error.status : 400).json({ error: mensagemSegura(error) });
     }
   },
 
@@ -81,9 +82,9 @@ export const FuncionariosController = {
       const funcionario = await FuncionariosService.update(Number(id), data, getRequiredOfficeId(req));
       res.json(funcionario);
     } catch (error: any) {
-      if (isNotFound(error)) return res.status(404).json({ message: error.message });
+      if (isNotFound(error)) return res.status(404).json({ message: mensagemSegura(error) });
       console.error("Erro ao atualizar funcionário:", error);
-      res.status(400).json({ message: error.message });
+      res.status(400).json({ message: mensagemSegura(error) });
     }
   },
 
@@ -93,9 +94,9 @@ export const FuncionariosController = {
       await FuncionariosService.delete(Number(id), getRequiredOfficeId(req));
       res.status(204).send();
     } catch (error: any) {
-      if (isNotFound(error)) return res.status(404).json({ message: error.message });
+      if (isNotFound(error)) return res.status(404).json({ message: mensagemSegura(error) });
       console.error("Erro ao excluir funcionário:", error);
-      res.status(400).json({ message: error.message });
+      res.status(400).json({ message: mensagemSegura(error) });
     }
   },
 };

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { OficinaService } from "../services/oficinas.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 import { Prisma } from "../generated/prisma/client.js";
+import { mensagemSegura } from "../utils/httpError.js";
 
 export const OficinaController = {
   async create(req: Request, res: Response) {
@@ -13,7 +14,7 @@ export const OficinaController = {
         return res.status(409).json({ message: "Ja existe uma oficina com este nome, CNPJ ou e-mail." });
       }
       console.error("Erro ao criar oficina:", err);
-      return res.status(400).json({ message: err.message });
+      return res.status(400).json({ message: mensagemSegura(err) });
     }
   },
 
@@ -23,7 +24,7 @@ export const OficinaController = {
       return res.status(200).json(oficinas);
     } catch (err: any) {
       console.error("Erro ao listar oficinas:", err);
-      return res.status(400).json({ message: err.message });
+      return res.status(400).json({ message: mensagemSegura(err) });
     }
   },
 
@@ -34,7 +35,7 @@ export const OficinaController = {
       return res.json(oficina);
     } catch (err: any) {
       console.error("Erro ao buscar oficina:", err);
-      return res.status(500).json({ message: err.message });
+      return res.status(500).json({ message: mensagemSegura(err) });
     }
   },
 
@@ -47,7 +48,7 @@ export const OficinaController = {
         return res.status(409).json({ message: "Ja existe outra oficina com este nome, CNPJ ou e-mail." });
       }
       console.error("Erro ao atualizar oficina:", err);
-      return res.status(400).json({ message: err.message });
+      return res.status(400).json({ message: mensagemSegura(err) });
     }
   },
 };

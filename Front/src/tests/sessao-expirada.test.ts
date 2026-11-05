@@ -2,13 +2,13 @@ import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from "axios
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import api from "../api/api";
 
-/** Faz a API responder 401 com a mensagem dada, sem rede. */
-function responder401(message: string) {
+/** Faz a API responder 401 com a mensagem (e o código) dados, sem rede. */
+function responder401(message: string, code?: string) {
   api.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
     throw new AxiosError("401", "ERR_BAD_REQUEST", config, null, {
       status: 401,
       statusText: "Unauthorized",
-      data: { message },
+      data: { message, ...(code ? { code } : {}) },
       headers: {},
       config: { ...config, headers: new AxiosHeaders(config.headers) },
     });
@@ -34,6 +34,14 @@ describe("sessão inválida volta para o login", () => {
     localStorage.setItem("driveon:token", "token-vencido");
     localStorage.setItem("driveon:user", "{}");
   };
+
+  it("o back marca a sessão inválida com o código: vale mesmo se a mensagem mudar", async () => {
+    logado();
+    responder401("Sua sessão expirou.", "SESSAO_INVALIDA");
+    await expect(api.get("/orcamentos")).rejects.toBeTruthy();
+    expect(localStorage.getItem("driveon:token")).toBeNull();
+    expect(assign).toHaveBeenCalledWith("/login");
+  });
 
   it("token vencido: limpa o login salvo e vai para a tela de entrada", async () => {
     logado();

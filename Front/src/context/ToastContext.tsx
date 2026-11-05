@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 import {
     Snackbar,
     Alert,
-    type AlertColor,
     Typography,
     Stack,
     IconButton,

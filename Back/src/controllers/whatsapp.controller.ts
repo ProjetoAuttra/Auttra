@@ -1,5 +1,17 @@
 import { Request, Response } from "express";
-import { WhatsAppService } from "../services/whatsapp.service.js";
+import { WhatsAppDeliveryError, WhatsAppService } from "../services/whatsapp.service.js";
+import { isErroDeNegocio, mensagemSegura } from "../utils/httpError.js";
+
+/**
+ * Erro do envio pelo WhatsApp. A mensagem do WhatsAppDeliveryError é nossa e pode ir para o usuário;
+ * a resposta da API externa e o status dela ficam só no log (falha lá fora vira 502 aqui).
+ */
+function responderErroWhatsApp(res: Response, err: unknown, fallback: string) {
+  if (err instanceof WhatsAppDeliveryError) {
+    return res.status(err.status ? 502 : 503).json({ message: err.message });
+  }
+  return res.status(isErroDeNegocio(err) ? 400 : 500).json({ message: mensagemSegura(err, fallback) });
+}
 
 export const WhatsAppController = {
   async send(req: Request, res: Response) {
@@ -16,13 +28,9 @@ export const WhatsAppController = {
 
       const result = await WhatsAppService.send({ phone, message, oficinaId });
       return res.json({ success: true, data: result });
-    } catch (err: any) {
+    } catch (err) {
       console.error("Erro no WhatsAppController.send:", err);
-      const status = err.status || 500;
-      return res.status(status).json({
-        message: err.message ?? "Erro interno ao enviar mensagem pelo WhatsApp.",
-        error: err.response ?? null,
-      });
+      return responderErroWhatsApp(res, err, "Erro interno ao enviar mensagem pelo WhatsApp.");
     }
   },
 
@@ -35,12 +43,9 @@ export const WhatsAppController = {
 
       const result = await WhatsAppService.getConnectStatus(oficinaId);
       return res.json(result);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Erro no WhatsAppController.getConnectStatus:", err);
-      const status = err.status || 500;
-      return res.status(status).json({
-        message: err.message ?? "Erro ao obter status de conexão com o WhatsApp.",
-      });
+      return responderErroWhatsApp(res, err, "Erro ao obter status de conexão com o WhatsApp.");
     }
   }
 };

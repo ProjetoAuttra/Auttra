@@ -2,9 +2,11 @@ import { Request, Response } from "express";
 import { FornecedoresService } from "../services/fornecedores.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 import { Prisma } from "../generated/prisma/client.js";
+import { mensagemSegura } from "../utils/httpError.js";
 
 function isNotFound(err: any): boolean {
-  const msg = (err?.message ?? "").toLowerCase();
+  // Só erro de negócio conta: a mensagem de um erro inesperado nunca vai para o usuário.
+  const msg = mensagemSegura(err, "").toLowerCase();
   return msg.includes("nao encontrado") || msg.includes("não encontrado");
 }
 
@@ -14,7 +16,7 @@ export const FornecedoresController = {
       return res.json(await FornecedoresService.list(getRequiredOfficeId(req)));
     } catch (err: any) {
       console.error("Erro ao listar fornecedores:", err);
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: mensagemSegura(err) });
     }
   },
 
@@ -22,7 +24,7 @@ export const FornecedoresController = {
     try {
       return res.json(await FornecedoresService.getById(Number(req.params.id), getRequiredOfficeId(req)));
     } catch (err: any) {
-      if (isNotFound(err)) return res.status(404).json({ message: err.message });
+      if (isNotFound(err)) return res.status(404).json({ message: mensagemSegura(err) });
       console.error("Erro ao buscar fornecedor:", err);
       return res.status(500).json({ error: "Erro interno" });
     }
@@ -37,7 +39,7 @@ export const FornecedoresController = {
         return res.status(409).json({ message: "Ja existe um fornecedor com este nome ou e-mail nesta oficina." });
       }
       console.error("Erro ao criar fornecedor:", err);
-      return res.status(400).json({ message: err.message });
+      return res.status(400).json({ message: mensagemSegura(err) });
     }
   },
 
@@ -45,9 +47,9 @@ export const FornecedoresController = {
     try {
       return res.json(await FornecedoresService.update(Number(req.params.id), req.body, getRequiredOfficeId(req)));
     } catch (err: any) {
-      if (isNotFound(err)) return res.status(404).json({ message: err.message });
+      if (isNotFound(err)) return res.status(404).json({ message: mensagemSegura(err) });
       console.error("Erro ao atualizar fornecedor:", err);
-      return res.status(400).json({ message: err.message });
+      return res.status(400).json({ message: mensagemSegura(err) });
     }
   },
 
@@ -56,7 +58,7 @@ export const FornecedoresController = {
       await FornecedoresService.remove(Number(req.params.id), getRequiredOfficeId(req));
       return res.status(204).send();
     } catch (err: any) {
-      if (isNotFound(err)) return res.status(404).json({ message: err.message });
+      if (isNotFound(err)) return res.status(404).json({ message: mensagemSegura(err) });
       console.error("Erro ao remover fornecedor:", err);
       return res.status(500).json({ error: "Erro interno" });
     }

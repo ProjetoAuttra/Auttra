@@ -21,13 +21,11 @@ describe("escapeHtml", () => {
   });
 });
 
-const chromeDisponivel = (() => {
-  try {
-    return fs.existsSync(puppeteer.executablePath());
-  } catch {
-    return false;
-  }
-})();
+// Desde o Puppeteer 25, executablePath() devolve uma Promise.
+const chromeDisponivel = await Promise.resolve()
+  .then(() => puppeteer.executablePath())
+  .then((caminho) => fs.existsSync(caminho))
+  .catch(() => false);
 
 describe.skipIf(!chromeDisponivel)("renderPdf (hardening do Chromium)", () => {
   let server: http.Server;

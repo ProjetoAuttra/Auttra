@@ -30,6 +30,7 @@ import api from "../../api/api";
 import { brand } from "../../app/theme";
 import { maskTelefone } from "../../utils/masks";
 import { formatarQuantidade } from "../../utils/quantidade";
+import { linkWhatsApp, soDigitos } from "../../utils/whatsapp";
 
 type TrackingData = {
   type: "ordem" | "orcamento";
@@ -79,13 +80,13 @@ const dateTime = (value?: string | null) =>
 
 /** Contato da oficina: WhatsApp (abre a conversa com a mensagem pronta) ou, sem ele, o telefone. */
 function contatoOficina(data: TrackingData) {
-  const whatsapp = (data.oficina.whatsapp ?? "").replace(/D/g, "");
+  const whatsapp = soDigitos(data.oficina.whatsapp);
   if (whatsapp) {
     const placa = data.veiculo.placa ? ` (${data.veiculo.placa})` : "";
     const texto = `Olá! Tenho uma dúvida sobre o ${data.title}${placa}.`;
-    return { tipo: "whatsapp" as const, numero: maskTelefone(whatsapp), href: `https://wa.me/55${whatsapp}?text=${encodeURIComponent(texto)}` };
+    return { tipo: "whatsapp" as const, numero: maskTelefone(whatsapp), href: linkWhatsApp(whatsapp, texto) };
   }
-  const telefone = (data.oficina.telefone ?? "").replace(/D/g, "");
+  const telefone = soDigitos(data.oficina.telefone);
   if (telefone) return { tipo: "telefone" as const, numero: maskTelefone(telefone), href: `tel:+55${telefone}` };
   return null;
 }

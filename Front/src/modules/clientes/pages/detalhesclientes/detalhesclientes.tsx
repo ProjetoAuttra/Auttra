@@ -30,6 +30,7 @@ import ClienteOrdens from "./subcomponentes/clienteordens";
 import ClientePagamentos from "./subcomponentes/clientepagamentos";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../../components/common/AppDialog";
 import { maskCpf, maskCnpj } from "../../../../utils/masks";
+import { linkWhatsApp, soDigitos } from "../../../../utils/whatsapp";
 import { brand } from "../../../../app/theme";
 
 function formatDocumento(value?: string | null) {
@@ -143,9 +144,8 @@ export default function ClienteDetalhesPage() {
 
 
   const enviarWhats = () => {
-    const numero = cliente?.telefone?.replace(/[^0-9]/g, "");
-    if (!numero) return;
-    window.open(`https://wa.me/55${numero}?text=${encodeURIComponent(mensagem)}`, "_blank");
+    if (!soDigitos(cliente?.telefone)) return;
+    window.open(linkWhatsApp(cliente?.telefone, mensagem), "_blank");
     setOpenWhats(false);
   };
 

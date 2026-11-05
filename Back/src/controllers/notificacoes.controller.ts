@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 import { NotificacoesService } from "../services/notificacoes.service.js";
+import { mensagemSegura } from "../utils/httpError.js";
 
 export const NotificacoesController = {
   async list(req: Request, res: Response) {
@@ -29,7 +30,7 @@ export const NotificacoesController = {
       return res.json(data);
     } catch (err: any) {
       console.error("Erro ao salvar configuracoes de notificacoes:", err);
-      return res.status(400).json({ message: err.message ?? "Nao foi possivel salvar as configuracoes." });
+      return res.status(400).json({ message: mensagemSegura(err, "Nao foi possivel salvar as configuracoes.") });
     }
   },
 };

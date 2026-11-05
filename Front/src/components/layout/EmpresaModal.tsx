@@ -7,7 +7,6 @@ import {
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import BusinessRoundedIcon from "@mui/icons-material/BusinessRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
 import PhoneIphoneRoundedIcon from "@mui/icons-material/PhoneIphoneRounded";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";

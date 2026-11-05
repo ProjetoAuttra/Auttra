@@ -2,6 +2,7 @@ import { Router } from "express";
 import { OrcamentoController } from "../controllers/orcamentos.controller.js";
 import { LinksPublicosService } from "../services/linksPublicos.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
+import { mensagemSegura } from "../utils/httpError.js";
 
 const router = Router();
 const controller = new OrcamentoController();
@@ -19,7 +20,7 @@ router.post("/:id/share", async (req, res) => {
     const code = await LinksPublicosService.obterOuCriar({ orcamentoId: Number(req.params.id) }, getRequiredOfficeId(req));
     res.json({ code });
   } catch (err: any) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: mensagemSegura(err) });
   }
 });
 
@@ -28,7 +29,7 @@ router.delete("/:id/share", async (req, res) => {
     const canceled = await LinksPublicosService.cancelar({ orcamentoId: Number(req.params.id) }, getRequiredOfficeId(req));
     res.json({ canceled });
   } catch (err: any) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: mensagemSegura(err) });
   }
 });
 
