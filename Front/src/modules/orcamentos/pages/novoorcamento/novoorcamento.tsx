@@ -19,6 +19,7 @@ import VeiculoDialog, { type VeiculoForm } from "../../../veiculos/dialog";
 import { criarVeiculo } from "../../../veiculos/api/api";
 import { formatPreco, parsePreco } from "../../../../utils/masks";
 import CampoQuantidade from "../../../../components/common/CampoQuantidade";
+import { buscarConfigDocumentos, defaultDocumentosConfig } from "../../../configuracoes/api/configuracoesOperacionais";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -90,7 +91,13 @@ export default function NovoOrcamento() {
   const [descricao, setDescricao] = React.useState("");
   const [precoFormatado, setPrecoFormatado] = React.useState("");
   const [data, setData] = React.useState(hojeMais(0));
-  const [validade, setValidade] = React.useState(hojeMais(7));
+  const [validade, setValidadeState] = React.useState(hojeMais(defaultDocumentosConfig.validadeOrcamentoDias));
+  /** Depois que o usuário mexe na validade, a configuração da oficina (que chega depois) não sobrescreve mais. */
+  const validadeEditada = React.useRef(false);
+  const setValidade = React.useCallback((v: string) => {
+    validadeEditada.current = true;
+    setValidadeState(v);
+  }, []);
   const [itens, setItens] = React.useState<OrcamentoItem[]>([]);
   const [selecaoAberta, setSelecaoAberta] = React.useState<null | "servico" | "peca">(null);
   const [selecionadoItem, setSelecionadoItem] = React.useState<any | null>(null);
@@ -103,6 +110,19 @@ export default function NovoOrcamento() {
   const [salvando, setSalvando] = React.useState(false);
   const [openNovoCliente, setOpenNovoCliente] = React.useState(false);
   const [openNovoVeiculo, setOpenNovoVeiculo] = React.useState(false);
+
+  // Validade padrão configurada em Configurações > Orçamentos e OS; se falhar, fica a padrão (7 dias).
+  React.useEffect(() => {
+    let ativo = true;
+    buscarConfigDocumentos()
+      .then((cfg) => {
+        if (ativo && !validadeEditada.current && cfg?.validadeOrcamentoDias) setValidadeState(hojeMais(cfg.validadeOrcamentoDias));
+      })
+      .catch(() => {});
+    return () => {
+      ativo = false;
+    };
+  }, []);
 
   React.useEffect(() => {
     if (!user?.oficina_id) return;
