@@ -149,9 +149,14 @@ export class OrcamentoService {
   async atualizarStatus(id: number, status: "analise" | "aprovado" | "recusado", oficinaId: number) {
     const existing = await this.buscarPorId(id, oficinaId);
     if (!existing) throw new Error("Orcamento nao encontrado nesta oficina.");
+    // Situação trocada pela oficina: a resposta do cliente deixa de valer (senão o selo "pelo cliente" mentiria).
+    const limparResposta =
+      existing.status !== status
+        ? { respondido_em: null, respondido_por_nome: null, respondido_ip: null, respondido_pelo_cliente: false, motivo_recusa: null }
+        : {};
     return prisma.orcamento.update({
       where: { id },
-      data: { status },
+      data: { status, ...limparResposta },
     });
   }
 

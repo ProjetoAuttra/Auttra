@@ -524,6 +524,13 @@ model orcamento {
   validade  DateTime?        @db.Timestamptz(3)
   status    status_orcamento @default(analise)
 
+  /// Resposta dada pelo cliente no link público (B1). A oficina mudando a situação limpa estes campos.
+  respondido_em           DateTime? @db.Timestamptz(3)
+  respondido_por_nome     String?
+  respondido_ip           String?
+  respondido_pelo_cliente Boolean   @default(false)
+  motivo_recusa           String?
+
   oficina_id Int
   cliente_id Int
   veiculo_id Int

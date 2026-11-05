@@ -164,6 +164,13 @@ export const OficinaService = {
         throw new Error("Telefone deve ter 10 ou 11 digitos.");
       }
     }
+    if (data?.whatsapp !== undefined) {
+      // Vai no botão "Falar com a oficina" do link público (wa.me/55 + DDD + número).
+      patch.whatsapp = optionalDigits(data.whatsapp);
+      if (patch.whatsapp && ![10, 11].includes(patch.whatsapp.length)) {
+        throw new Error("WhatsApp deve ter 10 ou 11 digitos (DDD + numero).");
+      }
+    }
     if (data?.logradouro !== undefined) patch.logradouro = requiredText(data.logradouro, "Logradouro");
     if (data?.numero !== undefined) patch.numero = requiredText(data.numero, "Numero");
     if (data?.complemento !== undefined) patch.complemento = optionalText(data.complemento);

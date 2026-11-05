@@ -1,5 +1,6 @@
 import * as React from "react";
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -13,6 +14,7 @@ import {
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import DirectionsCarRoundedIcon from "@mui/icons-material/DirectionsCarRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
+import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
 import PrintRoundedIcon from "@mui/icons-material/PrintRounded";
 import RequestQuoteRoundedIcon from "@mui/icons-material/RequestQuoteRounded";
 import { useParams } from "react-router-dom";
@@ -22,6 +24,8 @@ import FalhaCarregamento, { motivoDaFalha, type MotivoFalha } from "../../../../
 import { useVoltar } from "../../../../hooks/useVoltar";
 import { paths } from "../../../../routes/paths";
 import { useAcoesOrcamento } from "../../useAcoesOrcamento";
+import LinkClienteDialog from "../../LinkClienteDialog";
+import { useAuth } from "../../../../context/AuthContext";
 import { formatarQuantidade } from "../../../../utils/quantidade";
 
 type OrcamentoItem = {
@@ -48,6 +52,11 @@ type Orcamento = {
   itens?: OrcamentoItem[];
   /** O.S. ativa gerada a partir do orçamento (no máximo uma). */
   ordens?: Array<{ id: number; status: string }>;
+  /** Resposta do cliente pelo link público. */
+  respondido_pelo_cliente?: boolean;
+  respondido_em?: string | null;
+  respondido_por_nome?: string | null;
+  motivo_recusa?: string | null;
 };
 
 const STATUS_CONFIG: Record<Orcamento["status"], { label: string; color: "warning" | "success" | "error" }> = {
@@ -65,6 +74,25 @@ function date(value?: string | null) {
   return value ? new Date(value).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "-";
 }
 
+function dateTime(value?: string | null) {
+  return value
+    ? new Date(value).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+    : "-";
+}
+
+/** "Aprovado pelo cliente em 04/11, 14:32 (Ana)". Só quando foi o cliente que respondeu pelo link. */
+function SeloRespostaCliente({ orcamento }: { orcamento: Orcamento }) {
+  if (!orcamento.respondido_pelo_cliente || orcamento.status === "analise") return null;
+  const aprovou = orcamento.status === "aprovado";
+  return (
+    <Alert severity={aprovou ? "success" : "warning"} sx={{ mb: 3 }} data-testid="selo-resposta-cliente">
+      {aprovou ? "Aprovado" : "Recusado"} pelo cliente em {dateTime(orcamento.respondido_em)}
+      {orcamento.respondido_por_nome ? ` (${orcamento.respondido_por_nome})` : ""}
+      {!aprovou && orcamento.motivo_recusa ? `. Motivo: ${orcamento.motivo_recusa}` : ""}
+    </Alert>
+  );
+}
+
 function itemName(item: OrcamentoItem) {
   return item.nome ?? item.servico?.nome ?? item.peca?.nome ?? "Item do orçamento";
 }
@@ -77,6 +105,8 @@ export default function OrcamentoDetalhes() {
   const [loading, setLoading] = React.useState(true);
   const [falha, setFalha] = React.useState<MotivoFalha | null>(null);
   const [printing, setPrinting] = React.useState(false);
+  const [linkAberto, setLinkAberto] = React.useState(false);
+  const { can } = useAuth();
   const ativo = React.useRef(true);
 
   // `silencioso` recarrega depois de uma ação sem trocar a tela pelo carregamento.
@@ -178,6 +208,11 @@ export default function OrcamentoDetalhes() {
           >
             Imprimir
           </Button>
+          {can("orcamentos", "create") && (
+            <Button variant="outlined" startIcon={<LinkRoundedIcon />} onClick={() => setLinkAberto(true)}>
+              Link para o cliente
+            </Button>
+          )}
           {acoes.podeRecusar(orcamento) && (
             <Button variant="outlined" color="error" onClick={() => acoes.recusar(orcamento)}>
               Recusar
@@ -190,6 +225,9 @@ export default function OrcamentoDetalhes() {
           )}
         </Stack>
       </Stack>
+
+      <SeloRespostaCliente orcamento={orcamento} />
+      <LinkClienteDialog open={linkAberto} onClose={() => setLinkAberto(false)} orcamento={orcamento} />
 
       <Box sx={{ pb: 3, mb: 3, borderBottom: (t) => `1px solid ${t.palette.divider}` }}>
         <Grid container spacing={2.5}>

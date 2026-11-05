@@ -10,6 +10,7 @@ import BusinessRoundedIcon from "@mui/icons-material/BusinessRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
 import PhoneIphoneRoundedIcon from "@mui/icons-material/PhoneIphoneRounded";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
 import CameraAltRoundedIcon from "@mui/icons-material/CameraAltRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
@@ -33,6 +34,7 @@ type Form = {
   cnpj: string;
   email: string;
   telefone: string;
+  whatsapp: string;
   logo_url: string | null;
   cor_principal: string | null;
   cep: string;
@@ -50,6 +52,7 @@ function empresaToForm(e: EmpresaData): Form {
     cnpj: maskCnpj(e.cnpj ?? ""),
     email: e.email ?? "",
     telefone: maskTelefone(e.telefone ?? ""),
+    whatsapp: maskTelefone(e.whatsapp ?? ""),
     logo_url: e.logo_url ?? null,
     cor_principal: e.cor_principal ?? null,
     cep: maskCep(e.cep ?? ""),
@@ -62,7 +65,7 @@ function empresaToForm(e: EmpresaData): Form {
 }
 
 const EMPTY_FORM: Form = {
-  nome: "", cnpj: "", email: "", telefone: "",
+  nome: "", cnpj: "", email: "", telefone: "", whatsapp: "",
   logo_url: null,
   cor_principal: null,
   cep: "", logradouro: "", numero: "", complemento: "", cidade: "", uf: "",
@@ -175,6 +178,7 @@ export default function EmpresaModal({ open, onClose }: Props) {
         cnpj: form.cnpj,
         email: form.email,
         telefone: form.telefone,
+        whatsapp: form.whatsapp,
         logo_url: form.logo_url,
         cor_principal: form.cor_principal,
         cep: form.cep,
@@ -369,7 +373,25 @@ export default function EmpresaModal({ open, onClose }: Props) {
                   />
                 </Grid>
 
-                <Grid size={12}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    label="WhatsApp"
+                    fullWidth
+                    value={form.whatsapp}
+                    onChange={(e) => set("whatsapp", maskTelefone(e.target.value))}
+                    inputProps={{ inputMode: "tel", maxLength: 16, "data-testid": "empresa-whatsapp" }}
+                    helperText="O cliente fala com a oficina por este número no link do orçamento e da OS."
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <WhatsAppIcon fontSize="small" />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     label="E-mail"
                     fullWidth
