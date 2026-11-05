@@ -7,6 +7,7 @@ import { PerfisAcessoService } from "../services/perfisAcesso.service.js";
 import { getJwtSecret, getTurnstileSecret } from "../config/env.js";
 import { PasswordResetService } from "../services/passwordReset.service.js";
 import { invalidarTokens, limparCacheSessao } from "../services/sessao.service.js";
+import { mensagemSegura } from "../utils/httpError.js";
 
 function normalizeEmail(raw: unknown): string {
   return String(raw ?? "").trim().toLowerCase();
@@ -180,7 +181,7 @@ export async function resetPassword(req: Request, res: Response) {
     return res.json({ message: "Senha redefinida com sucesso." });
   } catch (err: any) {
     console.error("Erro ao redefinir senha:", err);
-    return res.status(400).json({ message: err?.message ?? "Nao foi possivel redefinir a senha." });
+    return res.status(400).json({ message: mensagemSegura(err, "Nao foi possivel redefinir a senha.") });
   }
 }
 

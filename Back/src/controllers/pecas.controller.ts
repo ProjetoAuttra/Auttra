@@ -3,10 +3,11 @@ import { PecasService } from "../services/pecas.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 import { Prisma } from "../generated/prisma/client.js";
 import { parsePaginacao, responderLista, textoQuery } from "../utils/paginacao.js";
-import { sendServiceError } from "../utils/httpError.js";
+import { sendServiceError, mensagemSegura } from "../utils/httpError.js";
 
 function isNotFound(err: any): boolean {
-  const msg = (err?.message ?? "").toLowerCase();
+  // Só erro de negócio conta: a mensagem de um erro inesperado nunca vai para o usuário.
+  const msg = mensagemSegura(err, "").toLowerCase();
   return msg.includes("nao encontrado") || msg.includes("não encontrado");
 }
 
@@ -51,9 +52,9 @@ export const PecasController = {
       const pecaAtualizada = await PecasService.update(id, req.body, getRequiredOfficeId(req));
       return res.json(pecaAtualizada);
     } catch (err: any) {
-      if (isNotFound(err)) return res.status(404).json({ message: err.message });
+      if (isNotFound(err)) return res.status(404).json({ message: mensagemSegura(err) });
       console.error("Erro ao atualizar peca:", err);
-      return res.status(400).json({ message: err.message });
+      return res.status(400).json({ message: mensagemSegura(err) });
     }
   },
 
@@ -63,7 +64,7 @@ export const PecasController = {
       await PecasService.delete(id, getRequiredOfficeId(req));
       return res.status(204).send();
     } catch (err: any) {
-      if (isNotFound(err)) return res.status(404).json({ message: err.message });
+      if (isNotFound(err)) return res.status(404).json({ message: mensagemSegura(err) });
       console.error("Erro ao excluir peca:", err);
       return res.status(500).json({ error: "Erro interno" });
     }
@@ -77,7 +78,7 @@ export const PecasController = {
       return res.json(peca);
     } catch (err: any) {
       console.error("Erro ao ajustar estoque:", err);
-      const msg = err instanceof Error ? err.message : "Erro ao ajustar estoque.";
+      const msg = mensagemSegura(err, "Erro ao ajustar estoque.");
       return res.status(400).json({ error: msg });
     }
   },

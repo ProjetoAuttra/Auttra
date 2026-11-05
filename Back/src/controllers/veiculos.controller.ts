@@ -3,6 +3,7 @@ import { VeiculosService } from "../services/veiculos.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 import { Prisma } from "../generated/prisma/client.js";
 import { parsePaginacao, responderLista, textoQuery } from "../utils/paginacao.js";
+import { mensagemSegura } from "../utils/httpError.js";
 
 export const VeiculosController = {
   async list(req: Request, res: Response) {
@@ -20,7 +21,7 @@ export const VeiculosController = {
       );
     } catch (err: any) {
       console.error("Erro ao listar veiculos:", err);
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: mensagemSegura(err) });
     }
   },
 
@@ -29,7 +30,7 @@ export const VeiculosController = {
       return res.json(await VeiculosService.getById(Number(req.params.id), getRequiredOfficeId(req)));
     } catch (err: any) {
       console.error("Erro ao buscar veiculo:", err);
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: mensagemSegura(err) });
     }
   },
 
@@ -42,7 +43,7 @@ export const VeiculosController = {
         return res.status(409).json({ message: "Ja existe um veiculo com esta placa nesta oficina." });
       }
       console.error("Erro ao criar veiculo:", err);
-      return res.status(400).json({ message: err.message });
+      return res.status(400).json({ message: mensagemSegura(err) });
     }
   },
 
@@ -51,7 +52,7 @@ export const VeiculosController = {
       return res.json(await VeiculosService.update(Number(req.params.id), req.body, getRequiredOfficeId(req)));
     } catch (err: any) {
       console.error("Erro ao atualizar veiculo:", err);
-      return res.status(400).json({ message: err.message });
+      return res.status(400).json({ message: mensagemSegura(err) });
     }
   },
 
@@ -61,7 +62,7 @@ export const VeiculosController = {
       return res.status(204).send();
     } catch (err: any) {
       console.error("Erro ao remover veiculo:", err);
-      return res.status(400).json({ message: err.message });
+      return res.status(400).json({ message: mensagemSegura(err) });
     }
   },
 };

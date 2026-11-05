@@ -5,6 +5,7 @@ import { PasswordResetService } from "../../services/passwordReset.service.js";
 import { SugestoesService } from "../../services/sugestoes.service.js";
 import { alvoUnicoViolado } from "../../utils/prismaErros.js";
 import { criarOficinaSchema, primeiroErro, proprietarioSchema, updateOficinaSchema } from "../../schemas/admin/oficinas.schema.js";
+import { mensagemSegura } from "../../utils/httpError.js";
 
 // Violacao de campo unico (nome, CNPJ ou e-mail ja usados por outra oficina) vira mensagem legivel.
 function mensagemDuplicado(err: any) {
@@ -47,7 +48,7 @@ export const OficinasAdminController = {
       const oficina = await OficinasAdminService.getById(id);
       return res.json(oficina);
     } catch (err: any) {
-      if (err.message === "Oficina não encontrada.") return res.status(404).json({ message: err.message });
+      if (err.message === "Oficina não encontrada.") return res.status(404).json({ message: mensagemSegura(err) });
       console.error("Erro ao buscar oficina:", err);
       return res.status(500).json({ message: "Erro interno." });
     }
@@ -73,9 +74,9 @@ export const OficinasAdminController = {
       });
       return res.json(usuario);
     } catch (err: any) {
-      if (err.message?.includes("Oficina não encontrada")) return res.status(404).json({ message: err.message });
+      if (err.message?.includes("Oficina não encontrada")) return res.status(404).json({ message: mensagemSegura(err) });
       if (err.message?.includes("Proprietário inválido") || err.message?.includes("em uso")) {
-        return res.status(400).json({ message: err.message });
+        return res.status(400).json({ message: mensagemSegura(err) });
       }
       console.error("Erro ao atualizar proprietário:", err);
       return res.status(500).json({ message: "Erro interno." });
@@ -137,7 +138,7 @@ export const OficinasAdminController = {
         console.error("Erro ao criar oficina:", err);
         return res.status(500).json({ message: "Erro interno ao criar oficina." });
       }
-      return res.status(400).json({ message: err.message ?? "Erro ao criar oficina." });
+      return res.status(400).json({ message: mensagemSegura(err, "Erro ao criar oficina.") });
     }
   },
 
@@ -164,8 +165,8 @@ export const OficinasAdminController = {
       // Antes das checagens por texto: a mensagem do Prisma traz trechos do codigo-fonte (que citam "Proprietário inválido").
       const duplicado = mensagemDuplicado(err);
       if (duplicado) return res.status(400).json({ message: duplicado });
-      if (err.message?.includes("Oficina não encontrada")) return res.status(404).json({ message: err.message });
-      if (err.message?.includes("Proprietário inválido") || err.message?.includes("Cidade e UF")) return res.status(400).json({ message: err.message });
+      if (err.message?.includes("Oficina não encontrada")) return res.status(404).json({ message: mensagemSegura(err) });
+      if (err.message?.includes("Proprietário inválido") || err.message?.includes("Cidade e UF")) return res.status(400).json({ message: mensagemSegura(err) });
       console.error("Erro ao atualizar oficina:", err);
       return res.status(500).json({ message: "Erro interno." });
     }
@@ -185,7 +186,7 @@ export const OficinasAdminController = {
       });
       return res.status(204).send();
     } catch (err: any) {
-      if (err.message === "Oficina não encontrada.") return res.status(404).json({ message: err.message });
+      if (err.message === "Oficina não encontrada.") return res.status(404).json({ message: mensagemSegura(err) });
       console.error("Erro ao desativar oficina:", err);
       return res.status(500).json({ message: "Erro interno." });
     }
@@ -206,7 +207,7 @@ export const OficinasAdminController = {
       return res.json({ message: "Oficina reativada com sucesso." });
     } catch (err: any) {
       if (err.message.includes("não encontrada") || err.message.includes("já está ativa")) {
-        return res.status(400).json({ message: err.message });
+        return res.status(400).json({ message: mensagemSegura(err) });
       }
       console.error("Erro ao reativar oficina:", err);
       return res.status(500).json({ message: "Erro interno." });

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { z } from "zod";
 import { AdminsService } from "../../services/admin/admins.service.js";
 import { AdminAuditService } from "../../services/admin/audit.service.js";
+import { mensagemSegura } from "../../utils/httpError.js";
 
 const criarAdminSchema = z.object({
   nome: z.string().trim().min(2),
@@ -39,7 +40,7 @@ export const AdminsController = {
       });
       return res.status(201).json({ usuario, convite: linkPublico(convite) });
     } catch (err: any) {
-      return res.status(400).json({ message: err.message ?? "Erro ao criar administrador." });
+      return res.status(400).json({ message: mensagemSegura(err, "Erro ao criar administrador.") });
     }
   },
 
@@ -58,7 +59,7 @@ export const AdminsController = {
       });
       return res.json(usuario);
     } catch (err: any) {
-      return res.status(400).json({ message: err.message ?? "Erro ao atualizar usuário." });
+      return res.status(400).json({ message: mensagemSegura(err, "Erro ao atualizar usuário.") });
     }
   },
 
@@ -76,7 +77,7 @@ export const AdminsController = {
       });
       return res.json(linkPublico(link));
     } catch (err: any) {
-      return res.status(400).json({ message: err.message ?? "Erro ao gerar link." });
+      return res.status(400).json({ message: mensagemSegura(err, "Erro ao gerar link.") });
     }
   },
 
@@ -94,7 +95,7 @@ export const AdminsController = {
       return res.status(204).send();
     } catch (err: any) {
       if (err.message.includes("não encontrado") || err.message.includes("único") || err.message.includes("própria")) {
-        return res.status(400).json({ message: err.message });
+        return res.status(400).json({ message: mensagemSegura(err) });
       }
       console.error("Erro ao desativar admin:", err);
       return res.status(500).json({ message: "Erro interno." });
@@ -114,7 +115,7 @@ export const AdminsController = {
       });
       return res.json({ message: "Administrador reativado." });
     } catch (err: any) {
-      return res.status(400).json({ message: err.message ?? "Erro ao reativar." });
+      return res.status(400).json({ message: mensagemSegura(err, "Erro ao reativar.") });
     }
   },
 };

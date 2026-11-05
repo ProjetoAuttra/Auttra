@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { ImportacaoXmlService } from "../services/importacaoXml.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
+import { mensagemSegura } from "../utils/httpError.js";
 
 export const ImportacaoXmlController = {
   async preview(req: Request, res: Response) {
@@ -15,7 +16,7 @@ export const ImportacaoXmlController = {
       return res.json(preview);
     } catch (error: unknown) {
       console.error("Erro ao gerar preview do XML:", error);
-      const msg = error instanceof Error ? error.message : "Não foi possível processar o arquivo.";
+      const msg = mensagemSegura(error, "Não foi possível processar o arquivo.");
       return res.status(422).json({ error: msg });
     }
   },
@@ -27,7 +28,7 @@ export const ImportacaoXmlController = {
       return res.json(resultado);
     } catch (error: unknown) {
       console.error("Erro ao confirmar importação do XML:", error);
-      const msg = error instanceof Error ? error.message : "Não foi possível confirmar a importação.";
+      const msg = mensagemSegura(error, "Não foi possível confirmar a importação.");
       return res.status(422).json({ error: msg });
     }
   },

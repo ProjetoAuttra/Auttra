@@ -3,7 +3,7 @@ import { OrcamentoService } from "../services/orcamentos.service.js";
 import { PdfHtmlService } from "../services/pdfservice.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 import { parsePaginacao, responderLista, textoQuery } from "../utils/paginacao.js";
-import { sendServiceError } from "../utils/httpError.js";
+import { mensagemSegura } from "../utils/httpError.js";
 
 const service = new OrcamentoService();
 
@@ -33,21 +33,13 @@ export class OrcamentoController {
   }
 
   async criar(req: Request, res: Response) {
-    try {
-      const novo = await service.criar({ ...req.body, oficinaId: getRequiredOfficeId(req) });
-      return res.status(201).json(novo);
-    } catch (err) {
-      return sendServiceError(res, err, "orcamentos/criar");
-    }
+    const novo = await service.criar({ ...req.body, oficinaId: getRequiredOfficeId(req) });
+    return res.status(201).json(novo);
   }
 
   async atualizar(req: Request, res: Response) {
-    try {
-      const atualizado = await service.atualizar(Number(req.params.id), req.body, getRequiredOfficeId(req));
-      return res.json(atualizado);
-    } catch (err) {
-      return sendServiceError(res, err, "orcamentos/atualizar");
-    }
+    const atualizado = await service.atualizar(Number(req.params.id), req.body, getRequiredOfficeId(req));
+    return res.json(atualizado);
   }
 
   async atualizarStatus(req: Request, res: Response) {
@@ -72,7 +64,7 @@ export class OrcamentoController {
         getRequiredOfficeId(req)
       );
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: mensagemSegura(err) });
     }
   }
 }

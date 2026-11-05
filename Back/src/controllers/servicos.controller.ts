@@ -3,9 +3,11 @@ import { ServicosService } from "../services/servicos.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
 import { Prisma } from "../generated/prisma/client.js";
 import { parsePaginacao, responderLista, textoQuery } from "../utils/paginacao.js";
+import { mensagemSegura } from "../utils/httpError.js";
 
 function isNotFound(err: any): boolean {
-  const msg = (err?.message ?? "").toLowerCase();
+  // Só erro de negócio conta: a mensagem de um erro inesperado nunca vai para o usuário.
+  const msg = mensagemSegura(err, "").toLowerCase();
   return msg.includes("nao encontrado") || msg.includes("não encontrado");
 }
 
@@ -23,7 +25,7 @@ export const ServicosController = {
       );
     } catch (err: any) {
       console.error("Erro ao listar servicos:", err);
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: mensagemSegura(err) });
     }
   },
 
@@ -31,7 +33,7 @@ export const ServicosController = {
     try {
       return res.json(await ServicosService.getById(Number(req.params.id), getRequiredOfficeId(req)));
     } catch (err: any) {
-      if (isNotFound(err)) return res.status(404).json({ message: err.message });
+      if (isNotFound(err)) return res.status(404).json({ message: mensagemSegura(err) });
       console.error("Erro ao buscar servico:", err);
       return res.status(500).json({ error: "Erro interno" });
     }
@@ -47,7 +49,7 @@ export const ServicosController = {
         return res.status(409).json({ message: "Ja existe um servico com este nome nesta oficina." });
       }
       console.error("Erro ao criar servico:", err);
-      return res.status(400).json({ message: err.message });
+      return res.status(400).json({ message: mensagemSegura(err) });
     }
   },
 
@@ -56,9 +58,9 @@ export const ServicosController = {
       const atualizado = await ServicosService.update(Number(req.params.id), req.body, getRequiredOfficeId(req));
       return res.json(atualizado);
     } catch (err: any) {
-      if (isNotFound(err)) return res.status(404).json({ message: err.message });
+      if (isNotFound(err)) return res.status(404).json({ message: mensagemSegura(err) });
       console.error("Erro ao atualizar servico:", err);
-      return res.status(400).json({ message: err.message });
+      return res.status(400).json({ message: mensagemSegura(err) });
     }
   },
 
@@ -67,7 +69,7 @@ export const ServicosController = {
       await ServicosService.remove(Number(req.params.id), getRequiredOfficeId(req));
       return res.status(204).send();
     } catch (err: any) {
-      if (isNotFound(err)) return res.status(404).json({ message: err.message });
+      if (isNotFound(err)) return res.status(404).json({ message: mensagemSegura(err) });
       console.error("Erro ao remover servico:", err);
       return res.status(500).json({ error: "Erro interno" });
     }

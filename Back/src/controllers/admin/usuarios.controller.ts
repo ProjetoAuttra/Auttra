@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { UsuariosAdminService } from "../../services/admin/usuarios.service.js";
 import { AdminAuditService } from "../../services/admin/audit.service.js";
 import { updateEmailSchema } from "../../schemas/admin/usuarios.schema.js";
+import { mensagemSegura } from "../../utils/httpError.js";
 
 export const UsuariosAdminController = {
   async listar(req: Request, res: Response) {
@@ -35,7 +36,7 @@ export const UsuariosAdminController = {
       return res.json({ message: "E-mail atualizado com sucesso." });
     } catch (err: any) {
       if (err.message.includes("não encontrado") || err.message.includes("em uso")) {
-        return res.status(400).json({ message: err.message });
+        return res.status(400).json({ message: mensagemSegura(err) });
       }
       console.error("Erro ao atualizar e-mail:", err);
       return res.status(500).json({ message: "Erro interno." });
@@ -62,7 +63,7 @@ export const UsuariosAdminController = {
       });
     } catch (err: any) {
       if (err.message.includes("não encontrado")) {
-        return res.status(404).json({ message: err.message });
+        return res.status(404).json({ message: mensagemSegura(err) });
       }
       console.error("Erro ao redefinir senha:", err);
       return res.status(500).json({ message: "Erro interno." });
