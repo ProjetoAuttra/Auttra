@@ -5,6 +5,9 @@ import { canAccess } from "../permissions/accessProfiles.js";
 import { getJwtSecret } from "../config/env.js";
 import { sessaoValida } from "../services/sessao.service.js";
 
+/** Código do 401 de sessão que não vale mais (token vencido, adulterado ou revogado): o front volta para o login. */
+export const SESSAO_INVALIDA = "SESSAO_INVALIDA";
+
 export type UserPayload = {
   id: number;
   email: string;
@@ -41,17 +44,17 @@ export const authMiddleware = async (
   try {
     decoded = jwt.verify(token, getJwtSecret()) as UserPayload;
   } catch {
-    return res.status(401).json({ message: "Token inválido" });
+    return res.status(401).json({ message: "Token inválido", code: SESSAO_INVALIDA });
   }
 
   // Tokens de uso único (seleção de oficina, 2FA pendente, e-mail verificado) não autenticam requisições.
   if (typeof decoded.id !== "number" || (decoded as { purpose?: string }).purpose) {
-    return res.status(401).json({ message: "Token inválido" });
+    return res.status(401).json({ message: "Token inválido", code: SESSAO_INVALIDA });
   }
 
   try {
     if (!(await sessaoValida(decoded))) {
-      return res.status(401).json({ message: "Sessão encerrada. Faça login novamente." });
+      return res.status(401).json({ message: "Sessão encerrada. Faça login novamente.", code: SESSAO_INVALIDA });
     }
   } catch (err) {
     console.error("Erro ao validar sessão:", err);

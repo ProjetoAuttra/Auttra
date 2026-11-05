@@ -35,13 +35,15 @@ api.interceptors.request.use((config) => {
 
 /**
  * A sessão deste navegador não vale mais: o token venceu (8h), foi adulterado ou foi revogado no servidor
- * (senha trocada, acesso removido). Usa as mensagens do ensureAuth do back; o 401 de senha errada no login
- * e o da seleção de oficina têm outras mensagens e não entram aqui. Só conta quando um token foi enviado.
+ * (senha trocada, acesso removido). O ensureAuth do back marca esse 401 com `code: "SESSAO_INVALIDA"`; o 401 de
+ * senha errada no login e o da seleção de oficina não têm esse código. Só conta quando um token foi enviado.
  */
 export function sessaoInvalida(error: unknown): boolean {
   if (!axios.isAxiosError(error) || error.response?.status !== 401 || !error.config?.headers?.Authorization) return false;
-  const mensagem = error.response.data?.message;
-  return typeof mensagem === "string" && (mensagem === "Token inválido" || mensagem.startsWith("Sessão encerrada"));
+  const { code, message } = error.response.data ?? {};
+  if (code === "SESSAO_INVALIDA") return true;
+  // Back anterior ao `code` (janela do deploy): reconhece pelas mensagens. Pode sair depois do próximo deploy.
+  return typeof message === "string" && (message === "Token inválido" || message.startsWith("Sessão encerrada"));
 }
 
 // Sessão inválida: limpa o login local e volta para a tela de entrada (que, sem token, não redireciona de volta).
