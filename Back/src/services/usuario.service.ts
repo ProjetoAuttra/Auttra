@@ -1,6 +1,6 @@
 import { prisma } from "../prisma/client.js";
 import bcrypt from "bcryptjs";
-import type { Prisma, tipo_usuario, status_usuario } from "@prisma/client";
+import type { Prisma, tipo_usuario, status_usuario } from "../generated/prisma/client.js";
 import { HttpError } from "../utils/httpError.js";
 import { PerfisAcessoService } from "./perfisAcesso.service.js";
 import { invalidarTokens, limparCacheSessao } from "./sessao.service.js";

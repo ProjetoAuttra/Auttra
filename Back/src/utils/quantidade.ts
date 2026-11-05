@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../generated/prisma/client.js";
 import { HttpError } from "./httpError.js";
 
 export const QUANTIDADE_MAXIMA = 99999;

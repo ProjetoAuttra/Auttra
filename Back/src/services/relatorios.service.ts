@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../prisma/client.js";
 import { HttpError } from "../utils/httpError.js";
 import { FUSO_OFICINA as FUSO, hojeISO } from "../utils/datas.js";

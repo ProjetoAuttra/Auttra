@@ -2,10 +2,9 @@
 // Uso: npm run seed:dev  (login: lucas@teste.com / senha123)
 import "dotenv/config";
 import bcrypt from "bcryptjs";
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma } from "../src/generated/prisma/client.js";
+import { prisma } from "../src/prisma/client.js";
 import { DEFAULT_ACCESS_PROFILES } from "../src/permissions/accessProfiles.js";
-
-const prisma = new PrismaClient();
 
 const EMAIL = "lucas@teste.com";
 const SENHA = "senha123";
@@ -192,6 +191,7 @@ async function criarDadosExemplo(oficinaId: number, usuarioId: number, cidadeId:
     const servico = servicos[o.servico];
     await prisma.orcamento.create({
       data: {
+        oficina_id: oficina.id,
         cliente_id: cliente.id,
         veiculo_id: veiculo.id,
         descricao: o.descricao,

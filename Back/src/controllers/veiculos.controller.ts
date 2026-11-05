@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { VeiculosService } from "../services/veiculos.service.js";
 import { getRequiredOfficeId } from "../middlewares/ensureAuth.js";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../generated/prisma/client.js";
 import { parsePaginacao, responderLista, textoQuery } from "../utils/paginacao.js";
 
 export const VeiculosController = {

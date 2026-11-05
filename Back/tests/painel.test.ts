@@ -64,9 +64,9 @@ describe.skipIf(!process.env.DATABASE_URL)("painel: resumo da tela de inicio", (
     await pagamento("pagar", vencimento(1), 120); // vence amanha
     await pagamento("pagar", vencimento(20), 500); // fora da semana
 
-    await prisma.orcamento.create({ data: { descricao: "Antigo", valor: 100, data: new Date(), status: "analise", cliente_id: cliente, veiculo_id: veiculo, created_at: diasAtras(5) } });
-    await prisma.orcamento.create({ data: { descricao: "Recente", valor: 100, data: new Date(), status: "analise", cliente_id: cliente, veiculo_id: veiculo } });
-    await prisma.orcamento.create({ data: { descricao: "Aprovado", valor: 100, data: new Date(), status: "aprovado", cliente_id: cliente, veiculo_id: veiculo, created_at: diasAtras(5) } });
+    await prisma.orcamento.create({ data: { descricao: "Antigo", valor: 100, data: new Date(), status: "analise", oficina_id: oficinaId, cliente_id: cliente, veiculo_id: veiculo, created_at: diasAtras(5) } });
+    await prisma.orcamento.create({ data: { descricao: "Recente", valor: 100, data: new Date(), status: "analise", oficina_id: oficinaId, cliente_id: cliente, veiculo_id: veiculo } });
+    await prisma.orcamento.create({ data: { descricao: "Aprovado", valor: 100, data: new Date(), status: "aprovado", oficina_id: oficinaId, cliente_id: cliente, veiculo_id: veiculo, created_at: diasAtras(5) } });
 
     await prisma.peca.create({ data: { oficina_id: oficinaId, nome: `Baixa ${suffix}`, preco_custo: 1, preco_venda: 2, estoque: 3 } });
     await prisma.peca.create({ data: { oficina_id: oficinaId, nome: `Ok ${suffix}`, preco_custo: 1, preco_venda: 2, estoque: 4 } });
@@ -81,7 +81,7 @@ describe.skipIf(!process.env.DATABASE_URL)("painel: resumo da tela de inicio", (
 
   afterAll(async () => {
     await prisma.agendamento.deleteMany({ where: { oficina_id: oficinaId } });
-    await prisma.orcamento.deleteMany({ where: { cliente: { oficina_id: oficinaId } } });
+    await prisma.orcamento.deleteMany({ where: { oficina_id: oficinaId } });
     await prisma.pagamento.deleteMany({ where: { oficina_id: oficinaId } });
     await prisma.ordem_servico.deleteMany({ where: { oficina_id: oficinaId } });
     await prisma.peca.deleteMany({ where: { oficina_id: oficinaId } });

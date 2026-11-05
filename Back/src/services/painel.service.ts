@@ -42,8 +42,8 @@ async function financeiro(oficinaId: number, hoje: string) {
     faturado(periodo.inicio, periodo.fim),
     faturado(periodo.anterior.inicio, periodo.anterior.fim),
     prisma.$queryRaw<Array<{ dia: string; total: unknown }>>`
-      -- colunas timestamp sem fuso guardam UTC: converte para UTC e so depois para o fuso da oficina
-      SELECT to_char((COALESCE(data_fechamento, updated_at) AT TIME ZONE 'UTC') AT TIME ZONE ${FUSO}, 'YYYY-MM-DD') AS dia, SUM(valor_total) AS total
+      -- colunas timestamptz: AT TIME ZONE devolve a hora local da oficina, de onde sai o dia
+      SELECT to_char(COALESCE(data_fechamento, updated_at) AT TIME ZONE ${FUSO}, 'YYYY-MM-DD') AS dia, SUM(valor_total) AS total
       FROM ordem_servico
       WHERE oficina_id = ${oficinaId} AND deleted_at IS NULL AND status = 'concluida'
         AND COALESCE(data_fechamento, updated_at) >= ${inicioGrafico} AND COALESCE(data_fechamento, updated_at) < ${fimGrafico}
@@ -103,8 +103,8 @@ async function orcamentosSemResposta(oficinaId: number) {
   const limite = new Date(Date.now() - DIAS_ORCAMENTO_SEM_RESPOSTA * DIA_MS);
   const [r] = await prisma.$queryRaw<Array<{ qtd: bigint }>>`
     SELECT COUNT(*) AS qtd
-    FROM orcamento o JOIN cliente c ON c.id = o.cliente_id
-    WHERE c.oficina_id = ${oficinaId} AND o.deleted_at IS NULL AND o.status = 'analise' AND o.created_at <= ${limite}
+    FROM orcamento o
+    WHERE o.oficina_id = ${oficinaId} AND o.deleted_at IS NULL AND o.status = 'analise' AND o.created_at <= ${limite}
   `;
   return Number(r?.qtd ?? 0);
 }
