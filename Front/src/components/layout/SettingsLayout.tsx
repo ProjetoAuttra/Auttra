@@ -35,7 +35,7 @@ const groups: SettingsGroup[] = [
       { label: "Financeiro", icon: <PaymentsOutlinedIcon />, path: paths.settings, section: "financeiro", module: "configuracoes" },
       { label: "Orçamentos e OS", icon: <DescriptionOutlinedIcon />, path: paths.settings, section: "documentos", module: "configuracoes" },
       { label: "Notificações", icon: <NotificationsNoneRoundedIcon />, path: paths.settings, section: "notificacoes", module: "configuracoes" },
-      { label: "Recursos adicionais", icon: <WidgetsOutlinedIcon />, path: paths.recursosAdicionais, module: "recursos_adicionais" },
+      { label: "Recursos do sistema", icon: <WidgetsOutlinedIcon />, path: paths.recursosAdicionais, module: "recursos_adicionais" },
     ],
   },
   {

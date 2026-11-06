@@ -35,7 +35,7 @@ export const moduleLabels: Record<AccessModule, string> = {
   funcionarios: "Funcionários",
   relatorios: "Relatórios",
   configuracoes: "Configurações",
-  recursos_adicionais: "Recursos adicionais",
+  recursos_adicionais: "Recursos do sistema",
 };
 
 export const actionLabels: Record<AccessAction, string> = {
