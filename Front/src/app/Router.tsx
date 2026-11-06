@@ -14,6 +14,8 @@ import { moduleResourceMap, primeiraRotaPermitida } from '../routes/navegacao';
 // Cada tela vira um arquivo separado, baixado só quando o usuário entra nela: o Login
 // e a primeira tela abrem sem esperar o código do sistema inteiro.
 const ResetPassword = lazy(() => import('../modules/autenticacao/pages/ResetPassword'));
+const Cadastro = lazy(() => import('../modules/autenticacao/pages/Cadastro'));
+const ConfirmarEmail = lazy(() => import('../modules/autenticacao/pages/ConfirmarEmail'));
 const PublicTrackingPage = lazy(() => import('../modules/acompanhamento/PublicTrackingPage'));
 const Home = lazy(() => import('../modules/painel/pages/Home'));
 const Schedule = lazy(() => import('../modules/agenda/pages/Schedule'));
@@ -76,6 +78,8 @@ export default function Router() {
     <Routes>
       <Route path={paths.login} element={<Login />} />
       <Route path={paths.resetPassword} element={<ResetPassword />} />
+      <Route path={paths.cadastro} element={<Cadastro />} />
+      <Route path={paths.confirmarEmail} element={<ConfirmarEmail />} />
       <Route path={paths.acompanhamentoPublico} element={<PublicTrackingPage />} />
       <Route
         path={paths.root}

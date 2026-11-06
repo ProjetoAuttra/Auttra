@@ -5,9 +5,17 @@ declare global {
     __DRIVEON_CONFIG__?: {
       API_URL?: string;
       TURNSTILE_SITE_KEY?: string;
+      SITE_URL?: string;
     };
   }
 }
+
+/** Site institucional (landing), onde ficam os Termos de uso e a Política de Privacidade. */
+export const siteUrl = (
+  window.__DRIVEON_CONFIG__?.SITE_URL ||
+  import.meta.env.VITE_SITE_URL ||
+  "https://auttra.com.br"
+).replace(/\/+$/, "");
 
 export const turnstileSiteKey =
   window.__DRIVEON_CONFIG__?.TURNSTILE_SITE_KEY ||

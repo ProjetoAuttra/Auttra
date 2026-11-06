@@ -31,11 +31,24 @@ type SignInResult =
   | { requiresOfficeSelection: false }
   | { requiresOfficeSelection: true; selectionToken: string; oficinas: OfficeOption[] };
 
+export type DadosCadastro = {
+  nome: string;
+  oficina: string;
+  whatsapp: string;
+  email: string;
+  senha: string;
+  aceite_termos: boolean;
+  turnstileToken: string;
+  campanha?: Record<string, string> | null;
+  site?: string;
+};
+
 type AuthContextType = {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
   signIn: (email: string, password: string, remember: boolean, emailToken: string) => Promise<SignInResult>;
+  signUp: (dados: DadosCadastro) => Promise<void>;
   selectOffice: (selectionToken: string, oficinaId: number, remember: boolean) => Promise<void>;
   updateCurrentUser: (patch: Partial<User>) => void;
   can: (module: AccessModule, action?: AccessAction) => boolean;
@@ -97,6 +110,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { requiresOfficeSelection: false as const };
   }, []);
 
+  // Cadastro pelo site: o back já devolve a sessão; fica lembrada neste navegador (conta recém-criada).
+  const signUp = useCallback(async (dados: DadosCadastro) => {
+    const { data } = await api.post("/auth/cadastro", dados);
+    persist(data.token, normalizeUser(data.usuario), true);
+  }, []);
+
   const selectOffice = useCallback(async (selectionToken: string, oficinaId: number, remember: boolean) => {
     const { data } = await api.post("/auth/select-oficina", {
       selectionToken,
@@ -143,12 +162,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       token,
       isAuthenticated: !!token,
       signIn,
+      signUp,
       selectOffice,
       updateCurrentUser,
       can,
       signOut,
     }),
-    [user, token, signIn, selectOffice, updateCurrentUser, can]
+    [user, token, signIn, signUp, selectOffice, updateCurrentUser, can]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
