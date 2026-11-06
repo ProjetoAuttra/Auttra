@@ -61,7 +61,8 @@ const DEFAULT_PROFILES = [
   },
 ];
 
-async function ensureProfiles(tx: any, oficinaId: number) {
+/** Cria (ou restaura) os perfis padrão da oficina e devolve o de proprietário. Usado também pelo cadastro do site. */
+export async function ensureProfiles(tx: any, oficinaId: number) {
   for (const perfil of DEFAULT_PROFILES) {
     await tx.perfil_acesso.upsert({
       where: { oficina_id_nome: { oficina_id: oficinaId, nome: perfil.nome } },
