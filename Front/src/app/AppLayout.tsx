@@ -7,6 +7,8 @@ import { useSidebar } from '../context/SidebarContext';
 import { ToastProvider } from '../context/ToastContext';
 import { ConfirmProvider } from '../context/ConfirmContext';
 import CarregandoTela from '../components/common/CarregandoTela';
+import FaixaAssinatura from '../components/layout/FaixaAssinatura';
+import { AssinaturaProvider } from '../context/AssinaturaContext';
 
 export default function AppLayout() {
   const drawerWidth = 248;
@@ -17,55 +19,58 @@ export default function AppLayout() {
   const currentWidth = collapsed ? collapsedWidth : drawerWidth;
 
   return (
-    <ToastProvider>
-      <ConfirmProvider>
-        <Box
-          sx={{
-            display: 'flex',
-            minHeight: '100dvh',
-            bgcolor: 'background.default',
-          }}
-        >
-          <AppTopbar onMenuClick={() => setMobileOpen(true)} leftOffset={currentWidth} />
-          <AppSidebar
-            drawerWidth={drawerWidth}
-            mobileOpen={mobileOpen}
-            onCloseMobile={() => setMobileOpen(false)}
-          />
+    <AssinaturaProvider>
+      <ToastProvider>
+        <ConfirmProvider>
           <Box
-            component="main"
             sx={{
-              flexGrow: 1,
-              ml: { xs: 0, md: `${currentWidth}px` },
-              width: { xs: '100%', md: `calc(100% - ${currentWidth}px)` },
-              minHeight: '100dvh',
-              transition: 'all 0.3s ease',
               display: 'flex',
-              flexDirection: 'column',
+              minHeight: '100dvh',
               bgcolor: 'background.default',
-              overflow: 'hidden',
             }}
           >
-            <Toolbar sx={{ flexShrink: 0 }} />
+            <AppTopbar onMenuClick={() => setMobileOpen(true)} leftOffset={currentWidth} />
+            <AppSidebar
+              drawerWidth={drawerWidth}
+              mobileOpen={mobileOpen}
+              onCloseMobile={() => setMobileOpen(false)}
+            />
             <Box
+              component="main"
               sx={{
                 flexGrow: 1,
-                width: '100%',
-                maxWidth: 1500,
-                mx: 'auto',
-                px: { xs: 1.5, sm: 2.5, md: 4 },
-                pt: { xs: 1.5, md: 2 },
-                pb: { xs: 3, md: 4 },
-                overflow: 'auto',
+                ml: { xs: 0, md: `${currentWidth}px` },
+                width: { xs: '100%', md: `calc(100% - ${currentWidth}px)` },
+                minHeight: '100dvh',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                flexDirection: 'column',
+                bgcolor: 'background.default',
+                overflow: 'hidden',
               }}
             >
-              <Suspense fallback={<CarregandoTela />}>
-                <Outlet />
-              </Suspense>
+              <Toolbar sx={{ flexShrink: 0 }} />
+              <FaixaAssinatura />
+              <Box
+                sx={{
+                  flexGrow: 1,
+                  width: '100%',
+                  maxWidth: 1500,
+                  mx: 'auto',
+                  px: { xs: 1.5, sm: 2.5, md: 4 },
+                  pt: { xs: 1.5, md: 2 },
+                  pb: { xs: 3, md: 4 },
+                  overflow: 'auto',
+                }}
+              >
+                <Suspense fallback={<CarregandoTela />}>
+                  <Outlet />
+                </Suspense>
+              </Box>
             </Box>
           </Box>
-        </Box>
-      </ConfirmProvider>
-    </ToastProvider>
+        </ConfirmProvider>
+      </ToastProvider>
+    </AssinaturaProvider>
   );
 }

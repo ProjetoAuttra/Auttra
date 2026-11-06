@@ -32,6 +32,7 @@ import { useAdditionalResources } from '../../context/AdditionalResourcesContext
 import type { AccessModule } from '../../permissions/accessProfiles';
 import { brand } from '../../app/theme';
 import BrandLogoPlaceholder from './BrandLogoPlaceholder';
+import ItemPremium from './ItemPremium';
 import { settingsModules, settingsPaths } from './SettingsLayout';
 
 type Props = {
@@ -344,6 +345,8 @@ export default function AppSidebar({
       </Toolbar>
 
       <NavList onItemClick={onCloseMobile} collapsed={isCollapsed} />
+
+      <ItemPremium collapsed={isCollapsed} onClick={onCloseMobile} />
 
       {showToggle && (
         <Box
