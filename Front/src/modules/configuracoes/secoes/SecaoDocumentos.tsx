@@ -8,7 +8,7 @@ import {
   OBSERVACOES_MAX_CARACTERES,
   salvarConfigDocumentos,
 } from "../api/configuracoesOperacionais";
-import SecaoConfiguracao, { CampoNumero, LinhaConfiguracao } from "../components/SecaoConfiguracao";
+import SecaoConfiguracao, { CampoNumero, CartaoConfiguracao, LinhaConfiguracao } from "../components/SecaoConfiguracao";
 import { useSecaoConfig } from "../hooks/useSecaoConfig";
 
 export default function SecaoDocumentos({ podeEditar }: { podeEditar: boolean }) {
@@ -39,9 +39,10 @@ export default function SecaoDocumentos({ podeEditar }: { podeEditar: boolean })
       onSalvar={secao.salvar}
       onDescartar={secao.descartar}
     >
+      <CartaoConfiguracao titulo="Prazos" descricao="Valores padrão de garantia e validade.">
       <LinhaConfiguracao
         titulo="Prazo de garantia"
-        descricao={`Garantia dos serviços, impressa no orçamento e na OS. Mínimo de ${GARANTIA_MINIMA_DIAS} dias, que é a garantia legal.`}
+        descricao={`Impresso no orçamento e na OS. A garantia legal é de ${GARANTIA_MINIMA_DIAS} dias.`}
       >
         <CampoNumero
           label="Garantia"
@@ -57,7 +58,7 @@ export default function SecaoDocumentos({ podeEditar }: { podeEditar: boolean })
 
       <LinhaConfiguracao
         titulo="Validade padrão do orçamento"
-        descricao="Já vem preenchida no novo orçamento e pode ser trocada em cada um."
+        descricao="Vem preenchida no novo orçamento; dá para trocar em cada um."
       >
         <CampoNumero
           label="Validade"
@@ -71,13 +72,16 @@ export default function SecaoDocumentos({ podeEditar }: { podeEditar: boolean })
         />
       </LinhaConfiguracao>
 
+      </CartaoConfiguracao>
+
+      <CartaoConfiguracao titulo="Texto dos PDFs">
       <LinhaConfiguracao
         largo
-        titulo="Observações nos documentos"
-        descricao="Opcional. Sai junto dos termos no PDF do orçamento e da OS. Ex.: veículos não retirados em 30 dias pagam estadia."
+        titulo="Observações"
+        descricao="Opcional. Sai junto dos termos no PDF do orçamento e da OS."
       >
         <TextField
-          label="Observações"
+          placeholder="Ex.: veículos não retirados em 30 dias pagam estadia."
           size="small"
           multiline
           minRows={3}
@@ -87,9 +91,10 @@ export default function SecaoDocumentos({ podeEditar }: { podeEditar: boolean })
           disabled={bloqueado}
           error={!!erros?.observacoes}
           helperText={erros?.observacoes ?? `${documentos.observacoes.length}/${OBSERVACOES_MAX_CARACTERES} caracteres`}
-          inputProps={{ maxLength: OBSERVACOES_MAX_CARACTERES, "data-testid": "observacoes" }}
+          inputProps={{ maxLength: OBSERVACOES_MAX_CARACTERES, "aria-label": "Observações", "data-testid": "observacoes" }}
         />
       </LinhaConfiguracao>
+      </CartaoConfiguracao>
     </SecaoConfiguracao>
   );
 }

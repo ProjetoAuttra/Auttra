@@ -99,8 +99,6 @@ export function lerPercentual(texto: string): number | null {
 
 export const escreverPercentual = (valor: number) => `${String(valor).replace(".", ",")}%`;
 
-export const FORMAS_PAGAMENTO_SUGERIDAS = ["Pix", "Dinheiro", "Cartão de crédito", "Cartão de débito", "Boleto", "Transferência"];
-
 /** "Pix, Cartão, Dinheiro" → ["Pix", "Cartão", "Dinheiro"]. */
 export const lerFormasPagamento = (texto: string) =>
   texto

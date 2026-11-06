@@ -1,7 +1,7 @@
 import { Stack, TextField, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
 import { buscarConfigAgenda, defaultAgendaConfig, salvarConfigAgenda, type AgendaConfig } from "../api/configuracoesOperacionais";
-import SecaoConfiguracao, { CampoNumero, LinhaConfiguracao } from "../components/SecaoConfiguracao";
+import SecaoConfiguracao, { CampoNumero, CartaoConfiguracao, LinhaConfiguracao } from "../components/SecaoConfiguracao";
 import { useSecaoConfig } from "../hooks/useSecaoConfig";
 import {
   DIAS_SEMANA,
@@ -61,7 +61,8 @@ export default function SecaoAgenda({ podeEditar }: { podeEditar: boolean }) {
       onSalvar={secao.salvar}
       onDescartar={secao.descartar}
     >
-      <LinhaConfiguracao titulo="Horário de funcionamento" descricao="Quando a oficina abre e fecha.">
+      <CartaoConfiguracao titulo="Funcionamento" descricao="Quando a oficina está aberta para atender.">
+      <LinhaConfiguracao titulo="Horário" descricao="Abertura e fechamento.">
         <Stack direction="row" spacing={1.5} alignItems="flex-start">
           <TextField
             label="Início"
@@ -130,7 +131,9 @@ export default function SecaoAgenda({ podeEditar }: { podeEditar: boolean }) {
           />
         )}
       </LinhaConfiguracao>
+      </CartaoConfiguracao>
 
+      <CartaoConfiguracao titulo="Atendimento">
       <LinhaConfiguracao titulo="Tempo médio por serviço" descricao="Quanto dura, em média, um atendimento na oficina.">
         {minutos !== null ? (
           <CampoNumero
@@ -156,6 +159,7 @@ export default function SecaoAgenda({ podeEditar }: { podeEditar: boolean }) {
           />
         )}
       </LinhaConfiguracao>
+      </CartaoConfiguracao>
     </SecaoConfiguracao>
   );
 }

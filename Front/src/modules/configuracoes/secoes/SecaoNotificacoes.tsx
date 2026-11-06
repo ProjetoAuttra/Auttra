@@ -6,7 +6,7 @@ import {
   salvarConfigNotificacoes,
   type NotificationsConfig,
 } from "../../notificacoes/api";
-import SecaoConfiguracao, { CampoNumero, LinhaConfiguracao, SwitchAtivo } from "../components/SecaoConfiguracao";
+import SecaoConfiguracao, { CampoNumero, CartaoConfiguracao, LinhaConfiguracao, SwitchAtivo } from "../components/SecaoConfiguracao";
 import { useSecaoConfig } from "../hooks/useSecaoConfig";
 
 type Regra = keyof NotificationsConfig;
@@ -48,6 +48,12 @@ const regras: Record<Regra, { titulo: string; descricao: string; campos: Campo[]
 const valoresDa = (c: NotificationsConfig, r: Regra) => c[r] as ValoresRegra;
 
 const ordem: Regra[] = ["agenda", "financeiro", "estoque", "ordens", "orcamentos"];
+
+/** Cartões da tela: as regras agrupadas por assunto. */
+const grupos: { titulo: string; regras: Regra[] }[] = [
+  { titulo: "Atendimento", regras: ["agenda", "orcamentos", "ordens"] },
+  { titulo: "Financeiro e estoque", regras: ["financeiro", "estoque"] },
+];
 
 const numeroValido = (n: unknown) => typeof n === "number" && Number.isInteger(n) && n >= 0;
 
@@ -95,43 +101,49 @@ export default function SecaoNotificacoes({ podeEditar }: { podeEditar: boolean 
       podeEditar={podeEditar}
       onSalvar={secao.salvar}
       onDescartar={secao.descartar}
-      linhasEsqueleto={5}
+      esqueleto={[3, 2]}
     >
-      {ordem.map((r) => {
-        const regra = regras[r];
-        const atual = valoresDa(config, r);
-        return (
-          <LinhaConfiguracao key={r} titulo={regra.titulo} descricao={regra.descricao}>
-            <Stack direction="row" spacing={1.5} alignItems="flex-start">
-              <Box sx={{ flex: 1, display: "grid", gridTemplateColumns: `repeat(${regra.campos.length}, minmax(0, 1fr))`, gap: 1.5 }}>
-                {regra.campos.map((campo) => {
-                  const chave = campo.chave;
-                  const erro = erros?.[`${r}.${chave}`];
-                  return (
-                    <CampoNumero
-                      key={chave}
-                      label={campo.label}
-                      unidade={campo.unidade}
-                      valor={atual[chave] as number}
-                      onChange={(v) => setRegra(r, { [chave]: v })}
-                      disabled={bloqueado || !atual.ativo}
-                      error={!!erro}
-                      helperText={erro}
-                      inputProps={{ min: 0, step: 1, "data-testid": `${r}-${chave}` }}
+      {grupos.map((grupo) => (
+        <CartaoConfiguracao key={grupo.titulo} titulo={grupo.titulo}>
+          {grupo.regras.map((r) => {
+            const regra = regras[r];
+            const atual = valoresDa(config, r);
+            return (
+              <LinhaConfiguracao key={r} titulo={regra.titulo} descricao={regra.descricao}>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={{ xs: 1.5, sm: 2 }} alignItems={{ xs: "stretch", sm: "flex-start" }}>
+                  <Box sx={{ pt: 0.25, flexShrink: 0 }}>
+                    <SwitchAtivo
+                      rotulo={`Avisar ${regra.titulo.toLowerCase()}`}
+                      checked={atual.ativo}
+                      onChange={(ativo) => setRegra(r, { ativo })}
+                      disabled={bloqueado}
                     />
-                  );
-                })}
-              </Box>
-              <SwitchAtivo
-                rotulo={`Avisar ${regra.titulo.toLowerCase()}`}
-                checked={atual.ativo}
-                onChange={(ativo) => setRegra(r, { ativo })}
-                disabled={bloqueado}
-              />
-            </Stack>
-          </LinhaConfiguracao>
-        );
-      })}
+                  </Box>
+                  <Stack direction="row" spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
+                    {regra.campos.map((campo) => {
+                      const chave = campo.chave;
+                      const erro = erros?.[`${r}.${chave}`];
+                      return (
+                        <CampoNumero
+                          key={chave}
+                          label={campo.label}
+                          unidade={campo.unidade}
+                          valor={atual[chave] as number}
+                          onChange={(v) => setRegra(r, { [chave]: v })}
+                          disabled={bloqueado || !atual.ativo}
+                          error={!!erro}
+                          helperText={erro}
+                          inputProps={{ min: 0, step: 1, "data-testid": `${r}-${chave}` }}
+                        />
+                      );
+                    })}
+                  </Stack>
+                </Stack>
+              </LinhaConfiguracao>
+            );
+          })}
+        </CartaoConfiguracao>
+      ))}
     </SecaoConfiguracao>
   );
 }
