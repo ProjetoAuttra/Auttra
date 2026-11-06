@@ -1,7 +1,7 @@
 import { Autocomplete, TextField } from "@mui/material";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import { buscarConfigFinanceiro, defaultFinanceiroConfig, salvarConfigFinanceiro, type FinanceiroConfig } from "../api/configuracoesOperacionais";
-import SecaoConfiguracao, { CampoNumero, LinhaConfiguracao, SwitchAtivo } from "../components/SecaoConfiguracao";
+import SecaoConfiguracao, { CampoNumero, CartaoConfiguracao, LinhaConfiguracao, SwitchAtivo } from "../components/SecaoConfiguracao";
 import { useSecaoConfig } from "../hooks/useSecaoConfig";
 import {
   escreverFormasPagamento,
@@ -52,7 +52,8 @@ export default function SecaoFinanceiro({ podeEditar }: { podeEditar: boolean })
       onSalvar={secao.salvar}
       onDescartar={secao.descartar}
     >
-      <LinhaConfiguracao titulo="Formas de pagamento" descricao="Aceitas pela oficina. Saem no PDF do orçamento e da OS.">
+      <CartaoConfiguracao titulo="Pagamentos" descricao="Como a oficina recebe e o que cobra quando atrasa.">
+      <LinhaConfiguracao titulo="Formas de pagamento" descricao="Saem no PDF do orçamento e da OS.">
         <Autocomplete
           multiple
           freeSolo
@@ -74,7 +75,7 @@ export default function SecaoFinanceiro({ podeEditar }: { podeEditar: boolean })
         />
       </LinhaConfiguracao>
 
-      <LinhaConfiguracao titulo="Juros por atraso" descricao="Percentual cobrado sobre valores pagos depois do vencimento.">
+      <LinhaConfiguracao titulo="Juros por atraso" descricao="Cobrado sobre valores pagos depois do vencimento.">
         {juros !== null ? (
           <CampoNumero
             label="Juros"
@@ -99,8 +100,10 @@ export default function SecaoFinanceiro({ podeEditar }: { podeEditar: boolean })
           />
         )}
       </LinhaConfiguracao>
+      </CartaoConfiguracao>
 
-      <LinhaConfiguracao titulo="Emissão automática de recibos" descricao="Gera o recibo quando uma conta a receber é marcada como paga.">
+      <CartaoConfiguracao titulo="Recibos">
+      <LinhaConfiguracao titulo="Emissão automática" descricao="Gera o recibo quando uma conta a receber é marcada como paga.">
         <SwitchAtivo
           rotulo="Emissão automática de recibos"
           checked={financeiro.emitirRecibos}
@@ -108,6 +111,7 @@ export default function SecaoFinanceiro({ podeEditar }: { podeEditar: boolean })
           disabled={bloqueado}
         />
       </LinhaConfiguracao>
+      </CartaoConfiguracao>
     </SecaoConfiguracao>
   );
 }
