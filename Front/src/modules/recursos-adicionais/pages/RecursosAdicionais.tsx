@@ -82,8 +82,9 @@ export default function RecursosAdicionais() {
         descricao={`${ativos} de ${additionalResourceKeys.length} ativos. Os desativados deixam de aparecer no menu lateral.`}
       >
         {recursos.map((item) => (
-          <LinhaConfiguracao key={item.id} titulo={item.label} descricao={item.description}>
+          <LinhaConfiguracao interruptor key={item.id} titulo={item.label} descricao={item.description}>
             <SwitchAtivo
+              textoAntes
               rotulo={`Ativar ${item.label}`}
               checked={form[item.id]}
               onChange={(ativo) => setForm((prev) => ({ ...prev, [item.id]: ativo }))}
