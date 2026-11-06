@@ -1,7 +1,6 @@
 import * as React from "react";
 import {
   Box,
-  CircularProgress,
   Table,
   TableBody,
   TableCell,
@@ -26,6 +25,7 @@ import {
   todayISO, TituloSecao } from "../../shared/reportUtils";
 import FiltrosRelatorio, { type CampoFiltro } from "../../shared/FiltrosRelatorio";
 import { GraficoPizza, GraficoEntradasSaidas, chaveSemana, rotuloSemana, semanasDoPeriodo } from "../../shared/graficos";
+import EsqueletoPagina from "../../../../components/common/EsqueletoPagina";
 
 type Pagamento = {
   id: number;
@@ -194,7 +194,7 @@ export default function RelatorioFinanceiro() {
     );
   };
 
-  if (loading) return <Box sx={{ textAlign: "center", mt: 6 }}><CircularProgress /></Box>;
+  if (loading) return <EsqueletoPagina />;
 
   return (
     <ReportPage>

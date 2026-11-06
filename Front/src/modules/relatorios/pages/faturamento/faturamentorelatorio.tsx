@@ -1,10 +1,11 @@
 import * as React from "react";
-import { Box, CircularProgress, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import { Box, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
 import { EmptyReport, MetricCard, ReportHeader, ReportPage, StatGroup, TituloSecao, brl, exportCsv, periodoMesAtual } from "../../shared/reportUtils";
 import { GraficoBarrasHorizontais, GraficoColunas, GraficoPizza, chaveSemana, rotuloSemana, semanasDoPeriodo } from "../../shared/graficos";
 import { useRelatorio } from "../../shared/useRelatorio";
 import FiltrosRelatorio, { type CampoFiltro } from "../../shared/FiltrosRelatorio";
 import { useOpcoesRelatorio } from "../../shared/useOpcoesRelatorio";
+import { EsqueletoConteudo } from "../../../../components/common/EsqueletoPagina";
 
 type Faturamento = {
   periodo: { de: string; ate: string };
@@ -60,7 +61,7 @@ export default function FaturamentoRelatorio() {
       <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} />
 
       {carregando && !dados ? (
-        <Box sx={{ textAlign: "center", mt: 6 }}><CircularProgress /></Box>
+        <EsqueletoConteudo />
       ) : !dados ? (
         <EmptyReport message="Não foi possível carregar o relatório." />
       ) : (

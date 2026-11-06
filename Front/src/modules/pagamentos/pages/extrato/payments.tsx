@@ -1,6 +1,6 @@
 import * as React from "react";
 import {
-  Box, Button, Chip, CircularProgress, Fade, MenuItem, Stack, Table, TableBody, TableCell, TableHead,
+  Box, Button, Chip, Fade, MenuItem, Stack, Table, TableBody, TableCell, TableHead,
   TablePagination, TableRow, TextField, Typography,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
@@ -18,6 +18,7 @@ import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
 import TextoLimitado from "../../../../components/common/TextoLimitado";
 import { METODO_LABEL, brl, formatarData } from "../../api/api";
+import LinhasEsqueleto from "../../../../components/common/LinhasEsqueleto";
 
 /** Título pago, como vem de GET /pagamentos. */
 type Movimento = {
@@ -99,7 +100,6 @@ export default function ExtratoFinanceiro() {
 
   const valorCard = (v: number | undefined) => (resumoFalhou || v === undefined ? "—" : brl(v));
 
-  if (carregandoInicial) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
 
   return (
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
@@ -179,7 +179,7 @@ export default function ExtratoFinanceiro() {
               </TableRow>
             </TableHead>
             <TableBody sx={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}>
-              {rows.length > 0 ? rows.map((m) => {
+              {carregandoInicial ? <LinhasEsqueleto colunas={6} /> : rows.length > 0 ? rows.map((m) => {
                 const entrada = m.tipo === "receber";
                 return (
                   <TableRow key={m.id} hover sx={{ height: 56 }}>

@@ -13,7 +13,7 @@ import { paths } from "../../routes/paths";
 import { useAuth } from "../../context/AuthContext";
 import type { AccessModule } from "../../permissions/accessProfiles";
 import { brand } from "../../app/theme";
-import CarregandoTela from "../common/CarregandoTela";
+import EsqueletoPagina from "../common/EsqueletoPagina";
 
 type SettingsItem = {
   label: string;
@@ -128,7 +128,7 @@ export default function SettingsLayout() {
       </Box>
 
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Suspense fallback={<CarregandoTela />}>
+        <Suspense fallback={<EsqueletoPagina />}>
           <Outlet />
         </Suspense>
       </Box>

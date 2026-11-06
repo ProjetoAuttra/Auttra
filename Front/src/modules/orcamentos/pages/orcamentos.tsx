@@ -3,7 +3,7 @@ import {
   Box, Stack, Typography, Button,
   IconButton, Table, TableBody, TableCell, TableHead,
   TableRow, Menu, MenuItem, Fade, Chip, TablePagination,
-  CircularProgress, Divider, Link,
+  Divider, Link,
 } from "@mui/material";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
@@ -30,6 +30,7 @@ import { linhaClicavel } from "../../../components/common/linhaClicavel";
 import { formatarData } from "../../pagamentos/api/api";
 import { brand } from "../../../app/theme";
 import { useAcoesOrcamento } from "../useAcoesOrcamento";
+import LinhasEsqueleto from "../../../components/common/LinhasEsqueleto";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -225,7 +226,6 @@ export default function OrcamentosPage() {
     }
   };
 
-  if (carregandoInicial) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
 
   return (
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
@@ -264,7 +264,7 @@ export default function OrcamentosPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {orcamentos.length > 0 ? orcamentos.map((o) => {
+              {carregandoInicial ? <LinhasEsqueleto colunas={7} /> : orcamentos.length > 0 ? orcamentos.map((o) => {
                 const st = STATUS_CONFIG[o.status] ?? STATUS_CONFIG.analise;
                 const os = o.ordens?.[0];
                 // Um botão por situação, com o próximo passo do orçamento; recusado não tem ação.

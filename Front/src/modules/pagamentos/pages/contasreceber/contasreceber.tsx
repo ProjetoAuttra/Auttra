@@ -37,6 +37,7 @@ import FiltrosContas, { filtrosPadrao, paramsFiltros, temFiltroAtivo, useFiltros
 import { ReceberTituloDialog, RenegociarTituloDialog } from "../../dialogs/TituloDialogs";
 import { EditarContaDialog } from "../../dialogs/EditarContaDialog";
 import { formatPreco, parsePreco } from "../../../../utils/masks";
+import LinhasEsqueleto from "../../../../components/common/LinhasEsqueleto";
 
 type Acao = "pagar" | "estornar" | "detalhes" | "renegociar" | "editar" | null;
 
@@ -146,7 +147,6 @@ export default function ContasReceber() {
     { label: "A vencer (mês)",   value: brl(aVencer),       icon: <ScheduleRoundedIcon />,       tone: "warning" },
   ] as const;
 
-  if (carregandoInicial) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
 
   return (
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
@@ -197,7 +197,7 @@ export default function ContasReceber() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {contas.length > 0 ? contas.map((conta) => {
+              {carregandoInicial ? <LinhasEsqueleto colunas={7} /> : contas.length > 0 ? contas.map((conta) => {
                 const liquido = valorLiquido(conta);
                 return (
                   <TableRow

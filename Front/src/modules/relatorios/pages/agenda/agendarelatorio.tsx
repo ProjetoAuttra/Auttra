@@ -9,14 +9,14 @@ import {
   TableHead,
   TableRow,
   Button,
-  CircularProgress,
-} from '@mui/material';
+  } from '@mui/material';
 import FileDownloadRoundedIcon from '@mui/icons-material/FileDownloadRounded';
 import { buscarTodas } from '../../shared/buscarTodas';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../context/ToastContext';
 import FiltrosRelatorio, { type CampoFiltro } from '../../shared/FiltrosRelatorio';
 import { inDateRange, periodoMesAtual } from '../../shared/reportUtils';
+import EsqueletoPagina from "../../../../components/common/EsqueletoPagina";
 
 type Agendamento = {
   id: number;
@@ -109,11 +109,7 @@ export default function RelatorioAgenda() {
   };
 
   if (loading)
-    return (
-      <Box sx={{ textAlign: 'center', mt: 6 }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <EsqueletoPagina />;
 
   return (
     <Box sx={{ maxWidth: 1500, mx: 'auto' }}>
