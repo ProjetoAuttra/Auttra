@@ -14,7 +14,8 @@ type Props = {
   /** Ex.: "Cliente", "Veículo" — vira "Cliente não encontrado." */
   registro: string;
   onTentarNovamente?: () => void;
-  onVoltar: () => void;
+  /** Sem `onVoltar` o botão Voltar some (ex.: seções de Configurações, que não têm para onde voltar). */
+  onVoltar?: () => void;
   /** Concorda o texto com registros femininos: "Ordem de serviço não encontrada." */
   feminino?: boolean;
 };
@@ -34,9 +35,11 @@ export default function FalhaCarregamento({ motivo, registro, onTentarNovamente,
           : "Verifique sua conexão e tente de novo. Se continuar, fale com o suporte."}
       </Typography>
       <Stack direction="row" spacing={1.5} justifyContent="center" sx={{ mt: 3 }}>
-        <Button variant="outlined" startIcon={<ArrowBackRoundedIcon />} onClick={onVoltar}>
-          Voltar
-        </Button>
+        {onVoltar && (
+          <Button variant="outlined" startIcon={<ArrowBackRoundedIcon />} onClick={onVoltar}>
+            Voltar
+          </Button>
+        )}
         {!naoEncontrado && onTentarNovamente && (
           <Button variant="contained" disableElevation startIcon={<RefreshRoundedIcon />} onClick={onTentarNovamente}>
             Tentar novamente
