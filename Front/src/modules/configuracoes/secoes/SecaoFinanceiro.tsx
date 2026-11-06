@@ -1,12 +1,12 @@
-import { Autocomplete, TextField } from "@mui/material";
+import { Box, Checkbox, ListItemText, MenuItem, TextField } from "@mui/material";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import { buscarConfigFinanceiro, defaultFinanceiroConfig, salvarConfigFinanceiro, type FinanceiroConfig } from "../api/configuracoesOperacionais";
 import SecaoConfiguracao, { CampoNumero, CartaoConfiguracao, LinhaConfiguracao, SwitchAtivo } from "../components/SecaoConfiguracao";
 import { useSecaoConfig } from "../hooks/useSecaoConfig";
+import { METODO_OPTIONS } from "../../pagamentos/api/api";
 import {
   escreverFormasPagamento,
   escreverPercentual,
-  FORMAS_PAGAMENTO_SUGERIDAS,
   lerFormasPagamento,
   lerPercentual,
 } from "../utils/formatosConfig";
@@ -32,7 +32,12 @@ export default function SecaoFinanceiro({ podeEditar }: { podeEditar: boolean })
   const erros = secao.mostrarErros ? errosFinanceiro(financeiro) : null;
   const bloqueado = !podeEditar || secao.salvando;
 
-  const formas = lerFormasPagamento(financeiro.formasPagamento);
+  // Opções = as formas que o sistema registra nos pagamentos. Uma forma salva antes que não está
+  // na lista (texto livre antigo) continua aparecendo marcada, para não se perder.
+  const mesmoNome = (a: string, b: string) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }) === 0;
+  const canonica = (forma: string) => METODO_OPTIONS.find((m) => mesmoNome(m.label, forma))?.label ?? forma;
+  const formas = lerFormasPagamento(financeiro.formasPagamento).map(canonica);
+  const opcoesFormas = [...METODO_OPTIONS.map((m) => m.label), ...formas.filter((f) => !METODO_OPTIONS.some((m) => m.label === f))];
   // Vazio conta como "no formato": apagar o campo não pode trocar o controle no meio da edição.
   const juros = financeiro.jurosAtraso.trim() ? lerPercentual(financeiro.jurosAtraso) : NaN;
 
@@ -54,25 +59,41 @@ export default function SecaoFinanceiro({ podeEditar }: { podeEditar: boolean })
     >
       <CartaoConfiguracao titulo="Pagamentos" descricao="Como a oficina recebe e o que cobra quando atrasa.">
       <LinhaConfiguracao titulo="Formas de pagamento" descricao="Saem no PDF do orçamento e da OS.">
-        <Autocomplete
-          multiple
-          freeSolo
+        <TextField
+          select
           size="small"
-          options={FORMAS_PAGAMENTO_SUGERIDAS}
+          fullWidth
+          label="Formas de pagamento"
           value={formas}
-          onChange={(_, novas) => set({ formasPagamento: escreverFormasPagamento(novas) })}
+          onChange={(e) => {
+            const marcadas = e.target.value as unknown as string[];
+            // Mantém a ordem da lista, não a ordem dos cliques.
+            set({ formasPagamento: escreverFormasPagamento(opcoesFormas.filter((o) => marcadas.includes(o))) });
+          }}
           disabled={bloqueado}
-          filterSelectedOptions
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Formas de pagamento"
-              placeholder={formas.length ? undefined : "Escolha ou digite"}
-              error={!!erros?.formasPagamento}
-              helperText={erros?.formasPagamento}
-            />
-          )}
-        />
+          error={!!erros?.formasPagamento}
+          helperText={erros?.formasPagamento}
+          InputLabelProps={{ shrink: true }}
+          SelectProps={{
+            multiple: true,
+            displayEmpty: true,
+            renderValue: (v) =>
+              (v as string[]).length ? (
+                (v as string[]).join(", ")
+              ) : (
+                <Box component="span" sx={{ color: "text.disabled" }}>
+                  Nenhuma forma de pagamento selecionada
+                </Box>
+              ),
+          }}
+        >
+          {opcoesFormas.map((forma) => (
+            <MenuItem key={forma} value={forma} dense>
+              <Checkbox size="small" checked={formas.includes(forma)} />
+              <ListItemText primary={forma} />
+            </MenuItem>
+          ))}
+        </TextField>
       </LinhaConfiguracao>
 
       <LinhaConfiguracao titulo="Juros por atraso" descricao="Cobrado sobre valores pagos depois do vencimento.">

@@ -159,6 +159,46 @@ describe("Configurações > Agenda", () => {
   });
 });
 
+describe("Configurações > Financeiro", () => {
+  it("marca as formas pela lista do sistema e salva na ordem da lista", async () => {
+    const user = abrir("financeiro");
+    await user.click(await screen.findByRole("combobox", { name: "Formas de pagamento" }));
+    const lista = await screen.findByRole("listbox");
+    expect(within(lista).getByRole("option", { name: "PIX" })).toHaveAttribute("aria-selected", "true");
+    expect(within(lista).getByRole("option", { name: "Boleto" })).toHaveAttribute("aria-selected", "false");
+
+    await user.click(within(lista).getByRole("option", { name: "Boleto" }));
+    await user.click(within(lista).getByRole("option", { name: "Dinheiro" }));
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByTestId("save-financeiro"));
+
+    await waitFor(() =>
+      expect(put).toHaveBeenCalledWith("/configuracoes/financeiro", expect.objectContaining({ formasPagamento: "PIX, Cartão, Boleto" }))
+    );
+  });
+
+  it("forma antiga fora da lista continua marcada", async () => {
+    respostas["/configuracoes/financeiro"] = { formasPagamento: "Pix, Cheque", emitirRecibos: true, jurosAtraso: "2%" };
+    const user = abrir("financeiro");
+    await user.click(await screen.findByRole("combobox", { name: "Formas de pagamento" }));
+    expect(within(await screen.findByRole("listbox")).getByRole("option", { name: "Cheque" })).toHaveAttribute("aria-selected", "true");
+    respostas["/configuracoes/financeiro"] = { formasPagamento: "Pix, Cartão, Dinheiro", emitirRecibos: true, jurosAtraso: "2%" };
+  });
+
+  it("não salva sem nenhuma forma de pagamento", async () => {
+    respostas["/configuracoes/financeiro"] = { formasPagamento: "Pix", emitirRecibos: true, jurosAtraso: "2%" };
+    const user = abrir("financeiro");
+    await user.click(await screen.findByRole("combobox", { name: "Formas de pagamento" }));
+    await user.click(within(await screen.findByRole("listbox")).getByRole("option", { name: "PIX" }));
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByTestId("save-financeiro"));
+    expect(await screen.findByText("Escolha pelo menos uma forma de pagamento.")).toBeInTheDocument();
+    expect(screen.getByText("Nenhuma forma de pagamento selecionada")).toBeInTheDocument();
+    expect(put).not.toHaveBeenCalled();
+    respostas["/configuracoes/financeiro"] = { formasPagamento: "Pix, Cartão, Dinheiro", emitirRecibos: true, jurosAtraso: "2%" };
+  });
+});
+
 describe("Configurações > Notificações", () => {
   it("desligar uma regra bloqueia os campos dela e salva", async () => {
     const user = abrir("notificacoes");
