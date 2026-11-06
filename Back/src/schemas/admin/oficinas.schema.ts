@@ -110,13 +110,23 @@ export const criarOficinaSchema = z.object({
   assinatura: z.enum(["teste", "ativa"]).optional(),
 });
 
+// Na edição o endereço é opcional (oficina vinda do site não tem): vazio vira null.
+const cepOpcional = z.string()
+  .transform(apenasDigitos)
+  .refine((v) => !v || v.length === 8, "CEP deve ter 8 dígitos.")
+  .transform((v) => v || null);
+
+const ufOpcional = z.string().trim().toUpperCase()
+  .refine((v) => !v || (UFS as readonly string[]).includes(v), "UF inválida.")
+  .transform((v) => v || null);
+
 export const updateOficinaSchema = z.object({
   nome: campos.nome.optional(),
-  logradouro: campos.logradouro.optional(),
-  numero: campos.numero.optional(),
-  cidade: campos.cidade.optional(),
-  cep: campos.cep.optional(),
-  uf: campos.uf.optional(),
+  logradouro: textoOpcional("Logradouro", 150).nullable().optional(),
+  numero: textoOpcional("Número", 10).nullable().optional(),
+  cidade: textoOpcional("Cidade", 80).nullable().optional(),
+  cep: cepOpcional.nullable().optional(),
+  uf: ufOpcional.nullable().optional(),
   cnpj: campos.cnpj.nullable().optional(),
   complemento: campos.complemento.nullable().optional(),
   bairro: campos.bairro.nullable().optional(),

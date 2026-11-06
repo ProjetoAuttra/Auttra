@@ -5,19 +5,6 @@ import { Prisma } from "../generated/prisma/client.js";
 import { mensagemSegura } from "../utils/httpError.js";
 
 export const OficinaController = {
-  async create(req: Request, res: Response) {
-    try {
-      const oficina = await OficinaService.create(req.body);
-      return res.status(201).json(oficina);
-    } catch (err: any) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-        return res.status(409).json({ message: "Ja existe uma oficina com este nome, CNPJ ou e-mail." });
-      }
-      console.error("Erro ao criar oficina:", err);
-      return res.status(400).json({ message: mensagemSegura(err) });
-    }
-  },
-
   async list(req: Request, res: Response) {
     try {
       const oficinas = await OficinaService.list(getRequiredOfficeId(req));
@@ -45,7 +32,7 @@ export const OficinaController = {
       return res.json(oficina);
     } catch (err: any) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-        return res.status(409).json({ message: "Ja existe outra oficina com este nome, CNPJ ou e-mail." });
+        return res.status(409).json({ message: "Ja existe outra oficina com este CNPJ ou e-mail." });
       }
       console.error("Erro ao atualizar oficina:", err);
       return res.status(400).json({ message: mensagemSegura(err) });

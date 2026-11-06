@@ -295,6 +295,23 @@ describe.skipIf(!process.env.DATABASE_URL)("painel admin", () => {
       expect(salva).toMatchObject({ telefone: "1133334444", gestor_usuario_id: adminId });
     });
 
+    it("edita oficina sem endereço (vinda do site) e deixa limpar o endereço; cidade sem UF é recusada", async () => {
+      const body = await criarOficina("sem-endereco", email("sem-endereco"));
+      const cookie = cookieDe(await adminAtual());
+      const editar = (dados: object) => request(app).patch(`/api/admin/oficinas/${body.oficina.id}`).set("Cookie", cookie).send({
+        nome: body.oficina.nome, logradouro: "", numero: "", cep: "", cidade: "", uf: "", ...dados,
+      });
+
+      const res = await editar({ notas_internas: "Veio do site" });
+      expect(res.status).toBe(200);
+      const salva = await prisma.oficina.findUniqueOrThrow({ where: { id: body.oficina.id } });
+      expect(salva).toMatchObject({ logradouro: null, numero: null, cep: null, cidade_id: null, notas_internas: "Veio do site" });
+
+      const semUf = await editar({ cidade: "Campinas" });
+      expect(semUf.status).toBe(400);
+      expect((await editar({ cep: "123" })).status).toBe(400);
+    });
+
     it("grava dados da empresa e do proprietário no cadastro", async () => {
       const res = await request(app).post("/api/admin/oficinas").set("Cookie", cookieDe(await adminAtual())).send({
         oficina: {

@@ -396,11 +396,11 @@ export const OficinasAdminService = {
   async update(id: number, data: Partial<{
     nome: string;
     cnpj: string | null;
-    logradouro: string;
-    numero: string;
-    cep: string;
-    cidade: string;
-    uf: string;
+    logradouro: string | null;
+    numero: string | null;
+    cep: string | null;
+    cidade: string | null;
+    uf: string | null;
     telefone: string | null;
     whatsapp: string | null;
     email: string | null;
@@ -418,14 +418,19 @@ export const OficinasAdminService = {
     delete updateData.cidade;
     delete updateData.uf;
 
-    if (data.cidade || data.uf) {
+    // Cidade e UF andam juntas: as duas vazias tiram a cidade; só uma delas é erro.
+    if (data.cidade !== undefined || data.uf !== undefined) {
       const cidadeNome = data.cidade;
       const uf = data.uf?.toUpperCase();
-      if (!cidadeNome || !uf) throw new Error("Cidade e UF devem ser informadas juntas.");
-      const cidade =
-        (await prisma.cidade.findFirst({ where: { nome: cidadeNome, uf } })) ??
-        (await prisma.cidade.create({ data: { nome: cidadeNome, uf } }));
-      updateData.cidade_id = cidade.id;
+      if (!cidadeNome && !uf) {
+        updateData.cidade_id = null;
+      } else {
+        if (!cidadeNome || !uf) throw new Error("Cidade e UF devem ser informadas juntas.");
+        const cidade =
+          (await prisma.cidade.findFirst({ where: { nome: cidadeNome, uf } })) ??
+          (await prisma.cidade.create({ data: { nome: cidadeNome, uf } }));
+        updateData.cidade_id = cidade.id;
+      }
     }
 
     if (typeof data.gestor_usuario_id === "number") {
