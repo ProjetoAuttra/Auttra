@@ -54,6 +54,8 @@ type TrackingData = {
   /** Só no orçamento. */
   vencido?: boolean;
   podeResponder?: boolean;
+  /** A oficina não está recebendo respostas pelo link agora: o cliente fala direto com ela. */
+  respostaPausada?: boolean;
   resposta?: { decisao: "aprovado" | "recusado"; em: string | null; nome: string | null; motivo: string | null } | null;
 };
 
@@ -416,6 +418,9 @@ function RespostaOrcamento({ data, erro, onAprovar, onRecusar }: { data: Trackin
         Este orçamento venceu em {dateOnly(data.datas.validade)}. Fale com a oficina para receber um novo.
       </Alert>
     );
+  }
+  if (data.respostaPausada) {
+    return <Alert severity="info">Para aprovar ou recusar este orçamento, fale direto com a oficina.</Alert>;
   }
   if (!data.podeResponder) return erro ? <Alert severity="error">{erro}</Alert> : null;
   return (
