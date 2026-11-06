@@ -30,6 +30,8 @@ model usuario {
   last_login_ip         String?
   last_login_user_agent String?
   token_version         Int       @default(0)
+  // Quem se cadastra pelo site usa na hora e confirma o e-mail depois; contas anteriores entram confirmadas.
+  email_confirmado_em   DateTime? @db.Timestamptz(3)
 
   funcionarios          funcionario[]          @relation("FuncionarioUsuario")
   cliente               cliente?               @relation("UsuarioCliente")
@@ -103,16 +105,18 @@ model cliente {
 model oficina {
   id                  Int     @id @default(autoincrement())
   gestor_usuario_id   Int?    @unique
-  nome                String  @unique
+  // Nome fantasia. Não é único: duas oficinas de cidades diferentes podem ter o mesmo nome.
+  nome                String
   razao_social        String?
   cnpj                String? @unique
   inscricao_estadual  String?
-  logradouro          String
-  numero              String
+  // Endereço opcional: o cadastro pelo site não pede; a oficina completa depois em Configurações.
+  logradouro          String?
+  numero              String?
   complemento         String?
   bairro              String?
-  cep                 String
-  cidade_id           Int
+  cep                 String?
+  cidade_id           Int?
   telefone            String?
   whatsapp            String?
   email               String? @unique
@@ -125,7 +129,16 @@ model oficina {
   financeiro_config   Json    @default("{\"formasPagamento\":\"Pix, Cartão, Dinheiro\",\"emitirRecibos\":true,\"jurosAtraso\":\"2%\"}")
   documentos_config   Json    @default("{\"garantiaDias\":90,\"validadeOrcamentoDias\":7,\"observacoes\":\"\"}")
 
-  cidade        cidade            @relation(fields: [cidade_id], references: [id])
+  // Assinatura. Se o teste está em andamento ou vencido é calculado na hora (assinatura.service).
+  assinatura_status     status_assinatura @default(ativa)
+  teste_termina_em      DateTime?         @db.Timestamptz(3)
+  assinatura_plano      plano_assinatura?
+  assinatura_ativada_em DateTime?         @db.Timestamptz(3)
+  origem                origem_oficina    @default(admin)
+  // UTMs da landing no momento do cadastro (utm_source, utm_medium, utm_campaign...).
+  origem_campanha       Json?
+
+  cidade        cidade?           @relation(fields: [cidade_id], references: [id], onDelete: Restrict)
   gestor        usuario?          @relation("GestorOficina", fields: [gestor_usuario_id], references: [id])
   acessos       usuario_oficina[]
   perfis_acesso perfil_acesso[]
@@ -155,6 +168,24 @@ model oficina {
 
   @@index([cidade_id])
   @@index([deleted_at])
+  @@index([assinatura_status, teste_termina_em])
+  @@index([created_at])
+}
+
+enum status_assinatura {
+  teste
+  ativa
+  suspensa
+}
+
+enum plano_assinatura {
+  mensal
+  semestral
+}
+
+enum origem_oficina {
+  admin
+  cadastro
 }
 
 model funcionario {

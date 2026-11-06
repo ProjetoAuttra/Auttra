@@ -3,6 +3,7 @@ import { hojeISO } from "../utils/datas.js";
 import { HttpError } from "../utils/httpError.js";
 import { LinksPublicosService } from "./linksPublicos.service.js";
 import { numeroCurto } from "../utils/numeroDocumento.js";
+import { AssinaturaService } from "./assinatura.service.js";
 
 export const NOME_RESPOSTA_MAX = 120;
 export const MOTIVO_RECUSA_MAX = 500;
@@ -179,6 +180,9 @@ export const PublicTrackingService = {
       const criadoEm = toIso(orcamento.data);
       const respondidoEm = toIso(orcamento.respondido_em);
       const vencido = orcamentoVencido(orcamento.validade);
+      // Oficina fora do prazo (teste vencido ou suspensa): o cliente vê o orçamento, mas responde direto com ela.
+      const respostaPausada =
+        orcamento.status === "analise" && !vencido && (await AssinaturaService.somenteLeitura(link.oficinaId));
       return {
         type: "orcamento",
         id: orcamento.id,
@@ -206,7 +210,8 @@ export const PublicTrackingService = {
         itens: orcamento.itens.map(mapItem),
         timeline: buildOrcamentoTimeline(orcamento.status, criadoEm, respondidoEm),
         vencido,
-        podeResponder: orcamento.status === "analise" && !vencido,
+        podeResponder: orcamento.status === "analise" && !vencido && !respostaPausada,
+        respostaPausada,
         resposta:
           orcamento.respondido_pelo_cliente && orcamento.status !== "analise"
             ? { decisao: orcamento.status, em: respondidoEm, nome: orcamento.respondido_por_nome, motivo: orcamento.motivo_recusa }
@@ -237,6 +242,10 @@ export const PublicTrackingService = {
     }
     if (orcamentoVencido(orcamento.validade)) {
       throw new HttpError("Este orçamento venceu. Fale com a oficina para receber um novo.", 409, "ORCAMENTO_VENCIDO");
+    }
+    // Oficina fora do prazo (teste vencido ou suspensa) não recebe resposta pelo link.
+    if (await AssinaturaService.somenteLeitura(link.oficinaId)) {
+      throw new HttpError("Para aprovar ou recusar este orçamento, fale direto com a oficina.", 409, "RESPOSTA_PAUSADA");
     }
 
     const { count } = await prisma.orcamento.updateMany({

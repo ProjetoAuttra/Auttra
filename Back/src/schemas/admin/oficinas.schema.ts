@@ -106,6 +106,8 @@ export const criarOficinaSchema = z.object({
   }),
   // A API mantem o nome "gestor"; no painel ele aparece como Proprietario.
   gestor: z.object(camposProprietario),
+  // Oficina criada pelo painel começa em teste de 7 dias ou já ativa (padrão: ativa, como sempre foi).
+  assinatura: z.enum(["teste", "ativa"]).optional(),
 });
 
 export const updateOficinaSchema = z.object({
@@ -126,6 +128,34 @@ export const updateOficinaSchema = z.object({
   gestor_usuario_id: z.number().int().positive().nullable().optional(),
   notas_internas: z.string().trim().max(5000, "Observações devem ter no máximo 5000 caracteres.").nullable().optional(),
 });
+
+// Dia no formato do <input type="date"> (YYYY-MM-DD), conferindo que a data existe.
+const dia = (campo: string) =>
+  z.string().trim().refine((v) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+    const data = new Date(`${v}T00:00:00Z`);
+    return !Number.isNaN(data.getTime()) && data.toISOString().startsWith(v);
+  }, `${campo} inválida.`);
+
+/** Ações de assinatura do painel: ativar com plano, estender o teste ou suspender. */
+export const assinaturaSchema = z.discriminatedUnion("acao", [
+  z.object({
+    acao: z.literal("ativar"),
+    plano: z.enum(["mensal", "semestral"], { message: "Escolha o plano: mensal ou semestral." }),
+    ativada_em: dia("Data de ativação").optional(),
+  }),
+  z.object({
+    acao: z.literal("estender_teste"),
+    dias: z.number().int().min(1, "Estenda por pelo menos 1 dia.").max(90, "Estenda por no máximo 90 dias.").optional(),
+    termina_em: dia("Data de fim do teste").optional(),
+  }).refine((d) => (d.dias === undefined) !== (d.termina_em === undefined), "Informe os dias a mais ou a nova data de fim do teste."),
+  z.object({
+    acao: z.literal("suspender"),
+    motivo: z.string().trim().max(500, "Motivo deve ter no máximo 500 caracteres.").optional(),
+  }),
+], { error: "Ação de assinatura inválida." });
+
+export type AssinaturaAcao = z.infer<typeof assinaturaSchema>;
 
 /** Primeira mensagem de validacao, para o painel mostrar algo acionavel em vez de "Dados invalidos". */
 export function primeiroErro(error: z.ZodError) {

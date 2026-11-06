@@ -256,15 +256,32 @@ describe.skipIf(!process.env.DATABASE_URL)("painel admin", () => {
       expect(duplicado.body.message).toBe("Já existe uma oficina com este CNPJ.");
     });
 
-    it("não sobrescreve uma oficina ativa com o mesmo nome", async () => {
-      const original = await criarOficina("nome-unico", email("gestor-nome-1"));
+    it("cria outra oficina com o mesmo nome sem mexer na original (nome não é único)", async () => {
+      const original = await criarOficina("nome-repetido", email("gestor-nome-1"));
       const res = await request(app).post("/api/admin/oficinas").set("Cookie", cookieDe(await adminAtual()))
-        .send({ oficina: { ...dadosOficina("nome-unico"), logradouro: "Rua Sobrescrita" }, gestor: { nome: "Outro", email: email("gestor-nome-2") } });
+        .send({ oficina: { ...dadosOficina("nome-repetido"), logradouro: "Rua Sobrescrita" }, gestor: { nome: "Outro", email: email("gestor-nome-2") } });
 
-      expect(res.status).toBe(400);
-      expect(res.body.message).toBe("Já existe uma oficina com este nome.");
+      expect(res.status).toBe(201);
+      oficinasCriadas.push(res.body.oficina.id);
+      usuariosCriados.push(res.body.usuario.id);
+      expect(res.body.oficina.id).not.toBe(original.oficina.id);
       const salva = await prisma.oficina.findUniqueOrThrow({ where: { id: original.oficina.id } });
       expect(salva.logradouro).toBe("Rua A");
+    });
+
+    it("oficina criada pelo painel nasce ativa, ou em teste de 7 dias se pedido", async () => {
+      const cookie = cookieDe(await adminAtual());
+      const ativa = await criarOficina("assinatura-ativa", email("gestor-assinatura-ativa"));
+      const teste = await request(app).post("/api/admin/oficinas").set("Cookie", cookie)
+        .send({ oficina: dadosOficina("assinatura-teste"), gestor: { nome: "Gestor", email: email("gestor-assinatura-teste") }, assinatura: "teste" });
+      expect(teste.status).toBe(201);
+      oficinasCriadas.push(teste.body.oficina.id);
+      usuariosCriados.push(teste.body.usuario.id);
+
+      const detalheAtiva = await request(app).get(`/api/admin/oficinas/${ativa.oficina.id}`).set("Cookie", cookie);
+      expect(detalheAtiva.body).toMatchObject({ origem: "admin", assinatura: { situacao: "ativa", somenteLeitura: false } });
+      const detalheTeste = await request(app).get(`/api/admin/oficinas/${teste.body.oficina.id}`).set("Cookie", cookie);
+      expect(detalheTeste.body.assinatura).toMatchObject({ situacao: "teste", diasRestantes: 7, somenteLeitura: false });
     });
 
     it("edita uma oficina cujo gestor é usuário do painel sem reenviar o gestor", async () => {
