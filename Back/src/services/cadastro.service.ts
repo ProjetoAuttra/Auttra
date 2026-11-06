@@ -18,9 +18,13 @@ const emailJaCadastrado = () =>
 const CONFIRMACAO_VALIDADE = "30d";
 const PROPOSITO_CONFIRMACAO = "confirmar-email";
 
+// Mesma base dos links de redefinição de senha (o docker-compose local só define PASSWORD_RESET_URL_BASE).
 function appUrl() {
   const base =
-    process.env.FRONTEND_URL?.trim() || process.env.APP_URL?.trim() || "http://localhost:5173";
+    process.env.PASSWORD_RESET_URL_BASE?.trim() ||
+    process.env.FRONTEND_URL?.trim() ||
+    process.env.APP_URL?.trim() ||
+    "http://localhost:5173";
   return base.replace(/\/+$/, "");
 }
 
