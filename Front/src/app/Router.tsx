@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import type { JSX } from 'react';
 import SettingsLayout from '../components/layout/SettingsLayout';
 import type { AccessModule } from '../permissions/accessProfiles';
-import { useAdditionalResources } from '../context/AdditionalResourcesContext';
+import { useSystemResources } from '../context/SystemResourcesContext';
 import CarregandoTela from '../components/common/CarregandoTela';
 import { moduleResourceMap, primeiraRotaPermitida } from '../routes/navegacao';
 
@@ -49,7 +49,7 @@ const Fornecedores = tela(() => import('../modules/fornecedores/pages/fornecedor
 const Servicos = tela(() => import('../modules/servicos/pages/servicos'));
 const FormOrdemServico = tela(() => import('../modules/tarefas/pages/formordem/formordem'));
 const OrdemServicoDetalhes = tela(() => import('../modules/tarefas/pages/detalhesos/ordemservicodetalhes'));
-const RecursosAdicionais = tela(() => import('../modules/recursos-adicionais/pages/RecursosAdicionais'));
+const RecursosSistema = tela(() => import('../modules/recursos-sistema/pages/RecursosSistema'));
 const SemAcesso = tela(() => import('../modules/autenticacao/pages/SemAcesso'));
 const PaginaNaoEncontrada = tela(() => import('../modules/autenticacao/pages/PaginaNaoEncontrada'));
 
@@ -64,7 +64,7 @@ export function PrivateRoute({ children }: { children: JSX.Element }) {
 // mandar sempre para o início, que também pode estar bloqueado e virar loop ou tela em branco.
 export function ModuleRoute({ module, children }: { module: AccessModule; children: JSX.Element }) {
   const { can } = useAuth();
-  const { isEnabled } = useAdditionalResources();
+  const { isEnabled } = useSystemResources();
   const resource = moduleResourceMap[module];
   if (can(module) && (!resource || isEnabled(resource))) return children;
   const destino = primeiraRotaPermitida(can, isEnabled);
@@ -121,7 +121,9 @@ export default function Router() {
         <Route element={<SettingsLayout />}>
           <Route path={paths.configuracoes} element={<ModuleRoute module="configuracoes"><Configuracoes /></ModuleRoute>} />
           <Route path={paths.users} element={<ModuleRoute module="funcionarios"><UserPage /></ModuleRoute>} />
-          <Route path={paths.recursosAdicionais} element={<ModuleRoute module="recursos_adicionais"><RecursosAdicionais /></ModuleRoute>} />
+          <Route path={paths.recursosSistema} element={<ModuleRoute module="recursos_sistema"><RecursosSistema /></ModuleRoute>} />
+          {/* Endereço antigo (antes de "Recursos adicionais" virar "Recursos do sistema"): links salvos continuam valendo. */}
+          <Route path="/recursos-adicionais" element={<Navigate to={paths.recursosSistema} replace />} />
         </Route>
         <Route path="*" element={<PaginaNaoEncontrada />} />
       </Route>

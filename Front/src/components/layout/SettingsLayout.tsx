@@ -35,7 +35,7 @@ const groups: SettingsGroup[] = [
       { label: "Financeiro", icon: <PaymentsOutlinedIcon />, path: paths.settings, section: "financeiro", module: "configuracoes" },
       { label: "Orçamentos e OS", icon: <DescriptionOutlinedIcon />, path: paths.settings, section: "documentos", module: "configuracoes" },
       { label: "Notificações", icon: <NotificationsNoneRoundedIcon />, path: paths.settings, section: "notificacoes", module: "configuracoes" },
-      { label: "Recursos do sistema", icon: <WidgetsOutlinedIcon />, path: paths.recursosAdicionais, module: "recursos_adicionais" },
+      { label: "Recursos do sistema", icon: <WidgetsOutlinedIcon />, path: paths.recursosSistema, module: "recursos_sistema" },
     ],
   },
   {
@@ -48,8 +48,8 @@ const groups: SettingsGroup[] = [
 ];
 
 /** Rotas que compõem a área de Configurações (usadas também pela sidebar). */
-export const settingsPaths: string[] = [paths.settings, paths.users, paths.recursosAdicionais];
-export const settingsModules: AccessModule[] = ["configuracoes", "funcionarios", "recursos_adicionais"];
+export const settingsPaths: string[] = [paths.settings, paths.users, paths.recursosSistema];
+export const settingsModules: AccessModule[] = ["configuracoes", "funcionarios", "recursos_sistema"];
 
 /** Casco da área de Configurações: navegação lateral agrupada + conteúdo da seção. */
 export default function SettingsLayout() {

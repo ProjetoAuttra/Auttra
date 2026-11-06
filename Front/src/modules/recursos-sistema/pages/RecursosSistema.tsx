@@ -5,12 +5,12 @@ import SecaoConfiguracao, {
   LinhaConfiguracao,
   SwitchAtivo,
 } from "../../configuracoes/components/SecaoConfiguracao";
-import { useAdditionalResources } from "../../../context/AdditionalResourcesContext";
+import { useSystemResources } from "../../../context/SystemResourcesContext";
 import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../context/ToastContext";
-import { additionalResourceKeys, type AdditionalResourceKey, type AdditionalResourcesMap } from "../api/api";
+import { systemResourceKeys, type SystemResourceKey, type SystemResourcesMap } from "../api/api";
 
-const recursos: { id: AdditionalResourceKey; label: string; description: string }[] = [
+const recursos: { id: SystemResourceKey; label: string; description: string }[] = [
   {
     id: "agenda",
     label: "Agenda",
@@ -28,24 +28,24 @@ const recursos: { id: AdditionalResourceKey; label: string; description: string 
   },
 ];
 
-const todosAtivos = (): AdditionalResourcesMap =>
-  Object.fromEntries(additionalResourceKeys.map((key) => [key, true])) as AdditionalResourcesMap;
+const todosAtivos = (): SystemResourcesMap =>
+  Object.fromEntries(systemResourceKeys.map((key) => [key, true])) as SystemResourcesMap;
 
 /** Recursos do sistema: liga e desliga módulos da oficina, no mesmo padrão em cartões das Configurações. */
-export default function RecursosAdicionais() {
-  const { resources, loading, save } = useAdditionalResources();
+export default function RecursosSistema() {
+  const { resources, loading, save } = useSystemResources();
   const { can } = useAuth();
   const { success, error } = useToast();
-  const [form, setForm] = React.useState<AdditionalResourcesMap>(todosAtivos);
+  const [form, setForm] = React.useState<SystemResourcesMap>(todosAtivos);
   const [salvando, setSalvando] = React.useState(false);
 
   React.useEffect(() => {
     setForm(resources);
   }, [resources]);
 
-  const podeEditar = can("recursos_adicionais", "update");
-  const ativos = additionalResourceKeys.filter((key) => form[key]).length;
-  const alterado = additionalResourceKeys.some((key) => form[key] !== resources[key]);
+  const podeEditar = can("recursos_sistema", "update");
+  const ativos = systemResourceKeys.filter((key) => form[key]).length;
+  const alterado = systemResourceKeys.some((key) => form[key] !== resources[key]);
 
   const salvar = async () => {
     setSalvando(true);
@@ -79,7 +79,7 @@ export default function RecursosAdicionais() {
     >
       <CartaoConfiguracao
         titulo="Módulos"
-        descricao={`${ativos} de ${additionalResourceKeys.length} ativos. Os desativados deixam de aparecer no menu lateral.`}
+        descricao={`${ativos} de ${systemResourceKeys.length} ativos. Os desativados deixam de aparecer no menu lateral.`}
       >
         {recursos.map((item) => (
           <LinhaConfiguracao interruptor key={item.id} titulo={item.label} descricao={item.description}>

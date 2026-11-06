@@ -12,7 +12,7 @@ const perm = vi.hoisted(() => ({ modulos: [] as string[] }));
 vi.mock("../context/AuthContext", () => ({
   useAuth: () => ({ can: (m: string) => perm.modulos.includes(m), signOut: vi.fn() }),
 }));
-vi.mock("../context/AdditionalResourcesContext", () => ({ useAdditionalResources: () => ({ isEnabled: () => true }) }));
+vi.mock("../context/SystemResourcesContext", () => ({ useSystemResources: () => ({ isEnabled: () => true }) }));
 
 function Onde() {
   const { pathname } = useLocation();

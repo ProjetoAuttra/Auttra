@@ -1,10 +1,10 @@
 import type { Location } from 'react-router-dom';
 import type { AccessModule } from '../permissions/accessProfiles';
-import type { AdditionalResourceKey } from '../modules/recursos-adicionais/api/api';
+import type { SystemResourceKey } from '../modules/recursos-sistema/api/api';
 import { paths } from './paths';
 
-/** Módulos que também dependem de um recurso adicional ligado na oficina. */
-export const moduleResourceMap: Partial<Record<AccessModule, AdditionalResourceKey>> = {
+/** Módulos que também dependem de um recurso do sistema ligado na oficina. */
+export const moduleResourceMap: Partial<Record<AccessModule, SystemResourceKey>> = {
   agenda: 'agenda',
   estoque: 'estoque',
   fornecedores: 'fornecedores',
@@ -25,13 +25,13 @@ const rotasNaOrdemDoMenu: Array<{ module: AccessModule; to: string }> = [
   { module: 'configuracoes', to: paths.configuracoes },
   { module: 'funcionarios', to: paths.users },
   { module: 'servicos', to: paths.servicos },
-  { module: 'recursos_adicionais', to: paths.recursosAdicionais },
+  { module: 'recursos_sistema', to: paths.recursosSistema },
 ];
 
 /** Primeira tela que o usuário pode abrir, na ordem do menu; null quando não pode abrir nenhuma. */
 export function primeiraRotaPermitida(
   can: (module: AccessModule) => boolean,
-  isEnabled: (resource: AdditionalResourceKey) => boolean,
+  isEnabled: (resource: SystemResourceKey) => boolean,
 ): string | null {
   const rota = rotasNaOrdemDoMenu.find(({ module }) => {
     const resource = moduleResourceMap[module];

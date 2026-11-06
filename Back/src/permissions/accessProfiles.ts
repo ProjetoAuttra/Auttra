@@ -12,7 +12,7 @@ export const ACCESS_MODULES = [
   "funcionarios",
   "relatorios",
   "configuracoes",
-  "recursos_adicionais",
+  "recursos_sistema",
 ] as const;
 
 export const ACCESS_ACTIONS = ["read", "create", "update", "delete"] as const;
@@ -35,7 +35,7 @@ export const MODULE_LABELS: Record<AccessModule, string> = {
   funcionarios: "Funcionarios",
   relatorios: "Relatorios",
   configuracoes: "Configuracoes",
-  recursos_adicionais: "Recursos do sistema",
+  recursos_sistema: "Recursos do sistema",
 };
 
 export const ACTION_LABELS: Record<AccessAction, string> = {
@@ -99,12 +99,26 @@ export const DEFAULT_ACCESS_PROFILES: Array<{
   },
 ];
 
+/**
+ * Chaves de módulo que foram renomeadas. Tokens emitidos antes da troca (e qualquer JSON antigo)
+ * ainda trazem a chave antiga; ela vale como a nova.
+ */
+const LEGACY_MODULE_KEYS: Partial<Record<AccessModule, string>> = {
+  recursos_sistema: "recursos_adicionais",
+};
+
+function actionsFor(input: Record<string, unknown> | undefined, module: AccessModule): unknown {
+  const legacy = LEGACY_MODULE_KEYS[module];
+  return input?.[module] ?? (legacy ? input?.[legacy] : undefined);
+}
+
 export function normalizePermissions(value: unknown): PermissionsMap {
   const input = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
   const normalized: PermissionsMap = {};
 
   for (const module of ACCESS_MODULES) {
-    const actions = Array.isArray(input[module]) ? input[module] : [];
+    const raw = actionsFor(input, module);
+    const actions = Array.isArray(raw) ? raw : [];
     const allowed = actions.filter((action): action is AccessAction =>
       ACCESS_ACTIONS.includes(action as AccessAction)
     );
@@ -119,5 +133,6 @@ export function canAccess(
   module: AccessModule,
   action: AccessAction
 ) {
-  return !!permissoes?.[module]?.includes(action);
+  const actions = actionsFor(permissoes as Record<string, unknown> | undefined, module);
+  return Array.isArray(actions) && actions.includes(action);
 }
