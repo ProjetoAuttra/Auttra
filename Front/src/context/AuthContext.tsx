@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useMemo, useState } from
 import api from "../api/api";
 import type { AccessAction, AccessModule, PermissionsMap } from "../permissions/accessProfiles";
 import { hasPermission } from "../permissions/accessProfiles";
+import { CHAVE_FAIXA_FECHADA } from "../modules/assinatura/assinatura";
 
 type User = {
   id: number;
@@ -91,6 +92,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storage = remember ? localStorage : sessionStorage;
     storage.setItem("driveon:token", t);
     storage.setItem("driveon:user", JSON.stringify(u));
+    // Login novo: a faixa de assinatura fechada pelo X volta a aparecer.
+    localStorage.removeItem(CHAVE_FAIXA_FECHADA);
     setToken(t);
     setUser(u);
     api.defaults.headers.common["Authorization"] = `Bearer ${t}`;

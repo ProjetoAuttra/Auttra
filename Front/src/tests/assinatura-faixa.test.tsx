@@ -7,7 +7,7 @@ import { renderWithProviders } from "./utils";
 import FaixaAssinatura from "../components/layout/FaixaAssinatura";
 import ItemPremium from "../components/layout/ItemPremium";
 import Assinatura from "../modules/assinatura/pages/Assinatura";
-import { faixaDaAssinatura, linkAssinar, type Assinatura as DadosAssinatura } from "../modules/assinatura/assinatura";
+import { CHAVE_FAIXA_FECHADA, faixaDaAssinatura, linkAssinar, type Assinatura as DadosAssinatura } from "../modules/assinatura/assinatura";
 
 const estado = vi.hoisted(() => ({ assinatura: null as DadosAssinatura | null }));
 vi.mock("../context/AssinaturaContext", () => ({ useAssinatura: () => ({ assinatura: estado.assinatura, recarregar: vi.fn() }) }));
@@ -33,11 +33,11 @@ const montar = (ui: ReactElement) =>
   );
 
 describe("faixaDaAssinatura", () => {
-  it("teste: dias que faltam e pode fechar; vencido e suspensa: não fecha; ativa: sem faixa", () => {
-    expect(faixaDaAssinatura({ ...base, diasRestantes: 7 })).toMatchObject({ tom: "info", podeFechar: true, texto: expect.stringContaining("Faltam 7 dias") });
-    expect(faixaDaAssinatura({ ...base, diasRestantes: 1 })?.texto).toContain("Último dia");
-    expect(faixaDaAssinatura({ ...base, situacao: "teste_vencido", somenteLeitura: true })).toMatchObject({ tom: "alerta", podeFechar: false, acao: "planos" });
-    expect(faixaDaAssinatura({ ...base, situacao: "suspensa", status: "suspensa" })).toMatchObject({ podeFechar: false, acao: "falar" });
+  it("teste: dias que faltam; vencido: só consulta; suspensa: falar com a gente; ativa: sem faixa", () => {
+    expect(faixaDaAssinatura({ ...base, diasRestantes: 7 })).toMatchObject({ tom: "info", acao: "planos", titulo: "Faltam 7 dias do seu teste grátis:" });
+    expect(faixaDaAssinatura({ ...base, diasRestantes: 1 })?.titulo).toBe("Último dia do seu teste grátis:");
+    expect(faixaDaAssinatura({ ...base, situacao: "teste_vencido", somenteLeitura: true })).toMatchObject({ tom: "alerta", acao: "planos" });
+    expect(faixaDaAssinatura({ ...base, situacao: "suspensa", status: "suspensa" })).toMatchObject({ tom: "erro", acao: "falar" });
     expect(faixaDaAssinatura({ ...base, situacao: "ativa", status: "ativa" })).toBeNull();
     expect(faixaDaAssinatura(null)).toBeNull();
   });
@@ -49,39 +49,46 @@ describe("faixaDaAssinatura", () => {
   });
 });
 
-describe("faixa do topo", () => {
+// Vários cliques e remontagens: com a suíte inteira rodando, passa dos 5s padrão.
+describe("faixa do topo", { timeout: 30_000 }, () => {
   beforeEach(() => {
     localStorage.clear();
     estado.assinatura = { ...base };
   });
 
-  it("mostra os dias do teste, leva aos planos e, fechada, só volta no dia seguinte", async () => {
+  it("mostra os dias do teste, leva aos planos e, fechada no X, continua fechada até o próximo login", async () => {
     const user = userEvent.setup();
     const { unmount } = montar(<FaixaAssinatura />);
-    expect(screen.getByText(/Faltam 7 dias do seu teste grátis/)).toBeInTheDocument();
+    expect(screen.getByText("Faltam 7 dias do seu teste grátis:")).toBeInTheDocument();
+    expect(document.documentElement.style.getPropertyValue("--faixa-assinatura-altura")).toMatch(/px$/);
 
     await user.click(screen.getByRole("button", { name: "Ver planos" }));
     expect(screen.getByTestId("onde")).toHaveTextContent("/assinatura");
 
     await user.click(screen.getByRole("button", { name: "Fechar aviso" }));
-    expect(screen.queryByText(/Faltam 7 dias/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(document.documentElement.style.getPropertyValue("--faixa-assinatura-altura")).toBe("0px");
     unmount();
 
-    montar(<FaixaAssinatura />);
-    expect(screen.queryByText(/Faltam 7 dias/)).not.toBeInTheDocument();
+    // Recarregar a página (mesma sessão) mantém fechada.
+    const segunda = montar(<FaixaAssinatura />);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    segunda.unmount();
 
-    // Fechada "ontem": aparece de novo.
-    localStorage.setItem("auttra:faixa-teste-fechada:7", "2000-01-01");
+    // O login apaga a marca: volta a aparecer.
+    localStorage.removeItem(CHAVE_FAIXA_FECHADA);
     montar(<FaixaAssinatura />);
-    expect(screen.getByText(/Faltam 7 dias/)).toBeInTheDocument();
+    expect(screen.getByText("Faltam 7 dias do seu teste grátis:")).toBeInTheDocument();
   });
 
-  it("conta só leitura não deixa fechar, mesmo se foi fechada no teste", () => {
-    localStorage.setItem("auttra:faixa-teste-fechada:7", new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }));
-    estado.assinatura = { ...base, situacao: "teste_vencido", somenteLeitura: true, diasRestantes: 0 };
+  it("conta suspensa: aviso vermelho com contato pelo WhatsApp, e também fecha no X", async () => {
+    const user = userEvent.setup();
+    estado.assinatura = { ...base, situacao: "suspensa", status: "suspensa", somenteLeitura: true, diasRestantes: null };
     montar(<FaixaAssinatura />);
-    expect(screen.getByText(/Seu teste grátis terminou/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Fechar aviso" })).not.toBeInTheDocument();
+    expect(screen.getByText("Assinatura suspensa:")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Falar com a gente/ }).getAttribute("href")).toContain("wa.me/");
+    await user.click(screen.getByRole("button", { name: "Fechar aviso" }));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("assinatura ativa não mostra faixa", () => {

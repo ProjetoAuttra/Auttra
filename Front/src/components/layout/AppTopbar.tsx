@@ -39,6 +39,7 @@ import BrandLogoPlaceholder from "./BrandLogoPlaceholder";
 import { brand } from "../../app/theme";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../common/AppDialog";
 import { comoBotao } from "../common/linhaClicavel";
+import { ALTURA_FAIXA } from "../../modules/assinatura/assinatura";
 
 const CARGO_LABEL: Record<string, string> = {
   administrador: "Administrador",
@@ -167,7 +168,8 @@ export default function AppTopbar({
         position="fixed"
         elevation={0}
         sx={{
-          top: 0,
+          // Abaixo da faixa de assinatura, quando ela aparece.
+          top: ALTURA_FAIXA,
           right: 0,
           left: { xs: 0, md: `${leftOffset}px` },
           width: { xs: "100%", md: `calc(100% - ${leftOffset}px)` },

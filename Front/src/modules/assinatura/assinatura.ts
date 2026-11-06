@@ -41,8 +41,12 @@ export function linkFalarComEquipe(oficina: Oficina, assunto = "Quero falar sobr
 
 const textoOficina = ({ nome, id }: Oficina) => (nome ? `Oficina: ${nome}${id ? ` (código ${id})` : ""}` : "");
 
-/** Dia de hoje em São Paulo (YYYY-MM-DD): a faixa fechada volta no dia seguinte. */
-export const hojeSP = (agora = new Date()) => agora.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+/** Faixa do topo fechada pelo X: vale até o próximo login (o AuthContext apaga a marca ao entrar). */
+export const CHAVE_FAIXA_FECHADA = "auttra:faixa-assinatura-fechada";
+
+/** Altura da faixa (variável CSS): a barra do topo, o menu e o conteúdo descem junto com ela. */
+export const VAR_ALTURA_FAIXA = "--faixa-assinatura-altura";
+export const ALTURA_FAIXA = `var(${VAR_ALTURA_FAIXA}, 0px)`;
 
 export const dataBR = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "";
@@ -53,10 +57,10 @@ export function textoDiasRestantes(dias: number | null) {
 }
 
 export type Faixa = {
-  tom: "info" | "alerta";
+  tom: "info" | "alerta" | "erro";
+  /** Começo da frase, em negrito (como "Faltam 7 dias do seu teste grátis:"). */
+  titulo: string;
   texto: string;
-  /** Teste em andamento pode ser fechado (volta no dia seguinte); conta só leitura, não. */
-  podeFechar: boolean;
   acao: "planos" | "falar";
 };
 
@@ -64,25 +68,27 @@ export type Faixa = {
 export function faixaDaAssinatura(a: Assinatura | null): Faixa | null {
   if (!a) return null;
   switch (a.situacao) {
-    case "teste":
+    case "teste": {
+      const dias = a.diasRestantes ?? 0;
       return {
         tom: "info",
-        texto: `${textoDiasRestantes(a.diasRestantes)} Depois disso, você perde o acesso para criar e editar.`,
-        podeFechar: true,
+        titulo: dias > 1 ? `Faltam ${dias} dias do seu teste grátis:` : "Último dia do seu teste grátis:",
+        texto: "depois disso, você perde o acesso para criar e editar. Assine para continuar usando tudo.",
         acao: "planos",
       };
+    }
     case "teste_vencido":
       return {
         tom: "alerta",
-        texto: "Seu teste grátis terminou. A conta está só para consulta: assine para voltar a criar e editar.",
-        podeFechar: false,
+        titulo: "Seu teste grátis terminou:",
+        texto: "a conta está só para consulta. Assine para voltar a criar e editar.",
         acao: "planos",
       };
     case "suspensa":
       return {
-        tom: "alerta",
-        texto: "Sua assinatura está suspensa. A conta está só para consulta até ser reativada.",
-        podeFechar: false,
+        tom: "erro",
+        titulo: "Assinatura suspensa:",
+        texto: "a conta está só para consulta até ser reativada. Fale com a gente para regularizar.",
         acao: "falar",
       };
     default:

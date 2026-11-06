@@ -9,6 +9,7 @@ import { ConfirmProvider } from '../context/ConfirmContext';
 import CarregandoTela from '../components/common/CarregandoTela';
 import FaixaAssinatura from '../components/layout/FaixaAssinatura';
 import { AssinaturaProvider } from '../context/AssinaturaContext';
+import { ALTURA_FAIXA } from '../modules/assinatura/assinatura';
 
 export default function AppLayout() {
   const drawerWidth = 248;
@@ -29,6 +30,8 @@ export default function AppLayout() {
               bgcolor: 'background.default',
             }}
           >
+            {/* Acima de tudo: a barra do topo, o menu e o conteúdo descem a altura dela. */}
+            <FaixaAssinatura />
             <AppTopbar onMenuClick={() => setMobileOpen(true)} leftOffset={currentWidth} />
             <AppSidebar
               drawerWidth={drawerWidth}
@@ -49,8 +52,8 @@ export default function AppLayout() {
                 overflow: 'hidden',
               }}
             >
+              <Box sx={{ height: ALTURA_FAIXA, flexShrink: 0 }} />
               <Toolbar sx={{ flexShrink: 0 }} />
-              <FaixaAssinatura />
               <Box
                 sx={{
                   flexGrow: 1,

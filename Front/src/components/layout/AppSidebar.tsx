@@ -33,6 +33,7 @@ import type { AccessModule } from '../../permissions/accessProfiles';
 import { brand } from '../../app/theme';
 import BrandLogoPlaceholder from './BrandLogoPlaceholder';
 import ItemPremium from './ItemPremium';
+import { ALTURA_FAIXA } from '../../modules/assinatura/assinatura';
 import { settingsModules, settingsPaths } from './SettingsLayout';
 
 type Props = {
@@ -406,9 +407,10 @@ export default function AppSidebar({
           '& .MuiDrawer-paper': {
             width: currentWidth,
             boxSizing: 'border-box',
-            top: 0,
+            // Abaixo da faixa de assinatura, quando ela aparece.
+            top: ALTURA_FAIXA,
             left: 0,
-            height: '100dvh',
+            height: `calc(100dvh - ${ALTURA_FAIXA})`,
             border: 'none',
             borderRadius: 0,
             bgcolor: brand.subtle,
