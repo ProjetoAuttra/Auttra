@@ -39,5 +39,5 @@ export const paths = {
     ordemNova: '/ordens/nova',
     ordemEditar: '/ordens/:id/editar',
     ordemServicoDetalhes: '/ordens/:id',
-    recursosAdicionais: '/recursos-adicionais',
+    recursosSistema: '/recursos-sistema',
   } as const;

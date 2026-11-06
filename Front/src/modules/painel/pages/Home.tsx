@@ -14,7 +14,7 @@ import { criarCliente } from "../../clientes/api/api";
 import { criarVeiculo } from "../../veiculos/api/api";
 import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../context/ToastContext";
-import { useAdditionalResources } from "../../../context/AdditionalResourcesContext";
+import { useSystemResources } from "../../../context/SystemResourcesContext";
 import api from "../../../api/api";
 import { brand } from "../../../app/theme";
 import { paths } from "../../../routes/paths";
@@ -115,7 +115,7 @@ function Vazio({ children }: { children: React.ReactNode }) {
 
 export default function Home() {
   const { user, can } = useAuth();
-  const { isEnabled } = useAdditionalResources();
+  const { isEnabled } = useSystemResources();
   const navigate = useNavigate();
 
   const [resumo,  setResumo]  = React.useState<Resumo | null>(null);

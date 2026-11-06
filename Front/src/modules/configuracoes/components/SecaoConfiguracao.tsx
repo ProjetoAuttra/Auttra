@@ -121,10 +121,12 @@ type LinhaProps = {
   /** Controle (campo, switch...) ao lado do rótulo; com `largo`, vai para baixo ocupando a largura toda. */
   children: React.ReactNode;
   largo?: boolean;
+  /** Linha que é só liga/desliga: o switch fica encostado à direita do cartão, também no celular. */
+  interruptor?: boolean;
 };
 
 /** Uma configuração dentro do cartão: rótulo e explicação curta, com o controle logo ao lado. */
-export function LinhaConfiguracao({ titulo, descricao, children, largo = false }: LinhaProps) {
+export function LinhaConfiguracao({ titulo, descricao, children, largo = false, interruptor = false }: LinhaProps) {
   return (
     <Box
       sx={{
@@ -133,7 +135,7 @@ export function LinhaConfiguracao({ titulo, descricao, children, largo = false }
         columnGap: 3,
         rowGap: 1.25,
         alignItems: "center",
-        gridTemplateColumns: largo ? "1fr" : colunasLinha,
+        gridTemplateColumns: largo ? "1fr" : interruptor ? "minmax(0, 1fr) auto" : colunasLinha,
       }}
     >
       <Box minWidth={0}>
@@ -146,31 +148,45 @@ export function LinhaConfiguracao({ titulo, descricao, children, largo = false }
           </Typography>
         )}
       </Box>
-      <Box minWidth={0} sx={{ maxWidth: largo ? "none" : 440 }}>
+      <Box minWidth={0} sx={{ maxWidth: largo || interruptor ? "none" : 440 }}>
         {children}
       </Box>
     </Box>
   );
 }
 
-/** Switch com o texto "Ativo/Inativo" ao lado. */
+/**
+ * Switch com o texto "Ativo/Inativo" ao lado. Em linha de `interruptor` (switch na borda direita),
+ * use `textoAntes` para o texto ficar à esquerda do switch, alinhado à direita.
+ */
 export function SwitchAtivo({
   checked,
   onChange,
   disabled,
   rotulo,
+  textoAntes = false,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
   rotulo: string;
+  textoAntes?: boolean;
 }) {
+  const texto = (
+    <Typography
+      variant="body2"
+      fontWeight={600}
+      color={checked ? "success.main" : "text.secondary"}
+      sx={{ minWidth: 52, textAlign: textoAntes ? "right" : "left" }}
+    >
+      {checked ? "Ativo" : "Inativo"}
+    </Typography>
+  );
   return (
     <Stack direction="row" alignItems="center" spacing={0.5}>
+      {textoAntes && texto}
       <Switch checked={checked} onChange={(e) => onChange(e.target.checked)} disabled={disabled} slotProps={{ input: { role: "switch", "aria-label": rotulo } as React.InputHTMLAttributes<HTMLInputElement> }} />
-      <Typography variant="body2" fontWeight={600} color={checked ? "success.main" : "text.secondary"} sx={{ minWidth: 52 }}>
-        {checked ? "Ativo" : "Inativo"}
-      </Typography>
+      {!textoAntes && texto}
     </Stack>
   );
 }

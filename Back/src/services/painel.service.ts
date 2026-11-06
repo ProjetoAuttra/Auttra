@@ -1,7 +1,7 @@
 import { prisma } from "../prisma/client.js";
 import { canAccess, type PermissionsMap } from "../permissions/accessProfiles.js";
 import { periodoDe } from "./relatorios.service.js";
-import { RecursosAdicionaisService } from "./recursosAdicionais.service.js";
+import { RecursosSistemaService } from "./recursosSistema.service.js";
 import { FUSO_OFICINA as FUSO, hojeISO } from "../utils/datas.js";
 
 /**
@@ -150,7 +150,7 @@ export const PainelService = {
   async resumo(oficinaId: number, permissoes: PermissionsMap | undefined) {
     const hoje = hojeISO();
     const pode = (m: Parameters<typeof canAccess>[1]) => canAccess(permissoes, m, "read");
-    const recursos = await RecursosAdicionaisService.get(oficinaId);
+    const recursos = await RecursosSistemaService.get(oficinaId);
 
     const [fin, paradas, orcamentos, criticas, agenda] = await Promise.all([
       pode("financeiro") ? financeiro(oficinaId, hoje) : null,

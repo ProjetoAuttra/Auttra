@@ -12,7 +12,7 @@ export const accessModules = [
   "funcionarios",
   "relatorios",
   "configuracoes",
-  "recursos_adicionais",
+  "recursos_sistema",
 ] as const;
 
 export const accessActions = ["read", "create", "update", "delete"] as const;
@@ -35,7 +35,7 @@ export const moduleLabels: Record<AccessModule, string> = {
   funcionarios: "Funcionários",
   relatorios: "Relatórios",
   configuracoes: "Configurações",
-  recursos_adicionais: "Recursos adicionais",
+  recursos_sistema: "Recursos do sistema",
 };
 
 export const actionLabels: Record<AccessAction, string> = {
@@ -45,10 +45,20 @@ export const actionLabels: Record<AccessAction, string> = {
   delete: "Excluir",
 };
 
+/**
+ * Chaves de módulo que foram renomeadas. Quem logou antes da troca ainda tem a chave antiga no
+ * usuário salvo no navegador (e no token); ela vale como a nova até o próximo login.
+ */
+const chavesAntigas: Partial<Record<AccessModule, string>> = {
+  recursos_sistema: "recursos_adicionais",
+};
+
 export function hasPermission(
   permissions: PermissionsMap | undefined,
   module: AccessModule,
   action: AccessAction = "read"
 ) {
-  return !!permissions?.[module]?.includes(action);
+  const antiga = chavesAntigas[module];
+  const acoes = permissions?.[module] ?? (antiga ? (permissions as Record<string, AccessAction[]> | undefined)?.[antiga] : undefined);
+  return !!acoes?.includes(action);
 }

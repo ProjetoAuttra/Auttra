@@ -124,8 +124,9 @@ export default function SecaoFinanceiro({ podeEditar }: { podeEditar: boolean })
       </CartaoConfiguracao>
 
       <CartaoConfiguracao titulo="Recibos">
-      <LinhaConfiguracao titulo="Emissão automática" descricao="Gera o recibo quando uma conta a receber é marcada como paga.">
+      <LinhaConfiguracao interruptor titulo="Emissão automática" descricao="Gera o recibo quando uma conta a receber é marcada como paga.">
         <SwitchAtivo
+          textoAntes
           rotulo="Emissão automática de recibos"
           checked={financeiro.emitirRecibos}
           onChange={(emitirRecibos) => set({ emitirRecibos })}

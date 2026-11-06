@@ -5,7 +5,7 @@ import { prisma } from "../../prisma/client.js";
 const ACCESS_MODULES = [
   "painel", "agenda", "clientes", "veiculos", "estoque", "servicos",
   "ordens", "financeiro", "fornecedores", "orcamentos", "funcionarios",
-  "relatorios", "configuracoes", "recursos_adicionais",
+  "relatorios", "configuracoes", "recursos_sistema",
 ] as const;
 
 const ALL_ACTIONS = ["read", "create", "update", "delete"];
