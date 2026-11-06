@@ -26,7 +26,7 @@ function subtitulo(a: DadosAssinatura | null) {
     case "teste_vencido":
       return "Seu teste grátis terminou e a conta está só para consulta. Assine para voltar a criar e editar.";
     case "suspensa":
-      return "Sua assinatura está suspensa e a conta está só para consulta. Fale com a gente para reativar.";
+      return "Sua assinatura está suspensa e a conta está só para consulta. Escolha um plano para voltar a criar e editar.";
     default:
       return a.plano ? `Plano ${PLANOS[a.plano].nome.toLowerCase()}, ativo desde ${dataBR(a.ativadaEm)}.` : "Assinatura ativa.";
   }
@@ -78,29 +78,25 @@ function CartaoPlano({ plano, destaque, link }: { plano: PlanoAssinatura; destaq
   );
 }
 
-/** Planos e situação da assinatura. Na fase manual, assinar abre o WhatsApp do comercial com o plano escolhido. */
+/**
+ * Página de compra do Premium (destino da faixa do topo e do item do menu). Na fase manual, assinar abre o
+ * WhatsApp do comercial com o plano escolhido. Quem já assina vê a situação e o contato.
+ */
 export default function Assinatura() {
   const { assinatura } = useAssinatura();
   const { user } = useAuth();
   const oficina = { nome: user?.oficina_nome, id: user?.oficinaId };
   const ativa = assinatura?.situacao === "ativa";
-  const suspensa = assinatura?.situacao === "suspensa";
 
   return (
     <Box sx={{ maxWidth: 920, mx: "auto" }}>
       <ModuleHeader title="Auttra Premium" subtitle={subtitulo(assinatura)} icon={<WorkspacePremiumRoundedIcon />} />
 
-      {ativa || suspensa ? (
+      {ativa ? (
         <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
           <Stack spacing={2} alignItems="flex-start">
-            {ativa ? (
-              <Alert severity="success" sx={{ width: "100%" }}>Sua assinatura está ativa. Obrigado por usar o Auttra!</Alert>
-            ) : (
-              <Alert severity="warning" sx={{ width: "100%" }}>Assinatura suspensa: a conta está só para consulta.</Alert>
-            )}
-            <Typography sx={{ fontSize: 14, color: "text.secondary" }}>
-              {ativa ? "Para trocar de plano ou cancelar, fale com a gente." : "Fale com a gente para regularizar e voltar a criar e editar."}
-            </Typography>
+            <Alert severity="success" sx={{ width: "100%" }}>Sua assinatura está ativa. Obrigado por usar o Auttra!</Alert>
+            <Typography sx={{ fontSize: 14, color: "text.secondary" }}>Para trocar de plano ou cancelar, fale com a gente.</Typography>
             <Button
               variant="contained"
               disableElevation

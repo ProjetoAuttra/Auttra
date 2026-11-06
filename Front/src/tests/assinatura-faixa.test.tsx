@@ -34,10 +34,10 @@ const montar = (ui: ReactElement) =>
 
 describe("faixaDaAssinatura", () => {
   it("teste: dias que faltam; vencido: só consulta; suspensa: falar com a gente; ativa: sem faixa", () => {
-    expect(faixaDaAssinatura({ ...base, diasRestantes: 7 })).toMatchObject({ tom: "info", acao: "planos", titulo: "Faltam 7 dias do seu teste grátis:" });
+    expect(faixaDaAssinatura({ ...base, diasRestantes: 7 })).toMatchObject({ tom: "info", titulo: "Faltam 7 dias do seu teste grátis:" });
     expect(faixaDaAssinatura({ ...base, diasRestantes: 1 })?.titulo).toBe("Último dia do seu teste grátis:");
-    expect(faixaDaAssinatura({ ...base, situacao: "teste_vencido", somenteLeitura: true })).toMatchObject({ tom: "alerta", acao: "planos" });
-    expect(faixaDaAssinatura({ ...base, situacao: "suspensa", status: "suspensa" })).toMatchObject({ tom: "erro", acao: "falar" });
+    expect(faixaDaAssinatura({ ...base, situacao: "teste_vencido", somenteLeitura: true })).toMatchObject({ tom: "alerta", texto: expect.stringContaining("Adquira o Premium") });
+    expect(faixaDaAssinatura({ ...base, situacao: "suspensa", status: "suspensa" })).toMatchObject({ tom: "erro", titulo: "Assinatura suspensa:" });
     expect(faixaDaAssinatura({ ...base, situacao: "ativa", status: "ativa" })).toBeNull();
     expect(faixaDaAssinatura(null)).toBeNull();
   });
@@ -62,7 +62,7 @@ describe("faixa do topo", { timeout: 30_000 }, () => {
     expect(screen.getByText("Faltam 7 dias do seu teste grátis:")).toBeInTheDocument();
     expect(document.documentElement.style.getPropertyValue("--faixa-assinatura-altura")).toMatch(/px$/);
 
-    await user.click(screen.getByRole("button", { name: "Ver planos" }));
+    await user.click(screen.getByRole("button", { name: "Adquirir Premium" }));
     expect(screen.getByTestId("onde")).toHaveTextContent("/assinatura");
 
     await user.click(screen.getByRole("button", { name: "Fechar aviso" }));
@@ -81,12 +81,13 @@ describe("faixa do topo", { timeout: 30_000 }, () => {
     expect(screen.getByText("Faltam 7 dias do seu teste grátis:")).toBeInTheDocument();
   });
 
-  it("conta suspensa: aviso vermelho com contato pelo WhatsApp, e também fecha no X", async () => {
+  it("conta suspensa: aviso vermelho que também leva à compra do Premium e fecha no X", async () => {
     const user = userEvent.setup();
     estado.assinatura = { ...base, situacao: "suspensa", status: "suspensa", somenteLeitura: true, diasRestantes: null };
     montar(<FaixaAssinatura />);
     expect(screen.getByText("Assinatura suspensa:")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Falar com a gente/ }).getAttribute("href")).toContain("wa.me/");
+    await user.click(screen.getByRole("button", { name: "Adquirir Premium" }));
+    expect(screen.getByTestId("onde")).toHaveTextContent("/assinatura");
     await user.click(screen.getByRole("button", { name: "Fechar aviso" }));
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
@@ -113,8 +114,8 @@ describe("Premium no menu e tela de planos", () => {
     expect(screen.queryByText("Premium")).not.toBeInTheDocument();
   });
 
-  it("tela de planos: dois planos com preço e link de WhatsApp", () => {
-    estado.assinatura = { ...base };
+  it("tela de planos: dois planos com preço e link de WhatsApp, também para conta suspensa", () => {
+    estado.assinatura = { ...base, situacao: "suspensa", status: "suspensa", somenteLeitura: true };
     montar(<Assinatura />);
     expect(screen.getByText("42,90")).toBeInTheDocument();
     expect(screen.getByText("54,90")).toBeInTheDocument();

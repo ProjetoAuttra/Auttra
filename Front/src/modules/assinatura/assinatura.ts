@@ -61,7 +61,6 @@ export type Faixa = {
   /** Começo da frase, em negrito (como "Faltam 7 dias do seu teste grátis:"). */
   titulo: string;
   texto: string;
-  acao: "planos" | "falar";
 };
 
 /** O que a faixa do topo mostra em cada situação; assinatura ativa não tem faixa. */
@@ -73,23 +72,20 @@ export function faixaDaAssinatura(a: Assinatura | null): Faixa | null {
       return {
         tom: "info",
         titulo: dias > 1 ? `Faltam ${dias} dias do seu teste grátis:` : "Último dia do seu teste grátis:",
-        texto: "depois disso, você perde o acesso para criar e editar. Assine para continuar usando tudo.",
-        acao: "planos",
+        texto: "depois disso, você perde o acesso para criar e editar. Adquira o Premium para continuar usando tudo.",
       };
     }
     case "teste_vencido":
       return {
         tom: "alerta",
         titulo: "Seu teste grátis terminou:",
-        texto: "a conta está só para consulta. Assine para voltar a criar e editar.",
-        acao: "planos",
+        texto: "a conta está só para consulta. Adquira o Premium para voltar a criar e editar.",
       };
     case "suspensa":
       return {
         tom: "erro",
         titulo: "Assinatura suspensa:",
-        texto: "a conta está só para consulta até ser reativada. Fale com a gente para regularizar.",
-        acao: "falar",
+        texto: "a conta está só para consulta. Adquira o Premium para voltar a criar e editar.",
       };
     default:
       return null;

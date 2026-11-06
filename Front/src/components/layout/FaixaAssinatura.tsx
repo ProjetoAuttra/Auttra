@@ -1,16 +1,16 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { Box, Button, IconButton, Tooltip, Typography } from "@mui/material";
+import { Box, ButtonBase, IconButton, Tooltip, Typography } from "@mui/material";
+import WorkspacePremiumRoundedIcon from "@mui/icons-material/WorkspacePremiumRounded";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import AccessTimeFilledRoundedIcon from "@mui/icons-material/AccessTimeFilledRounded";
 import WarningRoundedIcon from "@mui/icons-material/WarningRounded";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
-import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import { useNavigate } from "react-router-dom";
 import { useAssinatura } from "../../context/AssinaturaContext";
-import { useAuth } from "../../context/AuthContext";
 import { brand } from "../../app/theme";
 import { paths } from "../../routes/paths";
-import { CHAVE_FAIXA_FECHADA, VAR_ALTURA_FAIXA, faixaDaAssinatura, linkFalarComEquipe } from "../../modules/assinatura/assinatura";
+import { CHAVE_FAIXA_FECHADA, VAR_ALTURA_FAIXA, faixaDaAssinatura } from "../../modules/assinatura/assinatura";
 
 // Fundo cheio com texto branco (contraste ≥ 4,5:1 nos três).
 const TONS = {
@@ -33,7 +33,6 @@ function lerFechada() {
  */
 export default function FaixaAssinatura() {
   const { assinatura } = useAssinatura();
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [fechada, setFechada] = useState(lerFechada);
   const ref = useRef<HTMLDivElement>(null);
@@ -61,8 +60,6 @@ export default function FaixaAssinatura() {
   if (!faixa) return null;
 
   const tom = TONS[faixa.tom];
-  const externo = faixa.acao === "falar";
-  const oficina = { nome: user?.oficina_nome, id: user?.oficinaId };
 
   const fechar = () => {
     try {
@@ -83,51 +80,66 @@ export default function FaixaAssinatura() {
         left: 0,
         right: 0,
         zIndex: (t) => t.zIndex.drawer + 2,
+        minHeight: 40,
+        // Espaço dos dois lados para o X (absoluto à direita) não tirar o texto do centro.
+        px: { xs: 5, sm: 6 },
+        py: 0.75,
         display: "flex",
         alignItems: "center",
-        gap: { xs: 1, sm: 1.5 },
-        minHeight: 40,
-        pl: { xs: 1.5, sm: 2.5 },
-        pr: { xs: 0.5, sm: 1.5 },
-        py: 0.5,
+        justifyContent: "center",
         bgcolor: tom.bg,
         color: "#fff",
       }}
     >
-      <Box sx={{ display: { xs: "none", sm: "flex" }, "& svg": { fontSize: 18 } }}>{tom.icone}</Box>
-      <Typography sx={{ flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.35 }}>
-        <Box component="strong" sx={{ fontWeight: 700 }}>{faixa.titulo}</Box> {faixa.texto}
-      </Typography>
-      <Button
-        size="small"
-        variant="contained"
-        disableElevation
-        endIcon={externo ? <OpenInNewRoundedIcon sx={{ fontSize: "14px !important" }} /> : undefined}
-        {...(externo
-          ? {
-              href: linkFalarComEquipe(oficina, "Minha assinatura do Auttra está suspensa e quero reativar."),
-              target: "_blank",
-              rel: "noopener",
-            }
-          : { onClick: () => navigate(paths.assinatura) })}
+      <Box
         sx={{
-          flexShrink: 0,
-          bgcolor: "#fff",
-          color: tom.bg,
-          fontSize: 12,
-          fontWeight: 700,
-          letterSpacing: "0.02em",
-          textTransform: "uppercase",
-          whiteSpace: "nowrap",
-          py: 0.25,
-          px: 1.5,
-          "&:hover": { bgcolor: "rgba(255,255,255,0.9)" },
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "center",
+          columnGap: 1.5,
+          rowGap: 0.5,
+          textAlign: "center",
         }}
       >
-        {externo ? "Falar com a gente" : "Ver planos"}
-      </Button>
+        <Typography component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 1, fontSize: 13, lineHeight: 1.35 }}>
+          <Box component="span" sx={{ display: { xs: "none", sm: "inline-flex" }, "& svg": { fontSize: 18 } }}>{tom.icone}</Box>
+          <span>
+            <Box component="strong" sx={{ fontWeight: 700 }}>{faixa.titulo}</Box> {faixa.texto}
+          </span>
+        </Typography>
+        {/* Link em pílula translúcida, não um botão sólido: fica leve sobre a cor da faixa. */}
+        <ButtonBase
+          onClick={() => navigate(paths.assinatura)}
+          sx={{
+            gap: 0.5,
+            px: 1.5,
+            py: 0.375,
+            borderRadius: 999,
+            border: "1px solid rgba(255,255,255,0.55)",
+            bgcolor: "rgba(255,255,255,0.14)",
+            color: "#fff",
+            fontSize: 12.5,
+            fontWeight: 700,
+            whiteSpace: "nowrap",
+            transition: "background-color 0.15s ease, border-color 0.15s ease",
+            "&:hover": { bgcolor: "rgba(255,255,255,0.26)", borderColor: "#fff" },
+            "&:hover .seta": { transform: "translateX(2px)" },
+            "&.Mui-focusVisible": { outline: "2px solid #fff", outlineOffset: 2 },
+          }}
+        >
+          <WorkspacePremiumRoundedIcon sx={{ fontSize: 15 }} />
+          Adquirir Premium
+          <ArrowForwardRoundedIcon className="seta" sx={{ fontSize: 15, transition: "transform 0.15s ease" }} />
+        </ButtonBase>
+      </Box>
       <Tooltip title="Fechar">
-        <IconButton aria-label="Fechar aviso" size="small" onClick={fechar} sx={{ color: "#fff", flexShrink: 0 }}>
+        <IconButton
+          aria-label="Fechar aviso"
+          size="small"
+          onClick={fechar}
+          sx={{ position: "absolute", right: { xs: 4, sm: 12 }, top: "50%", transform: "translateY(-50%)", color: "#fff" }}
+        >
           <CloseRoundedIcon sx={{ fontSize: 20 }} />
         </IconButton>
       </Tooltip>
