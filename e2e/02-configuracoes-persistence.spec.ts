@@ -20,9 +20,10 @@ async function login(page: Page) {
 }
 
 async function openSection(page: Page, sectionKey: string) {
-  await page.goto("/configuracoes");
-  await page.getByTestId(`header-${sectionKey}`).click();
-  return page.getByTestId(`section-${sectionKey}`);
+  await page.goto(`/configuracoes?section=${sectionKey}`);
+  const section = page.getByTestId(`section-${sectionKey}`);
+  await expect(section.getByTestId(`content-${sectionKey}`)).toBeVisible();
+  return section;
 }
 
 test.describe("Configuracoes - Agenda e Financeiro persistem de verdade", () => {
@@ -32,31 +33,29 @@ test.describe("Configuracoes - Agenda e Financeiro persistem de verdade", () => 
 
   test("altera uma configuracao de Agenda, recarrega e confirma que persistiu", async ({ page }) => {
     const section = await openSection(page, "agenda");
-    await section.getByTestId("edit-agenda").click();
 
-    const tempoMedioField = page.getByLabel("Tempo médio por serviço");
-    await tempoMedioField.fill("75 minutos");
+    const tempoMedioField = section.getByLabel("Duração");
+    await tempoMedioField.fill("75");
     await section.getByTestId("save-agenda").click();
 
     await expect(page.getByText("Configurações de agenda salvas.")).toBeVisible();
 
     await page.reload();
     const reloadedSection = await openSection(page, "agenda");
-    await expect(reloadedSection.getByTestId("content-agenda")).toContainText("75 minutos");
+    await expect(reloadedSection.getByLabel("Duração")).toHaveValue("75");
   });
 
   test("altera uma configuracao de Financeiro, recarrega e confirma que persistiu", async ({ page }) => {
     const section = await openSection(page, "financeiro");
-    await section.getByTestId("edit-financeiro").click();
 
-    const jurosField = page.getByLabel("Juros por atraso");
-    await jurosField.fill("7%");
+    const jurosField = section.getByLabel("Juros");
+    await jurosField.fill("7");
     await section.getByTestId("save-financeiro").click();
 
     await expect(page.getByText("Configurações financeiras salvas.")).toBeVisible();
 
     await page.reload();
     const reloadedSection = await openSection(page, "financeiro");
-    await expect(reloadedSection.getByTestId("content-financeiro")).toContainText("7%");
+    await expect(reloadedSection.getByLabel("Juros")).toHaveValue("7");
   });
 });
