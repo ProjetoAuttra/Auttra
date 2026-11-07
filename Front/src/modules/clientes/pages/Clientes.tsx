@@ -2,8 +2,7 @@ import * as React from "react";
 import {
   Box, Stack, Typography, IconButton,
   Avatar, Menu, MenuItem, Divider, Fade, Table, TableBody,
-  TableCell, TableHead, TableRow, TablePagination, CircularProgress,
-} from "@mui/material";
+  TableCell, TableHead, TableRow, TablePagination, } from "@mui/material";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import { useNavigate } from "react-router-dom";
@@ -19,6 +18,7 @@ import ListTableContainer from "../../../components/common/ListTableContainer";
 import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationClientes } from "../../../components/common/Illustrations";
 import { linhaClicavel } from "../../../components/common/linhaClicavel";
+import LinhasEsqueleto from "../../../components/common/LinhasEsqueleto";
 
 // ── helpers de mapeamento ──────────────────────────────────────────────────
 
@@ -129,7 +129,6 @@ export default function ClientsPage() {
     }
   };
 
-  if (carregandoInicial) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
 
   return (
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
@@ -143,7 +142,7 @@ export default function ClientsPage() {
         searchValue={query}
         searchPlaceholder="Pesquisar por nome, email ou telefone"
         onSearchChange={setQuery}
-        actionLabel="Novo Cliente"
+        actionLabel="Cliente"
         onAction={openCreate}
       />
 
@@ -159,7 +158,7 @@ export default function ClientsPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.length > 0 ? rows.map((c) => (
+              {carregandoInicial ? <LinhasEsqueleto colunas={4} /> : rows.length > 0 ? rows.map((c) => (
                 <TableRow
                   key={c.id}
                   {...linhaClicavel(() => navigate(`/clientes/${c.id}`))}
@@ -189,7 +188,7 @@ export default function ClientsPage() {
                       icon={<GroupsRoundedIcon />}
                       title="Nenhum cliente cadastrado"
                       description="Cadastre o primeiro cliente para começar a gerenciar o relacionamento da oficina."
-                      actionLabel="Novo Cliente"
+                      actionLabel="Cliente"
                       onAction={openCreate}
                       isFiltered={!!query}
                       onClearFilter={() => setQuery("")}

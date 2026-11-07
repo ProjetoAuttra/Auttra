@@ -36,29 +36,32 @@ export function useListaPaginada<T>(endpoint: string, { filtros = {}, linhasPorP
   const [versao, setVersao] = React.useState(0);
 
   const chaveFiltros = JSON.stringify(limparFiltros(filtros));
-  const [filtrosAtivos, setFiltrosAtivos] = React.useState(chaveFiltros);
-  const primeiroRender = React.useRef(true);
+  // Endpoint e filtros andam juntos: a busca só usa o par já aplicado, nunca um endpoint novo com filtros velhos.
+  const [ativo, setAtivo] = React.useState({ endpoint, filtros: chaveFiltros });
   const onErrorRef = React.useRef(onError);
   onErrorRef.current = onError;
 
-  // Aplica os filtros com debounce e volta para a primeira página.
+  // Filtro digitado espera o debounce; trocar de endpoint (ex.: outra visão da tela) aplica tudo na hora.
+  // Em ambos, volta para a primeira página.
   React.useEffect(() => {
-    if (primeiroRender.current) {
-      primeiroRender.current = false;
+    if (endpoint === ativo.endpoint && chaveFiltros === ativo.filtros) return;
+    const aplicar = () => {
+      setAtivo({ endpoint, filtros: chaveFiltros });
+      setPage(0);
+    };
+    if (endpoint !== ativo.endpoint) {
+      aplicar();
       return;
     }
-    const t = setTimeout(() => {
-      setFiltrosAtivos(chaveFiltros);
-      setPage(0);
-    }, debounceMs);
+    const t = setTimeout(aplicar, debounceMs);
     return () => clearTimeout(t);
-  }, [chaveFiltros, debounceMs]);
+  }, [endpoint, chaveFiltros, debounceMs, ativo]);
 
   React.useEffect(() => {
     let cancelado = false;
     setLoading(true);
     api
-      .get<T[]>(endpoint, { params: { ...JSON.parse(filtrosAtivos), page: page + 1, limit: rowsPerPage } })
+      .get<T[]>(ativo.endpoint, { params: { ...JSON.parse(ativo.filtros), page: page + 1, limit: rowsPerPage } })
       .then((res) => {
         if (cancelado) return;
         setRows(res.data);
@@ -75,7 +78,7 @@ export function useListaPaginada<T>(endpoint: string, { filtros = {}, linhasPorP
     return () => {
       cancelado = true;
     };
-  }, [endpoint, filtrosAtivos, page, rowsPerPage, versao]);
+  }, [ativo, page, rowsPerPage, versao]);
 
   // Se a última página esvaziou (ex.: exclusão do único item), volta uma página.
   React.useEffect(() => {

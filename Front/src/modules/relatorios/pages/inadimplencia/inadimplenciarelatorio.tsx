@@ -1,10 +1,11 @@
-import { Box, CircularProgress, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import { Box, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
 import { EmptyReport, MetricCard, ReportHeader, ReportPage, StatGroup, TituloSecao, brl, exportCsv, percent } from "../../shared/reportUtils";
 import { GraficoBarrasHorizontais } from "../../shared/graficos";
 import { useRelatorio } from "../../shared/useRelatorio";
-import FiltrosRelatorio, { type CampoFiltro } from "../../shared/FiltrosRelatorio";
+import BarraFiltros, { type CampoFiltro } from "../../../../components/common/BarraFiltros";
 import { useOpcoesRelatorio } from "../../shared/useOpcoesRelatorio";
 import * as React from "react";
+import EsqueletoPagina from "../../../../components/common/EsqueletoPagina";
 
 type Inadimplencia = {
   total_vencido: number;
@@ -36,13 +37,13 @@ export default function InadimplenciaRelatorio() {
     );
   };
 
-  if (carregando && !dados) return <Box sx={{ textAlign: "center", mt: 6 }}><CircularProgress /></Box>;
+  if (carregando && !dados) return <EsqueletoPagina />;
   if (!dados) return <EmptyReport message="Não foi possível carregar o relatório." />;
 
   return (
     <ReportPage>
       <ReportHeader title="Inadimplência" subtitle="Contas a receber vencidas, há quanto tempo e quem deve." onExport={exportar} />
-      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} periodo={false} />
+      <BarraFiltros subtitulo="Refine o relatório" valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} periodo={false} />
 
       <StatGroup espalhar>
         <MetricCard label="Total vencido" value={brl(dados.total_vencido)} />

@@ -1,6 +1,6 @@
 import * as React from "react";
 import api from "../../../api/api";
-import type { Opcao } from "./FiltrosRelatorio";
+import type { Opcao } from "../../../components/common/BarraFiltros";
 
 const comoOpcoes = (lista: unknown): Opcao[] =>
   (Array.isArray(lista) ? lista : [])

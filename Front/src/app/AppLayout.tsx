@@ -2,11 +2,12 @@ import { Box, Toolbar } from '@mui/material';
 import { Outlet } from 'react-router-dom';
 import AppSidebar from '../components/layout/AppSidebar';
 import AppTopbar from '../components/layout/AppTopbar';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSidebar } from '../context/SidebarContext';
 import { ToastProvider } from '../context/ToastContext';
 import { ConfirmProvider } from '../context/ConfirmContext';
-import CarregandoTela from '../components/common/CarregandoTela';
+import EsqueletoPagina from '../components/common/EsqueletoPagina';
+import { preCarregarTelas } from './telas';
 import FaixaAssinatura from '../components/layout/FaixaAssinatura';
 import PlanosDialog from '../modules/assinatura/components/PlanosDialog';
 import { AssinaturaProvider } from '../context/AssinaturaContext';
@@ -17,6 +18,9 @@ export default function AppLayout() {
   const collapsedWidth = 68;
   const [mobileOpen, setMobileOpen] = useState(false);
   const { collapsed } = useSidebar();
+
+  // Só monta com o usuário logado: a partir daqui vale baixar as outras telas.
+  useEffect(preCarregarTelas, []);
 
   const currentWidth = collapsed ? collapsedWidth : drawerWidth;
 
@@ -69,7 +73,7 @@ export default function AppLayout() {
                     pb: { xs: 3, md: 4 },
                   }}
                 >
-                  <Suspense fallback={<CarregandoTela />}>
+                  <Suspense fallback={<EsqueletoPagina />}>
                     <Outlet />
                   </Suspense>
                 </Box>

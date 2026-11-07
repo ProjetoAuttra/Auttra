@@ -335,7 +335,7 @@ export default function Schedule() {
               sx={{ height: 44, px: 2.5 }}
               onClick={() => setDialogOpen(true)}
             >
-              Novo Agendamento
+              Agendamento
             </Button>
             <Button
               variant="outlined"

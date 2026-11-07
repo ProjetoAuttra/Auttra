@@ -93,9 +93,9 @@ test.describe("Fluxo financeiro - OS concluida gera cobranca e recebe pagamento"
     try {
       // Cria a OS pela interface, como o usuario faria.
       await page.goto("/tarefas");
-      // .first() porque o estado vazio da listagem também renderiza um botão "Nova Ordem"
+      // .first() porque o estado vazio da listagem também renderiza um botão "OS"
       // (dentro do EmptyState) quando a oficina ainda não tem nenhuma OS.
-      await page.getByRole("button", { name: "Nova Ordem" }).first().click();
+      await page.getByRole("button", { name: "OS", exact: true }).first().click();
 
       await page.getByLabel("Selecionar Cliente").click();
       await page.getByLabel("Selecionar Cliente").fill(cliente.nome);

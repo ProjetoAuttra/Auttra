@@ -2,8 +2,7 @@ import * as React from "react";
 import {
   Box, Stack, Typography, IconButton, Button,
   Avatar, Menu, MenuItem, Divider, Table, TableBody, TableCell,
-  TableHead, TableRow, TablePagination, Fade, CircularProgress,
-} from "@mui/material";
+  TableHead, TableRow, TablePagination, Fade, } from "@mui/material";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import DirectionsCarRoundedIcon from "@mui/icons-material/DirectionsCarRounded";
 import ColorLensRoundedIcon from "@mui/icons-material/ColorLensRounded";
@@ -19,6 +18,7 @@ import ListTableContainer from "../../../components/common/ListTableContainer";
 import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationVeiculos } from "../../../components/common/Illustrations";
 import { linhaClicavel } from "../../../components/common/linhaClicavel";
+import LinhasEsqueleto from "../../../components/common/LinhasEsqueleto";
 
 const COMBUSTIVEL_LABEL: Record<string, string> = {
   gasolina: "Gasolina", etanol: "Etanol", flex: "Flex",
@@ -93,7 +93,6 @@ export default function VeiculosPage() {
     }
   };
 
-  if (carregandoInicial) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
 
   return (
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
@@ -107,7 +106,7 @@ export default function VeiculosPage() {
         searchValue={query}
         searchPlaceholder="Pesquisar por placa, modelo, marca ou cliente"
         onSearchChange={setQuery}
-        actionLabel="Novo Veículo"
+        actionLabel="Veículo"
         onAction={openCreate}
       />
 
@@ -126,7 +125,7 @@ export default function VeiculosPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.length > 0 ? rows.map((v) => (
+              {carregandoInicial ? <LinhasEsqueleto colunas={7} /> : rows.length > 0 ? rows.map((v) => (
                 <TableRow
                   key={v.id} sx={{ height: 56, cursor: "pointer" }}
                   {...linhaClicavel(() => nav(`/veiculos/${v.id}`))}
@@ -194,7 +193,7 @@ export default function VeiculosPage() {
                       icon={<DirectionsCarRoundedIcon />}
                       title="Nenhum veículo cadastrado"
                       description="Cadastre o primeiro veículo para vincular aos clientes e às ordens de serviço."
-                      actionLabel="Novo Veículo"
+                      actionLabel="Veículo"
                       onAction={openCreate}
                       isFiltered={!!query}
                       onClearFilter={() => setQuery("")}

@@ -2,8 +2,7 @@ import * as React from "react";
 import {
   Box, Stack, Typography, TextField, InputAdornment, Button, IconButton,
   Avatar, Chip, Menu, MenuItem, Fade, Table, TableBody, TableCell,
-  TableHead, TableRow, TablePagination, Divider, CircularProgress,
-} from "@mui/material";
+  TableHead, TableRow, TablePagination, Divider, } from "@mui/material";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
@@ -20,6 +19,7 @@ import { listarFuncionarios, criarFuncionario, atualizarFuncionario, deletarFunc
 import ListTableContainer from "../../../components/common/ListTableContainer";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
 import BadgeRoundedIcon from "@mui/icons-material/BadgeRounded";
+import LinhasEsqueleto from "../../../components/common/LinhasEsqueleto";
 
 type Funcionario = {
   id: number;
@@ -141,7 +141,6 @@ export default function FuncionariosPage() {
 
   const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
-  if (loading) return <Box sx={{ textAlign: "center", mt: 8 }}><CircularProgress /></Box>;
 
   return (
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
@@ -156,7 +155,7 @@ export default function FuncionariosPage() {
               InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment> }}
             />
             {can("funcionarios", "create") && <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openCreate}>
-              Novo Funcionário
+              Funcionário
             </Button>}
           </Stack>
         }
@@ -175,7 +174,7 @@ export default function FuncionariosPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginated.length > 0 ? paginated.map((f) => (
+              {loading ? <LinhasEsqueleto colunas={5} /> : paginated.length > 0 ? paginated.map((f) => (
                 <TableRow key={f.id} hover sx={{ height: 56 }}>
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={1.5}>

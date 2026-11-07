@@ -69,7 +69,7 @@ function VeiculoOrdens({ ordens, onAdd }: { ordens: any[]; onAdd?: () => void })
             disableElevation
             sx={{ mt: 2, fontWeight: 700 }}
           >
-            Nova OS
+            OS
           </Button>
         )}
       </Box>
@@ -81,7 +81,7 @@ function VeiculoOrdens({ ordens, onAdd }: { ordens: any[]; onAdd?: () => void })
       {onAdd && (
         <Stack direction="row" justifyContent="flex-end">
           <Button onClick={onAdd} startIcon={<AddRoundedIcon />} variant="contained" disableElevation sx={{ fontWeight: 700 }}>
-            Nova OS
+            OS
           </Button>
         </Stack>
       )}

@@ -10,7 +10,7 @@ vi.mock("../context/SidebarContext", () => ({
   useSidebar: () => ({ collapsed: sidebar.collapsed, toggleCollapsed: vi.fn(), setCollapsed: vi.fn() }),
 }));
 vi.mock("../context/AuthContext", () => ({ useAuth: () => ({ can: () => true }) }));
-vi.mock("../context/AdditionalResourcesContext", () => ({ useAdditionalResources: () => ({ isEnabled: () => true }) }));
+vi.mock("../context/SystemResourcesContext", () => ({ useSystemResources: () => ({ isEnabled: () => true }) }));
 
 function Onde() {
   const { pathname } = useLocation();

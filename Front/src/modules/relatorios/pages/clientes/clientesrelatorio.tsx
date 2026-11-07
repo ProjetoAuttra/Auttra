@@ -1,14 +1,15 @@
 import * as React from 'react';
 import {
   Box, Stack, Typography, Table, TableBody, TableCell,
-  TableHead, TableRow, Button, CircularProgress, TextField
+  TableHead, TableRow, Button, TextField
 } from '@mui/material';
 import FileDownloadRoundedIcon from '@mui/icons-material/FileDownloadRounded';
 import { buscarTodas } from '../../shared/buscarTodas';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../context/ToastContext';
-import FiltrosRelatorio from '../../shared/FiltrosRelatorio';
+import BarraFiltros from '../../../../components/common/BarraFiltros';
 import { inDateRange } from '../../shared/reportUtils';
+import EsqueletoPagina from "../../../../components/common/EsqueletoPagina";
 
 type Cliente = {
   id: number;
@@ -72,11 +73,7 @@ export default function RelatorioClientes() {
   };
 
   if (loading)
-    return (
-      <Box sx={{ textAlign: 'center', mt: 6 }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <EsqueletoPagina />;
 
   return (
     <Box sx={{ maxWidth: 1500, mx: 'auto' }}>
@@ -97,9 +94,9 @@ export default function RelatorioClientes() {
         </Button>
       </Stack>
 
-      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO}>
+      <BarraFiltros subtitulo="Refine o relatório" valores={filtros} onChange={setFiltros} padrao={PADRAO}>
         <TextField size="small" label="Buscar cliente" value={filtros.busca} onChange={(e) => setFiltros({ ...filtros, busca: e.target.value })} sx={{ minWidth: 240 }} />
-      </FiltrosRelatorio>
+      </BarraFiltros>
 
       <Box>
         {filtrados.length ? (

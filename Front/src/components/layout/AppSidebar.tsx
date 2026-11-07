@@ -28,7 +28,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { paths } from '../../routes/paths';
 import { useSidebar } from '../../context/SidebarContext';
 import { useAuth } from '../../context/AuthContext';
-import { useAdditionalResources } from '../../context/AdditionalResourcesContext';
+import { useSystemResources } from '../../context/SystemResourcesContext';
 import type { AccessModule } from '../../permissions/accessProfiles';
 import { brand } from '../../app/theme';
 import BrandLogoPlaceholder from './BrandLogoPlaceholder';
@@ -108,7 +108,7 @@ function NavList({ onItemClick, collapsed }: { onItemClick?: () => void; collaps
   const { pathname, search } = useLocation();
   const nav = useNavigate();
   const { can } = useAuth();
-  const { isEnabled } = useAdditionalResources();
+  const { isEnabled } = useSystemResources();
 
   const isSubSelected = (subTo: string) => {
     const [basePath, queryString] = subTo.split('?');

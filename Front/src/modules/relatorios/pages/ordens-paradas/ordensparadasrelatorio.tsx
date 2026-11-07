@@ -2,7 +2,6 @@ import * as React from "react";
 import {
   Box,
   Chip,
-  CircularProgress,
   MenuItem,
   Select,
   Stack,
@@ -27,7 +26,8 @@ import {
   ReportHeader,
   ReportPage, TituloSecao } from "../../shared/reportUtils";
 import { GraficoBarrasHorizontais } from "../../shared/graficos";
-import FiltrosRelatorio, { type CampoFiltro } from "../../shared/FiltrosRelatorio";
+import BarraFiltros, { type CampoFiltro } from "../../../../components/common/BarraFiltros";
+import EsqueletoPagina from "../../../../components/common/EsqueletoPagina";
 
 type Ordem = {
   id: number;
@@ -133,7 +133,7 @@ export default function OrdensParadasRelatorio() {
     );
   };
 
-  if (loading) return <Box sx={{ textAlign: "center", mt: 6 }}><CircularProgress /></Box>;
+  if (loading) return <EsqueletoPagina />;
 
   return (
     <ReportPage>
@@ -143,7 +143,7 @@ export default function OrdensParadasRelatorio() {
         onExport={handleExportarCSV}
       />
 
-      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} periodo={false}>
+      <BarraFiltros subtitulo="Refine o relatório" valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} periodo={false}>
         <Stack direction="row" spacing={1.5} alignItems="center">
           <Typography variant="body2" fontWeight={600}>Considerar parada a partir de</Typography>
           <Select size="small" value={diasMinimos} onChange={(e: SelectChangeEvent) => setDiasMinimos(e.target.value)} sx={{ minWidth: 150 }}>
@@ -153,7 +153,7 @@ export default function OrdensParadasRelatorio() {
             <MenuItem value="7">7 dias</MenuItem>
           </Select>
         </Stack>
-      </FiltrosRelatorio>
+      </BarraFiltros>
 
       <StatGroup espalhar>
         <MetricCard label="OS abertas" value={abertas.length} tone="info" />

@@ -1,9 +1,10 @@
 import * as React from "react";
-import { Box, CircularProgress, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import { Box, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
 import { EmptyReport, MetricCard, ReportHeader, ReportPage, StatGroup, TituloSecao, brl, exportCsv, periodoMesAtual, percent } from "../../shared/reportUtils";
 import { GraficoBarrasHorizontais } from "../../shared/graficos";
 import { useRelatorio } from "../../shared/useRelatorio";
-import FiltrosRelatorio from "../../shared/FiltrosRelatorio";
+import BarraFiltros from "../../../../components/common/BarraFiltros";
+import { EsqueletoConteudo } from "../../../../components/common/EsqueletoPagina";
 
 type Mecanico = {
   id: number;
@@ -46,10 +47,10 @@ export default function MecanicosRelatorio() {
   return (
     <ReportPage>
       <ReportHeader title="Desempenho por mecânico" subtitle="Ordens concluídas, faturamento, ticket médio e margem de cada mecânico no período." onExport={exportar} />
-      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} />
+      <BarraFiltros subtitulo="Refine o relatório" valores={filtros} onChange={setFiltros} padrao={PADRAO} />
 
       {carregando && !dados ? (
-        <Box sx={{ textAlign: "center", mt: 6 }}><CircularProgress /></Box>
+        <EsqueletoConteudo />
       ) : !dados ? (
         <EmptyReport message="Não foi possível carregar o relatório." />
       ) : (

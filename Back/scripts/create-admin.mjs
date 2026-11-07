@@ -25,7 +25,7 @@ async function criarOficinaCompleta(input) {
     const ACCESS_MODULES = [
       "painel","agenda","clientes","veiculos","estoque","servicos",
       "ordens","financeiro","fornecedores","orcamentos","funcionarios",
-      "relatorios","configuracoes","recursos_adicionais",
+      "relatorios","configuracoes","recursos_sistema",
     ];
     const ALL_ACTIONS = ["read","create","update","delete"];
     const allPermissions = Object.fromEntries(ACCESS_MODULES.map((m) => [m, ALL_ACTIONS]));
