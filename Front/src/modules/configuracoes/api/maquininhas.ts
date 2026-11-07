@@ -12,6 +12,8 @@ export type Maquininha = {
   /** [0] = crédito à vista (1x), [1] = 2x... O tamanho é o máximo de parcelas. */
   taxas_credito: number[];
   prazo_credito_dias: number;
+  /** Dias entre uma parcela e a seguinte, sem antecipação (quase sempre 30). */
+  intervalo_parcelas_dias: number;
   antecipacao: boolean;
 };
 
@@ -45,6 +47,7 @@ export const novaMaquininha = (): MaquininhaForm => ({
   prazo_debito_dias: 1,
   taxas_credito: Array(12).fill(0),
   prazo_credito_dias: 30,
+  intervalo_parcelas_dias: 30,
   antecipacao: false,
 });
 

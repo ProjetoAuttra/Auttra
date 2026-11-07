@@ -24,7 +24,7 @@ const post = vi.mocked(api.post);
 
 const stone: Maquininha = {
   id: 1, nome: "Stone balcão", operadora: "stone", ativo: true, aceita_debito: true, aceita_credito: true,
-  taxa_debito: 1.5, prazo_debito_dias: 1, taxas_credito: [3, 4, 5], prazo_credito_dias: 30, antecipacao: false,
+  taxa_debito: 1.5, prazo_debito_dias: 1, taxas_credito: [3, 4, 5], prazo_credito_dias: 30, intervalo_parcelas_dias: 30, antecipacao: false,
 };
 const cielo: Maquininha = { ...stone, id: 2, nome: "Cielo", operadora: "cielo", taxas_credito: [2.5] };
 
@@ -70,6 +70,15 @@ describe("receber no cartão com maquininha", () => {
     await waitFor(() =>
       expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ metodo: "cartao_credito", maquininha_id: 1, cartao_parcelas: 3, valor: 300 }))
     );
+  });
+
+  it("a previsão usa o intervalo entre parcelas da maquininha", async () => {
+    const { escolher, user } = await abrirReceber([{ ...stone, intervalo_parcelas_dias: 28 }]);
+    await user.clear(screen.getByLabelText(/data do recebimento/i));
+    await user.type(screen.getByLabelText(/data do recebimento/i), "2026-11-10");
+    await escolher(/método/i, "Cartão de crédito");
+    await escolher(/parcelas/i, /^3x/);
+    expect(await screen.findByText("04/02/2027")).toBeInTheDocument(); // 30 + 28 + 28 dias
   });
 
   it("com uma maquininha só, ela já vem escolhida; no débito não pergunta parcelas", async () => {
@@ -168,6 +177,14 @@ describe("configurar maquininha", () => {
         expect.objectContaining({ aceita_debito: false, aceita_credito: true, taxa_debito: 1.5, prazo_debito_dias: 1 })
       )
     );
+  });
+
+  it("intervalo entre parcelas só aparece no parcelado sem antecipação", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<MaquininhaDialog open maquininha={stone} onClose={() => {}} onSalva={() => {}} />);
+    expect(screen.getByRole("spinbutton", { name: /demais parcelas a cada/i })).toHaveValue(30);
+    await user.click(screen.getByLabelText(/antecipação automática/i));
+    expect(screen.queryByRole("spinbutton", { name: /demais parcelas a cada/i })).not.toBeInTheDocument();
   });
 
   it("não salva sem nome nem com taxa vazia", async () => {

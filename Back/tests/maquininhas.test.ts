@@ -17,6 +17,7 @@ describe("calcularTaxa", () => {
     prazo_debito_dias: 1,
     taxas_credito: [3, 4, 5],
     prazo_credito_dias: 30,
+    intervalo_parcelas_dias: 30,
     antecipacao: false,
   };
   const dia = new Date("2026-11-10T00:00:00.000Z");
@@ -33,6 +34,11 @@ describe("calcularTaxa", () => {
     expect(Number(t.taxa_percentual)).toBe(5);
     expect(Number(t.valor_taxa)).toBe(5);
     expect(t.data_prevista_recebimento.toISOString().slice(0, 10)).toBe("2027-02-08"); // 1ª em 30 dias, 3ª em 90
+  });
+
+  it("usa o intervalo entre parcelas configurado", () => {
+    const t = calcularTaxa({ ...maq, intervalo_parcelas_dias: 28 }, "cartao_credito", 3, new Prisma.Decimal(100), dia);
+    expect(t.data_prevista_recebimento.toISOString().slice(0, 10)).toBe("2027-02-04"); // 30 + 28 + 28 = 86 dias
   });
 
   it("com antecipação, o crédito parcelado cai todo no prazo do crédito", () => {
@@ -113,6 +119,7 @@ describe.skipIf(!process.env.DATABASE_URL)("maquininhas e taxa no recebimento", 
   it("cadastra a maquininha validando as taxas", async () => {
     await api(gestor).post("/api/configuracoes/maquininhas", { nome: "", taxas_credito: [3] }).expect(400);
     await api(gestor).post("/api/configuracoes/maquininhas", { nome: "X", taxas_credito: [101] }).expect(400);
+    await api(gestor).post("/api/configuracoes/maquininhas", { nome: "X", intervalo_parcelas_dias: 0 }).expect(400);
     await api(caixa).post("/api/configuracoes/maquininhas", { nome: "Sem permissão" }).expect(403);
 
     const r = await api(gestor)
@@ -128,6 +135,7 @@ describe.skipIf(!process.env.DATABASE_URL)("maquininhas e taxa no recebimento", 
     stoneId = r.body.id;
     expect(r.body.taxa_debito).toBe(1.5);
     expect(r.body.taxas_credito).toEqual([3, 4, 5]);
+    expect(r.body.intervalo_parcelas_dias).toBe(30);
   });
 
   it("lista as ativas para quem recebe, e as inativas só para quem configura", async () => {

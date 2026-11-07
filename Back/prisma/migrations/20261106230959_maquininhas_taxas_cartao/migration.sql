@@ -32,6 +32,7 @@ CREATE TABLE "maquininha" (
     "prazo_debito_dias" INTEGER NOT NULL DEFAULT 1,
     "taxas_credito" JSONB NOT NULL DEFAULT '[0]',
     "prazo_credito_dias" INTEGER NOT NULL DEFAULT 30,
+    "intervalo_parcelas_dias" INTEGER NOT NULL DEFAULT 30,
     "antecipacao" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(3) NOT NULL,

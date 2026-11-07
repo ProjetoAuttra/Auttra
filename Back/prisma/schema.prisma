@@ -801,6 +801,8 @@ model maquininha {
   // Taxa do credito por numero de parcelas: [0] = a vista (1x), [1] = 2x... O tamanho eh o maximo de parcelas.
   taxas_credito      Json    @default("[0]")
   prazo_credito_dias Int     @default(30)
+  // Dias entre uma parcela e a seguinte no credito parcelado sem antecipacao (quase sempre 30).
+  intervalo_parcelas_dias Int @default(30)
   // Antecipacao automatica: o credito parcelado cai todo de uma vez, no prazo do credito.
   antecipacao        Boolean @default(false)
 

@@ -151,6 +151,7 @@ const paraTexto = (v: number) => String(v).replace(".", ",");
 const deMaquininha = (m: MaquininhaForm): Form => ({ ...m, taxa_debito: paraTexto(m.taxa_debito), taxas_credito: m.taxas_credito.map(paraTexto) });
 const pctValido = (t: string) => t.trim() !== "" && parseDecimal(t) >= 0 && parseDecimal(t) <= 100;
 const diasValido = (n: number) => Number.isInteger(n) && n >= 0 && n <= 365;
+const intervaloValido = (n: number) => diasValido(n) && n >= 1;
 
 function CampoPct({ label, valor, onChange, ...props }: { label?: string; valor: string; onChange: (v: string) => void; autoFocus?: boolean; inputProps?: object }) {
   const erro = !pctValido(valor);
@@ -169,7 +170,8 @@ function CampoPct({ label, valor, onChange, ...props }: { label?: string; valor:
   );
 }
 
-function CampoDias({ label, valor, onChange, helperText }: { label: string; valor: number; onChange: (v: number) => void; helperText?: string }) {
+function CampoDias({ label, valor, onChange, helperText, minimo = 0 }: { label: string; valor: number; onChange: (v: number) => void; helperText?: string; minimo?: number }) {
+  const valido = diasValido(valor) && valor >= minimo;
   return (
     <TextField
       label={label}
@@ -178,10 +180,10 @@ function CampoDias({ label, valor, onChange, helperText }: { label: string; valo
       type="number"
       value={Number.isNaN(valor) ? "" : valor}
       onChange={(e) => onChange(e.target.value === "" ? NaN : Number(e.target.value))}
-      error={!diasValido(valor)}
-      helperText={!diasValido(valor) ? "De 0 a 365 dias" : helperText ?? " "}
+      error={!valido}
+      helperText={!valido ? `De ${minimo} a 365 dias` : helperText ?? " "}
       InputProps={{ endAdornment: <InputAdornment position="end">dias</InputAdornment> }}
-      inputProps={{ min: 0, max: 365 }}
+      inputProps={{ min: minimo, max: 365 }}
     />
   );
 }
@@ -219,7 +221,8 @@ export function MaquininhaDialog({ open, maquininha, onClose, onSalva }: {
     !form.nome.trim() ||
     nenhumTipo ||
     (form.aceita_debito && (!pctValido(form.taxa_debito) || !diasValido(form.prazo_debito_dias))) ||
-    (form.aceita_credito && (form.taxas_credito.some((t) => !pctValido(t)) || !diasValido(form.prazo_credito_dias)));
+    (form.aceita_credito &&
+      (form.taxas_credito.some((t) => !pctValido(t)) || !diasValido(form.prazo_credito_dias) || !intervaloValido(form.intervalo_parcelas_dias)));
 
   const salvar = async () => {
     if (invalido) { setMostrarErros(true); return; }
@@ -233,6 +236,7 @@ export function MaquininhaDialog({ open, maquininha, onClose, onSalva }: {
       prazo_debito_dias: form.aceita_debito ? form.prazo_debito_dias : original.prazo_debito_dias,
       taxas_credito: form.aceita_credito ? form.taxas_credito.map(parseDecimal) : original.taxas_credito,
       prazo_credito_dias: form.aceita_credito ? form.prazo_credito_dias : original.prazo_credito_dias,
+      intervalo_parcelas_dias: form.aceita_credito ? form.intervalo_parcelas_dias : original.intervalo_parcelas_dias,
     };
     try {
       const salva = maquininha ? await atualizarMaquininha(maquininha.id, dados) : await criarMaquininha(dados);
@@ -372,9 +376,21 @@ export function MaquininhaDialog({ open, maquininha, onClose, onSalva }: {
                   label={form.antecipacao || parcelas === 1 ? "Recebe em *" : "1ª parcela em *"}
                   valor={form.prazo_credito_dias}
                   onChange={(v) => set({ prazo_credito_dias: v })}
-                  helperText={form.antecipacao || parcelas === 1 ? "Dias depois da venda" : "As demais a cada 30 dias"}
+                  helperText="Dias depois da venda"
                 />
               </Stack>
+              {parcelas > 1 && !form.antecipacao && (
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                  <CampoDias
+                    label="Demais parcelas a cada *"
+                    valor={form.intervalo_parcelas_dias}
+                    onChange={(v) => set({ intervalo_parcelas_dias: v })}
+                    minimo={1}
+                    helperText="Quase sempre 30 dias"
+                  />
+                  <Box sx={{ width: "100%", display: { xs: "none", sm: "block" } }} />
+                </Stack>
+              )}
               {parcelas > 1 && (
                 <FormControlLabel
                   sx={{ ml: 0, alignItems: "flex-start" }}

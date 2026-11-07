@@ -24,6 +24,7 @@ export type MaquininhaInput = {
   prazo_debito_dias?: unknown;
   taxas_credito?: unknown;
   prazo_credito_dias?: unknown;
+  intervalo_parcelas_dias?: unknown;
   antecipacao?: unknown;
 };
 
@@ -67,6 +68,11 @@ function normalizar(data: MaquininhaInput, parcial: boolean) {
   if (!parcial || data.prazo_debito_dias !== undefined) out.prazo_debito_dias = dias(data.prazo_debito_dias ?? 1, "Prazo do débito");
   if (!parcial || data.taxas_credito !== undefined) out.taxas_credito = taxasCredito(data.taxas_credito ?? [0]);
   if (!parcial || data.prazo_credito_dias !== undefined) out.prazo_credito_dias = dias(data.prazo_credito_dias ?? 30, "Prazo do crédito");
+  if (!parcial || data.intervalo_parcelas_dias !== undefined) {
+    const intervalo = dias(data.intervalo_parcelas_dias ?? 30, "Intervalo entre parcelas");
+    if (intervalo < 1) throw new HttpError("Intervalo entre parcelas: informe pelo menos 1 dia.", 400);
+    out.intervalo_parcelas_dias = intervalo;
+  }
   if (data.antecipacao !== undefined) out.antecipacao = data.antecipacao === true;
   return out;
 }
@@ -92,10 +98,10 @@ const somarDias = (base: Date, n: number) => {
  * Taxa de um recebimento no cartão, com a configuração atual da maquininha.
  * - Débito: taxa do débito, cai no prazo do débito.
  * - Crédito em N vezes: taxa da posição N-1. Sem antecipação, a 1ª parcela cai no prazo do crédito e as demais
- *   a cada 30 dias; a data prevista é a da última. Com antecipação, cai tudo no prazo do crédito.
+ *   a cada `intervalo_parcelas_dias` (padrão 30); a data prevista é a da última. Com antecipação, cai tudo no prazo do crédito.
  */
 export function calcularTaxa(
-  maquininha: Pick<Maquininha, "taxa_debito" | "prazo_debito_dias" | "taxas_credito" | "prazo_credito_dias" | "antecipacao">,
+  maquininha: Pick<Maquininha, "taxa_debito" | "prazo_debito_dias" | "taxas_credito" | "prazo_credito_dias" | "intervalo_parcelas_dias" | "antecipacao">,
   metodo: "cartao_credito" | "cartao_debito",
   parcelas: number,
   valor: Prisma.Decimal,
@@ -111,7 +117,9 @@ export function calcularTaxa(
     if (!Number.isInteger(parcelas) || parcelas < 1 || parcelas > taxas.length)
       throw new HttpError(`Esta maquininha aceita de 1 a ${taxas.length} parcelas no crédito.`, 400);
     percentualTaxa = taxas[parcelas - 1];
-    prazo = maquininha.antecipacao ? maquininha.prazo_credito_dias : maquininha.prazo_credito_dias + 30 * (parcelas - 1);
+    prazo = maquininha.antecipacao
+      ? maquininha.prazo_credito_dias
+      : maquininha.prazo_credito_dias + maquininha.intervalo_parcelas_dias * (parcelas - 1);
   }
   const taxa = new Prisma.Decimal(percentualTaxa);
   return {

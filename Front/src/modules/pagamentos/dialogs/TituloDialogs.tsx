@@ -118,7 +118,7 @@ function useMaquininhasAtivas(ativo: boolean) {
 export function simularTaxa(m: Maquininha, metodo: string, parcelas: number, valor: number, dataIso: string) {
   const debito = metodo === "cartao_debito";
   const percentual = debito ? m.taxa_debito : m.taxas_credito[parcelas - 1] ?? 0;
-  const prazo = debito ? m.prazo_debito_dias : m.antecipacao ? m.prazo_credito_dias : m.prazo_credito_dias + 30 * (parcelas - 1);
+  const prazo = debito ? m.prazo_debito_dias : m.antecipacao ? m.prazo_credito_dias : m.prazo_credito_dias + (m.intervalo_parcelas_dias ?? 30) * (parcelas - 1);
   const taxa = Math.round(valor * percentual) / 100;
   const previsao = new Date(`${dataIso || hojeInput()}T00:00:00.000Z`);
   previsao.setUTCDate(previsao.getUTCDate() + prazo);
