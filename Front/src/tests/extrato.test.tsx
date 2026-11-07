@@ -78,6 +78,8 @@ describe("Extrato", () => {
     expect(await screen.findByText(/\+ R\$\s300,00/)).toBeInTheDocument();
     expect(screen.getByText("10/11/2026")).toBeInTheDocument();
     expect(screen.queryByText(/parcela 1\/3/)).not.toBeInTheDocument();
+    // As parcelas que vão cair são da efetivação: aqui o card não aparece.
+    expect(screen.queryByText("A cair das maquininhas")).not.toBeInTheDocument();
     await waitFor(() =>
       expect(get).toHaveBeenCalledWith("/pagamentos", expect.objectContaining({ params: expect.objectContaining({ status: "pago", ordem: "pagamento" }) }))
     );

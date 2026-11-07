@@ -246,7 +246,8 @@ export default function ExtratoFinanceiro() {
           icon={<SavingsRoundedIcon />}
           tone={resumo && resumo.saldo < 0 ? "warning" : "primary"}
         />
-        {aCair && aCair.qtd > 0 && (
+        {/* Só na efetivação: é lá que as parcelas futuras aparecem na lista. */}
+        {efetivacao && aCair && aCair.qtd > 0 && (
           <StatCard
             label="A cair das maquininhas"
             value={brl(aCair.total)}
