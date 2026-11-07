@@ -27,14 +27,22 @@ const dados = (extra: Partial<DadosAssinatura>): DadosAssinatura => ({
 describe("calcularAssinatura", () => {
   const agora = new Date("2026-11-06T15:00:00Z");
 
-  it("teste recém-criado: 7 dias, tudo liberado", () => {
-    const a = calcularAssinatura(dados({ teste_termina_em: fimDoTeste(agora) }), agora);
-    expect(a).toMatchObject({ situacao: "teste", diasRestantes: 7, somenteLeitura: false });
+  it("teste recém-criado: termina às 23:59 (SP) de 7 dias depois e mostra 7 dias", () => {
+    const fim = fimDoTeste(agora); // 06/11 12:00 em SP
+    expect(fim.toISOString()).toBe("2026-11-14T02:59:59.999Z"); // 13/11 23:59:59.999 em SP
+    expect(calcularAssinatura(dados({ teste_termina_em: fim }), agora)).toMatchObject({ situacao: "teste", diasRestantes: 7, somenteLeitura: false });
+    // Cadastro às 23:30 de SP: ainda é o mesmo dia, mesma data de fim.
+    expect(fimDoTeste(new Date("2026-11-07T02:30:00Z")).toISOString()).toBe("2026-11-14T02:59:59.999Z");
   });
 
-  it("último dia do teste ainda mostra 1 dia", () => {
-    const a = calcularAssinatura(dados({ teste_termina_em: new Date(agora.getTime() + 2 * HORA) }), agora);
-    expect(a).toMatchObject({ situacao: "teste", diasRestantes: 1, somenteLeitura: false });
+  it("a contagem baixa à meia-noite de SP, não no horário do cadastro", () => {
+    const fim = fimDoTeste(agora);
+    const dias = (iso: string) => calcularAssinatura(dados({ teste_termina_em: fim }), new Date(iso)).diasRestantes;
+    expect(dias("2026-11-07T02:59:00Z")).toBe(7); // 06/11 23:59 em SP
+    expect(dias("2026-11-07T03:01:00Z")).toBe(6); // 07/11 00:01 em SP
+    expect(dias("2026-11-13T03:00:00Z")).toBe(0); // último dia: 13/11
+    expect(calcularAssinatura(dados({ teste_termina_em: fim }), new Date("2026-11-13T23:00:00Z")).situacao).toBe("teste");
+    expect(calcularAssinatura(dados({ teste_termina_em: fim }), new Date("2026-11-14T03:00:00Z")).situacao).toBe("teste_vencido");
   });
 
   it("teste vencido vira só leitura (vence no instante exato)", () => {

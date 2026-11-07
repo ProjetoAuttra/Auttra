@@ -6,6 +6,7 @@ import { getJwtSecret } from "../src/config/env.js";
 import { prisma } from "../src/prisma/client.js";
 import { cadastroSchema } from "../src/schemas/cadastro.schema.js";
 import { ConfirmacaoEmailService } from "../src/services/cadastro.service.js";
+import { fimDoTeste } from "../src/services/assinatura.service.js";
 
 describe("cadastroSchema", () => {
   const base = { nome: "Ana Souza", oficina: "Auto Center", whatsapp: "(11) 98888-7777", email: " Ana@Example.COM ", senha: "segredo1", aceite_termos: true };
@@ -107,9 +108,7 @@ describe.skipIf(!process.env.DATABASE_URL)("cadastro pelo site", () => {
       gestor_usuario_id: usuario.id, logradouro: null, cep: null, cidade_id: null, email: null,
       origem_campanha: { utm_source: "google", utm_campaign: "lancamento" },
     });
-    const dias = (oficina.teste_termina_em!.getTime() - antes) / 86_400_000;
-    expect(dias).toBeGreaterThan(6.99);
-    expect(dias).toBeLessThan(7.01);
+    expect(oficina.teste_termina_em).toEqual(fimDoTeste(new Date(antes)));
     expect(oficina.perfis_acesso.map((p) => p.chave).sort()).toEqual(["mecanico", "proprietario", "recepcao"]);
 
     const historico = await prisma.admin_audit_log.findFirst({ where: { oficina_id: oficina.id, action: "oficina.cadastro_site" } });

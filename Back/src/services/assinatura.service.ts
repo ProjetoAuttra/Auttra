@@ -1,4 +1,5 @@
 import { prisma } from "../prisma/client.js";
+import { diasEntreISO, fimDoDiaSP, hojeISO, somarDiasISO } from "../utils/datas.js";
 
 /**
  * Situação da assinatura da oficina, calculada na hora a partir do que está gravado:
@@ -7,7 +8,6 @@ import { prisma } from "../prisma/client.js";
  */
 
 export const DIAS_TESTE = 7;
-const DIA_MS = 86_400_000;
 const TTL_MS = 5_000;
 
 export type StatusAssinatura = "teste" | "ativa" | "suspensa";
@@ -28,9 +28,12 @@ export const SELECT_ASSINATURA = {
   assinatura_ativada_em: true,
 } as const;
 
-/** Fim do teste grátis que começa em `inicio`. */
+/**
+ * Fim do teste grátis que começa em `inicio`: 23:59 (São Paulo) do dia `dias` dias depois. Quem se cadastra
+ * à tarde não perde as horas daquele dia, e a contagem de dias baixa sempre à meia-noite.
+ */
 export function fimDoTeste(inicio: Date = new Date(), dias = DIAS_TESTE) {
-  return new Date(inicio.getTime() + dias * DIA_MS);
+  return fimDoDiaSP(somarDiasISO(hojeISO(inicio), dias));
 }
 
 export function calcularAssinatura(dados: DadosAssinatura, agora: Date = new Date()) {
@@ -39,12 +42,13 @@ export function calcularAssinatura(dados: DadosAssinatura, agora: Date = new Dat
   const vencido = emTeste && (!dados.teste_termina_em || dados.teste_termina_em.getTime() <= agora.getTime());
   const situacao: SituacaoAssinatura = emTeste ? (vencido ? "teste_vencido" : "teste") : dados.assinatura_status;
 
-  // "Faltam X dias": arredonda para cima, então o último dia (menos de 24h) ainda mostra 1.
+  // "Faltam X dias": dias de calendário (São Paulo) entre hoje e o dia em que o teste termina.
+  // No dia do cadastro mostra 7; no último dia (termina às 23:59 de hoje) mostra 0.
   const diasRestantes = !emTeste
     ? null
     : vencido
       ? 0
-      : Math.ceil((dados.teste_termina_em!.getTime() - agora.getTime()) / DIA_MS);
+      : Math.max(0, diasEntreISO(hojeISO(agora), hojeISO(dados.teste_termina_em!)));
 
   return {
     situacao,

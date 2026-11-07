@@ -302,7 +302,8 @@ export const OficinasAdminService = {
           throw new HttpError("A nova data de fim do teste precisa ser hoje ou depois.", 400);
         }
       } else {
-        // Teste ainda correndo ganha os dias a mais no fim; teste vencido conta a partir de agora.
+        // Teste ainda correndo ganha os dias a mais no fim; teste vencido conta a partir de hoje.
+        // Termina sempre às 23:59 do dia (fimDoTeste).
         const base = Math.max(agora.getTime(), atual.teste_termina_em?.getTime() ?? 0);
         terminaEm = fimDoTeste(new Date(base), acao.dias);
       }
