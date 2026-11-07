@@ -55,4 +55,19 @@ describe("useListaPaginada", () => {
     act(() => result.current.recarregar());
     await waitFor(() => expect(get.mock.calls.length).toBe(chamadas + 1));
   });
+
+  it("trocando de endpoint junto com os filtros, nunca pede o endpoint novo com os filtros antigos", async () => {
+    const { result, rerender } = renderHook(
+      ({ endpoint, f }) => useListaPaginada(endpoint, { filtros: f, debounceMs: 50 }),
+      { initialProps: { endpoint: "/extrato/efetivacao", f: { de: "2026-11-01" } as Record<string, string> } }
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    get.mockClear();
+
+    rerender({ endpoint: "/pagamentos", f: { status: "pago", pagamento_de: "2026-11-01" } });
+    await waitFor(() => expect(get).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 80)); // passa do debounce: nada de pedido extra
+
+    expect(get.mock.calls).toEqual([["/pagamentos", { params: { status: "pago", pagamento_de: "2026-11-01", page: 1, limit: 10 } }]]);
+  });
 });
