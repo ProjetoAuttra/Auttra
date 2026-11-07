@@ -23,7 +23,7 @@ import {
   ReportHeader,
   ReportPage,
   todayISO, TituloSecao } from "../../shared/reportUtils";
-import FiltrosRelatorio, { type CampoFiltro } from "../../shared/FiltrosRelatorio";
+import BarraFiltros, { type CampoFiltro } from "../../../../components/common/BarraFiltros";
 import { GraficoPizza, GraficoEntradasSaidas, chaveSemana, rotuloSemana, semanasDoPeriodo } from "../../shared/graficos";
 import EsqueletoPagina from "../../../../components/common/EsqueletoPagina";
 
@@ -235,7 +235,7 @@ export default function RelatorioFinanceiro() {
         onExport={handleExportarCSV}
       />
 
-      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} />
+      <BarraFiltros subtitulo="Refine o relatório" valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} />
 
       <StatGroup espalhar>
         <MetricCard label="Recebido" value={brl(recebido)} helper={taxas > 0 ? `${brl(taxas)} de taxas de cartão` : undefined} />

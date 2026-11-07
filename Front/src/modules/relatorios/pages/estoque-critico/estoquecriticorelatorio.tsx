@@ -22,7 +22,7 @@ import {
   ReportHeader,
   ReportPage, TituloSecao } from "../../shared/reportUtils";
 import { GraficoBarrasHorizontais } from "../../shared/graficos";
-import FiltrosRelatorio, { type CampoFiltro } from "../../shared/FiltrosRelatorio";
+import BarraFiltros, { type CampoFiltro } from "../../../../components/common/BarraFiltros";
 import { formatarQuantidade } from "../../../../utils/quantidade";
 import EsqueletoPagina from "../../../../components/common/EsqueletoPagina";
 
@@ -129,9 +129,9 @@ export default function EstoqueCriticoRelatorio() {
         onExport={handleExportarCSV}
       />
 
-      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} periodo={false}>
+      <BarraFiltros subtitulo="Refine o relatório" valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} periodo={false}>
         <TextField size="small" label="Buscar peça" value={filtros.busca} onChange={(e) => setFiltros({ ...filtros, busca: e.target.value })} sx={{ minWidth: 240 }} />
-      </FiltrosRelatorio>
+      </BarraFiltros>
 
       <StatGroup espalhar>
         <MetricCard label="Peças cadastradas" value={pecas.length} />

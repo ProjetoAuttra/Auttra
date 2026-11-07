@@ -26,7 +26,7 @@ import {
   ReportPage,
   TituloSecao } from "../../shared/reportUtils";
 import { GraficoBarrasHorizontais } from "../../shared/graficos";
-import FiltrosRelatorio, { type CampoFiltro } from "../../shared/FiltrosRelatorio";
+import BarraFiltros, { type CampoFiltro } from "../../../../components/common/BarraFiltros";
 import EsqueletoPagina from "../../../../components/common/EsqueletoPagina";
 
 type ItemOrdem = {
@@ -159,7 +159,7 @@ export default function RentabilidadeRelatorio() {
         onExport={handleExportarCSV}
       />
 
-      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} />
+      <BarraFiltros subtitulo="Refine o relatório" valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} />
 
       <StatGroup espalhar>
         <MetricCard label="OS concluídas" value={concluidas.length} />

@@ -24,7 +24,7 @@ import EmptyState from "../../../components/common/EmptyState";
 import { IllustrationOrcamentos } from "../../../components/common/Illustrations";
 import { useListaPaginada } from "../../../hooks/useListaPaginada";
 import ModuleHeader from "../../../components/layout/ModuleHeader";
-import FiltrosRelatorio, { type CampoFiltro } from "../../relatorios/shared/FiltrosRelatorio";
+import BarraFiltros, { type CampoFiltro } from "../../../components/common/BarraFiltros";
 import { periodoMesAtual } from "../../relatorios/shared/reportUtils";
 import { linhaClicavel } from "../../../components/common/linhaClicavel";
 import { formatarData } from "../../pagamentos/api/api";
@@ -240,7 +240,7 @@ export default function OrcamentosPage() {
       />
 
       {/* ── Filtros ── */}
-      <FiltrosRelatorio
+      <BarraFiltros
         valores={filtros}
         onChange={setFiltros}
         padrao={padrao}

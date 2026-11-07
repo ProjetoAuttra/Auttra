@@ -1,9 +1,8 @@
 import * as React from "react";
 import {
-  Badge, Box, Button, Checkbox, Chip, Fade, ListItemText, MenuItem, Stack, Table, TableBody, TableCell, TableHead,
-  TablePagination, TableRow, TextField, ToggleButton, ToggleButtonGroup, Typography,
+  Box, Chip, Fade, Table, TableBody, TableCell, TableHead,
+  TablePagination, TableRow, ToggleButton, ToggleButtonGroup, Typography,
 } from "@mui/material";
-import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import { alpha } from "@mui/material/styles";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import ArrowDownwardRoundedIcon from "@mui/icons-material/ArrowDownwardRounded";
@@ -15,12 +14,11 @@ import { useToast } from "../../../../context/ToastContext";
 import { useListaPaginada } from "../../../../hooks/useListaPaginada";
 import ModuleHeader from "../../../../components/layout/ModuleHeader";
 import StatCard, { StatGroup } from "../../../../components/common/StatCard";
-import CampoData from "../../../../components/common/CampoData";
 import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
 import TextoLimitado from "../../../../components/common/TextoLimitado";
 import { METODO_FILTRO_OPTIONS, brl, formatarData, rotuloMetodo } from "../../api/api";
-import { AppDrawer, DrawerSection } from "../../../../components/common/AppDrawer";
+import BarraFiltros, { type CampoFiltro } from "../../../../components/common/BarraFiltros";
 import { listarMaquininhas, type Maquininha } from "../../../configuracoes/api/maquininhas";
 import LinhasEsqueleto from "../../../../components/common/LinhasEsqueleto";
 
@@ -85,14 +83,15 @@ const deEfetivacao = (l: LinhaEfetivacao): Linha => ({
 
 type Resumo = { entradas: number; saidas: number; saldo: number; qtd_entradas: number; qtd_saidas: number; taxas_cartao?: number };
 type ACair = { total: number; qtd: number; proxima: string | null; ultima: string | null };
-type Tipo = "todos" | "receber" | "pagar";
+/** "" = entradas e saídas. */
+type Tipo = "" | "receber" | "pagar";
 /** Efetivação: quando e quanto cai na conta (cartão líquido, por parcela). Recebimento: no dia da venda, bruto. */
 type Visao = "efetivacao" | "recebimento";
 /** Visão e período ficam na tela; movimento, formas e maquininhas, no painel de filtros. */
 type Filtros = { visao: Visao; tipo: Tipo; de: string; ate: string; metodos: string[]; maquininhas: string[] };
 
 /** Filtros do painel lateral que estão ligados (para o número no botão). */
-const contarAvancados = (f: Filtros) => (f.tipo !== "todos" ? 1 : 0) + (f.metodos.length ? 1 : 0) + (f.maquininhas.length ? 1 : 0);
+const contarAvancados = (f: Filtros) => (f.tipo ? 1 : 0) + (f.metodos.length ? 1 : 0) + (f.maquininhas.length ? 1 : 0);
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
@@ -100,7 +99,7 @@ const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart
 function filtrosPadrao(hoje = new Date()): Filtros {
   return {
     visao: "efetivacao",
-    tipo: "todos",
+    tipo: "",
     de: iso(new Date(hoje.getFullYear(), hoje.getMonth(), 1)),
     ate: iso(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0)),
     metodos: [],
@@ -117,11 +116,7 @@ export default function ExtratoFinanceiro() {
   const { error } = useToast();
   const [filtros, setFiltros] = React.useState<Filtros>(() => filtrosPadrao());
   const padrao = filtrosPadrao();
-  const avancados = contarAvancados(filtros);
-  const filtrado = avancados > 0 || filtros.de !== padrao.de || filtros.ate !== padrao.ate;
-  const [painelAberto, setPainelAberto] = React.useState(false);
-  const [rascunho, setRascunho] = React.useState(filtros);
-  const abrirPainel = () => { setRascunho(filtros); setPainelAberto(true); };
+  const filtrado = contarAvancados(filtros) > 0 || filtros.de !== padrao.de || filtros.ate !== padrao.ate;
   const limparTudo = () => setFiltros((f) => ({ ...filtrosPadrao(), visao: f.visao }));
 
   // Opções de maquininha do painel (inclui as inativas para quem pode ver; recebimentos antigos podem ser delas).
@@ -144,11 +139,31 @@ export default function ExtratoFinanceiro() {
     [efetivacao, filtros.de, filtros.ate]
   );
 
+  const campos: CampoFiltro<Filtros>[] = [
+    {
+      id: "tipo",
+      label: "Movimento",
+      vazio: "Entradas e saídas",
+      opcoes: [{ value: "receber", label: "Só entradas" }, { value: "pagar", label: "Só saídas" }],
+    },
+    { id: "metodos", label: "Forma de pagamento", multi: true, vazio: "Todas", opcoes: METODO_FILTRO_OPTIONS.map((m) => ({ value: m.value, label: m.label })) },
+    // Inativas também: recebimentos antigos podem ser delas. Sem maquininha cadastrada, o campo nem aparece.
+    ...(maquininhas.length
+      ? [{
+          id: "maquininhas" as const,
+          label: "Maquininha",
+          multi: true,
+          vazio: "Todas",
+          opcoes: maquininhas.map((m) => ({ value: String(m.id), label: m.nome, detalhe: m.ativo ? undefined : "Inativa" })),
+        }]
+      : []),
+  ];
+
   const { rows, total, loading, carregandoInicial, page, setPage, rowsPerPage, setRowsPerPage } =
     useListaPaginada<Movimento | LinhaEfetivacao>(efetivacao ? "/pagamentos/extrato/efetivacao" : "/pagamentos", {
       filtros: {
         ...(efetivacao ? {} : { status: "pago", ordem: "pagamento" }),
-        tipo: filtros.tipo === "todos" ? "" : filtros.tipo,
+        tipo: filtros.tipo,
         metodo: filtros.metodos.join(","),
         maquininha: filtros.maquininhas.join(","),
         ...(periodoInvalido ? {} : periodo),
@@ -243,133 +258,27 @@ export default function ExtratoFinanceiro() {
         )}
       </StatGroup>
 
-      <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} mb={2.5} alignItems={{ md: "flex-start" }} useFlexGap>
-        <ToggleButtonGroup
-          exclusive
-          size="small"
-          value={filtros.visao}
-          onChange={(_, v: Visao | null) => v && setFiltros((f) => ({ ...f, visao: v }))}
-          aria-label="Ver extrato por"
-          sx={{ "& .MuiToggleButton-root": { px: 1.75, textTransform: "none", fontWeight: 600 } }}
-        >
-          <ToggleButton value="efetivacao">Efetivação</ToggleButton>
-          <ToggleButton value="recebimento">Recebimento</ToggleButton>
-        </ToggleButtonGroup>
-        <Box sx={{ width: { xs: "100%", md: 170 } }}>
-          <CampoData label="Data inicial" value={filtros.de} onChange={(v) => setFiltros((f) => ({ ...f, de: v }))} />
-        </Box>
-        <Box sx={{ width: { xs: "100%", md: 170 } }}>
-          <CampoData
-            label="Data final"
-            value={filtros.ate}
-            onChange={(v) => setFiltros((f) => ({ ...f, ate: v }))}
-            error={periodoInvalido}
-            helperText={periodoInvalido ? "Antes da data inicial" : undefined}
-          />
-        </Box>
-        <Box sx={{ flex: 1 }} />
-        {filtrado && (
-          <Button size="small" onClick={limparTudo} sx={{ textTransform: "none", fontWeight: 600, alignSelf: { md: "center" } }}>
-            Limpar filtros
-          </Button>
-        )}
-        <Badge badgeContent={avancados} color="primary" invisible={!avancados} sx={{ alignSelf: { md: "center" } }}>
-          <Button variant="outlined" startIcon={<TuneRoundedIcon />} onClick={abrirPainel} sx={{ textTransform: "none", fontWeight: 600, borderRadius: "999px" }}>
-            Filtros
-          </Button>
-        </Badge>
-      </Stack>
-
-      <AppDrawer
-        open={painelAberto}
-        onClose={() => setPainelAberto(false)}
-        title="Filtros"
-        subtitle="Refine o extrato"
-        icon={<TuneRoundedIcon />}
-        width={440}
-        confirmDiscard={false}
-        footer={
-          <>
-            <Button onClick={() => setRascunho((r) => ({ ...r, tipo: "todos", metodos: [], maquininhas: [] }))} disabled={!contarAvancados(rascunho)}>
-              Limpar
-            </Button>
-            <Stack direction="row" spacing={1.5}>
-              <Button onClick={() => setPainelAberto(false)} variant="outlined">Cancelar</Button>
-              <Button
-                onClick={() => {
-                  setFiltros((f) => ({ ...f, tipo: rascunho.tipo, metodos: rascunho.metodos, maquininhas: rascunho.maquininhas }));
-                  setPainelAberto(false);
-                }}
-                variant="contained"
-                disableElevation
-                sx={{ fontWeight: 700 }}
-              >
-                Aplicar
-              </Button>
-            </Stack>
-          </>
+      <BarraFiltros
+        valores={filtros}
+        onChange={setFiltros}
+        padrao={padrao}
+        campos={campos}
+        manter={["visao"]}
+        subtitulo="Refine o extrato"
+        inicio={
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            value={filtros.visao}
+            onChange={(_, v: Visao | null) => v && setFiltros((f) => ({ ...f, visao: v }))}
+            aria-label="Ver extrato por"
+            sx={{ "& .MuiToggleButton-root": { px: 1.75, textTransform: "none", fontWeight: 600 } }}
+          >
+            <ToggleButton value="efetivacao">Efetivação</ToggleButton>
+            <ToggleButton value="recebimento">Recebimento</ToggleButton>
+          </ToggleButtonGroup>
         }
-      >
-        <DrawerSection title="Filtros">
-          <Stack spacing={2}>
-            <TextField
-              select
-              size="small"
-              label="Movimento"
-              value={rascunho.tipo}
-              onChange={(e) => setRascunho((r) => ({ ...r, tipo: e.target.value as Tipo }))}
-            >
-              <MenuItem value="todos">Entradas e saídas</MenuItem>
-              <MenuItem value="receber">Só entradas</MenuItem>
-              <MenuItem value="pagar">Só saídas</MenuItem>
-            </TextField>
-            <TextField
-              select
-              size="small"
-              label="Forma de pagamento"
-              value={rascunho.metodos}
-              onChange={(e) => setRascunho((r) => ({ ...r, metodos: e.target.value as unknown as string[] }))}
-              InputLabelProps={{ shrink: true }}
-              SelectProps={{
-                multiple: true,
-                displayEmpty: true,
-                renderValue: (v) =>
-                  (v as string[]).length ? METODO_FILTRO_OPTIONS.filter((m) => (v as string[]).includes(m.value)).map((m) => m.label).join(", ") : "Todas",
-              }}
-            >
-              {METODO_FILTRO_OPTIONS.map((m) => (
-                <MenuItem key={m.value} value={m.value} dense>
-                  <Checkbox size="small" checked={rascunho.metodos.includes(m.value)} />
-                  <ListItemText primary={m.label} />
-                </MenuItem>
-              ))}
-            </TextField>
-            {maquininhas.length > 0 && (
-              <TextField
-                select
-                size="small"
-                label="Maquininha"
-                value={rascunho.maquininhas}
-                onChange={(e) => setRascunho((r) => ({ ...r, maquininhas: e.target.value as unknown as string[] }))}
-                InputLabelProps={{ shrink: true }}
-                SelectProps={{
-                  multiple: true,
-                  displayEmpty: true,
-                  renderValue: (v) =>
-                    (v as string[]).length ? maquininhas.filter((m) => (v as string[]).includes(String(m.id))).map((m) => m.nome).join(", ") : "Todas",
-                }}
-              >
-                {maquininhas.map((m) => (
-                  <MenuItem key={m.id} value={String(m.id)} dense>
-                    <Checkbox size="small" checked={rascunho.maquininhas.includes(String(m.id))} />
-                    <ListItemText primary={m.nome} secondary={m.ativo ? undefined : "Inativa"} />
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
-          </Stack>
-        </DrawerSection>
-      </AppDrawer>
+      />
 
       <Fade in timeout={400}>
         <ListTableContainer>
