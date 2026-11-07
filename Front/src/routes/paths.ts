@@ -42,5 +42,4 @@ export const paths = {
     ordemEditar: '/ordens/:id/editar',
     ordemServicoDetalhes: '/ordens/:id',
     recursosAdicionais: '/recursos-adicionais',
-    assinatura: '/assinatura',
   } as const;

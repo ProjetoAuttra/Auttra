@@ -1,16 +1,23 @@
 import type { ReactElement } from "react";
 import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "./utils";
 import FaixaAssinatura from "../components/layout/FaixaAssinatura";
 import ItemPremium from "../components/layout/ItemPremium";
-import Assinatura from "../modules/assinatura/pages/Assinatura";
-import { CHAVE_FAIXA_FECHADA, faixaDaAssinatura, hojeSP, linkAssinar, type Assinatura as DadosAssinatura } from "../modules/assinatura/assinatura";
+import PlanosDialog from "../modules/assinatura/components/PlanosDialog";
+import { CHAVE_FAIXA_FECHADA, faixaDaAssinatura, hojeSP, linkAssinar, textoDiasRestantes, type Assinatura as DadosAssinatura } from "../modules/assinatura/assinatura";
 
-const estado = vi.hoisted(() => ({ assinatura: null as DadosAssinatura | null }));
-vi.mock("../context/AssinaturaContext", () => ({ useAssinatura: () => ({ assinatura: estado.assinatura, recarregar: vi.fn() }) }));
+const estado = vi.hoisted(() => ({ assinatura: null as DadosAssinatura | null, planosAbertos: false, abrirPlanos: vi.fn(), fecharPlanos: vi.fn() }));
+vi.mock("../context/AssinaturaContext", () => ({
+  useAssinatura: () => ({
+    assinatura: estado.assinatura,
+    recarregar: vi.fn(),
+    planosAbertos: estado.planosAbertos,
+    abrirPlanos: estado.abrirPlanos,
+    fecharPlanos: estado.fecharPlanos,
+  }),
+}));
 vi.mock("../context/AuthContext", () => ({ useAuth: () => ({ user: { oficinaId: 7, oficina_nome: "Auto Center Ana" } }) }));
 
 const base: DadosAssinatura = {
@@ -18,24 +25,21 @@ const base: DadosAssinatura = {
   testeTerminaEm: "2026-11-13T15:00:00.000Z", ativadaEm: null, diasRestantes: 7,
 };
 
-function Onde() {
-  return <div data-testid="onde">{useLocation().pathname}</div>;
-}
+const montar = (ui: ReactElement) => renderWithProviders(ui);
 
-const montar = (ui: ReactElement) =>
-  renderWithProviders(
-    <MemoryRouter initialEntries={["/"]}>
-      {ui}
-      <Routes>
-        <Route path="*" element={<Onde />} />
-      </Routes>
-    </MemoryRouter>
-  );
+beforeEach(() => {
+  estado.planosAbertos = false;
+  estado.abrirPlanos.mockReset();
+  estado.fecharPlanos.mockReset();
+});
 
 describe("faixaDaAssinatura", () => {
-  it("teste: dias que faltam; vencido: só consulta; suspensa: falar com a gente; ativa: sem faixa", () => {
+  it("teste: dias que faltam; vencido e suspensa: só consulta; ativa: sem faixa", () => {
     expect(faixaDaAssinatura({ ...base, diasRestantes: 7 })).toMatchObject({ tom: "info", titulo: "Faltam 7 dias do seu teste grátis:" });
-    expect(faixaDaAssinatura({ ...base, diasRestantes: 1 })?.titulo).toBe("Último dia do seu teste grátis:");
+    expect(faixaDaAssinatura({ ...base, diasRestantes: 1 })?.titulo).toBe("Falta 1 dia do seu teste grátis:");
+    // 0 = hoje é o último dia (o teste vai até 23:59).
+    expect(faixaDaAssinatura({ ...base, diasRestantes: 0 })?.titulo).toBe("Último dia do seu teste grátis:");
+    expect(textoDiasRestantes(2)).toBe("Faltam 2 dias do seu teste grátis");
     expect(faixaDaAssinatura({ ...base, situacao: "teste_vencido", somenteLeitura: true })).toMatchObject({ tom: "alerta", texto: expect.stringContaining("Adquira o Premium") });
     expect(faixaDaAssinatura({ ...base, situacao: "suspensa", status: "suspensa" })).toMatchObject({ tom: "erro", titulo: "Assinatura suspensa:" });
     expect(faixaDaAssinatura({ ...base, situacao: "ativa", status: "ativa" })).toBeNull();
@@ -63,7 +67,7 @@ describe("faixa do topo", { timeout: 30_000 }, () => {
     expect(document.documentElement.style.getPropertyValue("--faixa-assinatura-altura")).toMatch(/px$/);
 
     await user.click(screen.getByRole("button", { name: "Adquirir Premium" }));
-    expect(screen.getByTestId("onde")).toHaveTextContent("/assinatura");
+    expect(estado.abrirPlanos).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole("button", { name: "Fechar aviso" }));
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
@@ -106,7 +110,7 @@ describe("faixa do topo", { timeout: 30_000 }, () => {
     montar(<FaixaAssinatura />);
     expect(screen.getByText("Assinatura suspensa:")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Adquirir Premium" }));
-    expect(screen.getByTestId("onde")).toHaveTextContent("/assinatura");
+    expect(estado.abrirPlanos).toHaveBeenCalledTimes(1);
     await user.click(screen.getByRole("button", { name: "Fechar aviso" }));
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
@@ -118,26 +122,40 @@ describe("faixa do topo", { timeout: 30_000 }, () => {
   });
 });
 
-describe("Premium no menu e tela de planos", () => {
-  it("aparece no teste com os dias que faltam e some quando assina", async () => {
+describe("Premium no menu e modal de planos", () => {
+  it("aparece no teste com os dias que faltam, abre o modal e some quando assina", async () => {
     const user = userEvent.setup();
     estado.assinatura = { ...base, diasRestantes: 3 };
     const { unmount } = montar(<ItemPremium />);
     expect(screen.getByText("Faltam 3 dias de teste")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Premium/ }));
-    expect(screen.getByTestId("onde")).toHaveTextContent("/assinatura");
+    expect(estado.abrirPlanos).toHaveBeenCalledTimes(1);
     unmount();
+
+    estado.assinatura = { ...base, diasRestantes: 0 };
+    const ultimo = montar(<ItemPremium />);
+    expect(screen.getByText("Último dia de teste")).toBeInTheDocument();
+    ultimo.unmount();
 
     estado.assinatura = { ...base, situacao: "ativa", status: "ativa" };
     montar(<ItemPremium />);
     expect(screen.queryByText("Premium")).not.toBeInTheDocument();
   });
 
-  it("tela de planos: dois planos com preço e link de WhatsApp, também para conta suspensa", () => {
+  it("modal de planos: só aparece aberto; dois planos com preço e WhatsApp, também para conta suspensa; fecha no X", async () => {
+    const user = userEvent.setup();
     estado.assinatura = { ...base, situacao: "suspensa", status: "suspensa", somenteLeitura: true };
-    montar(<Assinatura />);
-    expect(screen.getByText("42,90")).toBeInTheDocument();
-    expect(screen.getByText("54,90")).toBeInTheDocument();
+    const fechado = montar(<PlanosDialog />);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    fechado.unmount();
+
+    estado.planosAbertos = true;
+    montar(<PlanosDialog />);
+    const modal = await screen.findByRole("dialog", { name: "Auttra Premium" });
+    expect(modal).toHaveTextContent("42,90");
+    expect(modal).toHaveTextContent("54,90");
     expect(screen.getByRole("link", { name: "Assinar o semestral" }).getAttribute("href")).toContain("wa.me/5548991268901");
+    await user.click(screen.getByRole("button", { name: "Fechar" }));
+    expect(estado.fecharPlanos).toHaveBeenCalled();
   });
 });

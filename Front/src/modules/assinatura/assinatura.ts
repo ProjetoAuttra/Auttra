@@ -57,9 +57,10 @@ export const ALTURA_FAIXA = `var(${VAR_ALTURA_FAIXA}, 0px)`;
 export const dataBR = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "";
 
+/** Dias de calendário até o último dia do teste: 0 = hoje é o último dia (o teste vai até 23:59). */
 export function textoDiasRestantes(dias: number | null) {
-  if (!dias || dias <= 1) return "Último dia do seu teste grátis.";
-  return `Faltam ${dias} dias do seu teste grátis.`;
+  if (!dias) return "Último dia do seu teste grátis";
+  return dias === 1 ? "Falta 1 dia do seu teste grátis" : `Faltam ${dias} dias do seu teste grátis`;
 }
 
 export type Faixa = {
@@ -74,10 +75,9 @@ export function faixaDaAssinatura(a: Assinatura | null): Faixa | null {
   if (!a) return null;
   switch (a.situacao) {
     case "teste": {
-      const dias = a.diasRestantes ?? 0;
       return {
         tom: "info",
-        titulo: dias > 1 ? `Faltam ${dias} dias do seu teste grátis:` : "Último dia do seu teste grátis:",
+        titulo: `${textoDiasRestantes(a.diasRestantes)}:`,
         texto: "depois disso, você perde o acesso para criar e editar. Adquira o Premium para continuar usando tudo.",
       };
     }

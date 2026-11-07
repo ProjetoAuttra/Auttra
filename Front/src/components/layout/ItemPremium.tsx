@@ -1,28 +1,27 @@
 import { Box, ButtonBase, Tooltip, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import WorkspacePremiumRoundedIcon from "@mui/icons-material/WorkspacePremiumRounded";
-import { useLocation, useNavigate } from "react-router-dom";
 import { useAssinatura } from "../../context/AssinaturaContext";
 import { brand } from "../../app/theme";
-import { paths } from "../../routes/paths";
 import type { Assinatura } from "../../modules/assinatura/assinatura";
 
 function legenda(a: Assinatura) {
-  if (a.situacao === "teste") return a.diasRestantes && a.diasRestantes > 1 ? `Faltam ${a.diasRestantes} dias de teste` : "Último dia de teste";
+  if (a.situacao === "teste") {
+    const dias = a.diasRestantes ?? 0;
+    return dias === 0 ? "Último dia de teste" : dias === 1 ? "Falta 1 dia de teste" : `Faltam ${dias} dias de teste`;
+  }
   if (a.situacao === "teste_vencido") return "Teste encerrado";
   return "Assinatura suspensa";
 }
 
 /** Atalho para os planos, fixo no pé do menu enquanto a oficina não assina (teste, vencido ou suspensa). */
 export default function ItemPremium({ collapsed, onClick }: { collapsed?: boolean; onClick?: () => void }) {
-  const { assinatura } = useAssinatura();
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { assinatura, planosAbertos, abrirPlanos } = useAssinatura();
   if (!assinatura || assinatura.situacao === "ativa") return null;
 
-  const selecionado = pathname === paths.assinatura;
+  const selecionado = planosAbertos;
   const abrir = () => {
-    navigate(paths.assinatura);
+    abrirPlanos();
     onClick?.();
   };
 

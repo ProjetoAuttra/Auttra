@@ -51,7 +51,6 @@ const Servicos = lazy(() => import('../modules/servicos/pages/servicos'));
 const FormOrdemServico = lazy(() => import('../modules/tarefas/pages/formordem/formordem'));
 const OrdemServicoDetalhes = lazy(() => import('../modules/tarefas/pages/detalhesos/ordemservicodetalhes'));
 const RecursosAdicionais = lazy(() => import('../modules/recursos-adicionais/pages/RecursosAdicionais'));
-const Assinatura = lazy(() => import('../modules/assinatura/pages/Assinatura'));
 const SemAcesso = lazy(() => import('../modules/autenticacao/pages/SemAcesso'));
 const PaginaNaoEncontrada = lazy(() => import('../modules/autenticacao/pages/PaginaNaoEncontrada'));
 
@@ -122,8 +121,6 @@ export default function Router() {
         <Route path={paths.ordemNova} element={<ModuleRoute module="ordens"><FormOrdemServico /></ModuleRoute>} />
         <Route path={paths.ordemEditar} element={<ModuleRoute module="ordens"><FormOrdemServico /></ModuleRoute>} />
         <Route path={paths.ordemServicoDetalhes} element={<ModuleRoute module="ordens"><OrdemServicoDetalhes /></ModuleRoute>} />
-        {/* Planos e assinatura: qualquer pessoa da oficina vê (quem paga costuma ser o dono). */}
-        <Route path={paths.assinatura} element={<Assinatura />} />
         <Route element={<SettingsLayout />}>
           <Route path={paths.configuracoes} element={<ModuleRoute module="configuracoes"><Configuracoes /></ModuleRoute>} />
           <Route path={paths.users} element={<ModuleRoute module="funcionarios"><UserPage /></ModuleRoute>} />

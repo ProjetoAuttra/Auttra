@@ -6,10 +6,8 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import AccessTimeFilledRoundedIcon from "@mui/icons-material/AccessTimeFilledRounded";
 import WarningRoundedIcon from "@mui/icons-material/WarningRounded";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
-import { useNavigate } from "react-router-dom";
 import { useAssinatura } from "../../context/AssinaturaContext";
 import { brand } from "../../app/theme";
-import { paths } from "../../routes/paths";
 import { CHAVE_FAIXA_FECHADA, VAR_ALTURA_FAIXA, faixaDaAssinatura, hojeSP } from "../../modules/assinatura/assinatura";
 
 // Fundo cheio com texto branco (contraste ≥ 4,5:1 nos três).
@@ -32,8 +30,7 @@ function lerFechada() {
  * O X esconde só naquele dia: no dia seguinte (ou num novo login) ela volta.
  */
 export default function FaixaAssinatura() {
-  const { assinatura } = useAssinatura();
-  const navigate = useNavigate();
+  const { assinatura, abrirPlanos } = useAssinatura();
   const [fechada, setFechada] = useState(lerFechada);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -121,7 +118,7 @@ export default function FaixaAssinatura() {
         </Typography>
         {/* Link em pílula translúcida, não um botão sólido: fica leve sobre a cor da faixa. */}
         <ButtonBase
-          onClick={() => navigate(paths.assinatura)}
+          onClick={abrirPlanos}
           sx={{
             gap: 0.5,
             px: 1.5,

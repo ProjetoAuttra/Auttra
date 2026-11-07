@@ -8,6 +8,7 @@ import { ToastProvider } from '../context/ToastContext';
 import { ConfirmProvider } from '../context/ConfirmContext';
 import CarregandoTela from '../components/common/CarregandoTela';
 import FaixaAssinatura from '../components/layout/FaixaAssinatura';
+import PlanosDialog from '../modules/assinatura/components/PlanosDialog';
 import { AssinaturaProvider } from '../context/AssinaturaContext';
 import { ALTURA_FAIXA } from '../modules/assinatura/assinatura';
 
@@ -32,6 +33,7 @@ export default function AppLayout() {
           >
             {/* Acima de tudo: a barra do topo, o menu e o conteúdo descem a altura dela. */}
             <FaixaAssinatura />
+            <PlanosDialog />
             <AppTopbar onMenuClick={() => setMobileOpen(true)} leftOffset={currentWidth} />
             <AppSidebar
               drawerWidth={drawerWidth}
