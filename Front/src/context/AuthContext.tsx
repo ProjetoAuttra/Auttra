@@ -53,6 +53,9 @@ type AuthContextType = {
   selectOffice: (selectionToken: string, oficinaId: number, remember: boolean) => Promise<void>;
   updateCurrentUser: (patch: Partial<User>) => void;
   can: (module: AccessModule, action?: AccessAction) => boolean;
+  /** Conta só leitura (teste vencido ou assinatura suspensa): o can() nega criar, editar e excluir. */
+  somenteLeitura: boolean;
+  definirSomenteLeitura: (valor: boolean) => void;
   signOut: () => void;
 };
 
@@ -149,9 +152,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     delete api.defaults.headers.common["Authorization"];
   };
 
+  // Situação da assinatura, avisada pelo AssinaturaProvider (que só existe dentro do sistema logado).
+  const [somenteLeitura, definirSomenteLeitura] = useState(false);
+
   const can = useCallback(
-    (module: AccessModule, action: AccessAction = "read") => hasPermission(user?.permissoes, module, action),
-    [user?.permissoes]
+    (module: AccessModule, action: AccessAction = "read") => {
+      // Só leitura: o back recusa a escrita (402), então a tela nem oferece. Relatórios seguem livres.
+      if (somenteLeitura && action !== "read" && module !== "relatorios") return false;
+      return hasPermission(user?.permissoes, module, action);
+    },
+    [user?.permissoes, somenteLeitura]
   );
 
   // ✅ Garante que o header Authorization sempre exista
@@ -169,9 +179,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       selectOffice,
       updateCurrentUser,
       can,
+      somenteLeitura,
+      definirSomenteLeitura,
       signOut,
     }),
-    [user, token, signIn, signUp, selectOffice, updateCurrentUser, can]
+    [user, token, signIn, signUp, selectOffice, updateCurrentUser, can, somenteLeitura]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
