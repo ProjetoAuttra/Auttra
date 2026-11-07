@@ -41,8 +41,14 @@ export function linkFalarComEquipe(oficina: Oficina, assunto = "Quero falar sobr
 
 const textoOficina = ({ nome, id }: Oficina) => (nome ? `Oficina: ${nome}${id ? ` (código ${id})` : ""}` : "");
 
-/** Faixa do topo fechada pelo X: vale até o próximo login (o AuthContext apaga a marca ao entrar). */
+/**
+ * Faixa do topo fechada pelo X: guarda o dia (em São Paulo) em que foi fechada. Vale só para esse dia:
+ * no dia seguinte, ou num novo login (o AuthContext apaga a marca), ela volta.
+ */
 export const CHAVE_FAIXA_FECHADA = "auttra:faixa-assinatura-fechada";
+
+/** Dia de hoje em São Paulo (YYYY-MM-DD). */
+export const hojeSP = (agora = new Date()) => agora.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 
 /** Altura da faixa (variável CSS): a barra do topo, o menu e o conteúdo descem junto com ela. */
 export const VAR_ALTURA_FAIXA = "--faixa-assinatura-altura";

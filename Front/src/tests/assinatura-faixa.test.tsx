@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { screen } from "@testing-library/react";
+import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,7 +7,7 @@ import { renderWithProviders } from "./utils";
 import FaixaAssinatura from "../components/layout/FaixaAssinatura";
 import ItemPremium from "../components/layout/ItemPremium";
 import Assinatura from "../modules/assinatura/pages/Assinatura";
-import { CHAVE_FAIXA_FECHADA, faixaDaAssinatura, linkAssinar, type Assinatura as DadosAssinatura } from "../modules/assinatura/assinatura";
+import { CHAVE_FAIXA_FECHADA, faixaDaAssinatura, hojeSP, linkAssinar, type Assinatura as DadosAssinatura } from "../modules/assinatura/assinatura";
 
 const estado = vi.hoisted(() => ({ assinatura: null as DadosAssinatura | null }));
 vi.mock("../context/AssinaturaContext", () => ({ useAssinatura: () => ({ assinatura: estado.assinatura, recarregar: vi.fn() }) }));
@@ -56,7 +56,7 @@ describe("faixa do topo", { timeout: 30_000 }, () => {
     estado.assinatura = { ...base };
   });
 
-  it("mostra os dias do teste, leva aos planos e, fechada no X, continua fechada até o próximo login", async () => {
+  it("mostra os dias do teste, leva aos planos e, fechada no X, só volta no dia seguinte ou num novo login", async () => {
     const user = userEvent.setup();
     const { unmount } = montar(<FaixaAssinatura />);
     expect(screen.getByText("Faltam 7 dias do seu teste grátis:")).toBeInTheDocument();
@@ -68,16 +68,35 @@ describe("faixa do topo", { timeout: 30_000 }, () => {
     await user.click(screen.getByRole("button", { name: "Fechar aviso" }));
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(document.documentElement.style.getPropertyValue("--faixa-assinatura-altura")).toBe("0px");
+    expect(localStorage.getItem(CHAVE_FAIXA_FECHADA)).toBe(hojeSP());
     unmount();
 
-    // Recarregar a página (mesma sessão) mantém fechada.
-    const segunda = montar(<FaixaAssinatura />);
+    // Mesmo dia: recarregar a página mantém fechada.
+    const mesmoDia = montar(<FaixaAssinatura />);
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
-    segunda.unmount();
+    mesmoDia.unmount();
 
-    // O login apaga a marca: volta a aparecer.
+    // Fechada ontem: volta hoje.
+    localStorage.setItem(CHAVE_FAIXA_FECHADA, "2000-01-01");
+    const outroDia = montar(<FaixaAssinatura />);
+    expect(screen.getByText("Faltam 7 dias do seu teste grátis:")).toBeInTheDocument();
+    outroDia.unmount();
+
+    // Login novo apaga a marca: volta mesmo que tenha fechado hoje.
+    localStorage.setItem(CHAVE_FAIXA_FECHADA, hojeSP());
     localStorage.removeItem(CHAVE_FAIXA_FECHADA);
     montar(<FaixaAssinatura />);
+    expect(screen.getByText("Faltam 7 dias do seu teste grátis:")).toBeInTheDocument();
+  });
+
+  it("aba aberta de um dia para o outro: ao voltar para a aba, a faixa reaparece", async () => {
+    const user = userEvent.setup();
+    montar(<FaixaAssinatura />);
+    await user.click(screen.getByRole("button", { name: "Fechar aviso" }));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+
+    localStorage.setItem(CHAVE_FAIXA_FECHADA, "2000-01-01"); // virou o dia
+    act(() => { window.dispatchEvent(new Event("focus")); });
     expect(screen.getByText("Faltam 7 dias do seu teste grátis:")).toBeInTheDocument();
   });
 

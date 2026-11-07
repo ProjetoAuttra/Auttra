@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Box, ButtonBase, IconButton, Tooltip, Typography } from "@mui/material";
 import WorkspacePremiumRoundedIcon from "@mui/icons-material/WorkspacePremiumRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useAssinatura } from "../../context/AssinaturaContext";
 import { brand } from "../../app/theme";
 import { paths } from "../../routes/paths";
-import { CHAVE_FAIXA_FECHADA, VAR_ALTURA_FAIXA, faixaDaAssinatura } from "../../modules/assinatura/assinatura";
+import { CHAVE_FAIXA_FECHADA, VAR_ALTURA_FAIXA, faixaDaAssinatura, hojeSP } from "../../modules/assinatura/assinatura";
 
 // Fundo cheio com texto branco (contraste ≥ 4,5:1 nos três).
 const TONS = {
@@ -21,7 +21,7 @@ const TONS = {
 
 function lerFechada() {
   try {
-    return localStorage.getItem(CHAVE_FAIXA_FECHADA) === "1";
+    return localStorage.getItem(CHAVE_FAIXA_FECHADA) === hojeSP();
   } catch {
     return false;
   }
@@ -29,13 +29,24 @@ function lerFechada() {
 
 /**
  * Faixa no topo da tela, acima da barra do sistema: dias que faltam do teste grátis, ou o aviso de conta só leitura.
- * O X esconde até o próximo login.
+ * O X esconde só naquele dia: no dia seguinte (ou num novo login) ela volta.
  */
 export default function FaixaAssinatura() {
   const { assinatura } = useAssinatura();
   const navigate = useNavigate();
   const [fechada, setFechada] = useState(lerFechada);
   const ref = useRef<HTMLDivElement>(null);
+
+  // Aba aberta de um dia para o outro: ao voltar para ela, a faixa fechada ontem reaparece.
+  useEffect(() => {
+    const conferir = () => setFechada(lerFechada());
+    window.addEventListener("focus", conferir);
+    document.addEventListener("visibilitychange", conferir);
+    return () => {
+      window.removeEventListener("focus", conferir);
+      document.removeEventListener("visibilitychange", conferir);
+    };
+  }, []);
 
   const faixa = fechada ? null : faixaDaAssinatura(assinatura);
 
@@ -63,7 +74,7 @@ export default function FaixaAssinatura() {
 
   const fechar = () => {
     try {
-      localStorage.setItem(CHAVE_FAIXA_FECHADA, "1");
+      localStorage.setItem(CHAVE_FAIXA_FECHADA, hojeSP());
     } catch {
       // Sem storage: fecha só até recarregar a página.
     }
