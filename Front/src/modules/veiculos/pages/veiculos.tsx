@@ -106,7 +106,7 @@ export default function VeiculosPage() {
         searchValue={query}
         searchPlaceholder="Pesquisar por placa, modelo, marca ou cliente"
         onSearchChange={setQuery}
-        actionLabel="Novo Veículo"
+        actionLabel="Veículo"
         onAction={openCreate}
       />
 
@@ -193,7 +193,7 @@ export default function VeiculosPage() {
                       icon={<DirectionsCarRoundedIcon />}
                       title="Nenhum veículo cadastrado"
                       description="Cadastre o primeiro veículo para vincular aos clientes e às ordens de serviço."
-                      actionLabel="Novo Veículo"
+                      actionLabel="Veículo"
                       onAction={openCreate}
                       isFiltered={!!query}
                       onClearFilter={() => setQuery("")}

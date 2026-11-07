@@ -155,7 +155,7 @@ export default function FuncionariosPage() {
               InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment> }}
             />
             {can("funcionarios", "create") && <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openCreate}>
-              Novo Funcionário
+              Funcionário
             </Button>}
           </Stack>
         }

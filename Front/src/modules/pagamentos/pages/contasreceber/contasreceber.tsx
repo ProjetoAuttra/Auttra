@@ -162,7 +162,7 @@ export default function ContasReceber() {
         searchValue={query}
         searchPlaceholder="Pesquisar por descrição, cliente ou categoria"
         onSearchChange={setQuery}
-        actionLabel="Nova Conta"
+        actionLabel="Conta"
         onAction={() => setDialogNova(true)}
       />
 
@@ -290,7 +290,7 @@ export default function ContasReceber() {
                       icon={<TrendingUpRoundedIcon />}
                       title="Nenhuma conta a receber"
                       description="Registre recebimentos de clientes para acompanhar o caixa."
-                      actionLabel="Nova Conta"
+                      actionLabel="Conta"
                       onAction={() => setDialogNova(true)}
                       isFiltered={filtrado}
                       onClearFilter={limparFiltros}

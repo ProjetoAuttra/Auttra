@@ -124,7 +124,7 @@ export default function SuppliersPage() {
         searchValue={query}
         searchPlaceholder="Pesquisar fornecedor, contato ou telefone"
         onSearchChange={setQuery}
-        actionLabel="Novo Fornecedor"
+        actionLabel="Fornecedor"
         onAction={openCreate}
       />
 
@@ -163,7 +163,7 @@ export default function SuppliersPage() {
                       icon={<BusinessRoundedIcon />}
                       title="Nenhum fornecedor cadastrado"
                       description="Cadastre fornecedores para registrar compras e contas a pagar."
-                      actionLabel="Novo Fornecedor"
+                      actionLabel="Fornecedor"
                       onAction={openCreate}
                       isFiltered={!!query}
                       onClearFilter={() => setQuery("")}

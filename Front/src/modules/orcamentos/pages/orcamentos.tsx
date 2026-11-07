@@ -235,7 +235,7 @@ export default function OrcamentosPage() {
         title="Orçamentos"
         subtitle="Controle de orçamentos, aprovações e conversão em O.S."
         icon={<RequestQuoteRoundedIcon />}
-        actionLabel="Novo Orçamento"
+        actionLabel="Orçamento"
         onAction={() => nav(paths.orcamentoNovo)}
       />
 
@@ -373,7 +373,7 @@ export default function OrcamentosPage() {
                       icon={<RequestQuoteRoundedIcon />}
                       title={filtrado ? "Nenhum orçamento encontrado" : "Nenhum orçamento neste mês"}
                       description="Crie o primeiro orçamento e acompanhe sua conversão em ordem de serviço."
-                      actionLabel="Novo Orçamento"
+                      actionLabel="Orçamento"
                       onAction={() => nav(paths.orcamentoNovo)}
                       isFiltered={filtrado}
                       onClearFilter={() => setFiltros(padrao)}

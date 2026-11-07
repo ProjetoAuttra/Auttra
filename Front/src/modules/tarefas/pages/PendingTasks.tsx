@@ -184,7 +184,7 @@ export default function OrdensPage() {
         icon={<ChecklistRoundedIcon />}
         actions={
           <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={handleCreate}>
-            Nova Ordem
+            OS
           </Button>
         }
       />
@@ -278,7 +278,7 @@ export default function OrdensPage() {
                         icon={<AssignmentRoundedIcon />}
                         title="Nenhuma ordem de serviço"
                         description="Crie a primeira ordem para começar a gerenciar os serviços da oficina."
-                        actionLabel="Nova Ordem"
+                        actionLabel="OS"
                         onAction={handleCreate}
                         isFiltered={!!(filtrosOS.data || filtrosOS.status || filtrosOS.funcionario)}
                         onClearFilter={() => aplicarFiltros({ data: "", status: "", funcionario: "" })}

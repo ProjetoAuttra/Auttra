@@ -205,7 +205,7 @@ export default function EstoquePage() {
         icon={<Inventory2RoundedIcon />}
         secondaryActionLabel="Importar XML da nota"
         onSecondaryAction={() => navigate(paths.estoqueImportarXml)}
-        actionLabel="Nova Peça"
+        actionLabel="Peça"
         onAction={() => { setMode("create"); setCurrent(null); setOpenDialog(true); }}
       />
 
@@ -334,7 +334,7 @@ export default function EstoquePage() {
                       icon={<Inventory2RoundedIcon />}
                       title={filtroBaixo ? "Nenhuma peça com estoque baixo" : "Nenhuma peça cadastrada"}
                       description={filtroBaixo ? "Todas as peças estão com estoque adequado." : "Cadastre a primeira peça para controlar o inventário da oficina."}
-                      actionLabel={filtroBaixo ? undefined : "Nova Peça"}
+                      actionLabel={filtroBaixo ? undefined : "Peça"}
                       onAction={filtroBaixo ? undefined : () => { setMode("create"); setCurrent(null); setOpenDialog(true); }}
                       isFiltered={!!query}
                       onClearFilter={() => { setQuery(""); setFiltroBaixo(false); }}
