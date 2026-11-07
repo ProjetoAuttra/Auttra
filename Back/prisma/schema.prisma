@@ -153,6 +153,7 @@ model oficina {
 
   movimentos_pagamento pagamento_movimento[]
   maquininhas          maquininha[]
+  recebiveis           recebivel[]
 
   @@index([cidade_id])
   @@index([deleted_at])
@@ -417,6 +418,7 @@ model pagamento {
   pagamento_pai pagamento?            @relation("Parcelas", fields: [pagamento_pai_id], references: [id])
   parcelas      pagamento[]           @relation("Parcelas")
   movimentos    pagamento_movimento[]
+  recebiveis    recebivel[]
 
   created_at DateTime  @default(now()) @db.Timestamptz(3)
   updated_at DateTime  @updatedAt @db.Timestamptz(3)
@@ -727,6 +729,7 @@ model pagamento_movimento {
   usuario    usuario?              @relation(fields: [usuario_id], references: [id], onDelete: SetNull)
   estorno_de pagamento_movimento?  @relation("EstornoDe", fields: [estorno_de_id], references: [id])
   estornos   pagamento_movimento[] @relation("EstornoDe")
+  recebiveis recebivel[]
 
   @@index([pagamento_id])
   @@index([oficina_id])
@@ -809,10 +812,38 @@ model maquininha {
   oficina    oficina               @relation(fields: [oficina_id], references: [id], onDelete: Cascade)
   pagamentos pagamento[]
   movimentos pagamento_movimento[]
+  recebiveis recebivel[]
 
   created_at DateTime  @default(now()) @db.Timestamptz(3)
   updated_at DateTime  @updatedAt @db.Timestamptz(3)
   deleted_at DateTime? @db.Timestamptz(3)
 
   @@index([oficina_id, deleted_at])
+}
+
+// O que vai cair na conta de um recebimento no cartao: uma linha por parcela (ou uma so, no debito,
+// no credito a vista e com antecipacao), ja com a taxa descontada e a data prevista. Nasce com o
+// movimento de pagamento e eh apagada quando ele eh estornado. Base do extrato por efetivacao.
+model recebivel {
+  id             Int      @id @default(autoincrement())
+  oficina_id     Int
+  pagamento_id   Int
+  movimento_id   Int
+  maquininha_id  Int?
+  parcela        Int
+  total_parcelas Int
+  valor_bruto    Decimal  @db.Decimal(12, 2)
+  valor_taxa     Decimal  @db.Decimal(12, 2)
+  valor_liquido  Decimal  @db.Decimal(12, 2)
+  data_prevista  DateTime @db.Date
+  created_at     DateTime @default(now()) @db.Timestamptz(3)
+
+  oficina    oficina             @relation(fields: [oficina_id], references: [id], onDelete: Cascade)
+  pagamento  pagamento           @relation(fields: [pagamento_id], references: [id], onDelete: Cascade)
+  movimento  pagamento_movimento @relation(fields: [movimento_id], references: [id], onDelete: Cascade)
+  maquininha maquininha?         @relation(fields: [maquininha_id], references: [id], onDelete: SetNull)
+
+  @@index([oficina_id, data_prevista])
+  @@index([pagamento_id])
+  @@index([movimento_id])
 }

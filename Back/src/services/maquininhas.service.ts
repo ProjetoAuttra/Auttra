@@ -1,6 +1,7 @@
 import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../prisma/client.js";
 import { HttpError } from "../utils/httpError.js";
+import { hojeISO } from "../utils/datas.js";
 
 /** Operadoras com ícone no front. Qualquer outra fica como "outra" (null). */
 export const OPERADORAS = [
@@ -88,7 +89,17 @@ function serializar(m: Maquininha) {
   };
 }
 
-const somarDias = (base: Date, n: number) => {
+/**
+ * Dia (meia-noite UTC) de um instante, como a oficina vê: data escolhida num campo de data já chega como
+ * meia-noite UTC e vale como está; um instante qualquer (ex.: "agora") vira o dia no fuso da oficina.
+ */
+function diaDaOficina(d: Date) {
+  const ehMeiaNoiteUtc = d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0;
+  return ehMeiaNoiteUtc ? d : new Date(`${hojeISO(d)}T00:00:00.000Z`);
+}
+
+const somarDias = (data: Date, n: number) => {
+  const base = diaDaOficina(data);
   const d = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate()));
   d.setUTCDate(d.getUTCDate() + n);
   return d;
@@ -109,6 +120,8 @@ export function calcularTaxa(
 ) {
   let percentualTaxa: number;
   let prazo: number;
+  // Quantas vezes o dinheiro cai: débito, à vista e antecipação caem de uma vez.
+  let quedas = 1;
   if (metodo === "cartao_debito") {
     percentualTaxa = Number(maquininha.taxa_debito);
     prazo = maquininha.prazo_debito_dias;
@@ -120,14 +133,39 @@ export function calcularTaxa(
     prazo = maquininha.antecipacao
       ? maquininha.prazo_credito_dias
       : maquininha.prazo_credito_dias + maquininha.intervalo_parcelas_dias * (parcelas - 1);
+    if (!maquininha.antecipacao) quedas = parcelas;
   }
   const taxa = new Prisma.Decimal(percentualTaxa);
+  const valorTaxa = valor.times(taxa).div(100).toDecimalPlaces(2);
+
+  // Cronograma do que cai na conta: valor e taxa divididos em centavos, com o resto na última parcela
+  // para a soma fechar. A última cai na data prevista; as anteriores, um intervalo antes cada.
+  const brutos = dividirCentavos(valor, quedas);
+  const taxas = dividirCentavos(valorTaxa, quedas);
+  const dataFinal = somarDias(dataPagamento, prazo);
+  const cronograma = brutos.map((bruto, i) => ({
+    parcela: i + 1,
+    total_parcelas: quedas,
+    valor_bruto: bruto,
+    valor_taxa: taxas[i],
+    valor_liquido: bruto.minus(taxas[i]),
+    data_prevista: somarDias(dataFinal, -maquininha.intervalo_parcelas_dias * (quedas - 1 - i)),
+  }));
+
   return {
     cartao_parcelas: metodo === "cartao_debito" ? 1 : parcelas,
     taxa_percentual: taxa,
-    valor_taxa: valor.times(taxa).div(100).toDecimalPlaces(2),
-    data_prevista_recebimento: somarDias(dataPagamento, prazo),
+    valor_taxa: valorTaxa,
+    data_prevista_recebimento: dataFinal,
+    cronograma,
   };
+}
+
+/** Divide um valor em `n` partes de centavos iguais; o que sobra vai para a última. */
+function dividirCentavos(valor: Prisma.Decimal, n: number) {
+  const centavos = valor.times(100).toDecimalPlaces(0).toNumber();
+  const base = Math.floor(centavos / n);
+  return Array.from({ length: n }, (_, i) => new Prisma.Decimal(i === n - 1 ? centavos - base * (n - 1) : base).div(100));
 }
 
 /** Pelo menos um tipo ligado. `atual` = como está no banco, para a edição parcial. */
