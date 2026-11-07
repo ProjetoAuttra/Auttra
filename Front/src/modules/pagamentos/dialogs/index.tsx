@@ -11,7 +11,7 @@ import SellRoundedIcon from "@mui/icons-material/SellRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
 import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../components/common/AppDialog";
-import { METODO_OPTIONS, METODO_LABEL, brl, formatarData, listarMovimentos, valorLiquido, valorRestante, type Conta, type Movimento } from "../api/api";
+import { METODO_OPTIONS, brl, formatarData, listarMovimentos, rotuloMetodo, valorLiquido, valorRestante, type Conta, type Movimento } from "../api/api";
 
 // ── 1. Receber / Pagar (valor editavel; menor que o saldo = o resto vira um novo titulo) ──────────
 
@@ -244,7 +244,12 @@ export function HistoricoMovimentos({ ativo, contaId, tipo }: {
             </Typography>
           </Stack>
           <Typography variant="caption" color="text.secondary">
-            {[m.metodo ? METODO_LABEL[m.metodo] ?? m.metodo : null, m.usuario?.nome ? `por ${m.usuario.nome}` : null]
+            {[
+              m.metodo ? rotuloMetodo(m.metodo, m.cartao_parcelas) : null,
+              m.maquininha?.nome ?? null,
+              Number(m.valor_taxa) > 0 ? `taxa ${brl(Number(m.valor_taxa))}` : null,
+              m.usuario?.nome ? `por ${m.usuario.nome}` : null,
+            ]
               .filter(Boolean)
               .join(" · ") || "—"}
           </Typography>
@@ -432,8 +437,18 @@ export function DetalhesDialog({ open, onClose, conta, tipo }: {
                 <Campo rotulo={receber ? "Data de recebimento" : "Data de pagamento"}>{dataBr(conta.data_pagamento)}</Campo>
                 {/* Em título ainda não recebido, o método é só o que foi combinado ao cadastrar (ou o do último recebimento estornado). */}
                 <Campo rotulo={conta.status === "pendente" ? "Método previsto" : receber ? "Método de recebimento" : "Método de pagamento"}>
-                  {conta.metodo ? METODO_LABEL[conta.metodo] ?? conta.metodo : "—"}
+                  {conta.metodo ? rotuloMetodo(conta.metodo, conta.status === "pago" ? conta.cartao_parcelas : null) : "—"}
                 </Campo>
+                {receber && conta.status === "pago" && conta.maquininha && (
+                  <>
+                    <Campo rotulo="Maquininha">{conta.maquininha.nome}</Campo>
+                    <Campo rotulo={`Taxa${conta.taxa_percentual != null ? ` (${Number(conta.taxa_percentual).toLocaleString("pt-BR")}%)` : ""}`}>
+                      {Number(conta.valor_taxa) > 0 ? `− ${brl(Number(conta.valor_taxa))}` : "—"}
+                    </Campo>
+                    <Campo rotulo="Valor líquido">{brl(Number(conta.valor_pago) - Number(conta.valor_taxa ?? 0))}</Campo>
+                    <Campo rotulo="Previsão de recebimento">{dataBr(conta.data_prevista_recebimento)}</Campo>
+                  </>
+                )}
                 {conta.vezes_renegociado > 0 && (
                   <Box sx={LINHA_INTEIRA}>
                     <Campo rotulo="Renegociação">

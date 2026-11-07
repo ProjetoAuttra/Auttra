@@ -61,7 +61,7 @@ describe.skipIf(!process.env.DATABASE_URL)("extrato: só o dinheiro que entrou e
 
   it("totais: entradas, saídas e saldo do período", async () => {
     const r = await PagamentosService.extratoResumo(oficinaId, periodo);
-    expect(r).toEqual({ entradas: 150, saidas: 30, saldo: 120, qtd_entradas: 2, qtd_saidas: 1 });
+    expect(r).toEqual({ entradas: 150, saidas: 30, saldo: 120, taxas_cartao: 0, entradas_liquidas: 150, qtd_entradas: 2, qtd_saidas: 1 });
   });
 
   it("a lista com os mesmos filtros traz exatamente as linhas somadas", async () => {

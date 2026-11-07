@@ -64,8 +64,17 @@ const METODO_LABEL: Record<string, string> = {
   dinheiro: "Dinheiro",
   pix: "Pix",
   cartao: "Cartão",
+  cartao_credito: "Cartão de crédito",
+  cartao_debito: "Cartão de débito",
   boleto: "Boleto",
   transferencia: "Transferência",
+};
+
+/** "Cartão de crédito em 3x" no recibo; a taxa da maquininha é da oficina e não aparece para o cliente. */
+const rotuloMetodo = (metodo: string | null, parcelas?: number | null) => {
+  if (!metodo) return "—";
+  const rotulo = METODO_LABEL[metodo] ?? metodo;
+  return metodo === "cartao_credito" && parcelas && parcelas > 1 ? `${rotulo} em ${parcelas}x` : rotulo;
 };
 
 /** Garantia e observações configuradas pela oficina, que fecham os termos do orçamento e da OS. */
@@ -215,7 +224,7 @@ export const PdfHtmlService = {
     const estornados = new Set(pag.movimentos.filter((m) => m.tipo === "estorno" && m.estorno_de_id).map((m) => m.estorno_de_id));
     const recebidos = pag.movimentos.filter((m) => m.tipo === "pagamento" && !estornados.has(m.id));
     const linhas = recebidos.length
-      ? recebidos.map((m) => ({ data: m.created_at, metodo: m.metodo ? METODO_LABEL[m.metodo] ?? m.metodo : "—", valor: m.valor }))
+      ? recebidos.map((m) => ({ data: m.created_at, metodo: rotuloMetodo(m.metodo, m.cartao_parcelas), valor: m.valor }))
       : [{ data: pag.data_pagamento ?? pag.updated_at, metodo: pag.metodo ? METODO_LABEL[pag.metodo] ?? pag.metodo : "—", valor: pag.valor_pago }];
     const total = Number(recebidos.length ? recebidos.reduce((acc, m) => acc + Number(m.valor), 0) : pag.valor_pago);
 

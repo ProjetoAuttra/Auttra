@@ -1,16 +1,43 @@
 import api from "../../../api/api";
 
 export const METODO_OPTIONS = [
-  { value: "pix",          label: "PIX" },
-  { value: "dinheiro",     label: "Dinheiro" },
-  { value: "cartao",       label: "Cartão" },
-  { value: "boleto",       label: "Boleto" },
-  { value: "transferencia", label: "Transferência" },
+  { value: "pix",            label: "PIX" },
+  { value: "dinheiro",       label: "Dinheiro" },
+  { value: "cartao_credito", label: "Cartão de crédito" },
+  { value: "cartao_debito",  label: "Cartão de débito" },
+  { value: "boleto",         label: "Boleto" },
+  { value: "transferencia",  label: "Transferência" },
 ];
 
-export const METODO_LABEL: Record<string, string> = Object.fromEntries(
-  METODO_OPTIONS.map((m) => [m.value, m.label])
-);
+/** Registros de antes de separar crédito e débito. Não aparece para escolher, só para ler e filtrar. */
+const METODO_LEGADO = { value: "cartao", label: "Cartão (sem tipo)" };
+
+/** Opções dos filtros: as atuais mais a legada, para achar os registros antigos. */
+export const METODO_FILTRO_OPTIONS = [...METODO_OPTIONS, METODO_LEGADO];
+
+export const METODO_LABEL: Record<string, string> = {
+  ...Object.fromEntries(METODO_OPTIONS.map((m) => [m.value, m.label])),
+  cartao: "Cartão",
+};
+
+export const ehCartao = (metodo?: string | null) => metodo === "cartao_credito" || metodo === "cartao_debito";
+
+/** "Cartão de crédito em 3x". */
+export function rotuloMetodo(metodo?: string | null, parcelas?: number | null) {
+  if (!metodo) return "—";
+  const rotulo = METODO_LABEL[metodo] ?? metodo;
+  return metodo === "cartao_credito" && parcelas && parcelas > 1 ? `${rotulo} em ${parcelas}x` : rotulo;
+}
+
+/** Campos do recebimento no cartão, iguais no título e no movimento. */
+export type TaxaCartao = {
+  maquininha_id?: number | null;
+  maquininha?: { id: number; nome: string; operadora?: string | null } | null;
+  cartao_parcelas?: number | null;
+  taxa_percentual?: number | string | null;
+  valor_taxa?: number | string | null;
+  data_prevista_recebimento?: string | null;
+};
 
 export type Conta = {
   id: number;
@@ -36,7 +63,7 @@ export type Conta = {
   cliente?: { id: number; nome: string } | null;
   fornecedor?: { id: number; nome: string } | null;
   ordem_servico?: { id: number; status: string } | null;
-};
+} & TaxaCartao;
 
 /**
  * Data para exibição. Datas escolhidas num campo de data chegam como meia-noite UTC (ex.: 2026-11-01T00:00:00.000Z)
@@ -124,7 +151,10 @@ export async function atualizarPagamento(id: number, payload: any) {
 /** Baixa do titulo. Com `valor` menor que o saldo vira recebimento parcial; sem `valor` quita o saldo. */
 export async function marcarComoPago(
   id: number,
-  payload: { metodo: string; valor?: number; data_pagamento?: string; desconto?: number; motivo_desconto?: string; multa?: number }
+  payload: {
+    metodo: string; valor?: number; data_pagamento?: string; desconto?: number; motivo_desconto?: string; multa?: number;
+    maquininha_id?: number; cartao_parcelas?: number;
+  }
 ) {
   const { data } = await api.post(`/pagamentos/${id}/pagar`, payload);
   return data as Conta & { emitir_recibo?: boolean };
@@ -139,7 +169,7 @@ export type Movimento = {
   estorno_de_id?: number | null;
   created_at: string;
   usuario?: { id: number; nome: string } | null;
-};
+} & TaxaCartao;
 
 export async function estornarPagamento(id: number, payload: { motivo: string }) {
   const { data } = await api.post(`/pagamentos/${id}/estornar`, payload);

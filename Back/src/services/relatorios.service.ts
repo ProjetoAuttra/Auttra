@@ -44,6 +44,9 @@ const emLista = (coluna: Prisma.Sql, ids: number[]) => (ids.length ? Prisma.sql`
 
 export type FiltrosFaturamento = { mecanicos?: number[]; clientes?: number[] };
 
+/** Categoria de despesa em que o resultado mostra as taxas das maquininhas. */
+export const CATEGORIA_TAXAS = "Taxas de cartão";
+
 const variacao = (atual: number, anterior: number) => (anterior > 0 ? arred(((atual - anterior) / anterior) * 100) : null);
 
 export const RelatoriosService = {
@@ -226,12 +229,20 @@ export const RelatoriosService = {
 
   /** Resultado do periodo em regime de caixa: o que entrou e saiu de fato (pelos movimentos, ja descontados os estornos). */
   async resultado(oficinaId: number, p: Periodo) {
+    // As taxas de cartão dos recebimentos entram como uma despesa a mais ("Taxas de cartão"): o estorno devolve a taxa.
     const soma = (ini: Date, fim: Date) => prisma.$queryRaw<Array<{ tipo: string; categoria: string | null; total: unknown }>>`
       SELECT p.tipo::text AS tipo, COALESCE(NULLIF(BTRIM(p.categoria), ''), 'Sem categoria') AS categoria,
              SUM(CASE WHEN m.tipo = 'pagamento' THEN m.valor ELSE -m.valor END) AS total
       FROM pagamento_movimento m JOIN pagamento p ON p.id = m.pagamento_id
       WHERE m.oficina_id = ${oficinaId} AND p.deleted_at IS NULL AND m.created_at >= ${ini} AND m.created_at < ${fim}
       GROUP BY 1, 2
+      UNION ALL
+      SELECT 'pagar' AS tipo, ${CATEGORIA_TAXAS} AS categoria,
+             SUM(CASE WHEN m.tipo = 'pagamento' THEN m.valor_taxa ELSE -m.valor_taxa END) AS total
+      FROM pagamento_movimento m JOIN pagamento p ON p.id = m.pagamento_id
+      WHERE m.oficina_id = ${oficinaId} AND p.deleted_at IS NULL AND p.tipo = 'receber' AND m.valor_taxa <> 0
+        AND m.created_at >= ${ini} AND m.created_at < ${fim}
+      HAVING COUNT(*) > 0
     `;
     const [atual, anterior] = await Promise.all([soma(p.inicio, p.fim), soma(p.anterior.inicio, p.anterior.fim)]);
 
@@ -248,9 +259,11 @@ export const RelatoriosService = {
 
     const t = totais(atual);
     const ant = totais(anterior);
+    const taxas = arred(num(atual.find((l) => l.tipo === "pagar" && l.categoria === CATEGORIA_TAXAS)?.total));
     return {
       periodo: { de: p.inicioISO, ate: p.fimISO },
       ...t,
+      taxas_cartao: taxas,
       margem_percentual: t.receitas > 0 ? arred((t.resultado / t.receitas) * 100) : 0,
       periodo_anterior: ant,
       variacao_resultado: variacao(t.resultado, ant.resultado),

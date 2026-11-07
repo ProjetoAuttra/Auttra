@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import { AppDrawer, DrawerSection } from "../../../components/common/AppDrawer";
 import CampoData from "../../../components/common/CampoData";
-import { METODO_OPTIONS, hojeInput } from "../api/api";
+import { METODO_FILTRO_OPTIONS as METODO_OPTIONS, hojeInput } from "../api/api";
 
 export type StatusConta = "pendente" | "vencido" | "pago" | "cancelado";
 
