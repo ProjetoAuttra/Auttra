@@ -142,7 +142,7 @@ export default function ClientsPage() {
         searchValue={query}
         searchPlaceholder="Pesquisar por nome, email ou telefone"
         onSearchChange={setQuery}
-        actionLabel="Novo Cliente"
+        actionLabel="Cliente"
         onAction={openCreate}
       />
 
@@ -188,7 +188,7 @@ export default function ClientsPage() {
                       icon={<GroupsRoundedIcon />}
                       title="Nenhum cliente cadastrado"
                       description="Cadastre o primeiro cliente para começar a gerenciar o relacionamento da oficina."
-                      actionLabel="Novo Cliente"
+                      actionLabel="Cliente"
                       onAction={openCreate}
                       isFiltered={!!query}
                       onClearFilter={() => setQuery("")}

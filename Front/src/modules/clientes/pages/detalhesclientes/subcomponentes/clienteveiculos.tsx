@@ -73,7 +73,7 @@ export default function ClienteVeiculos({
             disableElevation
             sx={{ mt: 2, fontWeight: 700 }}
           >
-            Novo veículo
+            Veículo
           </Button>
         )}
       </Box>
@@ -85,7 +85,7 @@ export default function ClienteVeiculos({
       {onAdd && (
         <Stack direction="row" justifyContent="flex-end">
           <Button onClick={onAdd} startIcon={<AddRoundedIcon />} variant="contained" disableElevation sx={{ fontWeight: 700 }}>
-            Novo veículo
+            Veículo
           </Button>
         </Stack>
       )}

@@ -151,7 +151,7 @@ export default function ContasPagar() {
         searchValue={query}
         searchPlaceholder="Pesquisar por descrição, fornecedor ou categoria"
         onSearchChange={setQuery}
-        actionLabel="Nova Conta"
+        actionLabel="Conta"
         onAction={() => setDialogNova(true)}
       />
 
@@ -279,7 +279,7 @@ export default function ContasPagar() {
                       icon={<TrendingDownRoundedIcon />}
                       title="Nenhuma conta a pagar"
                       description="Registre contas a fornecedores para acompanhar as despesas."
-                      actionLabel="Nova Conta"
+                      actionLabel="Conta"
                       onAction={() => setDialogNova(true)}
                       isFiltered={filtrado}
                       onClearFilter={limparFiltros}

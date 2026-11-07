@@ -173,7 +173,7 @@ export default function ClientePagamentos({
           disableElevation
           sx={{ mt: 2, fontWeight: 700 }}
         >
-          Novo pagamento
+          Pagamento
         </Button>
         <NovoPagamentoClienteDialog
           open={dialogNova}
@@ -211,7 +211,7 @@ export default function ClientePagamentos({
           disableElevation
           sx={{ fontWeight: 700 }}
         >
-          Novo pagamento
+          Pagamento
         </Button>
       </Stack>
 

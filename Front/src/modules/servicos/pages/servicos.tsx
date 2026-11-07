@@ -114,7 +114,7 @@ export default function ServicosPage() {
         searchValue={query}
         searchPlaceholder="Pesquisar serviço ou categoria"
         onSearchChange={setQuery}
-        actionLabel="Novo Serviço"
+        actionLabel="Serviço"
         onAction={openCreate}
       />
 
@@ -223,7 +223,7 @@ export default function ServicosPage() {
                       icon={<BuildRoundedIcon />}
                       title="Nenhum serviço cadastrado"
                       description="Cadastre os serviços e valores que a oficina oferece."
-                      actionLabel="Novo Serviço"
+                      actionLabel="Serviço"
                       onAction={openCreate}
                       isFiltered={!!query}
                       onClearFilter={() => setQuery("")}

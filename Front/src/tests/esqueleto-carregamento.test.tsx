@@ -27,7 +27,7 @@ describe("lista carregando", () => {
 
     // Cabeçalho, busca e botão já aparecem enquanto os dados não chegam.
     expect(screen.getByText("Clientes")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /novo cliente/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cliente" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Nome" })).toBeInTheDocument();
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
 

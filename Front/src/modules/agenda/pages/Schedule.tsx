@@ -937,7 +937,7 @@ export default function Schedule() {
           searchValue={query}
           searchPlaceholder="Pesquisar por cliente, placa, serviço ou local"
           onSearchChange={setQuery}
-          actionLabel="Novo agendamento"
+          actionLabel="Agendamento"
           onAction={() => openCreateAt(selectedDate)}
         />
 

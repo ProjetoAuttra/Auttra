@@ -168,7 +168,7 @@ export default function AccessProfilesManager() {
         title="Perfis de acesso"
         subtitle="Defina quais módulos e ações cada colaborador poderá acessar."
         icon={<SecurityRoundedIcon />}
-        actionLabel="Novo perfil"
+        actionLabel="Perfil"
         onAction={startNew}
       />
 
