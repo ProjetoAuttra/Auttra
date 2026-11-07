@@ -23,6 +23,7 @@ const respostas: Record<string, unknown> = {
   "/configuracoes/documentos": { garantiaDias: 180, validadeOrcamentoDias: 15, observacoes: "Estadia após 30 dias." },
   "/configuracoes/agenda": { horarioInicio: "08:00", horarioFim: "18:00", dias: "Segunda a Sábado", tempoMedio: "60 minutos" },
   "/configuracoes/financeiro": { formasPagamento: "Pix, Cartão, Dinheiro", emitirRecibos: true, jurosAtraso: "2%" },
+  "/configuracoes/maquininhas": [],
   "/notificacoes/config": {
     agenda: { ativo: true, diasAntecedencia: 1 },
     financeiro: { ativo: true, diasVencimento: 3 },
@@ -173,7 +174,7 @@ describe("Configurações > Financeiro", () => {
     await user.click(screen.getByTestId("save-financeiro"));
 
     await waitFor(() =>
-      expect(put).toHaveBeenCalledWith("/configuracoes/financeiro", expect.objectContaining({ formasPagamento: "PIX, Cartão, Boleto" }))
+      expect(put).toHaveBeenCalledWith("/configuracoes/financeiro", expect.objectContaining({ formasPagamento: "PIX, Boleto, Cartão" }))
     );
   });
 

@@ -4,6 +4,7 @@ import { HttpError } from "../utils/httpError.js";
 import { LIMITE_LISTAGEM } from "../utils/limites.js";
 import { listarPaginado, type Paginacao } from "../utils/paginacao.js";
 import { dataIso, listaCsv } from "../utils/filtros.js";
+import { aceitaMetodo, calcularTaxa, ehMetodoCartao } from "./maquininhas.service.js";
 
 /** Valor aceito pelo construtor do Decimal (o Prisma 7 nao exporta mais Decimal.Value). */
 type DecimalValue = Prisma.Decimal | number | string;
@@ -51,6 +52,7 @@ async function registrarMovimento(
     usuarioId?: number | null;
     motivo?: string | null;
     estornoDeId?: number | null;
+    taxa?: TaxaCartao | null;
   }
 ) {
   return tx.pagamento_movimento.create({
@@ -63,8 +65,56 @@ async function registrarMovimento(
       usuario_id: dados.usuarioId ?? null,
       motivo: dados.motivo ?? null,
       estorno_de_id: dados.estornoDeId ?? null,
+      ...(dados.taxa ?? {}),
     },
   });
+}
+
+/** Maquininha, parcelas e taxa de um recebimento no cartão, como gravados no título e no movimento. */
+type TaxaCartao = {
+  maquininha_id: number | null;
+  cartao_parcelas: number | null;
+  taxa_percentual: Prisma.Decimal | null;
+  valor_taxa: Prisma.Decimal;
+  data_prevista_recebimento: Date | null;
+};
+
+/** O que o usuário escolheu ao receber no cartão. */
+export type DadosCartao = { maquininha_id?: number | string | null; cartao_parcelas?: number | string | null };
+
+/**
+ * Taxa do recebimento. Só existe em conta a receber paga no crédito ou no débito. Havendo maquininha ativa
+ * que aceite o método, escolher uma é obrigatório (é o que garante o valor líquido certo). Sem nenhuma,
+ * o recebimento segue sem taxa, como antes.
+ */
+async function taxaDoRecebimento(
+  tx: Prisma.TransactionClient,
+  titulo: { tipo: string; oficina_id: number },
+  metodo: string,
+  entrada: Prisma.Decimal,
+  dataPagamento: Date,
+  cartao: DadosCartao
+): Promise<TaxaCartao | null> {
+  const idInformado = cartao.maquininha_id !== undefined && cartao.maquininha_id !== null && cartao.maquininha_id !== "";
+  if (titulo.tipo !== "receber" || !ehMetodoCartao(metodo)) {
+    if (idInformado) throw new HttpError("Maquininha só se aplica a recebimentos no crédito ou no débito.", 400);
+    return null;
+  }
+  if (!idInformado) {
+    const filtroMetodo = metodo === "cartao_debito" ? { aceita_debito: true } : { aceita_credito: true };
+    const temMaquininha = await tx.maquininha.count({ where: { oficina_id: titulo.oficina_id, deleted_at: null, ativo: true, ...filtroMetodo } });
+    if (temMaquininha) throw new HttpError("Escolha a maquininha usada no recebimento.", 400);
+    return null;
+  }
+  const maquininha = await tx.maquininha.findFirst({
+    where: { id: Number(cartao.maquininha_id), oficina_id: titulo.oficina_id, deleted_at: null },
+  });
+  if (!maquininha) throw new HttpError("Maquininha não encontrada.", 404);
+  if (!maquininha.ativo) throw new HttpError("Esta maquininha está inativa.", 400);
+  if (!aceitaMetodo(maquininha, metodo))
+    throw new HttpError(`Esta maquininha não aceita ${metodo === "cartao_debito" ? "débito" : "crédito"}.`, 400);
+  const parcelas = metodo === "cartao_debito" ? 1 : Number(cartao.cartao_parcelas ?? 1);
+  return { maquininha_id: maquininha.id, ...calcularTaxa(maquininha, metodo, parcelas, entrada, dataPagamento) };
 }
 
 /** Mesmas relacoes da listagem: o front substitui a linha pela resposta da acao e precisa de cliente/fornecedor/OS. */
@@ -72,6 +122,7 @@ const relacoes = {
   cliente: { select: { id: true, nome: true, email: true } },
   fornecedor: { select: { id: true, nome: true } },
   ordem_servico: { select: { id: true, status: true } },
+  maquininha: { select: { id: true, nome: true, operadora: true } },
 } as const;
 
 /** Valor do título: original - desconto + multa. */
@@ -92,7 +143,7 @@ type PagamentoInput = {
   ordem_servico_id?: number | null;
   fornecedor_id?: number | null;
   tipo: "pagar" | "receber";
-  metodo?: "dinheiro" | "pix" | "cartao" | "boleto" | "transferencia";
+  metodo?: "dinheiro" | "pix" | "cartao" | "cartao_credito" | "cartao_debito" | "boleto" | "transferencia";
   valor: number;
   status?: "pendente" | "parcial" | "pago" | "cancelado";
   data_vencimento: Date | string;
@@ -151,9 +202,11 @@ async function registrarEntrada(
   entrada: Prisma.Decimal,
   metodo: string,
   dataPagamento: Date,
-  usuarioId?: number | null
+  usuarioId?: number | null,
+  cartao: DadosCartao = {}
 ) {
   const restante = valorLiquido(existing).minus(D(existing.valor_pago));
+  const taxa = entrada.greaterThan(0) ? await taxaDoRecebimento(tx, existing, metodo, entrada, dataPagamento, cartao) : null;
   const totalPago = D(existing.valor_pago).plus(entrada);
   const quitado = entrada.greaterThanOrEqualTo(restante);
 
@@ -169,11 +222,21 @@ async function registrarEntrada(
       metodo: metodo as any,
       data_pagamento: dataPagamento,
       ...(novoOriginal ? { valor_original: novoOriginal, valor: novoOriginal, multa: 0 } : {}),
+      // A taxa soma com a de uma entrada anterior (titulo "parcial" antigo); a maquininha e o prazo ficam os da ultima.
+      ...(taxa
+        ? {
+            maquininha_id: taxa.maquininha_id,
+            cartao_parcelas: taxa.cartao_parcelas,
+            taxa_percentual: taxa.taxa_percentual,
+            valor_taxa: D(existing.valor_taxa).plus(taxa.valor_taxa),
+            data_prevista_recebimento: taxa.data_prevista_recebimento,
+          }
+        : {}),
     },
     include: relacoes,
   });
   // Desconto de 100% quita o titulo sem entrada de dinheiro: nao ha movimento de valor zero.
-  if (entrada.greaterThan(0)) await registrarMovimento(tx, existing, { tipo: "pagamento", valor: entrada, metodo, usuarioId });
+  if (entrada.greaterThan(0)) await registrarMovimento(tx, existing, { tipo: "pagamento", valor: entrada, metodo, usuarioId, taxa });
 
   if (quitado) return atualizado;
 
@@ -217,7 +280,7 @@ function janelaPagamento(filtros: { pagamento_de?: string; pagamento_ate?: strin
   };
 }
 
-const METODOS = ["dinheiro", "pix", "cartao", "boleto", "transferencia"];
+const METODOS = ["dinheiro", "pix", "cartao", "cartao_credito", "cartao_debito", "boleto", "transferencia"];
 
 export const PagamentosService = {
   async list(
@@ -288,11 +351,7 @@ export const PagamentosService = {
                 : [{ data_vencimento: "desc" }, { id: "desc" }],
             skip,
             take,
-            include: {
-              cliente: { select: { id: true, nome: true, email: true } },
-              fornecedor: { select: { id: true, nome: true } },
-              ordem_servico: { select: { id: true, status: true } },
-            },
+            include: relacoes,
           }),
         count: () => prisma.pagamento.count({ where }),
       },
@@ -359,7 +418,7 @@ export const PagamentosService = {
     if (!id) throw new Error("ID do pagamento e obrigatorio.");
     const pagamento = await prisma.pagamento.findFirst({
       where: { id, deleted_at: null, oficina_id: oficinaId },
-      include: { cliente: true, oficina: true, fornecedor: true, ordem_servico: true },
+      include: { cliente: true, oficina: true, fornecedor: true, ordem_servico: true, maquininha: { select: { id: true, nome: true, operadora: true } } },
     });
     if (!pagamento) throw new Error("Pagamento nao encontrado.");
     return pagamento;
@@ -480,15 +539,18 @@ export const PagamentosService = {
     const grupos = await prisma.pagamento.groupBy({
       by: ["tipo"],
       where,
-      _sum: { valor_pago: true },
+      _sum: { valor_pago: true, valor_taxa: true },
       _count: { _all: true },
     });
     const soma = (tipo: string) => D(grupos.find((g) => g.tipo === tipo)?._sum.valor_pago ?? 0);
     const qtd = (tipo: string) => grupos.find((g) => g.tipo === tipo)?._count._all ?? 0;
     const entradas = soma("receber");
     const saidas = soma("pagar");
+    const taxas = D(grupos.find((g) => g.tipo === "receber")?._sum.valor_taxa ?? 0);
     return {
       entradas: Number(entradas),
+      taxas_cartao: Number(taxas),
+      entradas_liquidas: Number(entradas.minus(taxas)),
       saidas: Number(saidas),
       saldo: Number(entradas.minus(saidas)),
       qtd_entradas: qtd("receber"),
@@ -513,7 +575,7 @@ export const PagamentosService = {
       motivo_desconto?: string | null;
       /** Multa do titulo (substitui a atual). */
       multa?: number | string | null;
-    },
+    } & DadosCartao,
     oficinaId: number,
     usuarioId?: number | null
   ) {
@@ -556,7 +618,8 @@ export const PagamentosService = {
         entrada,
         data.metodo,
         data.data_pagamento ? toDate(data.data_pagamento, "data_pagamento") : new Date(),
-        usuarioId
+        usuarioId,
+        data
       );
     });
   },
@@ -611,7 +674,7 @@ export const PagamentosService = {
     });
   },
 
-  async pagamentoParcial(id: number, data: { valor_entrada: number; metodo: string }, oficinaId: number, usuarioId?: number | null) {
+  async pagamentoParcial(id: number, data: { valor_entrada: number; metodo: string } & DadosCartao, oficinaId: number, usuarioId?: number | null) {
     const entrada = toPositiveDecimal(data.valor_entrada, "Valor de entrada");
     return prisma.$transaction(async (tx) => {
       const existing = await lockPagamento(tx, id, oficinaId);
@@ -620,7 +683,7 @@ export const PagamentosService = {
       const restante = valorLiquido(existing).minus(D(existing.valor_pago));
       if (entrada.greaterThan(restante))
         throw new Error(`Valor excede o saldo restante (${restante.toFixed(2)}).`);
-      return registrarEntrada(tx, existing, entrada, data.metodo, new Date(), usuarioId);
+      return registrarEntrada(tx, existing, entrada, data.metodo, new Date(), usuarioId, data);
     });
   },
 
@@ -652,6 +715,16 @@ export const PagamentosService = {
       for (const mov of ativos) {
         await registrarMovimento(tx, existing, {
           tipo: "estorno", valor: D(mov.valor), metodo: mov.metodo, usuarioId, motivo, estornoDeId: mov.id,
+          // O estorno devolve a taxa junto: somando pagamentos menos estornos, a taxa do periodo fecha.
+          taxa: mov.maquininha_id || D(mov.valor_taxa).greaterThan(0)
+            ? {
+                maquininha_id: mov.maquininha_id,
+                cartao_parcelas: mov.cartao_parcelas,
+                taxa_percentual: mov.taxa_percentual,
+                valor_taxa: D(mov.valor_taxa),
+                data_prevista_recebimento: mov.data_prevista_recebimento,
+              }
+            : null,
         });
       }
       if (residual.greaterThan(0)) {
@@ -660,7 +733,10 @@ export const PagamentosService = {
 
       return tx.pagamento.update({
         where: { id },
-        data: { status: "pendente", valor_pago: 0, data_pagamento: null },
+        data: {
+          status: "pendente", valor_pago: 0, data_pagamento: null,
+          maquininha_id: null, cartao_parcelas: null, taxa_percentual: null, valor_taxa: 0, data_prevista_recebimento: null,
+        },
         include: relacoes,
       });
     });
@@ -673,7 +749,7 @@ export const PagamentosService = {
     return prisma.pagamento_movimento.findMany({
       where: { pagamento_id: id, oficina_id: oficinaId },
       orderBy: { id: "asc" },
-      include: { usuario: { select: { id: true, nome: true } } },
+      include: { usuario: { select: { id: true, nome: true } }, maquininha: { select: { id: true, nome: true } } },
     });
   },
 

@@ -3,6 +3,7 @@ import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import { buscarConfigFinanceiro, defaultFinanceiroConfig, salvarConfigFinanceiro, type FinanceiroConfig } from "../api/configuracoesOperacionais";
 import SecaoConfiguracao, { CampoNumero, CartaoConfiguracao, LinhaConfiguracao, SwitchAtivo } from "../components/SecaoConfiguracao";
 import { useSecaoConfig } from "../hooks/useSecaoConfig";
+import CartaoMaquininhas from "./CartaoMaquininhas";
 import { METODO_OPTIONS } from "../../pagamentos/api/api";
 import {
   escreverFormasPagamento,
@@ -45,7 +46,7 @@ export default function SecaoFinanceiro({ podeEditar }: { podeEditar: boolean })
     <SecaoConfiguracao
       secao="financeiro"
       titulo="Financeiro"
-      subtitulo="Formas de pagamento, juros e emissão de recibos."
+      subtitulo="Formas de pagamento, maquininhas de cartão, juros e emissão de recibos."
       icone={<PaymentsOutlinedIcon />}
       registro="Configurações financeiras"
       carregando={secao.carregando}
@@ -122,6 +123,8 @@ export default function SecaoFinanceiro({ podeEditar }: { podeEditar: boolean })
         )}
       </LinhaConfiguracao>
       </CartaoConfiguracao>
+
+      <CartaoMaquininhas podeEditar={podeEditar} />
 
       <CartaoConfiguracao titulo="Recibos">
       <LinhaConfiguracao interruptor titulo="Emissão automática" descricao="Gera o recibo quando uma conta a receber é marcada como paga.">

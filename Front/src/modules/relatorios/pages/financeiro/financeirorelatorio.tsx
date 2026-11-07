@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@mui/material";
 import { buscarTodas, somarDias } from "../../shared/buscarTodas";
-import { METODO_LABEL, METODO_OPTIONS } from "../../../pagamentos/api/api";
+import { METODO_FILTRO_OPTIONS, METODO_LABEL, METODO_OPTIONS, rotuloMetodo } from "../../../pagamentos/api/api";
 import { useAuth } from "../../../../context/AuthContext";
 import { useToast } from "../../../../context/ToastContext";
 import {
@@ -40,6 +40,9 @@ type Pagamento = {
   descricao?: string | null;
   cliente?: { nome?: string | null } | null;
   fornecedor?: { nome?: string | null } | null;
+  valor_taxa?: number | null;
+  cartao_parcelas?: number | null;
+  maquininha?: { id: number; nome: string } | null;
 };
 
 const isReceber = (p: Pagamento) => p.tipo === "receber" || p.tipo === "entrada";
@@ -49,9 +52,11 @@ const isPendente = (p: Pagamento) => p.status === "pendente" || p.status === "pa
 const valorPago = (p: Pagamento) => Number(p.valor_pago ?? 0) || (isPago(p) ? Number(p.valor ?? 0) : 0);
 const valorAberto = (p: Pagamento) => Math.max(0, Number(p.valor ?? 0) - Number(p.valor_pago ?? 0));
 const dataReferencia = (p: Pagamento) => p.data_pagamento ?? p.data_vencimento;
+/** Taxa de cartão já descontada de um recebimento pago (zero nos demais). */
+const taxaDe = (p: Pagamento) => (isReceber(p) && isPago(p) ? Number(p.valor_taxa ?? 0) : 0);
 
-type FiltrosFluxo = { de: string; ate: string; tipo: string; situacao: string[]; metodos: string[]; parceiros: string[] };
-const PADRAO: FiltrosFluxo = { ...periodoMesAtual(), tipo: "", situacao: [], metodos: [], parceiros: [] };
+type FiltrosFluxo = { de: string; ate: string; tipo: string; situacao: string[]; metodos: string[]; maquininhas: string[]; parceiros: string[] };
+const PADRAO: FiltrosFluxo = { ...periodoMesAtual(), tipo: "", situacao: [], metodos: [], maquininhas: [], parceiros: [] };
 
 const nomeParceiro = (p: Pagamento) => p.cliente?.nome ?? p.fornecedor?.nome ?? "";
 
@@ -88,6 +93,7 @@ export default function RelatorioFinanceiro() {
           ...p,
           valor: Number(p.valor ?? 0),
           valor_pago: Number(p.valor_pago ?? 0),
+          valor_taxa: Number(p.valor_taxa ?? 0),
           tipo: (p.tipo ?? "").toLowerCase(),
           status: (p.status ?? "").toLowerCase(),
         })));
@@ -111,6 +117,7 @@ export default function RelatorioFinanceiro() {
         if (filtros.tipo === "receber" && !isReceber(p)) return false;
         if (filtros.tipo === "pagar" && !isPagar(p)) return false;
         if (filtros.metodos.length && !filtros.metodos.includes(p.metodo ?? "")) return false;
+        if (filtros.maquininhas.length && !filtros.maquininhas.includes(String(p.maquininha?.id ?? ""))) return false;
         if (filtros.parceiros.length && !filtros.parceiros.includes(nomeParceiro(p))) return false;
         if (filtros.situacao.length) {
           const bate = filtros.situacao.some((s) => (s === "vencido" ? vencida(p) : s === "pendente" ? isPendente(p) && !vencida(p) : p.status === s));
@@ -126,6 +133,11 @@ export default function RelatorioFinanceiro() {
     () => [...new Set(dados.map(nomeParceiro).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR")).map((n) => ({ value: n, label: n })),
     [dados]
   );
+  const maquininhasOpcoes = React.useMemo(() => {
+    const porId = new Map<number, string>();
+    for (const p of dados) if (p.maquininha) porId.set(p.maquininha.id, p.maquininha.nome);
+    return [...porId].sort((a, b) => a[1].localeCompare(b[1], "pt-BR")).map(([id, nome]) => ({ value: String(id), label: nome }));
+  }, [dados]);
   const campos: CampoFiltro<FiltrosFluxo>[] = [
     { id: "tipo", label: "Tipo", opcoes: [{ value: "receber", label: "Entradas (a receber)" }, { value: "pagar", label: "Saídas (a pagar)" }] },
     {
@@ -135,7 +147,8 @@ export default function RelatorioFinanceiro() {
       vazio: "Todas as situações",
       opcoes: [{ value: "pendente", label: "Pendentes" }, { value: "vencido", label: "Vencidos" }, { value: "pago", label: "Pagos" }, { value: "cancelado", label: "Cancelados" }],
     },
-    { id: "metodos", label: "Forma de pagamento", multi: true, vazio: "Todas", opcoes: METODO_OPTIONS.map((m) => ({ value: m.value, label: m.label })) },
+    { id: "metodos", label: "Forma de pagamento", multi: true, vazio: "Todas", opcoes: METODO_FILTRO_OPTIONS.map((m) => ({ value: m.value, label: m.label })) },
+    ...(maquininhasOpcoes.length ? [{ id: "maquininhas" as const, label: "Maquininha", multi: true, vazio: "Todas", opcoes: maquininhasOpcoes }] : []),
     { id: "parceiros", label: "Cliente/Fornecedor", multi: true, opcoes: parceirosOpcoes },
   ];
 
@@ -143,8 +156,23 @@ export default function RelatorioFinanceiro() {
   const aReceber = filtrados.filter((p) => isReceber(p) && isPendente(p)).reduce((sum, p) => sum + valorAberto(p), 0);
   const pago = filtrados.filter((p) => isPagar(p) && isPago(p)).reduce((sum, p) => sum + valorPago(p), 0);
   const aPagar = filtrados.filter((p) => isPagar(p) && isPendente(p)).reduce((sum, p) => sum + valorAberto(p), 0);
-  const saldoRealizado = recebido - pago;
-  const saldoProjetado = recebido + aReceber - pago - aPagar;
+  // A taxa da maquininha é dinheiro que não chega: sai dos saldos.
+  const taxas = filtrados.reduce((sum, p) => sum + taxaDe(p), 0);
+  const saldoRealizado = recebido - taxas - pago;
+  const saldoProjetado = recebido - taxas + aReceber - pago - aPagar;
+
+  const porMaquininha = React.useMemo(() => {
+    const mapa = new Map<string, { nome: string; qtd: number; bruto: number; taxas: number }>();
+    for (const p of filtrados) {
+      if (!isReceber(p) || !isPago(p) || !p.maquininha) continue;
+      const linha = mapa.get(p.maquininha.nome) ?? { nome: p.maquininha.nome, qtd: 0, bruto: 0, taxas: 0 };
+      linha.qtd += 1;
+      linha.bruto += valorPago(p);
+      linha.taxas += taxaDe(p);
+      mapa.set(p.maquininha.nome, linha);
+    }
+    return [...mapa.values()].sort((a, b) => b.taxas - a.taxas);
+  }, [filtrados]);
 
   const porMetodo = filtrados
     .filter((p) => isReceber(p) && isPago(p))
@@ -179,7 +207,7 @@ export default function RelatorioFinanceiro() {
     }
     exportCsv(
       `relatorio_fluxo_de_caixa_${dataInicio}_${dataFim}.csv`,
-      ["Tipo", "Situação", "Cliente/Fornecedor", "Descrição", "Valor", "Valor pago", "Vencimento", "Pagamento", "Método"],
+      ["Tipo", "Situação", "Cliente/Fornecedor", "Descrição", "Valor", "Valor pago", "Vencimento", "Pagamento", "Método", "Maquininha", "Taxa de cartão", "Valor líquido"],
       filtrados.map((p) => [
         isReceber(p) ? "Receber" : "Pagar",
         p.status ?? "",
@@ -189,7 +217,10 @@ export default function RelatorioFinanceiro() {
         Number(p.valor_pago ?? 0).toFixed(2).replace(".", ","),
         dateBr(p.data_vencimento),
         dateBr(p.data_pagamento),
-        p.metodo ?? "",
+        p.metodo ? rotuloMetodo(p.metodo, p.cartao_parcelas) : "",
+        p.maquininha?.nome ?? "",
+        taxaDe(p).toFixed(2).replace(".", ","),
+        (Number(p.valor_pago ?? 0) - taxaDe(p)).toFixed(2).replace(".", ","),
       ])
     );
   };
@@ -207,7 +238,7 @@ export default function RelatorioFinanceiro() {
       <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} />
 
       <StatGroup espalhar>
-        <MetricCard label="Recebido" value={brl(recebido)} />
+        <MetricCard label="Recebido" value={brl(recebido)} helper={taxas > 0 ? `${brl(taxas)} de taxas de cartão` : undefined} />
         <MetricCard label="Pago" value={brl(pago)} />
         <MetricCard label="Saldo realizado" value={brl(saldoRealizado)} />
         <MetricCard label="A receber" value={brl(aReceber)} />
@@ -225,6 +256,38 @@ export default function RelatorioFinanceiro() {
           <GraficoPizza itens={itensMetodo} ordemCores={METODOS_ORDEM} semDados="Nenhum recebimento pago no período." />
         </Box>
       </Box>
+
+      {porMaquininha.length > 0 && (
+        <>
+          <TituloSecao>Taxas por maquininha</TituloSecao>
+          <Box sx={{ overflowX: "auto", mb: 4 }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Maquininha</TableCell>
+                  <TableCell align="center">Recebimentos</TableCell>
+                  <TableCell align="right">Bruto</TableCell>
+                  <TableCell align="right">Taxas</TableCell>
+                  <TableCell align="right">Líquido</TableCell>
+                  <TableCell align="right">Taxa média</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {porMaquininha.map((m) => (
+                  <TableRow key={m.nome} hover>
+                    <TableCell>{m.nome}</TableCell>
+                    <TableCell align="center">{m.qtd}</TableCell>
+                    <TableCell align="right">{brl(m.bruto)}</TableCell>
+                    <TableCell align="right">{brl(m.taxas)}</TableCell>
+                    <TableCell align="right">{brl(m.bruto - m.taxas)}</TableCell>
+                    <TableCell align="right">{m.bruto > 0 ? `${((m.taxas / m.bruto) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%` : "-"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
+        </>
+      )}
 
       <TituloSecao>Movimentações</TituloSecao>
       <Box sx={{ overflowX: "auto" }}>

@@ -17,7 +17,7 @@ import CampoData from "../../../../components/common/CampoData";
 import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
 import TextoLimitado from "../../../../components/common/TextoLimitado";
-import { METODO_LABEL, brl, formatarData } from "../../api/api";
+import { brl, formatarData, rotuloMetodo } from "../../api/api";
 import LinhasEsqueleto from "../../../../components/common/LinhasEsqueleto";
 
 /** Título pago, como vem de GET /pagamentos. */
@@ -27,13 +27,14 @@ type Movimento = {
   descricao?: string | null;
   categoria?: string | null;
   metodo?: string | null;
+  cartao_parcelas?: number | null;
   valor_pago: number | string;
   data_pagamento: string;
   cliente?: { nome: string } | null;
   fornecedor?: { nome: string } | null;
 };
 
-type Resumo = { entradas: number; saidas: number; saldo: number; qtd_entradas: number; qtd_saidas: number };
+type Resumo = { entradas: number; saidas: number; saldo: number; qtd_entradas: number; qtd_saidas: number; taxas_cartao?: number };
 type Tipo = "todos" | "receber" | "pagar";
 type Filtros = { tipo: Tipo; de: string; ate: string };
 
@@ -113,7 +114,12 @@ export default function ExtratoFinanceiro() {
         <StatCard
           label="Entradas"
           value={valorCard(resumo?.entradas)}
-          helper={resumo && !resumoFalhou ? `${resumo.qtd_entradas} ${resumo.qtd_entradas === 1 ? "recebimento" : "recebimentos"}` : undefined}
+          helper={
+            resumo && !resumoFalhou
+              ? `${resumo.qtd_entradas} ${resumo.qtd_entradas === 1 ? "recebimento" : "recebimentos"}` +
+                (resumo.taxas_cartao ? ` · ${brl(resumo.taxas_cartao)} de taxas de cartão` : "")
+              : undefined
+          }
           icon={<ArrowDownwardRoundedIcon />}
           tone="success"
         />
@@ -206,7 +212,7 @@ export default function ExtratoFinanceiro() {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" color="text.secondary">
-                        {m.metodo ? METODO_LABEL[m.metodo] ?? m.metodo : "—"}
+                        {m.metodo ? rotuloMetodo(m.metodo, m.cartao_parcelas) : "—"}
                       </Typography>
                     </TableCell>
                     <TableCell align="right" sx={{ whiteSpace: "nowrap", fontWeight: 700, color: entrada ? "success.main" : "error.main" }}>

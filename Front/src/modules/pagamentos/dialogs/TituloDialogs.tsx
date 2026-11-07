@@ -5,7 +5,8 @@ import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
 import { AppDialog, AppDialogActions, AppDialogContent } from "../../../components/common/AppDialog";
 import CampoData from "../../../components/common/CampoData";
 import TextoLimitado from "../../../components/common/TextoLimitado";
-import { METODO_OPTIONS, brl, formatarData, hojeInput, type Conta } from "../api/api";
+import { METODO_OPTIONS, brl, ehCartao, formatarData, hojeInput, type Conta } from "../api/api";
+import { aceitaMetodo, listarMaquininhas, pct, type Maquininha } from "../../configuracoes/api/maquininhas";
 import { formatPreco, maskDecimal, parseDecimal, parsePreco, precoParaCampo } from "../../../utils/masks";
 
 const toCents = (v: number) => Math.round(v * 100);
@@ -90,12 +91,39 @@ function Estrutura({ formulario, resumo }: { formulario: React.ReactNode; resumo
 
 export type DadosReceber = {
   metodo: string;
+  maquininha_id?: number;
+  cartao_parcelas?: number;
   valor?: number;
   data_pagamento?: string;
   desconto?: number;
   motivo_desconto?: string;
   multa?: number;
 };
+
+/** Maquininhas ativas, buscadas uma vez por abertura do modal. null = carregando; erro vira lista vazia. */
+function useMaquininhasAtivas(ativo: boolean) {
+  const [lista, setLista] = React.useState<Maquininha[] | null>(ativo ? null : []);
+  React.useEffect(() => {
+    if (!ativo) return;
+    let vivo = true;
+    listarMaquininhas()
+      .then((l) => { if (vivo) setLista(Array.isArray(l) ? l : []); })
+      .catch(() => { if (vivo) setLista([]); });
+    return () => { vivo = false; };
+  }, [ativo]);
+  return lista;
+}
+
+/** Taxa, líquido e previsão de um recebimento no cartão; mesma regra do servidor (que é quem grava). */
+export function simularTaxa(m: Maquininha, metodo: string, parcelas: number, valor: number, dataIso: string) {
+  const debito = metodo === "cartao_debito";
+  const percentual = debito ? m.taxa_debito : m.taxas_credito[parcelas - 1] ?? 0;
+  const prazo = debito ? m.prazo_debito_dias : m.antecipacao ? m.prazo_credito_dias : m.prazo_credito_dias + 30 * (parcelas - 1);
+  const taxa = Math.round(valor * percentual) / 100;
+  const previsao = new Date(`${dataIso || hojeInput()}T00:00:00.000Z`);
+  previsao.setUTCDate(previsao.getUTCDate() + prazo);
+  return { percentual, taxa, liquido: valor - taxa, previsao: previsao.toISOString() };
+}
 
 function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; receber: boolean; onConfirm: (d: DadosReceber) => void | Promise<void>; onCancel: () => void }) {
   const original = Number(conta.valor_original);
@@ -119,6 +147,25 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
   const [valorEditado, setValorEditado] = React.useState(false);
   const [metodo, setMetodo] = React.useState("");
   const [data, setData] = React.useState(hojeInput);
+  // Maquininha só em conta a receber no crédito/débito, e só as que aceitam o método escolhido.
+  // Com uma só que aceite, ela já vem escolhida.
+  const maquininhas = useMaquininhasAtivas(receber);
+  const opcoesMaquininha = React.useMemo(
+    () => (maquininhas ?? []).filter((m) => aceitaMetodo(m, metodo)),
+    [maquininhas, metodo]
+  );
+  const [maquininhaId, setMaquininhaId] = React.useState<number | "">("");
+  const [parcelasCartao, setParcelasCartao] = React.useState(1);
+  React.useEffect(() => {
+    // Trocar de método pode tirar a escolhida da lista: aí vale a única que sobrou, ou nenhuma.
+    setMaquininhaId((atual) =>
+      opcoesMaquininha.some((m) => m.id === atual) ? atual : opcoesMaquininha.length === 1 ? opcoesMaquininha[0].id : ""
+    );
+  }, [opcoesMaquininha]);
+  const usaMaquininha = receber && ehCartao(metodo) && opcoesMaquininha.length > 0;
+  const maquininha = usaMaquininha ? opcoesMaquininha.find((m) => m.id === maquininhaId) ?? null : null;
+  const maxParcelas = maquininha?.taxas_credito.length ?? 1;
+  const parcelasValidas = Math.min(parcelasCartao, maxParcelas);
   // Trava o botão enquanto salva: clique duplo não registra o recebimento duas vezes.
   const [salvando, setSalvando] = React.useState(false);
 
@@ -140,7 +187,9 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
   const excede = toCents(valor) > toCents(saldo);
   const valorInvalido = !semSaldo && (valor <= 0 || excede);
   const parcial = !semSaldo && !valorInvalido && toCents(valor) < toCents(saldo);
-  const invalido = descontoInvalido || precisaMotivo || descontoVazio || multaVazia || valorInvalido || !metodo || !data;
+  const faltaMaquininha = usaMaquininha && !maquininha;
+  const invalido = descontoInvalido || precisaMotivo || descontoVazio || multaVazia || valorInvalido || !metodo || !data || faltaMaquininha || (receber && ehCartao(metodo) && maquininhas === null);
+  const simulacao = maquininha && !semSaldo && valor > 0 ? simularTaxa(maquininha, metodo, parcelasValidas, valor, data) : null;
   const mudouDesconto = toCents(desconto) !== toCents(descontoAtual);
   const mudouMulta = toCents(multa) !== toCents(multaAtual);
 
@@ -150,6 +199,7 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
     try {
       await onConfirm({
         metodo,
+        ...(maquininha ? { maquininha_id: maquininha.id, cartao_parcelas: metodo === "cartao_credito" ? parcelasValidas : 1 } : {}),
         valor: semSaldo ? undefined : valor,
         data_pagamento: data,
         // O desconto só viaja quando mudou; 0 remove o desconto anterior.
@@ -204,6 +254,43 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
                 helperText={!data ? "Informe a data" : " "}
               />
             </Stack>
+            {usaMaquininha && (
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                <TextField
+                  select
+                  label="Maquininha *"
+                  value={maquininhaId}
+                  onChange={(e) => setMaquininhaId(Number(e.target.value))}
+                  size="small"
+                  fullWidth
+                  error={faltaMaquininha}
+                  helperText={faltaMaquininha ? "Escolha a maquininha usada" : " "}
+                >
+                  {opcoesMaquininha.map((m) => <MenuItem key={m.id} value={m.id}>{m.nome}</MenuItem>)}
+                </TextField>
+                {metodo === "cartao_credito" ? (
+                  <TextField
+                    select
+                    label="Parcelas *"
+                    value={parcelasValidas}
+                    onChange={(e) => setParcelasCartao(Number(e.target.value))}
+                    size="small"
+                    fullWidth
+                    disabled={!maquininha}
+                    helperText=" "
+                  >
+                    {Array.from({ length: maxParcelas }, (_, i) => i + 1).map((n) => (
+                      <MenuItem key={n} value={n}>
+                        {n === 1 ? "À vista" : `${n}x`}
+                        {maquininha && <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>· taxa {pct(maquininha.taxas_credito[n - 1])}</Typography>}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                ) : (
+                  <Box sx={{ width: "100%" }} />
+                )}
+              </Stack>
+            )}
           </Stack>
 
           <Divider />
@@ -287,7 +374,25 @@ function FormReceber({ conta, receber, onConfirm, onCancel }: { conta: Conta; re
           </Stack>
         </Stack>
       }
-      resumo={<Resumo conta={conta} receber={receber} desconto={descontoInvalido ? descontoAtual : desconto} multa={multa} />}
+      resumo={
+        <Resumo
+          conta={conta}
+          receber={receber}
+          desconto={descontoInvalido ? descontoAtual : desconto}
+          multa={multa}
+          linhas={
+            simulacao && (
+              <>
+                <Divider />
+                <Titulo>Cartão</Titulo>
+                <LinhaResumo rotulo={`Taxa da maquininha (${pct(simulacao.percentual)})`} valor={simulacao.taxa > 0 ? `− ${brl(simulacao.taxa)}` : "-"} />
+                <LinhaResumo rotulo="Valor líquido" valor={brl(simulacao.liquido)} forte />
+                <LinhaResumo rotulo="Previsão de recebimento" valor={formatarData(simulacao.previsao)} />
+              </>
+            )
+          }
+        />
+      }
     />
     </AppDialogContent>
     <AppDialogActions>

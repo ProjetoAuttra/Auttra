@@ -152,6 +152,7 @@ model oficina {
   links_publicos link_publico[]
 
   movimentos_pagamento pagamento_movimento[]
+  maquininhas          maquininha[]
 
   @@index([cidade_id])
   @@index([deleted_at])
@@ -401,7 +402,15 @@ model pagamento {
   total_parcelas           Int?
   pagamento_pai_id         Int?
 
+  // Recebimento no cartao: maquininha usada e taxa cobrada pela operadora (copia da taxa da epoca).
+  maquininha_id             Int?
+  cartao_parcelas           Int?
+  taxa_percentual           Decimal?  @db.Decimal(5, 2)
+  valor_taxa                Decimal   @default(0) @db.Decimal(12, 2)
+  data_prevista_recebimento DateTime? @db.Date
+
   cliente       cliente?              @relation(fields: [cliente_id], references: [id])
+  maquininha    maquininha?           @relation(fields: [maquininha_id], references: [id])
   oficina       oficina               @relation(fields: [oficina_id], references: [id])
   ordem_servico ordem_servico?        @relation(fields: [ordem_servico_id], references: [id], onDelete: SetNull)
   fornecedor    fornecedor?           @relation(fields: [fornecedor_id], references: [id])
@@ -416,6 +425,7 @@ model pagamento {
   @@index([cliente_id])
   @@index([data_vencimento])
   @@index([pagamento_pai_id])
+  @@index([maquininha_id])
   @@index([oficina_id, deleted_at, data_vencimento])
 }
 
@@ -512,7 +522,9 @@ enum status_pagamento {
 enum metodo_pagamento {
   dinheiro
   pix
-  cartao
+  cartao // legado: registros de antes de separar credito e debito
+  cartao_credito
+  cartao_debito
   boleto
   transferencia
 }
@@ -702,6 +714,14 @@ model pagamento_movimento {
   estorno_de_id Int?
   created_at    DateTime                 @default(now()) @db.Timestamptz(3)
 
+  // Recebimento no cartao: maquininha usada e taxa cobrada pela operadora (no estorno, repete a do movimento estornado).
+  maquininha_id             Int?
+  cartao_parcelas           Int?
+  taxa_percentual           Decimal?  @db.Decimal(5, 2)
+  valor_taxa                Decimal   @default(0) @db.Decimal(12, 2)
+  data_prevista_recebimento DateTime? @db.Date
+
+  maquininha maquininha?           @relation(fields: [maquininha_id], references: [id])
   pagamento  pagamento             @relation(fields: [pagamento_id], references: [id], onDelete: Cascade)
   oficina    oficina               @relation(fields: [oficina_id], references: [id])
   usuario    usuario?              @relation(fields: [usuario_id], references: [id], onDelete: SetNull)
@@ -711,6 +731,7 @@ model pagamento_movimento {
   @@index([pagamento_id])
   @@index([oficina_id])
   @@index([estorno_de_id])
+  @@index([maquininha_id])
 }
 
 // Sugestoes enviadas pelos clientes no app ("Envie sua sugestao", menu do perfil).
@@ -762,4 +783,34 @@ model catalogo_veiculo {
 model catalogo_veiculo_sync {
   id        Int      @id
   ultima_em DateTime @db.Timestamptz(3)
+}
+
+// Maquininha de cartao da oficina, com as taxas e prazos da operadora. Usada ao receber no cartao
+// para calcular a taxa e o valor liquido. Excluir so marca deleted_at: o historico continua apontando para ela.
+model maquininha {
+  id                 Int     @id @default(autoincrement())
+  oficina_id         Int
+  nome               String
+  operadora          String? // chave do icone (stone, cielo, rede...); null = outra
+  ativo              Boolean @default(true)
+  // O que a maquininha aceita: um contrato pode ser so credito (ex.: link de pagamento). Pelo menos um ligado.
+  aceita_debito      Boolean @default(true)
+  aceita_credito     Boolean @default(true)
+  taxa_debito        Decimal @default(0) @db.Decimal(5, 2)
+  prazo_debito_dias  Int     @default(1)
+  // Taxa do credito por numero de parcelas: [0] = a vista (1x), [1] = 2x... O tamanho eh o maximo de parcelas.
+  taxas_credito      Json    @default("[0]")
+  prazo_credito_dias Int     @default(30)
+  // Antecipacao automatica: o credito parcelado cai todo de uma vez, no prazo do credito.
+  antecipacao        Boolean @default(false)
+
+  oficina    oficina               @relation(fields: [oficina_id], references: [id], onDelete: Cascade)
+  pagamentos pagamento[]
+  movimentos pagamento_movimento[]
+
+  created_at DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at DateTime  @updatedAt @db.Timestamptz(3)
+  deleted_at DateTime? @db.Timestamptz(3)
+
+  @@index([oficina_id, deleted_at])
 }
