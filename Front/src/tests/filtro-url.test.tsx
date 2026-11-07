@@ -46,9 +46,11 @@ describe("filtro pela URL", () => {
     await waitFor(() => expect(paramsDaChamada("/ordens")[0]).toMatchObject({ status: "aberta" }));
 
     await user.click(screen.getByRole("button", { name: /Filtros/ }));
-    // Primeiro select do painel é a situação (o Select do MUI não liga o rótulo ao combobox).
-    await user.click(screen.getAllByRole("combobox")[0]);
+    await user.click(screen.getByRole("combobox", { name: "Situação" }));
     await user.click(await screen.findByRole("option", { name: "Concluída" }));
+    // Como nas outras telas, o painel só vale ao clicar em Aplicar.
+    expect(screen.getByTestId("onde")).toHaveTextContent("/tarefas?status=aberta");
+    await user.click(screen.getByRole("button", { name: "Aplicar" }));
     expect(screen.getByTestId("onde")).toHaveTextContent("/tarefas?status=concluida");
     await waitFor(() => expect(paramsDaChamada("/ordens").at(-1)).toMatchObject({ status: "concluida" }));
   });

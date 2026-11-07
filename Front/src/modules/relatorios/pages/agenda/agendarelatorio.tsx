@@ -14,7 +14,7 @@ import FileDownloadRoundedIcon from '@mui/icons-material/FileDownloadRounded';
 import { buscarTodas } from '../../shared/buscarTodas';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../context/ToastContext';
-import FiltrosRelatorio, { type CampoFiltro } from '../../shared/FiltrosRelatorio';
+import BarraFiltros, { type CampoFiltro } from '../../../../components/common/BarraFiltros';
 import { inDateRange, periodoMesAtual } from '../../shared/reportUtils';
 import EsqueletoPagina from "../../../../components/common/EsqueletoPagina";
 
@@ -133,7 +133,7 @@ export default function RelatorioAgenda() {
         </Button>
       </Stack>
 
-      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} />
+      <BarraFiltros subtitulo="Refine o relatório" valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} />
 
       <Box>
         {filtrada.length ? (

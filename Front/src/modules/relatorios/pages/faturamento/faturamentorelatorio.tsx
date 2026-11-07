@@ -3,7 +3,7 @@ import { Box, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/mate
 import { EmptyReport, MetricCard, ReportHeader, ReportPage, StatGroup, TituloSecao, brl, exportCsv, periodoMesAtual } from "../../shared/reportUtils";
 import { GraficoBarrasHorizontais, GraficoColunas, GraficoPizza, chaveSemana, rotuloSemana, semanasDoPeriodo } from "../../shared/graficos";
 import { useRelatorio } from "../../shared/useRelatorio";
-import FiltrosRelatorio, { type CampoFiltro } from "../../shared/FiltrosRelatorio";
+import BarraFiltros, { type CampoFiltro } from "../../../../components/common/BarraFiltros";
 import { useOpcoesRelatorio } from "../../shared/useOpcoesRelatorio";
 import { EsqueletoConteudo } from "../../../../components/common/EsqueletoPagina";
 
@@ -58,7 +58,7 @@ export default function FaturamentoRelatorio() {
   return (
     <ReportPage>
       <ReportHeader title="Faturamento" subtitle="Valor das ordens de serviço concluídas no período, comparado com o período anterior." onExport={exportar} />
-      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} />
+      <BarraFiltros subtitulo="Refine o relatório" valores={filtros} onChange={setFiltros} padrao={PADRAO} campos={campos} />
 
       {carregando && !dados ? (
         <EsqueletoConteudo />

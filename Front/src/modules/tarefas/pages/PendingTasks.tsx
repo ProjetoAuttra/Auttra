@@ -1,15 +1,13 @@
 import * as React from "react";
 import {
-  Box, Stack, Typography, TextField, Button, IconButton,
-  Paper, Chip, Menu, MenuItem, Table, TableBody, TableCell,
-  TableHead, TableRow, TablePagination, Fade, Divider, Select, FormControl,
-  InputLabel, type SelectChangeEvent,
+  Box, Typography, Button, IconButton,
+  Chip, Menu, MenuItem, Table, TableBody, TableCell,
+  TableHead, TableRow, TablePagination, Fade, Divider,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
-import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import { paths } from "../../../routes/paths";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "../../../context/ToastContext";
@@ -19,6 +17,8 @@ import { excluirOrdem, mudarStatusOrdem } from "../api/api";
 import { useListaPaginada } from "../../../hooks/useListaPaginada";
 import TableSkeleton from "../../../components/common/TableSkeleton";
 import EmptyState from "../../../components/common/EmptyState";
+import BarraFiltros, { type CampoFiltro } from "../../../components/common/BarraFiltros";
+import CampoData from "../../../components/common/CampoData";
 import { IllustrationOS } from "../../../components/common/Illustrations";
 import ListTableContainer from "../../../components/common/ListTableContainer";
 import { STATUS_CONFIG, STATUS_VALIDOS, VALID_TRANSITIONS, podeEditarOrdem, type OrdemStatus } from "../statusConfig";
@@ -49,7 +49,6 @@ export default function OrdensPage() {
   const [funcionarios, setFuncionarios] = React.useState<{ id: number; nome: string }[]>([]);
   const [filtroFuncionario, setFiltroFuncionario] = React.useState("todos");
   const [filtroData, setFiltroData] = React.useState("");
-  const [showFilters, setShowFilters] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [menuId, setMenuId] = React.useState<number | null>(null);
 
@@ -148,12 +147,32 @@ export default function OrdensPage() {
   };
 
 
-  // ── Filtros ──
-  const hasActiveFilters = filtroStatus !== "todos" || filtroFuncionario !== "todos" || !!filtroData;
-
-  const clearFilters = () => {
-    setFiltroStatus("todos"); setFiltroFuncionario("todos"); setFiltroData("");
+  // ── Filtros: data de abertura na tela; situação e mecânico no painel. "" = todos. ──
+  type FiltrosOS = { data: string; status: string; funcionario: string };
+  const filtrosOS: FiltrosOS = {
+    data: filtroData,
+    status: filtroStatus === "todos" ? "" : filtroStatus,
+    funcionario: filtroFuncionario === "todos" ? "" : filtroFuncionario,
   };
+  const aplicarFiltros = (f: FiltrosOS) => {
+    setFiltroData(f.data);
+    setFiltroStatus(f.status || "todos");
+    setFiltroFuncionario(f.funcionario || "todos");
+  };
+  const camposFiltro: CampoFiltro<FiltrosOS>[] = [
+    {
+      id: "status",
+      label: "Situação",
+      vazio: "Todas as situações",
+      opcoes: Object.entries(STATUS_CONFIG).map(([k, v]) => ({ value: k, label: v.label })),
+    },
+    {
+      id: "funcionario",
+      label: "Mecânico responsável",
+      vazio: "Todos os mecânicos",
+      opcoes: funcionarios.map((f) => ({ value: String(f.id), label: f.nome })),
+    },
+  ];
 
   return (
     <Box sx={{ maxWidth: 1500, mx: "auto" }}>
@@ -164,70 +183,25 @@ export default function OrdensPage() {
         subtitle="Gerencie as ordens cadastradas na sua oficina"
         icon={<ChecklistRoundedIcon />}
         actions={
-          <Stack direction="row" spacing={1.5}>
-            <Button
-              variant="outlined"
-              startIcon={<TuneRoundedIcon />}
-              onClick={() => setShowFilters((p) => !p)}
-              sx={{
-                borderColor: (hasActiveFilters && !showFilters) ? "primary.main" : "divider",
-                color: (hasActiveFilters && !showFilters) ? "primary.main" : "text.secondary",
-              }}
-            >
-              Filtros {hasActiveFilters ? `(${[filtroStatus !== "todos", filtroFuncionario !== "todos", !!filtroData].filter(Boolean).length})` : ""}
-            </Button>
-            <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={handleCreate}>
-              Nova Ordem
-            </Button>
-          </Stack>
+          <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={handleCreate}>
+            Nova Ordem
+          </Button>
         }
       />
 
-      {hasActiveFilters && !showFilters && (
-        <Stack direction="row" spacing={1} mb={2.5}>
-          <Chip label="Limpar filtros" onClick={clearFilters} onDelete={clearFilters}
-            sx={{ fontWeight: 600, cursor: "pointer", fontSize: 12 }} />
-        </Stack>
-      )}
-
-      {/* ── Painel de filtros avançados ── */}
-      {showFilters && (
-        <Fade in timeout={250}>
-          <Paper elevation={0} sx={{ p: 2.5, mb: 2.5, borderRadius: 2, border: 0, bgcolor: (t) => alpha(t.palette.primary.main, 0.02) }}>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-              <FormControl size="small" sx={{ minWidth: 160 }}>
-                <InputLabel>Situação</InputLabel>
-                <Select value={filtroStatus} label="Situação" onChange={(e: SelectChangeEvent) => { setFiltroStatus(e.target.value); }}>
-                  <MenuItem value="todos">Todas as situações</MenuItem>
-                  {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-                    <MenuItem key={k} value={k}>{v.label}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <FormControl size="small" sx={{ minWidth: 200 }}>
-                <InputLabel>Mecânico responsável</InputLabel>
-                <Select value={filtroFuncionario} label="Mecânico responsável" onChange={(e: SelectChangeEvent) => { setFiltroFuncionario(e.target.value); }}>
-                  <MenuItem value="todos">Todos os mecânicos</MenuItem>
-                  {funcionarios.map((f) => <MenuItem key={f.id} value={String(f.id)}>{f.nome}</MenuItem>)}
-                </Select>
-              </FormControl>
-
-              <TextField
-                label="Data de abertura" type="date" size="small"
-                value={filtroData}
-                onChange={(e) => { setFiltroData(e.target.value); }}
-                InputLabelProps={{ shrink: true }}
-                sx={{ minWidth: 180 }}
-              />
-
-              <Button size="small" onClick={clearFilters} sx={{ textTransform: "none", alignSelf: "center", color: "text.secondary" }}>
-                Limpar
-              </Button>
-            </Stack>
-          </Paper>
-        </Fade>
-      )}
+      <BarraFiltros
+        valores={filtrosOS}
+        onChange={aplicarFiltros}
+        padrao={{ data: "", status: "", funcionario: "" }}
+        campos={camposFiltro}
+        periodo={false}
+        subtitulo="Refine a lista de ordens"
+        inicio={
+          <Box sx={{ width: { xs: "100%", md: 190 } }}>
+            <CampoData label="Data de abertura" value={filtroData} onChange={setFiltroData} />
+          </Box>
+        }
+      />
 
       {/* ── Tabela ── */}
       {loading ? (
@@ -306,8 +280,8 @@ export default function OrdensPage() {
                         description="Crie a primeira ordem para começar a gerenciar os serviços da oficina."
                         actionLabel="Nova Ordem"
                         onAction={handleCreate}
-                        isFiltered={hasActiveFilters}
-                        onClearFilter={clearFilters}
+                        isFiltered={!!(filtrosOS.data || filtrosOS.status || filtrosOS.funcionario)}
+                        onClearFilter={() => aplicarFiltros({ data: "", status: "", funcionario: "" })}
                       />
                     </TableCell>
                   </TableRow>

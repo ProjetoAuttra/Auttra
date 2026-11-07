@@ -3,7 +3,7 @@ import { Box, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/mate
 import { EmptyReport, MetricCard, ReportHeader, ReportPage, StatGroup, TituloSecao, brl, exportCsv, periodoMesAtual, percent } from "../../shared/reportUtils";
 import { GraficoBarrasHorizontais, GraficoPizza } from "../../shared/graficos";
 import { useRelatorio } from "../../shared/useRelatorio";
-import FiltrosRelatorio from "../../shared/FiltrosRelatorio";
+import BarraFiltros from "../../../../components/common/BarraFiltros";
 import { EsqueletoConteudo } from "../../../../components/common/EsqueletoPagina";
 
 type Categoria = { categoria: string; valor: number };
@@ -46,7 +46,7 @@ export default function ResultadoRelatorio() {
   return (
     <ReportPage>
       <ReportHeader title="Resultado do mês" subtitle="Receitas, despesas e resultado do período, pelo que entrou e saiu de fato no caixa." onExport={exportar} />
-      <FiltrosRelatorio valores={filtros} onChange={setFiltros} padrao={PADRAO} />
+      <BarraFiltros subtitulo="Refine o relatório" valores={filtros} onChange={setFiltros} padrao={PADRAO} />
 
       {carregando && !dados ? (
         <EsqueletoConteudo />
