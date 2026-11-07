@@ -46,7 +46,9 @@ export default function AppLayout() {
                 flexGrow: 1,
                 ml: { xs: 0, md: `${currentWidth}px` },
                 width: { xs: '100%', md: `calc(100% - ${currentWidth}px)` },
-                minHeight: '100dvh',
+                // Altura presa à tela: quem rola é só a área do conteúdo. Assim a barra de rolagem fica
+                // abaixo da faixa e da barra do topo, em vez de cortar a faixa no canto direito.
+                height: '100dvh',
                 transition: 'all 0.3s ease',
                 display: 'flex',
                 flexDirection: 'column',
@@ -56,21 +58,21 @@ export default function AppLayout() {
             >
               <Box sx={{ height: ALTURA_FAIXA, flexShrink: 0 }} />
               <Toolbar sx={{ flexShrink: 0 }} />
-              <Box
-                sx={{
-                  flexGrow: 1,
-                  width: '100%',
-                  maxWidth: 1500,
-                  mx: 'auto',
-                  px: { xs: 1.5, sm: 2.5, md: 4 },
-                  pt: { xs: 1.5, md: 2 },
-                  pb: { xs: 3, md: 4 },
-                  overflow: 'auto',
-                }}
-              >
-                <Suspense fallback={<CarregandoTela />}>
-                  <Outlet />
-                </Suspense>
+              <Box sx={{ flexGrow: 1, minHeight: 0, overflow: 'auto' }}>
+                <Box
+                  sx={{
+                    width: '100%',
+                    maxWidth: 1500,
+                    mx: 'auto',
+                    px: { xs: 1.5, sm: 2.5, md: 4 },
+                    pt: { xs: 1.5, md: 2 },
+                    pb: { xs: 3, md: 4 },
+                  }}
+                >
+                  <Suspense fallback={<CarregandoTela />}>
+                    <Outlet />
+                  </Suspense>
+                </Box>
               </Box>
             </Box>
           </Box>
