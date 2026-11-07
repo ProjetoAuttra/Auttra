@@ -12,6 +12,7 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import FileUploadRoundedIcon from "@mui/icons-material/FileUploadRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import { useAssinatura } from "../../context/AssinaturaContext";
 
 type Metric = {
   label: string;
@@ -49,6 +50,11 @@ export default function ModuleHeader({
   secondaryActionIcon,
   actions,
 }: Props) {
+  // Conta só leitura: as ações de criar/importar levam ao Premium em vez de abrir um formulário que não vai salvar.
+  const { somenteLeitura, abrirPlanos } = useAssinatura();
+  const acao = onAction && (somenteLeitura ? abrirPlanos : onAction);
+  const acaoSecundaria = onSecondaryAction && (somenteLeitura ? abrirPlanos : onSecondaryAction);
+
   return (
     <Box
       sx={{
@@ -78,20 +84,20 @@ export default function ModuleHeader({
 
         {actions && <Box sx={{ minWidth: 0 }}>{actions}</Box>}
 
-        {(onAction || onSecondaryAction) && (
+        {(acao || acaoSecundaria) && (
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems="stretch">
-            {onSecondaryAction && (
+            {acaoSecundaria && (
               <Button
                 variant="outlined"
                 startIcon={secondaryActionIcon ?? <FileUploadRoundedIcon />}
-                onClick={onSecondaryAction}
+                onClick={acaoSecundaria}
                 sx={{ px: 2.5, whiteSpace: "nowrap" }}
               >
                 {secondaryActionLabel}
               </Button>
             )}
-            {onAction && (
-              <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={onAction} sx={{ px: 2.5 }}>
+            {acao && (
+              <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={acao} sx={{ px: 2.5 }}>
                 {actionLabel}
               </Button>
             )}

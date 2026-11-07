@@ -4,10 +4,13 @@ import jwt from "jsonwebtoken";
 import { prisma } from "../prisma/client.js";
 import { normalizePermissions, type PermissionsMap } from "../permissions/accessProfiles.js";
 import { PerfisAcessoService } from "../services/perfisAcesso.service.js";
-import { getJwtSecret, getTurnstileSecret } from "../config/env.js";
+import { getJwtSecret } from "../config/env.js";
 import { PasswordResetService } from "../services/passwordReset.service.js";
 import { invalidarTokens, limparCacheSessao } from "../services/sessao.service.js";
-import { mensagemSegura } from "../utils/httpError.js";
+import { CadastroService, ConfirmacaoEmailService } from "../services/cadastro.service.js";
+import { cadastroSchema, primeiroErro } from "../schemas/cadastro.schema.js";
+import { HttpError, mensagemSegura, sendServiceError } from "../utils/httpError.js";
+import { verificarTurnstile } from "../utils/turnstile.js";
 
 function normalizeEmail(raw: unknown): string {
   return String(raw ?? "").trim().toLowerCase();
@@ -188,35 +191,12 @@ export async function resetPassword(req: Request, res: Response) {
 export async function verifyEmail(req: Request, res: Response) {
   try {
     const email = normalizeEmail(req.body?.email);
-    const turnstileToken = String(req.body?.turnstileToken ?? "");
-
     if (!email) return res.status(400).json({ message: "E-mail e obrigatorio." });
-    if (!turnstileToken) {
-      return res.status(400).json({ message: "Verificacao de seguranca obrigatoria." });
-    }
 
-    let verifyData: { success?: boolean };
     try {
-      const verifyRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          secret: getTurnstileSecret(),
-          response: turnstileToken,
-          remoteip: req.ip ?? "",
-        }),
-      });
-      verifyData = await verifyRes.json();
+      await verificarTurnstile(req.body?.turnstileToken, req.ip);
     } catch (err) {
-      console.error("Erro ao contatar o Cloudflare Turnstile:", err);
-      return res.status(502).json({ message: "Nao foi possivel validar a verificacao de seguranca. Tente novamente." });
-    }
-
-    if (!verifyData.success) {
-      return res.status(401).json({
-        message: "Nao foi possivel confirmar que voce nao e um robo. Tente novamente.",
-        code: "CAPTCHA_FAILED",
-      });
+      return sendServiceError(res, err, "verifyEmail");
     }
 
     const emailToken = jwt.sign({ purpose: "email-verified", email }, getJwtSecret(), { expiresIn: "10m" });
@@ -398,5 +378,58 @@ export async function selectOficina(req: Request, res: Response) {
   } catch (err) {
     console.error("Erro ao selecionar oficina:", err);
     return res.status(401).json({ message: "Nao foi possivel selecionar a oficina." });
+  }
+}
+
+/**
+ * Cadastro pelo site (público). Ordem: campo-isca, validação, Turnstile e só então o banco, para robô e
+ * formulário incompleto não consumirem consulta. Devolve a sessão pronta: a pessoa entra sem passar pelo login.
+ */
+export async function cadastro(req: Request, res: Response) {
+  try {
+    // Campo invisível para pessoas; robô que preenche tudo cai aqui.
+    if (typeof req.body?.site === "string" && req.body.site.trim()) {
+      return res.status(400).json({ message: "Não foi possível concluir o cadastro.", code: "CADASTRO_RECUSADO" });
+    }
+
+    const parsed = cadastroSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({ message: primeiroErro(parsed.error), code: "DADOS_INVALIDOS" });
+    }
+
+    await verificarTurnstile(req.body?.turnstileToken, req.ip);
+
+    const { oficina, usuario, perfil } = await CadastroService.cadastrar(parsed.data, {
+      ip: req.ip ?? null,
+      userAgent: req.get("user-agent") ?? null,
+    });
+
+    const perfilFinal = await resolvePerfil(oficina.id, perfil, "gestoroficina");
+    return res.status(201).json(signFinalToken(usuario, oficina, perfilFinal));
+  } catch (err) {
+    return sendServiceError(res, err, "cadastro");
+  }
+}
+
+export async function confirmarEmail(req: Request, res: Response) {
+  try {
+    const { confirmadoEm } = await ConfirmacaoEmailService.confirmar(req.body?.token);
+    return res.json({ message: "E-mail confirmado.", confirmadoEm });
+  } catch (err) {
+    return sendServiceError(res, err, "confirmarEmail");
+  }
+}
+
+export async function reenviarConfirmacao(req: Request, res: Response) {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) throw new HttpError("Nao autorizado.", 401);
+    const resultado = await ConfirmacaoEmailService.reenviar(userId);
+    return res.json({
+      ...resultado,
+      message: resultado.jaConfirmado ? "Seu e-mail já está confirmado." : "Enviamos um novo link para o seu e-mail.",
+    });
+  } catch (err) {
+    return sendServiceError(res, err, "reenviarConfirmacao");
   }
 }

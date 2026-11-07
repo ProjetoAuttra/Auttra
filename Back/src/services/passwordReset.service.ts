@@ -4,6 +4,7 @@ import { prisma } from "../prisma/client.js";
 import { EmailDeliveryError, sendEmail } from "./email.service.js";
 import { invalidarTokens, limparCacheSessao } from "./sessao.service.js";
 import { SENHA_FORTE_MENSAGEM, senhaForte } from "../utils/senhaForte.js";
+import { urlDoApp } from "../utils/urlDoApp.js";
 
 const TOKEN_BYTES = 32;
 const TOKEN_TTL_MINUTES = 60;
@@ -16,13 +17,10 @@ function hashToken(token: string) {
 // Usuario do painel (tipo "sistema") cria a senha no proprio admin; os demais, no app das oficinas.
 function buildResetUrl(token: string, tipo: string) {
   const baseUrl = tipo === "sistema"
-    ? process.env.ADMIN_URL_BASE?.trim() || "http://localhost:8081"
-    : process.env.PASSWORD_RESET_URL_BASE?.trim() ||
-      process.env.FRONTEND_URL?.trim() ||
-      process.env.APP_URL?.trim() ||
-      "http://localhost:5173";
+    ? (process.env.ADMIN_URL_BASE?.trim() || "http://localhost:8081").replace(/\/+$/, "")
+    : urlDoApp();
 
-  return `${baseUrl.replace(/\/+$/, "")}/redefinir-senha?token=${encodeURIComponent(token)}`;
+  return `${baseUrl}/redefinir-senha?token=${encodeURIComponent(token)}`;
 }
 
 function passwordResetEmailHtml(resetUrl: string) {

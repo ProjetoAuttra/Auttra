@@ -10,6 +10,7 @@ router.get("/:id/historico", OficinasAdminController.historico);
 router.get("/:id/sugestoes", OficinasAdminController.sugestoes);
 router.patch("/:id", OficinasAdminController.update);
 router.patch("/:id/proprietario", OficinasAdminController.atualizarProprietario);
+router.patch("/:id/assinatura", OficinasAdminController.assinatura);
 router.delete("/:id", OficinasAdminController.softDelete);
 router.post("/:id/reativar", OficinasAdminController.reativar);
 

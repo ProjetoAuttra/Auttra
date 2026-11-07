@@ -1,6 +1,10 @@
 import crypto from "node:crypto";
 import bcrypt from "bcrypt";
 import { prisma } from "../../prisma/client.js";
+import { SELECT_ASSINATURA, calcularAssinatura, fimDoTeste, limparCacheAssinatura, type SituacaoAssinatura } from "../assinatura.service.js";
+import type { AssinaturaAcao } from "../../schemas/admin/oficinas.schema.js";
+import { fimDoDiaSP, inicioDoDiaSP } from "../../utils/datas.js";
+import { HttpError } from "../../utils/httpError.js";
 
 const ACCESS_MODULES = [
   "painel", "agenda", "clientes", "veiculos", "estoque", "servicos",
@@ -57,7 +61,8 @@ const DEFAULT_PROFILES = [
   },
 ];
 
-async function ensureProfiles(tx: any, oficinaId: number) {
+/** Cria (ou restaura) os perfis padrão da oficina e devolve o de proprietário. Usado também pelo cadastro do site. */
+export async function ensureProfiles(tx: any, oficinaId: number) {
   for (const perfil of DEFAULT_PROFILES) {
     await tx.perfil_acesso.upsert({
       where: { oficina_id_nome: { oficina_id: oficinaId, nome: perfil.nome } },
@@ -105,6 +110,7 @@ export type CriarOficinaInput = {
   };
   // Proprietario da oficina (no banco e na API continua "gestor").
   gestor: DadosProprietario & { nome: string; email: string };
+  assinatura?: "teste" | "ativa";
 };
 
 export type DadosProprietario = {
@@ -131,6 +137,7 @@ export type ListarOficinasParams = {
   status?: "ativas" | "inativas" | "todas";
   cidade?: string;
   gestor?: string;
+  situacao?: SituacaoAssinatura;
   page?: number;
   pageSize?: number;
   sortBy?: "nome" | "cidade" | "created_at" | "total_usuarios" | "total_os_abertas";
@@ -159,8 +166,22 @@ function mapOficina(o: any) {
     total_os_abertas: o._count?.ordens_servico ?? 0,
     criada_em: o.created_at,
     deleted_at: o.deleted_at ?? null,
+    origem: o.origem,
+    assinatura: calcularAssinatura(o),
   };
 }
+
+/** Filtro do Prisma equivalente à situação calculada por calcularAssinatura. */
+export function filtroSituacao(situacao: SituacaoAssinatura, agora: Date = new Date()) {
+  if (situacao === "teste") return { assinatura_status: "teste" as const, teste_termina_em: { gt: agora } };
+  if (situacao === "teste_vencido") {
+    return { assinatura_status: "teste" as const, OR: [{ teste_termina_em: null }, { teste_termina_em: { lte: agora } }] };
+  }
+  return { assinatura_status: situacao };
+}
+
+/** "20/11/2026" no fuso de São Paulo, para o histórico. */
+const diaBR = (data: Date) => data.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
 
 export const OficinasAdminService = {
   async listar(params: ListarOficinasParams = {}) {
@@ -191,6 +212,8 @@ export const OficinasAdminService = {
         ],
       };
     }
+
+    if (params.situacao) where.AND = [filtroSituacao(params.situacao)];
 
     const orderBy =
       params.sortBy === "nome" ? { nome: params.sortDir ?? "asc" } :
@@ -247,37 +270,68 @@ export const OficinasAdminService = {
     });
 
     if (!oficina) throw new Error("Oficina não encontrada.");
-    return oficina;
+    return { ...oficina, assinatura: calcularAssinatura(oficina) };
   },
 
-  async criarOficinaCompleta({ oficina: oficinaData, gestor }: CriarOficinaInput) {
+  /**
+   * Ativa com plano, estende o teste ou suspende. Vale na hora para a oficina (o cache é limpo).
+   * Devolve a nova situação e a frase que vai para o histórico.
+   */
+  async alterarAssinatura(id: number, acao: AssinaturaAcao, agora: Date = new Date()) {
+    const atual = await prisma.oficina.findFirst({ where: { id }, select: SELECT_ASSINATURA });
+    if (!atual) throw new HttpError("Oficina não encontrada.", 404);
+
+    let data: Record<string, unknown>;
+    let mensagem: string;
+
+    if (acao.acao === "ativar") {
+      const ativadaEm = acao.ativada_em ? inicioDoDiaSP(acao.ativada_em) : agora;
+      if (ativadaEm.getTime() > agora.getTime()) {
+        throw new HttpError("A data de ativação não pode ser no futuro.", 400);
+      }
+      data = { assinatura_status: "ativa", assinatura_plano: acao.plano, assinatura_ativada_em: ativadaEm };
+      mensagem = `Assinatura ativada: plano ${acao.plano}, desde ${diaBR(ativadaEm)}.`;
+    } else if (acao.acao === "estender_teste") {
+      let terminaEm: Date;
+      if (acao.termina_em) {
+        terminaEm = fimDoDiaSP(acao.termina_em);
+        if (terminaEm.getTime() <= agora.getTime()) {
+          throw new HttpError("A nova data de fim do teste precisa ser hoje ou depois.", 400);
+        }
+      } else {
+        // Teste ainda correndo ganha os dias a mais no fim; teste vencido conta a partir de hoje.
+        // Termina sempre às 23:59 do dia (fimDoTeste).
+        const base = Math.max(agora.getTime(), atual.teste_termina_em?.getTime() ?? 0);
+        terminaEm = fimDoTeste(new Date(base), acao.dias);
+      }
+      data = { assinatura_status: "teste", teste_termina_em: terminaEm };
+      mensagem = `Teste estendido até ${diaBR(terminaEm)}.`;
+    } else {
+      data = { assinatura_status: "suspensa" };
+      mensagem = acao.motivo ? `Assinatura suspensa. Motivo: ${acao.motivo}` : "Assinatura suspensa.";
+    }
+
+    const oficina = await prisma.oficina.update({ where: { id }, data, select: SELECT_ASSINATURA });
+    limparCacheAssinatura(id);
+
+    return { assinatura: calcularAssinatura(oficina, agora), anterior: calcularAssinatura(atual, agora), mensagem };
+  },
+
+  async criarOficinaCompleta({ oficina: oficinaData, gestor, assinatura = "ativa" }: CriarOficinaInput) {
     return prisma.$transaction(async (tx) => {
       const cidade =
         (await tx.cidade.findFirst({ where: { nome: oficinaData.cidade, uf: oficinaData.uf.toUpperCase() } })) ??
         (await tx.cidade.create({ data: { nome: oficinaData.cidade, uf: oficinaData.uf.toUpperCase() } }));
 
-      // Nome repetido so e aceito para reaproveitar uma oficina desativada; ativa nunca e sobrescrita.
-      const mesmoNome = await tx.oficina.findUnique({ where: { nome: oficinaData.nome }, select: { deleted_at: true } });
-      if (mesmoNome && !mesmoNome.deleted_at) throw new Error("Já existe uma oficina com este nome.");
-
-      const oficina = await tx.oficina.upsert({
-        where: { nome: oficinaData.nome },
-        update: {
-          cnpj: oficinaData.cnpj || null,
-          logradouro: oficinaData.logradouro,
-          numero: oficinaData.numero,
-          complemento: oficinaData.complemento ?? null,
-          cep: oficinaData.cep,
-          cidade_id: cidade.id,
-          telefone: oficinaData.telefone ?? null,
-          whatsapp: oficinaData.whatsapp ?? null,
-          email: oficinaData.email ?? null,
-          bairro: oficinaData.bairro ?? null,
-          razao_social: oficinaData.razao_social ?? null,
-          inscricao_estadual: oficinaData.inscricao_estadual ?? null,
-          deleted_at: null,
-        },
-        create: {
+      // O nome não é único (duas oficinas homônimas em cidades diferentes): sempre cria uma nova.
+      // Oficina desativada volta pelo "Reativar", que usa o id.
+      const agora = new Date();
+      const oficina = await tx.oficina.create({
+        data: {
+          ...(assinatura === "teste"
+            ? { assinatura_status: "teste" as const, teste_termina_em: fimDoTeste(agora) }
+            : { assinatura_status: "ativa" as const, assinatura_ativada_em: agora }),
+          origem: "admin",
           nome: oficinaData.nome,
           cnpj: oficinaData.cnpj || null,
           logradouro: oficinaData.logradouro,
@@ -337,11 +391,11 @@ export const OficinasAdminService = {
   async update(id: number, data: Partial<{
     nome: string;
     cnpj: string | null;
-    logradouro: string;
-    numero: string;
-    cep: string;
-    cidade: string;
-    uf: string;
+    logradouro: string | null;
+    numero: string | null;
+    cep: string | null;
+    cidade: string | null;
+    uf: string | null;
     telefone: string | null;
     whatsapp: string | null;
     email: string | null;
@@ -359,14 +413,19 @@ export const OficinasAdminService = {
     delete updateData.cidade;
     delete updateData.uf;
 
-    if (data.cidade || data.uf) {
+    // Cidade e UF andam juntas: as duas vazias tiram a cidade; só uma delas é erro.
+    if (data.cidade !== undefined || data.uf !== undefined) {
       const cidadeNome = data.cidade;
       const uf = data.uf?.toUpperCase();
-      if (!cidadeNome || !uf) throw new Error("Cidade e UF devem ser informadas juntas.");
-      const cidade =
-        (await prisma.cidade.findFirst({ where: { nome: cidadeNome, uf } })) ??
-        (await prisma.cidade.create({ data: { nome: cidadeNome, uf } }));
-      updateData.cidade_id = cidade.id;
+      if (!cidadeNome && !uf) {
+        updateData.cidade_id = null;
+      } else {
+        if (!cidadeNome || !uf) throw new Error("Cidade e UF devem ser informadas juntas.");
+        const cidade =
+          (await prisma.cidade.findFirst({ where: { nome: cidadeNome, uf } })) ??
+          (await prisma.cidade.create({ data: { nome: cidadeNome, uf } }));
+        updateData.cidade_id = cidade.id;
+      }
     }
 
     if (typeof data.gestor_usuario_id === "number") {

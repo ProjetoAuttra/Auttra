@@ -15,6 +15,8 @@ import { moduleResourceMap, primeiraRotaPermitida } from '../routes/navegacao';
 // Cada tela vira um arquivo separado (ver telas.ts), baixado em segundo plano depois que o
 // sistema abre.
 const ResetPassword = tela(() => import('../modules/autenticacao/pages/ResetPassword'));
+const Cadastro = tela(() => import('../modules/autenticacao/pages/Cadastro'));
+const ConfirmarEmail = tela(() => import('../modules/autenticacao/pages/ConfirmarEmail'));
 const PublicTrackingPage = tela(() => import('../modules/acompanhamento/PublicTrackingPage'));
 const Home = tela(() => import('../modules/painel/pages/Home'));
 const Schedule = tela(() => import('../modules/agenda/pages/Schedule'));
@@ -77,6 +79,8 @@ export default function Router() {
     <Routes>
       <Route path={paths.login} element={<Login />} />
       <Route path={paths.resetPassword} element={<ResetPassword />} />
+      <Route path={paths.cadastro} element={<Cadastro />} />
+      <Route path={paths.confirmarEmail} element={<ConfirmarEmail />} />
       <Route path={paths.acompanhamentoPublico} element={<PublicTrackingPage />} />
       <Route
         path={paths.root}

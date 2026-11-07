@@ -4,8 +4,11 @@ import { AdminAuditService } from "../../services/admin/audit.service.js";
 import { PasswordResetService } from "../../services/passwordReset.service.js";
 import { SugestoesService } from "../../services/sugestoes.service.js";
 import { alvoUnicoViolado } from "../../utils/prismaErros.js";
-import { criarOficinaSchema, primeiroErro, proprietarioSchema, updateOficinaSchema } from "../../schemas/admin/oficinas.schema.js";
+import { assinaturaSchema, criarOficinaSchema, primeiroErro, proprietarioSchema, updateOficinaSchema } from "../../schemas/admin/oficinas.schema.js";
+import type { SituacaoAssinatura } from "../../services/assinatura.service.js";
 import { mensagemSegura } from "../../utils/httpError.js";
+
+const SITUACOES: SituacaoAssinatura[] = ["teste", "teste_vencido", "ativa", "suspensa"];
 
 // Violacao de campo unico (nome, CNPJ ou e-mail ja usados por outra oficina) vira mensagem legivel.
 function mensagemDuplicado(err: any) {
@@ -30,6 +33,7 @@ export const OficinasAdminController = {
         status: typeof req.query.status === "string" ? req.query.status as any : undefined,
         cidade: typeof req.query.cidade === "string" && req.query.cidade.trim() ? req.query.cidade.trim() : undefined,
         gestor: typeof req.query.gestor === "string" && req.query.gestor.trim() ? req.query.gestor.trim() : undefined,
+        situacao: SITUACOES.find((s) => s === req.query.situacao),
         page: queryNumber(req.query.page),
         pageSize: queryNumber(req.query.pageSize),
         sortBy: typeof req.query.sortBy === "string" ? req.query.sortBy as any : undefined,
@@ -170,6 +174,27 @@ export const OficinasAdminController = {
       console.error("Erro ao atualizar oficina:", err);
       return res.status(500).json({ message: "Erro interno." });
     }
+  },
+
+  async assinatura(req: Request, res: Response) {
+    const parsed = assinaturaSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: primeiroErro(parsed.error), issues: parsed.error.flatten() });
+    }
+
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(404).json({ message: "Oficina não encontrada." });
+    const { assinatura, anterior, mensagem } = await OficinasAdminService.alterarAssinatura(id, parsed.data);
+    await AdminAuditService.log({
+      req,
+      oficinaId: id,
+      action: `oficina.assinatura_${parsed.data.acao}`,
+      entityType: "oficina",
+      entityId: id,
+      message: mensagem,
+      metadata: { antes: anterior, depois: assinatura, pedido: parsed.data },
+    });
+    return res.json(assinatura);
   },
 
   async softDelete(req: Request, res: Response) {

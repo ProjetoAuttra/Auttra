@@ -13,6 +13,8 @@ import DialogCliente, { type ClientForm } from "../../clientes/dialog/";
 import { criarCliente } from "../../clientes/api/api";
 import { criarVeiculo } from "../../veiculos/api/api";
 import { useAuth } from "../../../context/AuthContext";
+import { useAssinatura } from "../../../context/AssinaturaContext";
+import { hasPermission } from "../../../permissions/accessProfiles";
 import { useToast } from "../../../context/ToastContext";
 import { useSystemResources } from "../../../context/SystemResourcesContext";
 import api from "../../../api/api";
@@ -115,6 +117,7 @@ function Vazio({ children }: { children: React.ReactNode }) {
 
 export default function Home() {
   const { user, can } = useAuth();
+  const { somenteLeitura, abrirPlanos } = useAssinatura();
   const { isEnabled } = useSystemResources();
   const navigate = useNavigate();
 
@@ -170,13 +173,13 @@ export default function Home() {
     return () => { ativo = false; };
   }, []);
 
-  // Só as ações que o perfil pode criar.
+  // Só as ações que o perfil pode criar. Na conta só leitura o botão continua, mas leva ao Premium.
   const novos = [
     { modulo: "ordens" as const,     icon: <AssignmentRoundedIcon fontSize="small" />,    label: "Nova O.S.",         onClick: () => navigate(paths.ordemNova) },
     { modulo: "orcamentos" as const, icon: <RequestQuoteRoundedIcon fontSize="small" />,  label: "Novo orçamento",    onClick: () => navigate(paths.orcamentoNovo) },
     { modulo: "clientes" as const,   icon: <PersonAddRoundedIcon fontSize="small" />,     label: "Cadastrar cliente", onClick: () => setOpenCliente(true) },
     { modulo: "veiculos" as const,   icon: <DirectionsCarRoundedIcon fontSize="small" />, label: "Cadastrar veículo", onClick: () => setOpenVeiculo(true) },
-  ].filter((n) => can(n.modulo, "create"));
+  ].filter((n) => (somenteLeitura ? hasPermission(user?.permissoes, n.modulo, "create") : can(n.modulo, "create")));
 
   const veFinanceiro = can("financeiro");
   const veAgenda     = can("agenda") && isEnabled("agenda");
@@ -215,7 +218,7 @@ export default function Home() {
             </Typography>
           </Stack>
           {novos.length > 0 && (
-            <Button variant="contained" disableElevation startIcon={<AddRoundedIcon />} onClick={(e) => setMenuEl(e.currentTarget)}>
+            <Button variant="contained" disableElevation startIcon={<AddRoundedIcon />} onClick={(e) => (somenteLeitura ? abrirPlanos() : setMenuEl(e.currentTarget))}>
               Novo
             </Button>
           )}

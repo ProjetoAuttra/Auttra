@@ -1,17 +1,5 @@
 import { prisma } from "../prisma/client.js";
 
-type OficinaCreateData = {
-  nome: string;
-  logradouro: string;
-  numero: string;
-  complemento?: string;
-  cep: string;
-  cidade_id: number;
-  telefone?: string;
-  email?: string;
-  cnpj?: string;
-};
-
 function requiredText(value: unknown, field: string) {
   const text = String(value ?? "").trim();
   if (!text) throw new Error(`${field} e obrigatorio.`);
@@ -23,22 +11,13 @@ function optionalText(value: unknown) {
   return text || null;
 }
 
-function digits(value: unknown) {
-  return String(value ?? "").replace(/\D/g, "");
-}
-
 function optionalDigits(value: unknown) {
-  const normalized = digits(value);
-  return normalized || null;
+  return String(value ?? "").replace(/\D/g, "") || null;
 }
 
-function validateExactLength(value: string | null, length: number, field: string, required = false) {
-  if (!value) {
-    if (required) throw new Error(`${field} deve ter ${length} digitos.`);
-    return;
-  }
-
-  if (value.length !== length) {
+/** Campo opcional: vazio passa; preenchido precisa ter exatamente `length` dígitos. */
+function validateExactLength(value: string | null, length: number, field: string) {
+  if (value && value.length !== length) {
     throw new Error(`${field} deve ter ${length} digitos.`);
   }
 }
@@ -66,7 +45,8 @@ function optionalCor(value: unknown) {
   return cor.toLowerCase();
 }
 
-async function ensureUnique(field: "nome" | "cnpj" | "email", value: string | null, oficinaId?: number) {
+// O nome não entra: duas oficinas de cidades diferentes podem ter o mesmo nome.
+async function ensureUnique(field: "cnpj" | "email", value: string | null, oficinaId?: number) {
   if (!value) return;
 
   const existing = await prisma.oficina.findFirst({
@@ -79,7 +59,7 @@ async function ensureUnique(field: "nome" | "cnpj" | "email", value: string | nu
   });
 
   if (existing) {
-    const labels = { nome: "nome", cnpj: "CNPJ", email: "e-mail" };
+    const labels = { cnpj: "CNPJ", email: "e-mail" };
     throw new Error(`Ja existe outra oficina com este ${labels[field]}.`);
   }
 }
@@ -93,35 +73,6 @@ async function resolveCidade(nome: string, uf: string) {
 }
 
 export const OficinaService = {
-  async create(data: OficinaCreateData) {
-    const nome = requiredText(data.nome, "Nome da oficina");
-    const logradouro = requiredText(data.logradouro, "Logradouro");
-    const numero = requiredText(data.numero, "Numero");
-    const cep = digits(data.cep);
-    const cidade_id = Number(data.cidade_id);
-    const cnpj = optionalDigits(data.cnpj);
-    const telefone = optionalDigits(data.telefone);
-    const email = normalizeEmail(data.email);
-    const complemento = optionalText(data.complemento);
-
-    validateExactLength(cep, 8, "CEP", true);
-    validateExactLength(cnpj, 14, "CNPJ");
-    if (telefone && ![10, 11].includes(telefone.length)) {
-      throw new Error("Telefone deve ter 10 ou 11 digitos.");
-    }
-    if (!cidade_id || Number.isNaN(cidade_id)) {
-      throw new Error("Cidade e obrigatoria.");
-    }
-
-    await ensureUnique("nome", nome);
-    await ensureUnique("cnpj", cnpj);
-    await ensureUnique("email", email);
-
-    return prisma.oficina.create({
-      data: { nome, logradouro, numero, complemento, cep, cidade_id, telefone, email, cnpj },
-    });
-  },
-
   async list(oficinaId: number) {
     return prisma.oficina.findMany({
       where: { id: oficinaId, deleted_at: null },
@@ -171,23 +122,29 @@ export const OficinaService = {
         throw new Error("WhatsApp deve ter 10 ou 11 digitos (DDD + numero).");
       }
     }
-    if (data?.logradouro !== undefined) patch.logradouro = requiredText(data.logradouro, "Logradouro");
-    if (data?.numero !== undefined) patch.numero = requiredText(data.numero, "Numero");
+    // Endereço é opcional (o cadastro pelo site não pede); vazio grava nulo.
+    if (data?.logradouro !== undefined) patch.logradouro = optionalText(data.logradouro);
+    if (data?.numero !== undefined) patch.numero = optionalText(data.numero);
     if (data?.complemento !== undefined) patch.complemento = optionalText(data.complemento);
     if (data?.cep !== undefined) {
-      patch.cep = digits(data.cep);
-      validateExactLength(patch.cep, 8, "CEP", true);
+      patch.cep = optionalDigits(data.cep);
+      validateExactLength(patch.cep, 8, "CEP");
     }
 
     const hasCidade = data?.cidade_nome !== undefined || data?.cidade_uf !== undefined;
     if (hasCidade) {
-      const nomeCidade = requiredText(data.cidade_nome, "Cidade");
-      const uf = requiredText(data.cidade_uf, "UF").toUpperCase();
-      if (!/^[A-Z]{2}$/.test(uf)) throw new Error("UF deve ter 2 letras.");
-      patch.cidade_id = await resolveCidade(nomeCidade, uf);
+      const nomeCidade = optionalText(data.cidade_nome);
+      const uf = optionalText(data.cidade_uf)?.toUpperCase() ?? null;
+      if (!nomeCidade && !uf) {
+        patch.cidade_id = null;
+      } else {
+        if (!nomeCidade) throw new Error("Informe a cidade junto com a UF.");
+        if (!uf) throw new Error("Informe a UF junto com a cidade.");
+        if (!/^[A-Z]{2}$/.test(uf)) throw new Error("UF deve ter 2 letras.");
+        patch.cidade_id = await resolveCidade(nomeCidade, uf);
+      }
     }
 
-    await ensureUnique("nome", patch.nome ?? null, id);
     await ensureUnique("cnpj", patch.cnpj ?? null, id);
     await ensureUnique("email", patch.email ?? null, id);
 

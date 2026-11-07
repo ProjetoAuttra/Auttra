@@ -37,6 +37,16 @@ describe("pdfTemplates", () => {
     expect(tabela).not.toContain("<script>");
   });
 
+  it("oficina sem endereço (cadastro pelo site): cabeçalho sem sobras de vírgula, traço, CEP ou null", () => {
+    const topo = cabecalho(
+      { nome: "Oficina Nova", logradouro: null, numero: null, cep: null, cidade: null, whatsapp: "11999990000" },
+      { tipo: "Orçamento", numero: 1 }
+    );
+    expect(topo).toContain("Oficina Nova");
+    expect(topo).toContain("WhatsApp: 11999990000");
+    expect(topo).not.toMatch(/null|undefined|CEP|>\s*[,-]|[,-]\s*</);
+  });
+
   it("separa serviços e peças, com unidade só nas peças e quantidade fracionada em pt-BR", () => {
     const html = tabelasItens(itens);
     expect(html).toContain(">Serviços<");

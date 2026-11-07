@@ -22,9 +22,11 @@ import notificacoesRouter from "./notificacoes.routes.js";
 import configuracoesOperacionaisRouter from "./configuracoesOperacionais.routes.js";
 import whatsappRouter from "./whatsapp.routes.js";
 import sugestoesRouter from "./sugestoes.routes.js";
+import assinaturaRouter from "./assinatura.routes.js";
 import { authMiddleware, officeScopeMiddleware, requirePermission } from "../middlewares/ensureAuth.js";
 import type { AccessModule, AccessAction } from "../permissions/accessProfiles.js";
 import adminRouter from "./admin/index.js";
+import { assinaturaMiddleware } from "../middlewares/assinatura.js";
 
 import { LinksPublicosService } from "../services/linksPublicos.service.js";
 import { PdfHtmlService } from "../services/pdfservice.service.js";
@@ -87,6 +89,8 @@ router.post("/public/acompanhamento/:code/recusar", responderOrcamento("recusado
 
 router.use(authMiddleware);
 router.use(officeScopeMiddleware);
+// Teste vencido ou assinatura suspensa: só leitura (402 nas escritas).
+router.use(assinaturaMiddleware);
 
 const actionByMethod: Record<string, AccessAction> = {
   GET: "read",
@@ -99,6 +103,7 @@ const actionByMethod: Record<string, AccessAction> = {
 const modulePermission = (module: AccessModule) => (req: any, res: any, next: any) =>
   requirePermission(module, actionByMethod[req.method] ?? "read")(req, res, next);
 
+router.use("/assinatura", assinaturaRouter);
 router.use("/cidade", cidadeRouter);
 router.use("/notificacoes", notificacoesRouter);
 router.use("/configuracoes", configuracoesOperacionaisRouter);

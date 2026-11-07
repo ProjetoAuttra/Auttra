@@ -5,9 +5,17 @@ declare global {
     __DRIVEON_CONFIG__?: {
       API_URL?: string;
       TURNSTILE_SITE_KEY?: string;
+      SITE_URL?: string;
     };
   }
 }
+
+/** Site institucional (landing), onde ficam os Termos de uso e a Política de Privacidade. */
+export const siteUrl = (
+  window.__DRIVEON_CONFIG__?.SITE_URL ||
+  import.meta.env.VITE_SITE_URL ||
+  "https://auttra.com.br"
+).replace(/\/+$/, "");
 
 export const turnstileSiteKey =
   window.__DRIVEON_CONFIG__?.TURNSTILE_SITE_KEY ||
@@ -46,10 +54,30 @@ export function sessaoInvalida(error: unknown): boolean {
   return typeof message === "string" && (message === "Token inválido" || message.startsWith("Sessão encerrada"));
 }
 
+/** Evento disparado quando o back recusa uma escrita por falta de assinatura (402 ASSINATURA_NECESSARIA). */
+export const EVENTO_ASSINATURA_NECESSARIA = "auttra:assinatura-necessaria";
+
+let ultimaRecusaPorAssinatura = 0;
+
+/**
+ * A escrita acabou de ser recusada por falta de assinatura? O modal do Premium já explica o que houve,
+ * então o aviso genérico de erro da tela ("Não foi possível salvar…") fica de fora.
+ */
+export const recusadoPorAssinatura = () => Date.now() - ultimaRecusaPorAssinatura < 2000;
+
+export function assinaturaNecessaria(error: unknown): boolean {
+  return axios.isAxiosError(error) && error.response?.status === 402 && error.response.data?.code === "ASSINATURA_NECESSARIA";
+}
+
 // Sessão inválida: limpa o login local e volta para a tela de entrada (que, sem token, não redireciona de volta).
 api.interceptors.response.use(
   (res) => res,
   (error) => {
+    // Conta só leitura: o app abre o modal do Premium (AssinaturaProvider escuta este evento).
+    if (assinaturaNecessaria(error)) {
+      ultimaRecusaPorAssinatura = Date.now();
+      window.dispatchEvent(new Event(EVENTO_ASSINATURA_NECESSARIA));
+    }
     if (sessaoInvalida(error)) {
       for (const storage of [localStorage, sessionStorage]) {
         storage.removeItem("driveon:token");

@@ -16,6 +16,7 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  Link as MuiLink,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import Visibility from "@mui/icons-material/Visibility";
@@ -23,9 +24,10 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import { destinoAposLogin } from "../../../routes/navegacao";
+import { paths } from "../../../routes/paths";
 const logo = "/brand/svg/auttra-logo-azul.svg";
 import api, { turnstileSiteKey } from "../../../api/api";
 import { brand } from "../../../app/theme";
@@ -496,6 +498,15 @@ export default function Login() {
             </Stack>
           </form>
         </Box>
+
+        {!selectionToken && (
+          <Typography sx={{ textAlign: "center", mt: 3, fontSize: 14, color: alpha(INK, 0.62) }}>
+            Não tem conta?{" "}
+            <MuiLink component={RouterLink} to={paths.cadastro} sx={{ fontWeight: 600, color: BLUE_MAIN }}>
+              Teste 7 dias grátis
+            </MuiLink>
+          </Typography>
+        )}
 
         <Typography
           sx={{

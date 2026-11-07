@@ -8,6 +8,10 @@ import { ToastProvider } from '../context/ToastContext';
 import { ConfirmProvider } from '../context/ConfirmContext';
 import EsqueletoPagina from '../components/common/EsqueletoPagina';
 import { preCarregarTelas } from './telas';
+import FaixaAssinatura from '../components/layout/FaixaAssinatura';
+import PlanosDialog from '../modules/assinatura/components/PlanosDialog';
+import { AssinaturaProvider } from '../context/AssinaturaContext';
+import { ALTURA_FAIXA } from '../modules/assinatura/assinatura';
 
 export default function AppLayout() {
   const drawerWidth = 248;
@@ -21,55 +25,63 @@ export default function AppLayout() {
   const currentWidth = collapsed ? collapsedWidth : drawerWidth;
 
   return (
-    <ToastProvider>
-      <ConfirmProvider>
-        <Box
-          sx={{
-            display: 'flex',
-            minHeight: '100dvh',
-            bgcolor: 'background.default',
-          }}
-        >
-          <AppTopbar onMenuClick={() => setMobileOpen(true)} leftOffset={currentWidth} />
-          <AppSidebar
-            drawerWidth={drawerWidth}
-            mobileOpen={mobileOpen}
-            onCloseMobile={() => setMobileOpen(false)}
-          />
+    <AssinaturaProvider>
+      <ToastProvider>
+        <ConfirmProvider>
           <Box
-            component="main"
             sx={{
-              flexGrow: 1,
-              ml: { xs: 0, md: `${currentWidth}px` },
-              width: { xs: '100%', md: `calc(100% - ${currentWidth}px)` },
-              minHeight: '100dvh',
-              transition: 'all 0.3s ease',
               display: 'flex',
-              flexDirection: 'column',
+              minHeight: '100dvh',
               bgcolor: 'background.default',
-              overflow: 'hidden',
             }}
           >
-            <Toolbar sx={{ flexShrink: 0 }} />
+            {/* Acima de tudo: a barra do topo, o menu e o conteúdo descem a altura dela. */}
+            <FaixaAssinatura />
+            <PlanosDialog />
+            <AppTopbar onMenuClick={() => setMobileOpen(true)} leftOffset={currentWidth} />
+            <AppSidebar
+              drawerWidth={drawerWidth}
+              mobileOpen={mobileOpen}
+              onCloseMobile={() => setMobileOpen(false)}
+            />
             <Box
+              component="main"
               sx={{
                 flexGrow: 1,
-                width: '100%',
-                maxWidth: 1500,
-                mx: 'auto',
-                px: { xs: 1.5, sm: 2.5, md: 4 },
-                pt: { xs: 1.5, md: 2 },
-                pb: { xs: 3, md: 4 },
-                overflow: 'auto',
+                ml: { xs: 0, md: `${currentWidth}px` },
+                width: { xs: '100%', md: `calc(100% - ${currentWidth}px)` },
+                // Altura presa à tela: quem rola é só a área do conteúdo. Assim a barra de rolagem fica
+                // abaixo da faixa e da barra do topo, em vez de cortar a faixa no canto direito.
+                height: '100dvh',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                flexDirection: 'column',
+                bgcolor: 'background.default',
+                overflow: 'hidden',
               }}
             >
-              <Suspense fallback={<EsqueletoPagina />}>
-                <Outlet />
-              </Suspense>
+              <Box sx={{ height: ALTURA_FAIXA, flexShrink: 0 }} />
+              <Toolbar sx={{ flexShrink: 0 }} />
+              <Box sx={{ flexGrow: 1, minHeight: 0, overflow: 'auto' }}>
+                <Box
+                  sx={{
+                    width: '100%',
+                    maxWidth: 1500,
+                    mx: 'auto',
+                    px: { xs: 1.5, sm: 2.5, md: 4 },
+                    pt: { xs: 1.5, md: 2 },
+                    pb: { xs: 3, md: 4 },
+                  }}
+                >
+                  <Suspense fallback={<EsqueletoPagina />}>
+                    <Outlet />
+                  </Suspense>
+                </Box>
+              </Box>
             </Box>
           </Box>
-        </Box>
-      </ConfirmProvider>
-    </ToastProvider>
+        </ConfirmProvider>
+      </ToastProvider>
+    </AssinaturaProvider>
   );
 }

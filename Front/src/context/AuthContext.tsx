@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useMemo, useState } from
 import api from "../api/api";
 import type { AccessAction, AccessModule, PermissionsMap } from "../permissions/accessProfiles";
 import { hasPermission } from "../permissions/accessProfiles";
+import { CHAVE_FAIXA_FECHADA } from "../modules/assinatura/assinatura";
 
 type User = {
   id: number;
@@ -31,14 +32,30 @@ type SignInResult =
   | { requiresOfficeSelection: false }
   | { requiresOfficeSelection: true; selectionToken: string; oficinas: OfficeOption[] };
 
+export type DadosCadastro = {
+  nome: string;
+  oficina: string;
+  whatsapp: string;
+  email: string;
+  senha: string;
+  aceite_termos: boolean;
+  turnstileToken: string;
+  campanha?: Record<string, string> | null;
+  site?: string;
+};
+
 type AuthContextType = {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
   signIn: (email: string, password: string, remember: boolean, emailToken: string) => Promise<SignInResult>;
+  signUp: (dados: DadosCadastro) => Promise<void>;
   selectOffice: (selectionToken: string, oficinaId: number, remember: boolean) => Promise<void>;
   updateCurrentUser: (patch: Partial<User>) => void;
   can: (module: AccessModule, action?: AccessAction) => boolean;
+  /** Conta só leitura (teste vencido ou assinatura suspensa): o can() nega criar, editar e excluir. */
+  somenteLeitura: boolean;
+  definirSomenteLeitura: (valor: boolean) => void;
   signOut: () => void;
 };
 
@@ -78,6 +95,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storage = remember ? localStorage : sessionStorage;
     storage.setItem("driveon:token", t);
     storage.setItem("driveon:user", JSON.stringify(u));
+    // Login novo: a faixa de assinatura fechada pelo X volta a aparecer.
+    localStorage.removeItem(CHAVE_FAIXA_FECHADA);
     setToken(t);
     setUser(u);
     api.defaults.headers.common["Authorization"] = `Bearer ${t}`;
@@ -95,6 +114,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     persist(data.token, normalizeUser(data.usuario), remember);
     return { requiresOfficeSelection: false as const };
+  }, []);
+
+  // Cadastro pelo site: o back já devolve a sessão; fica lembrada neste navegador (conta recém-criada).
+  const signUp = useCallback(async (dados: DadosCadastro) => {
+    const { data } = await api.post("/auth/cadastro", dados);
+    persist(data.token, normalizeUser(data.usuario), true);
   }, []);
 
   const selectOffice = useCallback(async (selectionToken: string, oficinaId: number, remember: boolean) => {
@@ -127,9 +152,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     delete api.defaults.headers.common["Authorization"];
   };
 
+  // Situação da assinatura, avisada pelo AssinaturaProvider (que só existe dentro do sistema logado).
+  const [somenteLeitura, definirSomenteLeitura] = useState(false);
+
   const can = useCallback(
-    (module: AccessModule, action: AccessAction = "read") => hasPermission(user?.permissoes, module, action),
-    [user?.permissoes]
+    (module: AccessModule, action: AccessAction = "read") => {
+      // Só leitura: o back recusa a escrita (402), então a tela nem oferece. Relatórios seguem livres.
+      if (somenteLeitura && action !== "read" && module !== "relatorios") return false;
+      return hasPermission(user?.permissoes, module, action);
+    },
+    [user?.permissoes, somenteLeitura]
   );
 
   // ✅ Garante que o header Authorization sempre exista
@@ -143,12 +175,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       token,
       isAuthenticated: !!token,
       signIn,
+      signUp,
       selectOffice,
       updateCurrentUser,
       can,
+      somenteLeitura,
+      definirSomenteLeitura,
       signOut,
     }),
-    [user, token, signIn, selectOffice, updateCurrentUser, can]
+    [user, token, signIn, signUp, selectOffice, updateCurrentUser, can, somenteLeitura]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

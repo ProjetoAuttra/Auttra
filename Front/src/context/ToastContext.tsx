@@ -14,6 +14,7 @@ import ErrorRoundedIcon from "@mui/icons-material/ErrorRounded";
 import InfoRoundedIcon from "@mui/icons-material/InfoRounded";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import { recusadoPorAssinatura } from "../api/api";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -76,8 +77,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const success = useCallback((msg: string, t?: string) =>
         show({ message: msg, title: t, severity: "success" }), [show]);
 
-    const error = useCallback((msg: string, t?: string) =>
-        show({ message: msg, title: t, severity: "error", duration: 6000 }), [show]);
+    // Erro causado pela conta só leitura: quem avisa é o modal do Premium, não o aviso genérico da tela.
+    const error = useCallback((msg: string, t?: string) => {
+        if (recusadoPorAssinatura()) return;
+        show({ message: msg, title: t, severity: "error", duration: 6000 });
+    }, [show]);
 
     const warning = useCallback((msg: string, t?: string) =>
         show({ message: msg, title: t, severity: "warning" }), [show]);
