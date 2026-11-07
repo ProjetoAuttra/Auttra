@@ -1,7 +1,9 @@
 import "dotenv/config";
+import bcrypt from "bcryptjs";
 // Prisma 7 gera o client em src/generated (TS): o script usa o build (npm run build) e o mesmo
 // client da API, ja com o driver adapter configurado.
 import { prisma } from "../dist/src/prisma/client.js";
+import { ensureProfiles } from "../dist/src/services/admin/oficinas.service.js";
 
 function required(name, aliases = []) {
   const value = [name, ...aliases].map((key) => process.env[key]).find(Boolean);
@@ -13,72 +15,57 @@ function optional(name) {
   return process.env[name]?.trim() || undefined;
 }
 
-// importação dinâmica do service compilado, com fallback inline
-async function criarOficinaCompleta(input) {
-  try {
-    const { OficinasAdminService } = await import("../dist/services/admin/oficinas.service.js");
-    return OficinasAdminService.criarOficinaCompleta(input);
-  } catch {
-    // fallback: executa inline quando dist/ não está disponível
-    const bcrypt = (await import("bcryptjs")).default;
+/**
+ * Oficina inicial com o proprietario e uma senha conhecida (deploy novo e CI). Pode rodar de novo:
+ * reaproveita a oficina ativa de mesmo nome e o usuario de mesmo e-mail. O nome da oficina nao e
+ * unico no banco, por isso a busca e por nome e nao um upsert.
+ */
+async function criarOficinaInicial({ oficina: od, gestor: gd }) {
+  const senhaHash = await bcrypt.hash(gd.senha, 10);
 
-    const ACCESS_MODULES = [
-      "painel","agenda","clientes","veiculos","estoque","servicos",
-      "ordens","financeiro","fornecedores","orcamentos","funcionarios",
-      "relatorios","configuracoes","recursos_sistema",
-    ];
-    const ALL_ACTIONS = ["read","create","update","delete"];
-    const allPermissions = Object.fromEntries(ACCESS_MODULES.map((m) => [m, ALL_ACTIONS]));
+  return prisma.$transaction(async (tx) => {
+    const uf = od.uf.toUpperCase();
+    const cidade =
+      (await tx.cidade.findFirst({ where: { nome: od.cidade, uf } })) ??
+      (await tx.cidade.create({ data: { nome: od.cidade, uf } }));
 
-    const DEFAULT_PROFILES = [
-      { nome: "Proprietário", descricao: "Acesso total a todos os módulos e ações.", chave: "proprietario", padrao: true, permissoes: allPermissions },
-      { nome: "Mecânico", descricao: "Acesso operacional para execução de serviços e consulta de cadastros.", chave: "mecanico", padrao: false, permissoes: { painel:["read"],agenda:["read","update"],clientes:["read"],veiculos:["read"],estoque:["read"],servicos:["read"],ordens:["read","create","update"],orcamentos:["read","create","update"] } },
-      { nome: "Recepção", descricao: "Acesso para atendimento, agenda, clientes e abertura de ordens.", chave: "recepcao", padrao: false, permissoes: { painel:["read"],agenda:ALL_ACTIONS,clientes:["read","create","update"],veiculos:["read","create","update"],estoque:["read"],servicos:["read"],ordens:["read","create","update"],financeiro:["read","create","update"],fornecedores:["read"],orcamentos:["read","create","update"],funcionarios:["read"],relatorios:["read"] } },
-    ];
+    const dados = {
+      logradouro: od.logradouro,
+      numero: od.numero,
+      complemento: od.complemento ?? null,
+      cep: od.cep,
+      cidade_id: cidade.id,
+      telefone: od.telefone ?? null,
+      email: od.email ?? null,
+    };
+    const existente = await tx.oficina.findFirst({ where: { nome: od.nome, deleted_at: null }, orderBy: { id: "asc" } });
+    const oficina = existente
+      ? await tx.oficina.update({ where: { id: existente.id }, data: dados })
+      : await tx.oficina.create({ data: { nome: od.nome, ...dados } });
 
-    return prisma.$transaction(async (tx) => {
-      const { oficina: od, gestor: gd } = input;
-      const cidade =
-        (await tx.cidade.findFirst({ where: { nome: od.cidade, uf: od.uf.toUpperCase() } })) ??
-        (await tx.cidade.create({ data: { nome: od.cidade, uf: od.uf.toUpperCase() } }));
+    const perfilProprietario = await ensureProfiles(tx, oficina.id);
 
-      const oficina = await tx.oficina.upsert({
-        where: { nome: od.nome },
-        update: { logradouro: od.logradouro, numero: od.numero, complemento: od.complemento ?? null, cep: od.cep, cidade_id: cidade.id, telefone: od.telefone ?? null, email: od.email ?? null, deleted_at: null },
-        create: { nome: od.nome, logradouro: od.logradouro, numero: od.numero, complemento: od.complemento ?? null, cep: od.cep, cidade_id: cidade.id, telefone: od.telefone ?? null, email: od.email ?? null },
-      });
-
-      for (const perfil of DEFAULT_PROFILES) {
-        await tx.perfil_acesso.upsert({
-          where: { oficina_id_nome: { oficina_id: oficina.id, nome: perfil.nome } },
-          update: { descricao: perfil.descricao, chave: perfil.chave, padrao: perfil.padrao, sistema: true, permissoes: perfil.permissoes, deleted_at: null },
-          create: { oficina_id: oficina.id, nome: perfil.nome, descricao: perfil.descricao, chave: perfil.chave, padrao: perfil.padrao, sistema: true, permissoes: perfil.permissoes },
-        });
-      }
-
-      const perfilProprietario = await tx.perfil_acesso.findFirstOrThrow({ where: { oficina_id: oficina.id, chave: "proprietario", deleted_at: null } });
-      const senhaHash = await bcrypt.hash(gd.senha, 10);
-
-      const usuario = await tx.usuario.upsert({
-        where: { email: gd.email.toLowerCase() },
-        update: { nome: gd.nome, senha: senhaHash, tipo: "gestoroficina", status: "ativo", deleted_at: null },
-        create: { nome: gd.nome, email: gd.email.toLowerCase(), senha: senhaHash, tipo: "gestoroficina", status: "ativo" },
-      });
-
-      await tx.usuario_oficina.upsert({
-        where: { usuario_id_oficina_id: { usuario_id: usuario.id, oficina_id: oficina.id } },
-        update: { perfil: "gestoroficina", perfil_acesso_id: perfilProprietario.id, status: "ativo", deleted_at: null },
-        create: { usuario_id: usuario.id, oficina_id: oficina.id, perfil: "gestoroficina", perfil_acesso_id: perfilProprietario.id, status: "ativo" },
-      });
-
-      await tx.oficina.update({ where: { id: oficina.id }, data: { gestor_usuario_id: usuario.id } });
-      return { oficina, usuario };
+    const email = gd.email.toLowerCase();
+    const usuario = await tx.usuario.upsert({
+      where: { email },
+      update: { nome: gd.nome, senha: senhaHash, tipo: "gestoroficina", status: "ativo", deleted_at: null },
+      create: { nome: gd.nome, email, senha: senhaHash, tipo: "gestoroficina", status: "ativo" },
     });
-  }
+
+    const vinculo = { perfil: "gestoroficina", perfil_acesso_id: perfilProprietario.id, status: "ativo" };
+    await tx.usuario_oficina.upsert({
+      where: { usuario_id_oficina_id: { usuario_id: usuario.id, oficina_id: oficina.id } },
+      update: { ...vinculo, deleted_at: null },
+      create: { usuario_id: usuario.id, oficina_id: oficina.id, ...vinculo },
+    });
+
+    await tx.oficina.update({ where: { id: oficina.id }, data: { gestor_usuario_id: usuario.id } });
+    return { oficina, usuario };
+  });
 }
 
 async function main() {
-  const result = await criarOficinaCompleta({
+  const result = await criarOficinaInicial({
     oficina: {
       nome: required("OFICINA_NOME"),
       logradouro: required("OFICINA_LOGRADOURO"),
