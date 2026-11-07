@@ -6,6 +6,7 @@ import { prisma } from "../prisma/client.js";
 import type { CadastroInput } from "../schemas/cadastro.schema.js";
 import { escapeHtml } from "../utils/escapeHtml.js";
 import { HttpError } from "../utils/httpError.js";
+import { urlDoApp } from "../utils/urlDoApp.js";
 import { ensureProfiles } from "./admin/oficinas.service.js";
 import { AdminAuditService } from "./admin/audit.service.js";
 import { fimDoTeste } from "./assinatura.service.js";
@@ -17,16 +18,6 @@ const emailJaCadastrado = () =>
 
 const CONFIRMACAO_VALIDADE = "30d";
 const PROPOSITO_CONFIRMACAO = "confirmar-email";
-
-// Mesma base dos links de redefinição de senha (o docker-compose local só define PASSWORD_RESET_URL_BASE).
-function appUrl() {
-  const base =
-    process.env.PASSWORD_RESET_URL_BASE?.trim() ||
-    process.env.FRONTEND_URL?.trim() ||
-    process.env.APP_URL?.trim() ||
-    "http://localhost:5173";
-  return base.replace(/\/+$/, "");
-}
 
 type Origem = { ip?: string | null; userAgent?: string | null };
 
@@ -43,7 +34,7 @@ export const ConfirmacaoEmailService = {
   },
 
   link(usuario: { id: number; email: string }) {
-    return `${appUrl()}/confirmar-email?token=${encodeURIComponent(this.gerarToken(usuario))}`;
+    return `${urlDoApp()}/confirmar-email?token=${encodeURIComponent(this.gerarToken(usuario))}`;
   },
 
   /** Marca o e-mail como confirmado. Confirmar de novo não é erro: devolve a data da primeira vez. */

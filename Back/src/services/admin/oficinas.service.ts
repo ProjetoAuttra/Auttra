@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import bcrypt from "bcrypt";
 import { prisma } from "../../prisma/client.js";
-import { calcularAssinatura, fimDoTeste, limparCacheAssinatura, type SituacaoAssinatura } from "../assinatura.service.js";
+import { SELECT_ASSINATURA, calcularAssinatura, fimDoTeste, limparCacheAssinatura, type SituacaoAssinatura } from "../assinatura.service.js";
 import type { AssinaturaAcao } from "../../schemas/admin/oficinas.schema.js";
 import { fimDoDiaSP, inicioDoDiaSP } from "../../utils/datas.js";
 import { HttpError } from "../../utils/httpError.js";
@@ -278,10 +278,7 @@ export const OficinasAdminService = {
    * Devolve a nova situação e a frase que vai para o histórico.
    */
   async alterarAssinatura(id: number, acao: AssinaturaAcao, agora: Date = new Date()) {
-    const atual = await prisma.oficina.findFirst({
-      where: { id },
-      select: { id: true, assinatura_status: true, teste_termina_em: true, assinatura_plano: true, assinatura_ativada_em: true },
-    });
+    const atual = await prisma.oficina.findFirst({ where: { id }, select: SELECT_ASSINATURA });
     if (!atual) throw new HttpError("Oficina não encontrada.", 404);
 
     let data: Record<string, unknown>;
@@ -314,11 +311,7 @@ export const OficinasAdminService = {
       mensagem = acao.motivo ? `Assinatura suspensa. Motivo: ${acao.motivo}` : "Assinatura suspensa.";
     }
 
-    const oficina = await prisma.oficina.update({
-      where: { id },
-      data,
-      select: { assinatura_status: true, teste_termina_em: true, assinatura_plano: true, assinatura_ativada_em: true },
-    });
+    const oficina = await prisma.oficina.update({ where: { id }, data, select: SELECT_ASSINATURA });
     limparCacheAssinatura(id);
 
     return { assinatura: calcularAssinatura(oficina, agora), anterior: calcularAssinatura(atual, agora), mensagem };

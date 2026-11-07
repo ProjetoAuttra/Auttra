@@ -7,9 +7,9 @@ export const ASSINATURA_NECESSARIA = "ASSINATURA_NECESSARIA";
 
 const METODOS_LEITURA = new Set(["GET", "HEAD", "OPTIONS"]);
 
-// Liberadas mesmo fora do prazo: relatórios só consultam, sugestão é o canal com a gente
-// e a própria assinatura precisa responder.
-const ROTAS_LIVRES = ["/relatorios", "/sugestoes", "/assinatura"];
+// Escritas liberadas mesmo fora do prazo: relatórios só consultam e sugestão é o canal com a gente.
+// Lista mínima de propósito: rota nova de escrita (ex.: checkout do gateway) entra aqui conscientemente.
+const ROTAS_LIVRES = ["/relatorios", "/sugestoes"];
 
 const livre = (path: string) => ROTAS_LIVRES.some((rota) => path === rota || path.startsWith(`${rota}/`));
 
