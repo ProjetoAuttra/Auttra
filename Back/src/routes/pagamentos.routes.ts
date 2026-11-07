@@ -23,6 +23,7 @@ router.get("/", async (req, res) => {
       tipo: textoQuery(req.query.tipo) || undefined,
       status: textoQuery(req.query.status) || undefined,
       metodo: textoQuery(req.query.metodo) || undefined,
+      maquininha: textoQuery(req.query.maquininha) || undefined,
       fornecedor_id: req.query.fornecedor_id ? Number(req.query.fornecedor_id) : undefined,
       vencimento_de: textoQuery(req.query.vencimento_de) || undefined,
       vencimento_ate: textoQuery(req.query.vencimento_ate) || undefined,
@@ -63,7 +64,13 @@ router.get("/extrato/resumo", async (req, res) => {
 router.get("/extrato/efetivacao", async (req, res) => {
   const data = await PagamentosService.extratoEfetivacao(
     getRequiredOfficeId(req),
-    { de: textoQuery(req.query.de) || undefined, ate: textoQuery(req.query.ate) || undefined, tipo: textoQuery(req.query.tipo) || undefined },
+    {
+      de: textoQuery(req.query.de) || undefined,
+      ate: textoQuery(req.query.ate) || undefined,
+      tipo: textoQuery(req.query.tipo) || undefined,
+      metodo: textoQuery(req.query.metodo) || undefined,
+      maquininha: textoQuery(req.query.maquininha) || undefined,
+    },
     parsePaginacao(req.query)
   );
   responderLista(res, data);

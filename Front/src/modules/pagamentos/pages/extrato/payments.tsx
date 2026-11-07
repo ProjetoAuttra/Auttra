@@ -1,8 +1,9 @@
 import * as React from "react";
 import {
-  Box, Button, Chip, Fade, MenuItem, Stack, Table, TableBody, TableCell, TableHead,
+  Badge, Box, Button, Checkbox, Chip, Fade, ListItemText, MenuItem, Stack, Table, TableBody, TableCell, TableHead,
   TablePagination, TableRow, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from "@mui/material";
+import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import { alpha } from "@mui/material/styles";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import ArrowDownwardRoundedIcon from "@mui/icons-material/ArrowDownwardRounded";
@@ -18,7 +19,9 @@ import CampoData from "../../../../components/common/CampoData";
 import EmptyState from "../../../../components/common/EmptyState";
 import ListTableContainer from "../../../../components/common/ListTableContainer";
 import TextoLimitado from "../../../../components/common/TextoLimitado";
-import { brl, formatarData, rotuloMetodo } from "../../api/api";
+import { METODO_FILTRO_OPTIONS, brl, formatarData, rotuloMetodo } from "../../api/api";
+import { AppDrawer, DrawerSection } from "../../../../components/common/AppDrawer";
+import { listarMaquininhas, type Maquininha } from "../../../configuracoes/api/maquininhas";
 import LinhasEsqueleto from "../../../../components/common/LinhasEsqueleto";
 
 /** Título pago, como vem de GET /pagamentos (visão por recebimento). */
@@ -85,7 +88,11 @@ type ACair = { total: number; qtd: number; proxima: string | null; ultima: strin
 type Tipo = "todos" | "receber" | "pagar";
 /** Efetivação: quando e quanto cai na conta (cartão líquido, por parcela). Recebimento: no dia da venda, bruto. */
 type Visao = "efetivacao" | "recebimento";
-type Filtros = { visao: Visao; tipo: Tipo; de: string; ate: string };
+/** Visão e período ficam na tela; movimento, formas e maquininhas, no painel de filtros. */
+type Filtros = { visao: Visao; tipo: Tipo; de: string; ate: string; metodos: string[]; maquininhas: string[] };
+
+/** Filtros do painel lateral que estão ligados (para o número no botão). */
+const contarAvancados = (f: Filtros) => (f.tipo !== "todos" ? 1 : 0) + (f.metodos.length ? 1 : 0) + (f.maquininhas.length ? 1 : 0);
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
@@ -96,6 +103,8 @@ function filtrosPadrao(hoje = new Date()): Filtros {
     tipo: "todos",
     de: iso(new Date(hoje.getFullYear(), hoje.getMonth(), 1)),
     ate: iso(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0)),
+    metodos: [],
+    maquininhas: [],
   };
 }
 
@@ -108,7 +117,22 @@ export default function ExtratoFinanceiro() {
   const { error } = useToast();
   const [filtros, setFiltros] = React.useState<Filtros>(() => filtrosPadrao());
   const padrao = filtrosPadrao();
-  const filtrado = filtros.tipo !== padrao.tipo || filtros.de !== padrao.de || filtros.ate !== padrao.ate;
+  const avancados = contarAvancados(filtros);
+  const filtrado = avancados > 0 || filtros.de !== padrao.de || filtros.ate !== padrao.ate;
+  const [painelAberto, setPainelAberto] = React.useState(false);
+  const [rascunho, setRascunho] = React.useState(filtros);
+  const abrirPainel = () => { setRascunho(filtros); setPainelAberto(true); };
+  const limparTudo = () => setFiltros((f) => ({ ...filtrosPadrao(), visao: f.visao }));
+
+  // Opções de maquininha do painel (inclui as inativas para quem pode ver; recebimentos antigos podem ser delas).
+  const [maquininhas, setMaquininhas] = React.useState<Maquininha[]>([]);
+  React.useEffect(() => {
+    let ativo = true;
+    listarMaquininhas(true)
+      .then((l) => { if (ativo) setMaquininhas(Array.isArray(l) ? l : []); })
+      .catch(() => {});
+    return () => { ativo = false; };
+  }, []);
   const periodoInvalido = !!filtros.de && !!filtros.ate && filtros.de > filtros.ate;
   const efetivacao = filtros.visao === "efetivacao";
 
@@ -125,6 +149,8 @@ export default function ExtratoFinanceiro() {
       filtros: {
         ...(efetivacao ? {} : { status: "pago", ordem: "pagamento" }),
         tipo: filtros.tipo === "todos" ? "" : filtros.tipo,
+        metodo: filtros.metodos.join(","),
+        maquininha: filtros.maquininhas.join(","),
         ...(periodoInvalido ? {} : periodo),
       },
       onError: (err) => {
@@ -166,7 +192,7 @@ export default function ExtratoFinanceiro() {
     if (!aCair?.ultima) return;
     const amanha = new Date();
     amanha.setDate(amanha.getDate() + 1);
-    setFiltros((f) => ({ ...f, visao: "efetivacao", tipo: "receber", de: iso(amanha), ate: aCair.ultima! }));
+    setFiltros((f) => ({ ...f, visao: "efetivacao", tipo: "receber", metodos: [], maquininhas: [], de: iso(amanha), ate: aCair.ultima! }));
   };
 
   const valorCard = (v: number | undefined) => (resumoFalhou || v === undefined ? "—" : brl(v));
@@ -229,18 +255,6 @@ export default function ExtratoFinanceiro() {
           <ToggleButton value="efetivacao">Efetivação</ToggleButton>
           <ToggleButton value="recebimento">Recebimento</ToggleButton>
         </ToggleButtonGroup>
-        <TextField
-          select
-          size="small"
-          label="Movimento"
-          value={filtros.tipo}
-          onChange={(e) => setFiltros((f) => ({ ...f, tipo: e.target.value as Tipo }))}
-          sx={{ minWidth: 160 }}
-        >
-          <MenuItem value="todos">Entradas e saídas</MenuItem>
-          <MenuItem value="receber">Só entradas</MenuItem>
-          <MenuItem value="pagar">Só saídas</MenuItem>
-        </TextField>
         <Box sx={{ width: { xs: "100%", md: 170 } }}>
           <CampoData label="Data inicial" value={filtros.de} onChange={(v) => setFiltros((f) => ({ ...f, de: v }))} />
         </Box>
@@ -255,15 +269,107 @@ export default function ExtratoFinanceiro() {
         </Box>
         <Box sx={{ flex: 1 }} />
         {filtrado && (
-          <Button
-            size="small"
-            onClick={() => setFiltros((f) => ({ ...filtrosPadrao(), visao: f.visao }))}
-            sx={{ textTransform: "none", fontWeight: 600, alignSelf: { md: "center" } }}
-          >
+          <Button size="small" onClick={limparTudo} sx={{ textTransform: "none", fontWeight: 600, alignSelf: { md: "center" } }}>
             Limpar filtros
           </Button>
         )}
+        <Badge badgeContent={avancados} color="primary" invisible={!avancados} sx={{ alignSelf: { md: "center" } }}>
+          <Button variant="outlined" startIcon={<TuneRoundedIcon />} onClick={abrirPainel} sx={{ textTransform: "none", fontWeight: 600, borderRadius: "999px" }}>
+            Filtros
+          </Button>
+        </Badge>
       </Stack>
+
+      <AppDrawer
+        open={painelAberto}
+        onClose={() => setPainelAberto(false)}
+        title="Filtros"
+        subtitle="Refine o extrato"
+        icon={<TuneRoundedIcon />}
+        width={440}
+        confirmDiscard={false}
+        footer={
+          <>
+            <Button onClick={() => setRascunho((r) => ({ ...r, tipo: "todos", metodos: [], maquininhas: [] }))} disabled={!contarAvancados(rascunho)}>
+              Limpar
+            </Button>
+            <Stack direction="row" spacing={1.5}>
+              <Button onClick={() => setPainelAberto(false)} variant="outlined">Cancelar</Button>
+              <Button
+                onClick={() => {
+                  setFiltros((f) => ({ ...f, tipo: rascunho.tipo, metodos: rascunho.metodos, maquininhas: rascunho.maquininhas }));
+                  setPainelAberto(false);
+                }}
+                variant="contained"
+                disableElevation
+                sx={{ fontWeight: 700 }}
+              >
+                Aplicar
+              </Button>
+            </Stack>
+          </>
+        }
+      >
+        <DrawerSection title="Filtros">
+          <Stack spacing={2}>
+            <TextField
+              select
+              size="small"
+              label="Movimento"
+              value={rascunho.tipo}
+              onChange={(e) => setRascunho((r) => ({ ...r, tipo: e.target.value as Tipo }))}
+            >
+              <MenuItem value="todos">Entradas e saídas</MenuItem>
+              <MenuItem value="receber">Só entradas</MenuItem>
+              <MenuItem value="pagar">Só saídas</MenuItem>
+            </TextField>
+            <TextField
+              select
+              size="small"
+              label="Forma de pagamento"
+              value={rascunho.metodos}
+              onChange={(e) => setRascunho((r) => ({ ...r, metodos: e.target.value as unknown as string[] }))}
+              InputLabelProps={{ shrink: true }}
+              SelectProps={{
+                multiple: true,
+                displayEmpty: true,
+                renderValue: (v) =>
+                  (v as string[]).length ? METODO_FILTRO_OPTIONS.filter((m) => (v as string[]).includes(m.value)).map((m) => m.label).join(", ") : "Todas",
+              }}
+            >
+              {METODO_FILTRO_OPTIONS.map((m) => (
+                <MenuItem key={m.value} value={m.value} dense>
+                  <Checkbox size="small" checked={rascunho.metodos.includes(m.value)} />
+                  <ListItemText primary={m.label} />
+                </MenuItem>
+              ))}
+            </TextField>
+            {maquininhas.length > 0 && (
+              <TextField
+                select
+                size="small"
+                label="Maquininha"
+                value={rascunho.maquininhas}
+                onChange={(e) => setRascunho((r) => ({ ...r, maquininhas: e.target.value as unknown as string[] }))}
+                InputLabelProps={{ shrink: true }}
+                SelectProps={{
+                  multiple: true,
+                  displayEmpty: true,
+                  renderValue: (v) =>
+                    (v as string[]).length ? maquininhas.filter((m) => (v as string[]).includes(String(m.id))).map((m) => m.nome).join(", ") : "Todas",
+                }}
+              >
+                {maquininhas.map((m) => (
+                  <MenuItem key={m.id} value={String(m.id)} dense>
+                    <Checkbox size="small" checked={rascunho.maquininhas.includes(String(m.id))} />
+                    <ListItemText primary={m.nome} secondary={m.ativo ? undefined : "Inativa"} />
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+          </Stack>
+        </DrawerSection>
+      </AppDrawer>
 
       <Fade in timeout={400}>
         <ListTableContainer>
@@ -320,7 +426,7 @@ export default function ExtratoFinanceiro() {
                           : "Recebimentos e pagamentos registrados aparecem aqui pela data em que foram pagos."
                       }
                       isFiltered={filtrado}
-                      onClearFilter={() => setFiltros((f) => ({ ...filtrosPadrao(), visao: f.visao }))}
+                      onClearFilter={limparTudo}
                     />
                   </TableCell>
                 </TableRow>

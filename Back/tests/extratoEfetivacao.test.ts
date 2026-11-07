@@ -130,6 +130,18 @@ describe.skipIf(!process.env.DATABASE_URL)("extrato por efetivação", () => {
     expect(dez).toMatchObject({ data: "2026-12-10", valor: 95, valor_bruto: 100, valor_taxa: 5, parcela: 1, total_parcelas: 3, maquininha: "Stone" });
   });
 
+  it("filtra por forma de pagamento e por maquininha, nas duas visões", async () => {
+    const pix = await efetivacao("2026-11-01", "2027-12-31&metodo=pix");
+    expect(pix.map((l: any) => l.metodo)).toEqual(["pix"]);
+
+    const daStone = await efetivacao("2026-11-01", `2027-12-31&maquininha=${maquininhaId}`);
+    expect(daStone.every((l: any) => l.maquininha_id === maquininhaId)).toBe(true);
+    expect(daStone).toHaveLength(4); // 3 parcelas do crédito + o débito
+
+    const recebimento = (await get(`/api/pagamentos?status=pago&maquininha=${maquininhaId}`).expect(200)).body;
+    expect(recebimento.map((p: any) => p.metodo).sort()).toEqual(["cartao_credito", "cartao_debito"]);
+  });
+
   it("pagina e informa o total", async () => {
     const r = await get("/api/pagamentos/extrato/efetivacao?de=2026-11-01&ate=2027-12-31&page=1&limit=2").expect(200);
     expect(r.body).toHaveLength(2);

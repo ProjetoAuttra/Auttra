@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -36,6 +36,7 @@ const respostas: Record<string, unknown> = {
   "/pagamentos": [tituloPago],
   "/pagamentos/extrato/resumo": { entradas: 300, saidas: 0, saldo: 300, qtd_entradas: 1, qtd_saidas: 0, taxas_cartao: 15 },
   "/pagamentos/extrato/a-cair": { total: 190, qtd: 2, proxima: "2027-01-09", ultima: "2027-02-08" },
+  "/configuracoes/maquininhas": [{ id: 4, nome: "Stone balcão", ativo: true }, { id: 5, nome: "Cielo antiga", ativo: false }],
 };
 
 beforeEach(() => {
@@ -93,5 +94,29 @@ describe("Extrato", () => {
       )
     );
     expect(screen.getByLabelText("Data final")).toHaveValue("2027-02-08");
+  });
+
+  it("o botão Filtros abre o painel e aplica movimento, forma e maquininha", async () => {
+    const user = abrir();
+    await screen.findByText(/parcela 1\/3/);
+    await user.click(screen.getByRole("button", { name: /filtros/i }));
+
+    await user.click(await screen.findByRole("combobox", { name: /forma de pagamento/i }));
+    await user.click(within(await screen.findByRole("listbox")).getByRole("option", { name: "PIX" }));
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("combobox", { name: /maquininha/i }));
+    const lista = await screen.findByRole("listbox");
+    expect(within(lista).getByText("Inativa")).toBeInTheDocument();
+    await user.click(within(lista).getByRole("option", { name: /Stone balcão/ }));
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "Aplicar" }));
+
+    await waitFor(() =>
+      expect(get).toHaveBeenCalledWith(
+        "/pagamentos/extrato/efetivacao",
+        expect.objectContaining({ params: expect.objectContaining({ metodo: "pix", maquininha: "4" }) })
+      )
+    );
+    expect(screen.getByText("2")).toBeInTheDocument(); // dois filtros ligados no botão
   });
 });

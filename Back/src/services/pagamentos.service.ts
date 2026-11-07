@@ -310,12 +310,17 @@ function janelaPagamento(filtros: { pagamento_de?: string; pagamento_ate?: strin
  * - O resto (pix, dinheiro, pagamentos, cartão sem maquininha): o título pago, no dia do pagamento.
  * `de`/`ate` são dias (YYYY-MM-DD) no fuso da oficina, inclusive.
  */
-function sqlEfetivacao(oficinaId: number, f: { de?: string; ate?: string; tipo?: string }) {
+function sqlEfetivacao(oficinaId: number, f: { de?: string; ate?: string; tipo?: string; metodo?: string; maquininha?: string }) {
   const de = dataIso(f.de);
   const ate = dataIso(f.ate);
   const tipo = f.tipo === "receber" || f.tipo === "pagar" ? f.tipo : null;
   const periodo = Prisma.sql`${de ? Prisma.sql`AND l.data >= ${f.de}::date` : Prisma.empty} ${ate ? Prisma.sql`AND l.data <= ${f.ate}::date` : Prisma.empty}`;
   const filtroTipo = tipo ? Prisma.sql`AND l.tipo = ${tipo}` : Prisma.empty;
+  // Listas separadas por vírgula, como em GET /pagamentos.
+  const metodos = listaCsv(f.metodo).filter((m) => METODOS.includes(m));
+  const filtroMetodo = metodos.length ? Prisma.sql`AND l.metodo IN (${Prisma.join(metodos)})` : Prisma.empty;
+  const maquininhas = listaCsv(f.maquininha).map(Number).filter((n) => Number.isInteger(n) && n > 0);
+  const filtroMaquininha = maquininhas.length ? Prisma.sql`AND l.maquininha_id IN (${Prisma.join(maquininhas)})` : Prisma.empty;
   return Prisma.sql`
     SELECT * FROM (
       SELECT 'p' || p.id AS chave, p.id AS pagamento_id, p.tipo::text AS tipo,
@@ -325,7 +330,7 @@ function sqlEfetivacao(oficinaId: number, f: { de?: string; ate?: string; tipo?:
                   ELSE (p.data_pagamento AT TIME ZONE ${FUSO_OFICINA})::date END AS data,
              p.valor_pago AS valor, p.valor_pago AS valor_bruto, 0::numeric AS valor_taxa,
              p.descricao, p.categoria, p.metodo::text AS metodo, p.cartao_parcelas,
-             NULL::int AS parcela, NULL::int AS total_parcelas, NULL::text AS maquininha,
+             NULL::int AS parcela, NULL::int AS total_parcelas, NULL::text AS maquininha, p.maquininha_id,
              c.nome AS cliente, f.nome AS fornecedor
       FROM pagamento p
       LEFT JOIN cliente c ON c.id = p.cliente_id
@@ -336,7 +341,7 @@ function sqlEfetivacao(oficinaId: number, f: { de?: string; ate?: string; tipo?:
       SELECT 'r' || r.id, p.id, p.tipo::text, r.data_prevista,
              r.valor_liquido, r.valor_bruto, r.valor_taxa,
              p.descricao, p.categoria, p.metodo::text, p.cartao_parcelas,
-             r.parcela, r.total_parcelas, q.nome,
+             r.parcela, r.total_parcelas, q.nome, r.maquininha_id,
              c.nome, f.nome
       FROM recebivel r
       JOIN pagamento p ON p.id = r.pagamento_id
@@ -345,7 +350,7 @@ function sqlEfetivacao(oficinaId: number, f: { de?: string; ate?: string; tipo?:
       LEFT JOIN fornecedor f ON f.id = p.fornecedor_id
       WHERE r.oficina_id = ${oficinaId} AND p.deleted_at IS NULL AND p.status = 'pago'
     ) l
-    WHERE TRUE ${periodo} ${filtroTipo}
+    WHERE TRUE ${periodo} ${filtroTipo} ${filtroMetodo} ${filtroMaquininha}
   `;
 }
 
@@ -353,7 +358,7 @@ type LinhaEfetivacao = {
   chave: string; pagamento_id: number; tipo: string; data: Date;
   valor: Prisma.Decimal; valor_bruto: Prisma.Decimal; valor_taxa: Prisma.Decimal;
   descricao: string | null; categoria: string | null; metodo: string | null; cartao_parcelas: number | null;
-  parcela: number | null; total_parcelas: number | null; maquininha: string | null;
+  parcela: number | null; total_parcelas: number | null; maquininha: string | null; maquininha_id: number | null;
   cliente: string | null; fornecedor: string | null;
 };
 
@@ -370,6 +375,8 @@ export const PagamentosService = {
       status?: string;
       /** Lista separada por vírgula. */
       metodo?: string;
+      /** Ids de maquininha separados por vírgula. */
+      maquininha?: string;
       vencimento_de?: string;
       vencimento_ate?: string;
       /** Período em que o título foi pago/recebido (data_pagamento); exclui os ainda em aberto. */
@@ -391,6 +398,8 @@ export const PagamentosService = {
     if (filtros.fornecedor_id) where.fornecedor_id = filtros.fornecedor_id;
     const metodos = listaCsv(filtros.metodo).filter((m) => METODOS.includes(m));
     if (metodos.length) where.metodo = { in: metodos };
+    const maquininhas = listaCsv(filtros.maquininha).map(Number).filter((n) => Number.isInteger(n) && n > 0);
+    if (maquininhas.length) where.maquininha_id = { in: maquininhas };
 
     const and: any[] = [];
     // Vários status se combinam com OU; "vencido" é um pendente/parcial com vencimento anterior a `hoje`.
@@ -636,7 +645,11 @@ export const PagamentosService = {
   },
 
   /** Extrato por efetivação, paginado: mais recentes primeiro. */
-  async extratoEfetivacao(oficina_id: number, filtros: { de?: string; ate?: string; tipo?: string } = {}, pag: Paginacao | null = null) {
+  async extratoEfetivacao(
+    oficina_id: number,
+    filtros: { de?: string; ate?: string; tipo?: string; metodo?: string; maquininha?: string } = {},
+    pag: Paginacao | null = null
+  ) {
     if (!oficina_id) throw new Error("oficina_id e obrigatorio.");
     const base = sqlEfetivacao(oficina_id, filtros);
     const limite = pag ? Prisma.sql`LIMIT ${pag.limit} OFFSET ${pag.skip}` : Prisma.sql`LIMIT 200`;
