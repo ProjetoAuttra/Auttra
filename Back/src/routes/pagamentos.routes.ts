@@ -59,6 +59,29 @@ router.get("/extrato/resumo", async (req, res) => {
   );
 });
 
+// Extrato por efetivação: quando e quanto cai na conta (cartão líquido, por parcela).
+router.get("/extrato/efetivacao", async (req, res) => {
+  const data = await PagamentosService.extratoEfetivacao(
+    getRequiredOfficeId(req),
+    { de: textoQuery(req.query.de) || undefined, ate: textoQuery(req.query.ate) || undefined, tipo: textoQuery(req.query.tipo) || undefined },
+    parsePaginacao(req.query)
+  );
+  responderLista(res, data);
+});
+
+router.get("/extrato/efetivacao/resumo", async (req, res) => {
+  res.json(
+    await PagamentosService.extratoEfetivacaoResumo(getRequiredOfficeId(req), {
+      de: textoQuery(req.query.de) || undefined,
+      ate: textoQuery(req.query.ate) || undefined,
+    })
+  );
+});
+
+router.get("/extrato/a-cair", async (req, res) => {
+  res.json(await PagamentosService.aCair(getRequiredOfficeId(req)));
+});
+
 router.get("/:id/recibo", async (req, res) => {
   await PdfHtmlService.gerarReciboPDF(Number(req.params.id), res, getRequiredOfficeId(req), req.user?.id);
 });
